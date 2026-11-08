@@ -196,7 +196,7 @@ def main(argv: list[str] | None = None) -> None:
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
             items, proposal, usage = fix.propose(VAULT, findings, deps.llm)
             # Enter the graph as if the proposals had just been made: numbering, cross-check, review…
-            graph.update_state(config, fix.initial_state(label, items, proposal, usage), as_node="propose")
+            graph.update_state(config, fix.initial_state(label, items, proposal, usage, thread), as_node="propose")
             graph.invoke(None, config)
             show(graph, config)
             return

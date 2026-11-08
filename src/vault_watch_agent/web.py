@@ -325,7 +325,7 @@ def create_app(settings: Settings) -> FastAPI:
             deps = settings.make_deps(thread, "fix")
             items, proposal, usage = fix.propose(settings.vault, findings, deps.llm)
             job.events.append({"t": time.time(), "node": "propose", "cost": round(usage.get("cost_usd", 0.0), 2)})
-            graph.update_state(config(thread), fix.initial_state("errors reported in the interface", items, proposal, usage),
+            graph.update_state(config(thread), fix.initial_state("errors reported in the interface", items, proposal, usage, thread),
                                as_node="propose")
             follow(graph, job, None)
 

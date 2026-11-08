@@ -56,19 +56,38 @@ flowchart TD
   (`.agents/skills/vault-watch/`) and are loaded at run time: the agent applies the guide's rules, it does not
   keep its own copy.
 
+## How LangGraph is used
+
+| Feature | Where | What for |
+| :-- | :-- | :-- |
+| `StateGraph` over a `TypedDict` state | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | One node per step; the state holds plain JSON so a paused run can be stored |
+| Reducers (`Annotated[list, operator.add]`) | `state.py` | Parallel branches append their proposals and their usage without overwriting each other |
+| `Send` fan-out from a conditional edge | `fan_out` in `graph.py` | One `propose` branch per group of items, run in parallel (`max_concurrency`) |
+| `interrupt()` and `Command(resume=…)` | `review` and `publish` nodes | The two human pauses; the answer of the human is the value `interrupt()` returns |
+| `SqliteSaver` checkpointer, one thread per run | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` and `resume` are separate processes, days apart; the web page and the CLI share the runs |
+| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | A fix run makes its own proposals, then enters the graph as if `propose` had run: same review and PR |
+| `stream(stream_mode="updates")` | `web.py` | Each finished step is pushed to the page (server-sent events) |
+
 ## Usage
+
+Requirements: Python 3.11+, git, Node.js (the guide's audit scripts), the GitHub CLI `gh` authenticated (watch
+issues and artifacts, push, pull requests), an Anthropic API key, and a local clone of the guide.
 
 ```bash
 python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]"   # Windows; bin/ on Linux
-export VAULT_PATH=../ia-on-prem-vault                                    # local clone of the guide
-export ANTHROPIC_API_KEY=...                                             # gh must be authenticated too
+export VAULT_PATH=../ia-on-prem-vault                                    # local clone of the guide (default)
+export ANTHROPIC_API_KEY=...                                             # read by the Anthropic SDK
 ```
 
 ### Web interface
 
 ```bash
-vault-watch serve        # http://127.0.0.1:4430/
+vault-watch serve                     # http://127.0.0.1:4430/
+vault-watch serve --idle-exit 3600    # stops after 1 h without a visit or a running analysis
 ```
+
+With `--idle-exit`, the server can be started on demand by a launcher and forgotten: a run paused for review
+or publish loses nothing, its state is in the checkpoints.
 
 A FastAPI server drives the same graph as the command line, one screen per pause: the list of watch issues
 with their run status, a run in progress (each finished step streamed to the page by server-sent events), the
@@ -99,7 +118,7 @@ Other commands:
 ```bash
 vault-watch crosscheck issue-50                       # re-run the whole-guide cross-check of a paused run
 vault-watch fix fix-2026-11-08 --findings errors.txt  # reported errors → checked corrections, same review and PR flow
-vault-watch fix fix-2026-11-08 --from-threads issue-49,issue-50
+vault-watch fix fix-2026-11-09 --from-threads issue-49,issue-50   # the doubts noticed by the cross-checks
 vault-watch eval --issue 30 --at <commit> --truth <base>..<head> --variant full
 vault-watch costs --by month                          # or year, run, step
 ```
@@ -166,8 +185,38 @@ cache about 0.08 $. At two watches a month the upkeep is in the order of 100 $ a
   deciding that something belongs in the guide is the editor's call. Discovery is the next phase of the
   [roadmap](ROADMAP.md).
 
+## Limits
+
+- **One guide.** The agent is written for this guide: it relies on its watch workflow, its audit scripts, its
+  editorial brief and its FR + EN layout. Another knowledge base would need its own `collect` and `audits`.
+- **No additions yet.** New models and tools are listed as leads; drafting a new page is not automated.
+- **Dates are hard.** A release has a tag date, a publication date and a blog date; the evaluation shows the
+  agent and the human disagreeing on them. The agent declines when its sources do not settle it.
+- **The model stays a reviewer's assistant.** Every change goes through a human review and a merged pull
+  request; the agent never pushes to `main`.
+
+## Repository layout
+
+```
+src/vault_watch_agent/
+  graph.py       the graph: nodes, edges, the two pauses, report and PR text
+  state.py       graph state and the structured outputs the model must answer with (Pydantic)
+  llm.py         Claude calls: structured output, prompt caching, web search and fetch, cost journal
+  prompts.py     system prompts, built from the guide's own brief and translation policy
+  vault.py       deterministic side: search, exact-quote check, apply, whole-guide corpus
+  inputs.py      watch issue and workflow artifact (gh), freshness claims
+  crosscheck.py  whole-guide cross-check of the corrections
+  fix.py         fix runs: reported errors → corrections
+  evaluate.py    replay of past watches and judge
+  costs.py       cost journal totals
+  cli.py         command line
+  web.py         FastAPI server; static/ holds the page (vanilla JS, no build step)
+tests/           fake model, throwaway git repository standing for the guide
+metrics/         cost journal and evaluation results (versioned)
+```
+
 Architecture overview with diagrams (French, snapshot of 2026-11-08 before phase A):
-[docs/presentation.html](docs/presentation.html).
+[docs/presentation.html](docs/presentation.html). Next steps: [ROADMAP.md](ROADMAP.md).
 
 ## License
 

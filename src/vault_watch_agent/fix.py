@@ -63,14 +63,15 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM) -> tuple[list[dict],
     return items, proposal, usage
 
 
-def initial_state(label: str, items: list[dict], proposal: dict, usage: dict) -> dict:
+def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "") -> dict:
+    """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch."""
     today = date.today().isoformat()
     return {
         "source": f"errors reported in the vault ({label})",
         "issue": None,
         "as_of": today,
         "title": f"fix(content): reviewed corrections of errors reported in the vault ({label})",
-        "branch_name": f"fix/vault-errors-{today}",
+        "branch_name": f"fix/{thread or f'vault-errors-{today}'}",
         "items": items,
         "claims_due": [],
         "decisions": [],
