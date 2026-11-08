@@ -60,7 +60,31 @@ flowchart LR
 python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]"   # Windows; bin/ on Linux
 export VAULT_PATH=../ia-on-prem-vault                                    # local clone of the guide
 export ANTHROPIC_API_KEY=...                                             # gh must be authenticated too
+```
 
+### Web interface
+
+```bash
+vault-watch serve        # http://127.0.0.1:4430/
+```
+
+A FastAPI server drives the same graph as the command line, one screen per pause: the list of watch issues
+with their run status, a run in progress (each finished step streamed to the page by server-sent events), the
+review (one card per correction with a word-level diff of the current and proposed text, its sources and the
+cross-check's verdict; members of a group are ticked together), the publish step (audits, link problems, the
+diff of the branch), then the pull request. Two more pages report errors to fix and show what the upkeep
+costs. The interface is in French, like the guide.
+
+![Review screen](docs/review.png)
+
+Model calls run in a background thread per run and every step is checkpointed, so the page can be closed
+and a run started here can be resumed from the command line. The server listens on 127.0.0.1 only, refuses
+a non-local `Host` header (DNS rebinding) and requires an `X-Vault-Watch` header on every request that
+changes something, which a foreign web page cannot send without a CORS preflight the server never grants.
+
+### Command line
+
+```bash
 vault-watch run --issue 50                  # stops at the review, prints the report path
 vault-watch resume issue-50 --accept C1,C3  # or all / none; applies, translates, audits, stops again
 vault-watch resume issue-50 --publish yes   # push the branch and open the PR

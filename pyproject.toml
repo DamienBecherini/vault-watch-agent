@@ -10,10 +10,12 @@ dependencies = [
   "langgraph>=1.2",
   "langgraph-checkpoint-sqlite>=3.1",
   "pydantic>=2.14",
+  "fastapi>=0.162",
+  "uvicorn>=0.54",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "httpx>=0.28"]
 
 [project.scripts]
 vault-watch = "vault_watch_agent.cli:main"
@@ -24,6 +26,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+vault_watch_agent = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -32,7 +32,7 @@ def key(entry: dict, by: str) -> str:
     raise ValueError(by)
 
 
-def table(entries: list[dict], by: str) -> str:
+def totals(entries: list[dict], by: str) -> dict[str, dict]:
     rows: dict[str, dict] = defaultdict(lambda: {"calls": 0, "runs": set(), "in": 0, "out": 0, "cost": 0.0})
     for e in entries:
         r = rows[key(e, by)]
@@ -41,6 +41,17 @@ def table(entries: list[dict], by: str) -> str:
         r["in"] += e["input"] + e.get("cache_read", 0) + e.get("cache_write", 0)
         r["out"] += e["output"]
         r["cost"] += e.get("cost_usd", 0.0)
+    return rows
+
+
+def rows(entries: list[dict], by: str) -> list[dict]:
+    """The same totals as `table`, as JSON rows for the web interface."""
+    return [{"key": k, "runs": len(r["runs"]), "calls": r["calls"], "in": r["in"], "out": r["out"],
+             "cost": round(r["cost"], 2)} for k, r in sorted(totals(entries, by).items())]
+
+
+def table(entries: list[dict], by: str) -> str:
+    rows = totals(entries, by)
     label = {"month": "Month", "year": "Year", "run": "Run", "step": "Step"}[by]
     width = max([len(label), *(len(k) for k in rows)])
     lines = [f"{label:<{width}}  {'runs':>4}  {'calls':>5}  {'tokens in':>11}  {'out':>9}  {'cost $':>8}"]

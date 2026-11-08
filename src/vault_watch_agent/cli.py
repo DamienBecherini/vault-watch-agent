@@ -76,6 +76,29 @@ def run_eval(args, deps: Deps, saver) -> None:
     print(json.dumps({k: result[k] for k in ("issue", "variant", "scores", "run_cost_usd", "judge_cost_usd")}, indent=2))
 
 
+def make_deps(thread: str, kind: str) -> Deps:
+    """Model clients labelled with the run, so the cost journal says which run paid for what.
+    `view` builds a graph that only reads checkpoints: no client, no API key needed."""
+    from .llm import TRANSLATOR, Claude
+
+    if kind == "view":
+        return Deps(vault=VAULT, home=HOME, llm=None)
+    llm, translator = Claude(journal=JOURNAL), Claude(model=TRANSLATOR, journal=JOURNAL)
+    for model in (llm, translator):
+        model.run, model.kind = thread, kind
+    return Deps(vault=VAULT, home=HOME, llm=llm, translator=translator)
+
+
+def serve(port: int) -> None:
+    import uvicorn
+
+    from .web import Settings, create_app
+
+    app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps))
+    print(f"vault-watch: http://127.0.0.1:{port}/")
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+
+
 def main(argv: list[str] | None = None) -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(prog="vault-watch")
@@ -108,8 +131,13 @@ def main(argv: list[str] | None = None) -> None:
     e.add_argument("--tag", default="", help="suffix of the run label, to replay again after a change (e.g. -v2)")
     c = sub.add_parser("costs", help="what the upkeep costs, from the call journal")
     c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
+    w = sub.add_parser("serve", help="web interface on http://127.0.0.1:4430/ (same runs as the command line)")
+    w.add_argument("--port", type=int, default=4430)
     args = p.parse_args(argv)
 
+    if args.cmd == "serve":
+        serve(args.port)
+        return
     if args.cmd == "costs":
         from . import costs
 

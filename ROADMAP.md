@@ -65,8 +65,10 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   API's web fetch. First case: the OpenHuman architecture README (404).
 - [ ] **E5. Yield per source.** From past reports, leads per accepted addition; drop the feeds that never pay.
 
-## Phase F — publication
+## Phase F — publication and interface
 
 - [ ] Tools exposed through MCP (LangChain MCP adapters), so the same graph can be driven from Claude Code.
 - [x] README with the measures of B1 and C1, MIT licence.
-- [ ] Public GitHub repository, blog article.
+- [x] Public GitHub repository (source on Gitea, pushed to GitHub by a Gitea push mirror).
+- [x] Web interface: `vault-watch serve` (FastAPI, server-sent events), one screen per pause of the graph.
+- [ ] Blog article.
