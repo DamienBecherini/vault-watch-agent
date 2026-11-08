@@ -59,6 +59,11 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   (today advisories cover 9 tools out of about 25; Liquid AI, Microsoft, AllenAI, Aleph Alpha are not followed).
 - [ ] **E4. Gap-driven discovery, quarterly.** With the whole vault in context, list what an SME on-prem AI
   guide should cover and does not. The model's knowledge only generates leads; each one goes through D1–D4.
+- [x] **E6. External links of the changed pages checked before publish** (`links` node, the vault's
+  `audit-sources.mjs`), listed in the publish pause and in the PR.
+- [ ] **E7. Dead links fixed by a fix run.** The weekly source audit (warn-only today) feeds `vault-watch fix`:
+  find the moved page or an equivalent primary source on the web; tell a real 404 from an anti-bot 403 with the
+  API's web fetch. First case: the OpenHuman architecture README (404).
 - [ ] **E5. Yield per source.** From past reports, leads per accepted addition; drop the feeds that never pay.
 
 ## Phase F — publication
