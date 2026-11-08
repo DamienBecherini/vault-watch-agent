@@ -261,6 +261,21 @@ def build(deps: Deps, checkpointer=None):
         except RuntimeError as e:
             return {"audit_ok": False, "audit_log": str(e)[-3000:]}
 
+    # -- links: the external sources of the changed pages still answer (vault script, no model) --
+    def links(state: WatchState) -> dict:
+        wt = Path(state["worktree"])
+        out = deps.home / "downloads" / f"sources-{state['branch'].replace('/', '-')}.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            inputs.run(["node", "scripts/audit-sources.mjs", "--concurrency=8", "--timeout=15000", f"--json={out}"], cwd=wt)
+        except RuntimeError as e:
+            return {"link_problems": [f"source audit could not run: {str(e)[:200]}"]}
+        added = git("diff", "-U0", f"{deps.base}...HEAD", cwd=wt)
+        added = "\n".join(line for line in added.splitlines() if line.startswith("+"))
+        return {"link_problems": link_problems(json.loads(out.read_text(encoding="utf-8")),
+                                               {c["page"] for c in state["corrections"] if c["id"] in state["applied"]},
+                                               added)}
+
     # -- publish (interrupt 2) -------------------------------------------------
     def publish(state: WatchState) -> dict:
         diffstat = git("diff", "--stat", f"{deps.base}...HEAD", cwd=Path(state["worktree"]))
@@ -270,6 +285,7 @@ def build(deps: Deps, checkpointer=None):
                 "branch": state["branch"],
                 "audit_ok": state["audit_ok"],
                 "mirror_problems": state.get("mirror_problems", []),
+                "link_problems": state.get("link_problems", []),
                 "diffstat": diffstat,
                 "question": "Push the branch and open the pull request? yes / no",
             }
@@ -290,7 +306,7 @@ def build(deps: Deps, checkpointer=None):
     for name, fn in [("collect", collect), ("triage", triage), ("locate", locate), ("propose", propose),
                      ("number", number), ("crosscheck", crosscheck_node), ("report", report),
                      ("review", review), ("apply", apply), ("mirror", mirror), ("audits", audits),
-                     ("publish", publish)]:
+                     ("links", links), ("publish", publish)]:
         g.add_node(name, fn)
     g.add_edge(START, "collect")
     g.add_edge("collect", "triage")
@@ -303,7 +319,8 @@ def build(deps: Deps, checkpointer=None):
     g.add_conditional_edges("review", lambda s: "apply" if s.get("accepted") else END, ["apply", END])
     g.add_edge("apply", "mirror")
     g.add_edge("mirror", "audits")
-    g.add_edge("audits", "publish")
+    g.add_edge("audits", "links")
+    g.add_edge("links", "publish")
     g.add_edge("publish", END)
     return g.compile(checkpointer=checkpointer)
 
@@ -467,6 +484,27 @@ def usage_line(usage: list[dict]) -> str:
     return f"{len(usage)} calls, {tokens_in:,} in ({cache:,} from cache) / {tokens_out:,} out, ≈ {cost:.2f} $"
 
 
+BROKEN = {"dead", "server-error", "network-error", "timeout"}
+
+
+def link_problems(report: dict, pages: set[str], added: str) -> list[str]:
+    """Sources of the changed pages that do not answer, new ones (added by this run) first.
+
+    `blocked` (403 from anti-bot protections) is listed apart: the page usually opens in a browser.
+    """
+    rows = []
+    for s in report.get("sources", []):
+        status = (s.get("probe") or {}).get("status")
+        cited = sorted({c["page"] for c in s.get("citations", []) if c["page"] in pages})
+        if not cited or status not in BROKEN | {"blocked"}:
+            continue
+        new = s["url"] in added
+        code = (s.get("probe") or {}).get("code") or ""
+        label = "blocked by the site (anti-bot?), check in a browser" if status == "blocked" else f"{status} {code}".strip()
+        rows.append((status == "blocked", not new, f"{'NEW ' if new else ''}{label}: {s['url']} ({', '.join(cited)})"))
+    return [r[2] for r in sorted(rows)]
+
+
 def pr_title(state: WatchState) -> str:
     return state.get("title") or f"chore(watch): reviewed corrections, watch of {state['as_of']}"
 
@@ -481,6 +519,9 @@ def pr_body(state: WatchState) -> str:
         f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
         f"English mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
         + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
+        + "\nExternal sources of the changed pages (`scripts/audit-sources.mjs`): "
+        + ("all answer.\n" if not state.get("link_problems") else
+           "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
         +("" if state.get("audit_ok") else f"\n```\n{state.get('audit_log', '')}\n```\n")
     )
 

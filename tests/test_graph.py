@@ -128,6 +128,16 @@ def setup(tmp_path: Path):
         encoding="utf-8",
     )
     (repo / "scripts" / "run-audits.mjs").write_text("console.log('audits ok')\n", encoding="utf-8")
+    (repo / "scripts" / "audit-sources.mjs").write_text(
+        "import { writeFileSync } from 'node:fs';\n"
+        "const out = process.argv.find(a => a.startsWith('--json=')).slice(7);\n"
+        "writeFileSync(out, JSON.stringify({sources: [\n"
+        "  {url: 'https://example.org/gone', probe: {status: 'dead', code: 404}, citations: [{page: '03-stack/engines.md'}]},\n"
+        "  {url: 'https://example.org/vllm', probe: {status: 'ok', code: 200}, citations: [{page: '03-stack/engines.md'}]},\n"
+        "  {url: 'https://example.org/other', probe: {status: 'dead', code: 404}, citations: [{page: 'elsewhere.md'}]},\n"
+        "]}));\n",
+        encoding="utf-8",
+    )
     sh("git", "init", "-q", "-b", "main", cwd=repo)
     sh("git", "config", "user.name", "t", cwd=repo)
     sh("git", "config", "user.email", "t@t", cwd=repo)
@@ -169,6 +179,8 @@ def test_run_pauses_twice_and_applies_only_accepted(setup):
     graph.invoke(Command(resume=["C1"]), config)  # naming C1 accepts its group (C3, C5)
     second = graph.get_state(config).tasks[0].interrupts[0].value
     assert second["step"] == "publish" and second["audit_ok"] and second["mirror_problems"] == []
+    # Only the sources of the changed pages, and only those that do not answer
+    assert second["link_problems"] == ["dead 404: https://example.org/gone (03-stack/engines.md)"]
     state = graph.get_state(config).values
     assert state["applied"] == ["C1", "C3", "C5"]
     wt = Path(state["worktree"])
@@ -240,3 +252,15 @@ def test_fix_run_enters_the_graph_after_the_proposals(setup):
     assert paused.tasks[0].interrupts[0].value["step"] == "review"
     assert llm.calls == ["crosscheck"]  # straight to numbering and cross-check, no triage
     assert Path(paused.values["report_path"]).name.startswith("fix-vault-errors-")
+
+
+def test_link_problems_put_new_broken_links_first_and_blocked_last():
+    from vault_watch_agent.graph import link_problems
+
+    src = lambda url, status, page="p.md": {"url": url, "probe": {"status": status, "code": 404}, "citations": [{"page": page}]}
+    report = {"sources": [src("https://old/dead", "dead"), src("https://site/403", "blocked"),
+                          src("https://new/dead", "dead"), src("https://fine", "ok"), src("https://far", "dead", "q.md")]}
+    rows = link_problems(report, {"p.md"}, "+ see https://new/dead")
+    assert rows[0].startswith("NEW dead 404: https://new/dead")
+    assert rows[1].startswith("dead 404: https://old/dead")
+    assert "anti-bot" in rows[2] and len(rows) == 3

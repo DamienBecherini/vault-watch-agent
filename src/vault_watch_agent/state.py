@@ -107,6 +107,7 @@ class WatchState(TypedDict, total=False):
     applied: list[str]
     mirrored: list[str]  # EN pages updated
     mirror_problems: list[str]
+    link_problems: list[str]  # external sources of the changed pages that do not answer
     audit_ok: bool
     audit_log: str
     pr_url: str
