@@ -26,7 +26,7 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
 
 ## Phase C — corrections
 
-- [x] **C1. Whole French vault in context, with prompt caching** (done as the cross-check node).** ≈ 2 $ to write the cache, ≈ 0.08 $ per call
+- [x] **C1. Whole French vault in context, with prompt caching** (done as the cross-check node). ≈ 2 $ to write the cache, ≈ 0.08 $ per call
   after; the model sees every page concerned, footnotes and cross-page inconsistencies. Vector RAG only
   becomes useful past the context budget. Re-run B1 to compare.
 - [ ] **C2. Replace, do not pile up.** A page states the current fact; a correction replaces the old one,
