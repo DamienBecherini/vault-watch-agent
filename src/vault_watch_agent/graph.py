@@ -197,6 +197,10 @@ def build(deps: Deps, checkpointer=None):
         # A group with one member that fails the check cannot be applied consistently.
         broken = {c["group"] for c in corrections if c["check"] != "ok"}
         accepted = [c["id"] for c in corrections if c["group"] in groups - broken]
+        if not accepted and state.get("issue"):
+            # The watch is handled: its issue closes (a PR closes it on merge otherwise, see pr_body)
+            inputs.run(["gh", "issue", "close", str(state["issue"]), "--repo", deps.repo, "--comment",
+                        f"Reviewed with vault-watch-agent: no correction applied ({len(corrections)} proposed)."])
         return {"accepted": accepted}
 
     # -- apply ----------------------------------------------------------------
@@ -530,6 +534,7 @@ def pr_body(state: WatchState) -> str:
         + ("all answer.\n" if not state.get("link_problems") else
            "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
         +("" if state.get("audit_ok") else f"\n```\n{state.get('audit_log', '')}\n```\n")
+        + (f"\nCloses #{state['issue']}.\n" if state.get("issue") else "")  # the watch is handled once merged
     )
 
 

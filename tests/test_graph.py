@@ -15,7 +15,7 @@ from langgraph.types import Command
 
 from vault_watch_agent import vault
 from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck
-from vault_watch_agent.graph import Deps, build
+from vault_watch_agent.graph import Deps, build, pr_body
 from vault_watch_agent.state import (
     Correction,
     ClusterProposal,
@@ -275,3 +275,9 @@ def test_clusters_give_each_item_its_share_of_excerpts():
     texts = [e["text"] for e in excerpts]
     assert any(t == "DGX Spark price" for t in texts)  # the last item is not crowded out
     assert sum(len(t) for t in texts if t.startswith("first")) <= ITEM_EXCERPTS + 2100
+
+
+def test_pr_closes_the_watch_issue():
+    state = {"source": "issue #55", "issue": 55, "corrections": [], "applied": [], "audit_ok": True}
+    assert pr_body(state).rstrip().endswith("Closes #55.")
+    assert "Closes" not in pr_body({**state, "issue": None})  # fix runs have no issue

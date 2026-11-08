@@ -70,7 +70,7 @@ async function vueVeilles() {
             { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" }[r.status] || "Détails"}</button></a>`;
       return `<div class="carte ligne${FINIS.includes(r.status) ? " finie" : ""}">
         <div class="pousse">
-          <b>#${v.number}</b> ${esc(v.title)} ${v.urgent ? '<span class="pastille erreur">urgent</span>' : ""}
+          <b>#${v.number}</b> ${esc(v.title)} ${v.urgent ? `<span class="pastille ${FINIS.includes(r.status) ? "neutre" : "erreur"}">urgent</span>` : ""}
           <div class="doux petit">${v.date} · issue ${v.state === "open" ? "ouverte" : "fermée"}${
             !["new", "closed"].includes(r.status) ? ` · ${r.corrections} correction(s), ${r.applied} appliquée(s) · ${dollars(r.cost)}` : ""}${
             r.pr_url ? ` · <a href="${esc(r.pr_url)}" target="_blank" rel="noopener">pull request</a>` : ""}</div>
