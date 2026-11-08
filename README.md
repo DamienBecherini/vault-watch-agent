@@ -75,7 +75,8 @@ with their run status, a run in progress (each finished step streamed to the pag
 review (one card per correction with a word-level diff of the current and proposed text, its sources and the
 cross-check's verdict; members of a group are ticked together), the publish step (audits, link problems, the
 diff of the branch), then the pull request. Two more pages report errors to fix and show what the upkeep
-costs. The interface is in French, like the guide.
+costs. The interface is in English or French (toggle in the header, the browser language by default); the
+corrections themselves are in French, the language of the guide.
 
 ![Review screen](docs/review.png)
 
