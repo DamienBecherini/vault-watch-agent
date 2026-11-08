@@ -281,3 +281,8 @@ def test_pr_closes_the_watch_issue():
     state = {"source": "issue #55", "issue": 55, "corrections": [], "applied": [], "audit_ok": True}
     assert pr_body(state).rstrip().endswith("Closes #55.")
     assert "Closes" not in pr_body({**state, "issue": None})  # fix runs have no issue
+
+
+def test_a_date_bump_alone_is_left_to_apply():
+    assert vault.date_bump_only('last_modified: "2026-10-10"', 'last_modified: "2026-11-08"')
+    assert not vault.date_bump_only("vLLM 0.31", "vLLM 0.33")

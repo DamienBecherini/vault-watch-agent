@@ -127,6 +127,7 @@ def main(argv: list[str] | None = None) -> None:
     answer = s.add_mutually_exclusive_group(required=True)
     answer.add_argument("--accept", help="all, none, or ids like C1,C3")
     answer.add_argument("--publish", choices=["yes", "no"])
+    answer.add_argument("--retry", action="store_true", help="a run stopped by an error: run again from its last finished step")
     st = sub.add_parser("status")
     st.add_argument("thread")
     x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole French vault")
@@ -215,7 +216,9 @@ def main(argv: list[str] | None = None) -> None:
                 out.write_text(crosscheck.render(result, checks, usage, values["source"]), encoding="utf-8")
                 print(f"Cross-check written to {out} (≈ {usage['cost_usd']:.2f} $)")
                 return
-            if args.cmd == "resume":
+            if args.cmd == "resume" and args.retry:
+                graph.invoke(None, config)  # stopped by an error: run again from the last finished step
+            elif args.cmd == "resume":
                 if args.accept is not None:
                     value = args.accept if args.accept in ("all", "none") else args.accept.split(",")
                 else:

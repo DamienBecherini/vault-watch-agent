@@ -145,8 +145,10 @@ reading the misses says more than the number:
 - the substantive change of the watch (Open WebUI floor raised to 0.11.4 after 15 advisories) was found on every
   page that states it, plus one page the human had left out;
 - 9 of the 13 missed correction hunks change only a date (Ollama 0.40 « septembre » → « octobre » on 8 pages,
-  a footnote 2 → 3 October). GitHub gives 25 September for the Ollama release: the agent declined for lack of
-  evidence, which is defensible; the human's change is debatable;
+  a footnote 2 → 3 October). The GitHub release page shows 25 September and the agent declined. The human was
+  right: a later fix run found that 25 September is when the release object was created as v0.40.0-rc0, then
+  renamed through rc1–rc6; the stable v0.40.0 came out on 6 October (its changelog starts from v0.35.1,
+  released on 2 October). A miss, then, on a date the release page itself makes misleading;
 - additions (new paragraphs: real-time transcription, MCP supply chain) are listed as candidates by design and
   are not counted in the correction recall.
 
@@ -190,8 +192,8 @@ cache about 0.08 $. At two watches a month the upkeep is in the order of 100 $ a
 - **One guide.** The agent is written for this guide: it relies on its watch workflow, its audit scripts, its
   editorial brief and its FR + EN layout. Another knowledge base would need its own `collect` and `audits`.
 - **No additions yet.** New models and tools are listed as leads; drafting a new page is not automated.
-- **Dates are hard.** A release has a tag date, a publication date and a blog date; the evaluation shows the
-  agent and the human disagreeing on them. The agent declines when its sources do not settle it.
+- **Dates are hard.** A release has a creation date, a tag date and a publication date; the evaluation shows the
+  agent missing a date the release page made misleading. When its sources do not settle a date, it declines.
 - **The model stays a reviewer's assistant.** Every change goes through a human review and a merged pull
   request; the agent never pushes to `main`.
 

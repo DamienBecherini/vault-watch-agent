@@ -102,6 +102,12 @@ def check(vault: Path, page: str, current: str) -> str:
     return {0: "text-not-found", 1: "ok"}.get(count, "ambiguous")
 
 
+def date_bump_only(current: str, proposed: str) -> bool:
+    """An edit of the `last_modified` line alone: `apply` already bumps it, so the edit is redundant
+    (and its quote is gone once another edit of the same page has been applied)."""
+    return all(LAST_MODIFIED.fullmatch(t.strip()) for t in (current, proposed))
+
+
 def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> None:
     """Replace the single occurrence and bump `last_modified` in the frontmatter."""
     path = vault / page

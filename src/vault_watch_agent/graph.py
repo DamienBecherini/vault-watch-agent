@@ -212,7 +212,8 @@ def build(deps: Deps, checkpointer=None):
             git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
         chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
         for c in chosen:
-            vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
+            if not vault.date_bump_only(c["current"], c["proposed"]):  # apply bumps the date itself
+                vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
         pages = sorted({c["page"] for c in chosen})
         git("add", *pages, cwd=worktree)
         summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
@@ -245,6 +246,8 @@ def build(deps: Deps, checkpointer=None):
                 problems.append(f"{en}: {result.problem}")
             done = 0
             for e in result.edits:
+                if vault.date_bump_only(e.current, e.proposed):
+                    continue  # apply bumps the date itself
                 if vault.check(wt, en, e.current) == "ok":
                     vault.apply(wt, en, e.current, e.proposed, deps.today)
                     done += 1
