@@ -54,6 +54,9 @@ class Settings:
     pr_state: Callable[[str], str] | None = None  # "open", "merged" or "closed" for a PR url; default: gh
     repo: str = "DamienBecherini/ia-on-prem-vault"
     site: str = "https://ia-on-prem.damien.becherini.fr/"
+    notifier: Callable[[str, str, str], object] | None = None  # (title, body, url to open): notify.toast with --notify
+    notify_lang: str = "en"
+    base_url: str = "http://127.0.0.1:4430/"
 
 
 @dataclass
@@ -125,6 +128,37 @@ def create_app(settings: Settings) -> FastAPI:
             app.state.last_activity = time.time()
         return await call_next(request)
 
+    # -- desktop notification when background work stops: what the human has to do next ------------
+    MESSAGES = {
+        "fr": {"review": ("Relecture à faire", "{n} correction(s) proposée(s) : à toi de trancher."),
+               "publish": ("Publication à valider", "Corrections appliquées et contrôlées : la PR attend ton feu vert."),
+               "pr": ("Pull request ouverte", "À relire et fusionner sur GitHub."),
+               "nothing-applied": ("Passage clos", "Aucune correction appliquée."),
+               "error": ("Passage interrompu", "Erreur : {error}"),
+               "verif": ("Vérification terminée", "{n} piste(s) à traiter."), "verif-error": ("Vérification interrompue", "{error}")},
+        "en": {"review": ("Review pending", "{n} correction(s) proposed: your call."),
+               "publish": ("Publish pending", "Corrections applied and checked: the PR waits for your go-ahead."),
+               "pr": ("Pull request opened", "To review and merge on GitHub."),
+               "nothing-applied": ("Run closed", "No correction applied."),
+               "error": ("Run stopped", "Error: {error}"),
+               "verif": ("Check finished", "{n} lead(s) to handle."), "verif-error": ("Check stopped", "{error}")},
+    }
+
+    def announce(job: Job) -> None:
+        texts = MESSAGES.get(settings.notify_lang, MESSAGES["en"])
+        if job.thread.startswith("verif-"):
+            v = verif_view(verif_path(job.thread))
+            key, n, page = ("verif-error" if job.error else "verif"), v["counts"]["open"], f"#/verifier/{job.thread}"
+        else:
+            s = summary(job.thread)
+            key = ("error" if job.error else "pr" if s["pr_url"] else s["status"])
+            n, page = s["corrections"], f"#/run/{job.thread}"
+        if key not in texts:
+            return
+        title, body = texts[key]
+        settings.notifier(f"vault-watch · {job.thread} · {title}", body.format(n=n, error=job.error[:150]),
+                          settings.base_url + page)
+
     # -- background runs ---------------------------------------------------------------------
     def start(thread: str, action: str, kind: str, work: Callable[[object, Job], None]) -> Job:
         with lock:
@@ -139,6 +173,11 @@ def create_app(settings: Settings) -> FastAPI:
                 job.error = f"{type(e).__name__}: {e}"
             finally:
                 job.done = True
+                if settings.notifier:
+                    try:
+                        announce(job)
+                    except Exception:  # a notification never breaks a run
+                        pass
 
         threading.Thread(target=target, daemon=True, name=f"vault-watch {thread}").start()
         return job

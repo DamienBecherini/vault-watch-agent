@@ -84,6 +84,7 @@ export ANTHROPIC_API_KEY=...                                             # read 
 ```bash
 vault-watch serve                     # http://127.0.0.1:4430/
 vault-watch serve --idle-exit 3600    # stops after 1 h without a visit or a running analysis
+vault-watch serve --notify en         # Windows notification when a run waits for you, ends or fails
 ```
 
 With `--idle-exit`, the server can be started on demand by a launcher and forgotten: a run paused for review

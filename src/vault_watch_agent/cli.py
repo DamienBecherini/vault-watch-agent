@@ -89,7 +89,7 @@ def make_deps(thread: str, kind: str) -> Deps:
     return Deps(vault=VAULT, home=HOME, llm=llm, translator=translator)
 
 
-def serve(port: int, idle_exit: int = 0) -> None:
+def serve(port: int, idle_exit: int = 0, notify_lang: str | None = None) -> None:
     """`idle_exit` seconds without a request and without a running analysis stop the server (0: never).
     A run paused for review or publish loses nothing: its state is in the checkpoints."""
     import threading
@@ -97,9 +97,12 @@ def serve(port: int, idle_exit: int = 0) -> None:
 
     import uvicorn
 
+    from .notify import toast
     from .web import Settings, create_app
 
-    app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps))
+    app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps,
+                              notifier=toast if notify_lang else None, notify_lang=notify_lang or "en",
+                              base_url=f"http://127.0.0.1:{port}/"))
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     if idle_exit:
         def watch_idle():
@@ -150,10 +153,11 @@ def main(argv: list[str] | None = None) -> None:
     w.add_argument("--port", type=int, default=4430)
     w.add_argument("--idle-exit", type=int, default=0, metavar="SECONDS",
                    help="stop after this long without a request or a running analysis (0: never)")
+    w.add_argument("--notify", choices=["fr", "en"], help="desktop notification (Windows) when a run waits for you, ends or fails")
     args = p.parse_args(argv)
 
     if args.cmd == "serve":
-        serve(args.port, args.idle_exit)
+        serve(args.port, args.idle_exit, args.notify)
         return
     if args.cmd == "costs":
         from . import costs

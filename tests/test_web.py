@@ -92,3 +92,20 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
     assert act("open").json()["open"] == 1
     thread = c.post("/api/fix", json={"text": finding, "verification": vid}, headers=ACT).json()["thread"]
     assert c.get(f"/api/verifications/{vid}").json()["handled"][finding]["thread"] == thread  # linked to its fix run
+
+
+def test_a_notification_says_what_waits_for_the_human(setup, tmp_path):  # noqa: F811
+    deps, watch, llm = setup
+    sent = []
+    app = create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                              make_deps=lambda thread, kind: deps, list_issues=lambda: [],
+                              notifier=lambda *a: sent.append(a), notify_lang="fr"))
+    c = TestClient(app)
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=ACT).json()["thread"]
+    wait(c, thread)
+    for _ in range(100):  # the notification follows the end of the background work
+        if sent:
+            break
+        time.sleep(0.05)
+    title, body, url = sent[0]
+    assert "Relecture à faire" in title and "5 correction(s)" in body and url.endswith(f"#/run/{thread}")
