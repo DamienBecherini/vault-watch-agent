@@ -14,6 +14,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from vault_watch_agent import vault
+from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck
 from vault_watch_agent.graph import Deps, build
 from vault_watch_agent.state import (
     Correction,
@@ -59,9 +60,24 @@ class FakeLLM:
     def __init__(self):
         self.calls = []
 
-    def parse(self, *, system, prompt, schema, effort, node):
+    def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
         self.calls.append(node)
         usage = {"node": node, "model": "fake", "input": 10, "output": 5, "cache_read": 0}
+        if schema is CrossCheck:
+            assert web and '<page path="03-stack/engines.md">' in context  # the whole vault, sources online
+            return CrossCheck(
+                reviews=[
+                    CorrectionReview(id="C1", verdict="revise", reason="say the month",
+                                     revised="vLLM 0.33 est la version minimale recommandée depuis novembre 2026[^1]."),
+                    CorrectionReview(id="C3", verdict="keep", reason="matches the release", revised=""),
+                ],
+                consistency_edits=[
+                    ConsistencyEdit(page="03-stack/engines.md", current="Ollama reste le plus simple pour démarrer.",
+                                    proposed="Ollama reste le plus simple pour démarrer (vLLM 0.33 ensuite).",
+                                    reason="same floor elsewhere", related_to=["C1"]),
+                ],
+                other_findings=["a doubt elsewhere"],
+            ), usage
         if schema is TriageResult:
             assert "vault_contract" in system  # the vault's own brief is loaded at run time
             return TriageResult(decisions=[
@@ -139,24 +155,26 @@ def test_run_pauses_twice_and_applies_only_accepted(setup):
     first = graph.get_state(config).tasks[0].interrupts[0].value
     assert first["step"] == "review"
     checks = {c["id"]: c["check"] for c in first["corrections"]}
-    assert checks == {"C1": "ok", "C2": "text-not-found", "C3": "ok", "C4": "conflict with C1"}
+    assert checks == {"C1": "ok", "C2": "text-not-found", "C3": "ok", "C4": "conflict with C1", "C5": "ok"}
     groups = {c["id"]: c.get("group") for c in first["corrections"]}
-    assert groups == {"C1": "C1", "C2": None, "C3": "C1", "C4": None}  # sentence + footnote travel together
-    assert llm.calls == ["triage", "propose W1"]  # W2 dropped, W3 not in the vault
+    assert groups == {"C1": "C1", "C2": None, "C3": "C1", "C4": None, "C5": "C1"}  # footnote and cross-check edit join C1
+    assert llm.calls == ["triage", "propose W1", "crosscheck"]  # W2 dropped, W3 not in the vault
     decisions = {d["item_id"]: d for d in graph.get_state(config).values["decisions"]}
     assert decisions["W3"]["action"] == "addition"  # unlocated item becomes an addition candidate
     report = Path(first["report"]).read_text(encoding="utf-8")
     assert "text-not-found" in report and "2026-10-24" in report and "LFM3" in report
+    assert "revised by the cross-check" in report and "a doubt elsewhere" in report
     assert "0.31" in (deps.vault / "03-stack" / "engines.md").read_text(encoding="utf-8")  # untouched
 
-    graph.invoke(Command(resume=["C1"]), config)  # naming C1 accepts its group (C3)
+    graph.invoke(Command(resume=["C1"]), config)  # naming C1 accepts its group (C3, C5)
     second = graph.get_state(config).tasks[0].interrupts[0].value
     assert second["step"] == "publish" and second["audit_ok"] and second["mirror_problems"] == []
     state = graph.get_state(config).values
-    assert state["applied"] == ["C1", "C3"]
+    assert state["applied"] == ["C1", "C3", "C5"]
     wt = Path(state["worktree"])
     edited = (wt / "03-stack" / "engines.md").read_text(encoding="utf-8")
-    assert "vLLM 0.33 est la version minimale" in edited and "notes de version 0.33" in edited
+    assert "0.33 est la version minimale recommandée depuis novembre 2026" in edited and "notes de version 0.33" in edited
+    assert "(vLLM 0.33 ensuite)" in edited
     assert 'last_modified: "2026-11-08"' in edited
     english = (wt / "en" / "03-stack" / "engines.md").read_text(encoding="utf-8")
     assert "vLLM 0.33 is the recommended" in english and 'last_modified: "2026-11-08"' in english

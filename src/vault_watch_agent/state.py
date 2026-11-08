@@ -96,6 +96,7 @@ class WatchState(TypedDict, total=False):
     usage: Annotated[list[dict], operator.add]
     # Review
     corrections: list[dict]  # numbered C1, C2… with their deterministic check
+    findings: list[str]  # doubts the cross-check noticed elsewhere in the vault, not proposed
     report_path: str
     accepted: list[str]
     # Apply and publish

@@ -73,6 +73,48 @@ def run(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck,
     return result, usage, checks
 
 
+def amend(corrections: list[dict], result: CrossCheck, checks: list[str]) -> list[dict]:
+    """Fold the cross-check into the list the human reviews.
+
+    A revised correction keeps its id with the revised text; a rejected one is
+    refused like a failed quote check; each consistency edit becomes a new
+    correction in the group of the correction that requires it, so they are
+    accepted or refused together.
+    """
+    reviews = {r.id: r for r in result.reviews}
+    out = []
+    for c in corrections:
+        c = dict(c)
+        r = reviews.get(c["id"])
+        if r is None:
+            c["review"] = "not reviewed"
+        elif r.verdict == "revise" and r.revised.strip():
+            c["proposed_initial"], c["proposed"] = c["proposed"], r.revised
+            c["review"] = f"revised: {r.reason}"
+        elif r.verdict == "reject":
+            c["check"] = "rejected by the cross-check"
+            c["review"] = f"rejected: {r.reason}"
+        else:
+            c["review"] = f"keep: {r.reason}"
+        out.append(c)
+    by_id = {c["id"]: c for c in out}
+    known = {(c["page"], c["current"]) for c in out}
+    n = len(out)
+    for e, check in zip(result.consistency_edits, checks):
+        ref = next((by_id[i] for i in e.related_to if i in by_id), None)
+        if ref is None or (e.page, e.current) in known:
+            continue
+        n += 1
+        known.add((e.page, e.current))
+        out.append({
+            "id": f"C{n}", "item_id": ref["item_id"], "item_ids": ref["item_ids"], "proposal": ref["proposal"],
+            "page": e.page, "current": e.current, "proposed": e.proposed, "source_url": ref["source_url"],
+            "severity": ref["severity"], "rationale": e.reason, "group": ref["group"], "check": check,
+            "review": f"added by the cross-check for {', '.join(e.related_to)}",
+        })
+    return out
+
+
 def render(result: CrossCheck, checks: list[str], usage: dict, source: str) -> str:
     lines = [f"# Cross-check against the whole French vault — {source}", "",
              f"Model usage: {usage['input']:,} in + {usage.get('cache_write', 0):,} written to cache + "

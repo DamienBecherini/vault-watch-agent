@@ -16,7 +16,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import inputs, prompts, vault
+from . import crosscheck, inputs, prompts, vault
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
@@ -30,6 +30,7 @@ class Deps:
     home: Path  # working folder: downloads, reports, worktrees
     llm: LLM
     translator: LLM | None = None  # cheaper model for the English mirror; defaults to llm
+    crosscheck: bool = True  # re-read the corrections against the whole French vault before the review
     repo: str = "DamienBecherini/ia-on-prem-vault"
     base: str = "main"
     today: str = field(default_factory=lambda: date.today().isoformat())
@@ -37,6 +38,11 @@ class Deps:
 
 def git(*args: str, cwd: Path) -> str:
     return inputs.run(["git", *args], cwd=cwd)
+
+
+def sorted_proposals(state: WatchState) -> list[dict]:
+    order = {i["id"]: n for n, i in enumerate(state["items"])}
+    return sorted(state.get("proposals", []), key=lambda p: order[p["item_ids"][0]])
 
 
 def build(deps: Deps, checkpointer=None):
@@ -95,7 +101,7 @@ def build(deps: Deps, checkpointer=None):
                 state["evidence"], {d["item_id"]: d["search_terms"] for d in state["decisions"]}
             )
         ]
-        return sends or "report"
+        return sends or "number"
 
     # -- propose (one branch per group of items sharing pages, in parallel) ----
     def propose(payload: dict) -> dict:
@@ -131,10 +137,9 @@ def build(deps: Deps, checkpointer=None):
         }
         return {"proposals": [proposal], "usage": [u]}
 
-    # -- report ---------------------------------------------------------------
-    def report(state: WatchState) -> dict:
-        order = {i["id"]: n for n, i in enumerate(state["items"])}
-        proposals = sorted(state.get("proposals", []), key=lambda p: order[p["item_ids"][0]])
+    # -- number: C1, C2… groups, conflicts --------------------------------------
+    def number(state: WatchState) -> dict:
+        proposals = sorted_proposals(state)
         corrections = [
             {"id": f"C{n}", "item_id": c["item_ids"][0], "proposal": pi, **c}
             for n, (pi, c) in enumerate(((pi, c) for pi, p in enumerate(proposals) for c in p["corrections"]), start=1)
@@ -145,11 +150,25 @@ def build(deps: Deps, checkpointer=None):
             key = f"{c['proposal']}/{c['group']}" if c.get("group") else c["id"]
             c["group"] = first.setdefault(key, c["id"])
         mark_conflicts(deps.vault, corrections)
+        return {"corrections": corrections}
+
+    # -- crosscheck: every correction re-read against the whole French vault -----
+    def crosscheck_node(state: WatchState) -> dict:
+        corrections = state.get("corrections", [])
+        if not deps.crosscheck or not corrections:
+            return {}
+        result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm)
+        amended = crosscheck.amend(corrections, result, checks)
+        mark_conflicts(deps.vault, amended)
+        return {"corrections": amended, "findings": result.other_findings, "usage": [usage]}
+
+    # -- report ---------------------------------------------------------------
+    def report(state: WatchState) -> dict:
         name = f"watch-{state['as_of']}" + (f"-issue{state['issue']}" if state.get("issue") else "") + ".md"
         path = deps.home / "reports" / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(render_report(state, proposals, corrections), encoding="utf-8")
-        return {"corrections": corrections, "report_path": str(path)}
+        path.write_text(render_report(state, sorted_proposals(state), state.get("corrections", [])), encoding="utf-8")
+        return {"report_path": str(path)}
 
     # -- review (interrupt 1) -------------------------------------------------
     def review(state: WatchState) -> dict:
@@ -267,14 +286,17 @@ def build(deps: Deps, checkpointer=None):
 
     g = StateGraph(WatchState)
     for name, fn in [("collect", collect), ("triage", triage), ("locate", locate), ("propose", propose),
-                     ("report", report), ("review", review), ("apply", apply), ("mirror", mirror),
-                     ("audits", audits), ("publish", publish)]:
+                     ("number", number), ("crosscheck", crosscheck_node), ("report", report),
+                     ("review", review), ("apply", apply), ("mirror", mirror), ("audits", audits),
+                     ("publish", publish)]:
         g.add_node(name, fn)
     g.add_edge(START, "collect")
     g.add_edge("collect", "triage")
     g.add_edge("triage", "locate")
-    g.add_conditional_edges("locate", fan_out, ["propose", "report"])
-    g.add_edge("propose", "report")
+    g.add_conditional_edges("locate", fan_out, ["propose", "number"])
+    g.add_edge("propose", "number")
+    g.add_edge("number", "crosscheck")
+    g.add_edge("crosscheck", "report")
     g.add_edge("report", "review")
     g.add_conditional_edges("review", lambda s: "apply" if s.get("accepted") else END, ["apply", END])
     g.add_edge("apply", "mirror")
@@ -390,7 +412,9 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     ]
     if not corrections:
         lines.append("None.")
-    for c in corrections:
+    # Members of a group side by side, including the ones the cross-check added
+    num = lambda cid: int(cid[1:])
+    for c in sorted(corrections, key=lambda c: (num(c["group"]), num(c["id"]))):
         item = items[c["item_id"]]
         check = "" if c["check"] == "ok" else f" — ⚠️ **{c['check']}**: cannot be applied as is"
         grouped = c["group"] != c["id"] or _has_members(corrections, c)
@@ -400,11 +424,12 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
             "",
             f"From {', '.join(c['item_ids'])} [{item['title']}]({item['url']}). {c['rationale']}",
             "",
+            *([f"Cross-check: {c['review']}", ""] if c.get("review") else []),
             "Current:",
             "",
             *[f"> {line}" for line in c["current"].splitlines()],
             "",
-            "Proposed:",
+            "Proposed (revised by the cross-check):" if c.get("proposed_initial") else "Proposed:",
             "",
             *[f"> {line}" for line in c["proposed"].splitlines()],
             "",
@@ -420,6 +445,8 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     lines += ["", "## Addition candidates (not written, opportunity notes need a go-ahead)", ""]
     adds = [d for d in decisions if d["action"] == "addition"]
     lines += [f"- {d['item_id']} [{items[d['item_id']]['title']}]({items[d['item_id']]['url']}): {d['reason']}" for d in adds] or ["None."]
+    lines += ["", "## Noticed elsewhere in the vault by the cross-check (not proposed)", ""]
+    lines += [f"- {f}" for f in state.get("findings", [])] or ["None."]
     lines += ["", "## Claims due for re-check", ""]
     for claim in state.get("claims_due", []):
         lines.append(f"- {claim.get('recheckBy', '')} `{claim.get('page', '')}`: {_cell(str(claim.get('claim', '')))}")
