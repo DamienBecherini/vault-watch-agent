@@ -54,6 +54,8 @@ def main(argv: list[str] | None = None) -> None:
     answer.add_argument("--publish", choices=["yes", "no"])
     st = sub.add_parser("status")
     st.add_argument("thread")
+    x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole French vault")
+    x.add_argument("thread")
     args = p.parse_args(argv)
 
     HOME.mkdir(parents=True, exist_ok=True)
@@ -77,6 +79,15 @@ def main(argv: list[str] | None = None) -> None:
             graph.invoke(start, config)
         else:
             config = {"configurable": {"thread_id": args.thread}, "max_concurrency": 4}
+            if args.cmd == "crosscheck":
+                from . import crosscheck
+
+                values = graph.get_state(config).values
+                result, usage, checks = crosscheck.run(VAULT, values["corrections"], deps.llm)
+                out = Path(values["report_path"]).with_name(Path(values["report_path"]).stem + "-crosscheck.md")
+                out.write_text(crosscheck.render(result, checks, usage, values["source"]), encoding="utf-8")
+                print(f"Cross-check written to {out} (≈ {usage['cost_usd']:.2f} $)")
+                return
             if args.cmd == "resume":
                 if args.accept is not None:
                     value = args.accept if args.accept in ("all", "none") else args.accept.split(",")

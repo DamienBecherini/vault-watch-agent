@@ -20,6 +20,8 @@ T = TypeVar("T", bound=BaseModel)
 # Verification needs judgement: Opus. Mechanical work (translation, day 2): Sonnet.
 MODEL = "claude-opus-5-5"
 TRANSLATOR = "claude-sonnet-5-5"
+MAX_CONTINUATIONS = 5  # server-side tool loops resumed after pause_turn
+WEB_SEARCH_USD = 0.01  # 10 $ per 1,000 searches
 
 
 class ModelError(RuntimeError):
@@ -27,7 +29,8 @@ class ModelError(RuntimeError):
 
 
 class LLM(Protocol):
-    def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str) -> tuple[T, dict]: ...
+    def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
+              context: str | None = None) -> tuple[T, dict]: ...
 
 
 class Claude:
@@ -37,19 +40,48 @@ class Claude:
         # Reads ANTHROPIC_API_KEY from the environment (injected by sops, never stored here).
         self.client = client or anthropic.Anthropic()
 
-    def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str) -> tuple[T, dict]:
-        with self.client.beta.messages.stream(
-            model=self.model,
-            max_tokens=32000,
-            system=system,
-            messages=[{"role": "user", "content": prompt}],
-            output_format=schema,
-            output_config={"effort": effort},
-            # On a policy decline, the API re-runs the request on a fallback model.
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-        ) as stream:
-            message = stream.get_final_message()
+    def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
+              context: str | None = None, web: bool = False) -> tuple[T, dict]:
+        """`context` (the whole vault, for instance) goes first and is cached, so the next calls
+        within five minutes read it at the cache price instead of the full input price.
+        `web` lets the model search the web and open sources (server-side tools run by the API)."""
+        blocks = system
+        if context:
+            blocks = [{"type": "text", "text": context, "cache_control": {"type": "ephemeral"}},
+                      {"type": "text", "text": system}]
+        extra = {}
+        if web:
+            extra["tools"] = [
+                {"type": "web_search_20260209", "name": "web_search", "max_uses": 20},
+                {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 30},
+            ]
+        messages: list = [{"role": "user", "content": prompt}]
+        totals = {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0, "web_searches": 0}
+        for _ in range(MAX_CONTINUATIONS):
+            with self.client.beta.messages.stream(
+                model=self.model,
+                max_tokens=32000,
+                system=blocks,
+                messages=messages,
+                output_format=schema,
+                output_config={"effort": effort},
+                # On a policy decline, the API re-runs the request on a fallback model.
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+                **extra,
+            ) as stream:
+                message = stream.get_final_message()
+            u = message.usage
+            totals["input"] += u.input_tokens
+            totals["output"] += u.output_tokens
+            totals["cache_read"] += u.cache_read_input_tokens or 0
+            totals["cache_write"] += u.cache_creation_input_tokens or 0
+            stu = getattr(u, "server_tool_use", None)
+            totals["web_searches"] += (getattr(stu, "web_search_requests", 0) or 0) if stu else 0
+            if message.stop_reason != "pause_turn":
+                break
+            # The server-side tool loop paused: send its turn back and it resumes where it stopped.
+            messages = [messages[0], {"role": "assistant", "content": message.content}]
         if message.stop_reason == "refusal":
             category = message.stop_details.category if message.stop_details else None
             raise ModelError(f"{node}: refused ({category})")
@@ -58,15 +90,7 @@ class Claude:
         parsed = message.parsed_output
         if parsed is None:
             raise ModelError(f"{node}: no structured output")
-        u = message.usage
-        usage = {
-            "node": node,
-            "model": message.model,
-            "input": u.input_tokens,
-            "output": u.output_tokens,
-            "cache_read": u.cache_read_input_tokens or 0,
-            "cache_write": u.cache_creation_input_tokens or 0,
-        }
+        usage = {"node": node, "model": message.model, **totals}
         usage["cost_usd"] = round(cost(usage), 6)
         if self.journal:
             self.journal.parent.mkdir(parents=True, exist_ok=True)
@@ -89,5 +113,6 @@ def cost(usage: dict) -> float:
     if model is None:
         return 0.0
     p_in, p_out, p_read, p_write = PRICES[model]
-    return (usage["input"] * p_in + usage["output"] * p_out
-            + usage.get("cache_read", 0) * p_read + usage.get("cache_write", 0) * p_write) / 1e6
+    tokens = (usage["input"] * p_in + usage["output"] * p_out
+              + usage.get("cache_read", 0) * p_read + usage.get("cache_write", 0) * p_write) / 1e6
+    return tokens + usage.get("web_searches", 0) * WEB_SEARCH_USD  # web fetch is not billed beyond tokens

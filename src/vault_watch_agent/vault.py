@@ -50,6 +50,14 @@ def french_pages(vault: Path) -> list[Path]:
     return sorted(pages)
 
 
+def corpus(vault: Path) -> str:
+    """Every French page, whole, in a stable order (the prompt cache needs identical bytes)."""
+    return "\n".join(
+        f"<page path=\"{p.relative_to(vault).as_posix()}\">\n{read(p).replace(chr(13), '')}\n</page>"
+        for p in french_pages(vault)
+    )
+
+
 def _paragraphs(text: str) -> list[str]:
     body = FRONTMATTER.sub("", text.replace("\r\n", "\n"))
     return [p.strip() for p in re.split(r"\n\s*\n", body) if p.strip()]
