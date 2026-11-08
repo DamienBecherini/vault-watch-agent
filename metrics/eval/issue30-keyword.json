@@ -1,0 +1,394 @@
+{
+  "issue": 30,
+  "variant": "keyword",
+  "vault_commit": "7cb34a3a1b2d873c0d77a14273ef698f88ddaa2e",
+  "truth": "7cb34a3a1b2d873c0d77a14273ef698f88ddaa2e..3cc82b5921b788fbc76120f67ca0125b524497bf",
+  "scores": {
+    "truth_hunks": 26,
+    "proposals": 1,
+    "recall": 0.038,
+    "precision": 1.0,
+    "lenient_precision": 1.0,
+    "verdicts": {
+      "matches_truth": 1,
+      "valid_extra": 0,
+      "wrong": 0,
+      "unclear": 0
+    }
+  },
+  "run_cost_usd": 0.66,
+  "judge_cost_usd": 0.07,
+  "judgement": {
+    "hunks": [
+      {
+        "hunk_id": "H1",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H2",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H3",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H4",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H5",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H6",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H7",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H8",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H9",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H10",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H11",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H12",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H13",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H14",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H15",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H16",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H17",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H18",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H19",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H20",
+        "matched_by": [
+          "C1"
+        ]
+      },
+      {
+        "hunk_id": "H21",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H22",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H23",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H24",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H25",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H26",
+        "matched_by": []
+      }
+    ],
+    "proposals": [
+      {
+        "id": "C1",
+        "assessment": "matches_truth",
+        "note": "Raises the Open WebUI floor from 0.11.1 to 0.11.4 because of the late-September advisories (session token theft), as in H20."
+      }
+    ]
+  },
+  "truth_hunks": [
+    {
+      "id": "H1",
+      "page": "00-lexique/gguf.md",
+      "removed": [
+        "Standard de fait pour les postes de travail, Mac et homelab. Une grande partie des modèles du Hub a une déclinaison GGUF (souvent communautaire : unsloth, bartowski, ggml-org) ; sur Apple Silicon, Ollama exécute depuis la 0.40 (septembre 2026) les architectures prises en charge via MLX plutôt que GGUF, et les éditeurs publient d'abord des checkpoints FP8/NVFP4 officiels[^2]. À connaître pour le Scénario A (labo dev) et le Scénario B (Mac Studio)."
+      ],
+      "added": [
+        "Standard de fait pour les postes de travail, Mac et homelab. Une grande partie des modèles du Hub a une déclinaison GGUF (souvent communautaire : unsloth, bartowski, ggml-org) ; sur Apple Silicon, Ollama exécute depuis la 0.40 (octobre 2026) les architectures prises en charge via MLX plutôt que GGUF, et les éditeurs publient d'abord des checkpoints FP8/NVFP4 officiels[^2]. À connaître pour le Scénario A (labo dev) et le Scénario B (Mac Studio)."
+      ]
+    },
+    {
+      "id": "H2",
+      "page": "00-lexique/gguf.md",
+      "removed": [
+        "[^2]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), 25 septembre 2026 ; NVIDIA, *NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16* (checkpoints BF16 / NVFP4 officiels, GGUF fourni via ggml-org), août 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0) · [https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16)"
+      ],
+      "added": [
+        "[^2]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), octobre 2026 ; NVIDIA, *NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16* (checkpoints BF16 / NVFP4 officiels, GGUF fourni via ggml-org), août 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0) · [https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16)"
+      ]
+    },
+    {
+      "id": "H3",
+      "page": "00-lexique/moe.md",
+      "removed": [
+        "Attention aux licences : les MoE frontière ouverts de 2026 (Kimi K3, GLM-5.3, Qwen3.8-2.4T-A95B) sortent sous des licences custom à lire avant tout usage commercial ; seuls les MoE de taille petite à intermédiaire (Qwen3-30B-A3B, GLM-5.3-Flash, DeepSeek V4 / V4.1, Nemotron 3.5) restent en Apache 2.0, MIT ou OpenMDW. Sur Ollama, `kimi-k3:cloud` ou `glm-5.2:cloud` sont des tags **hébergés**, pas des poids téléchargeables (voir [[03-stack-logicielle/choose-your-model|🗺️ Choisir son modèle]])."
+      ],
+      "added": [
+        "Attention aux licences : plusieurs MoE frontière ouverts de 2026 (Kimi K3, GLM-5.3, Qwen3.8-2.4T-A95B) sortent sous des licences custom à lire avant tout usage commercial. La règle n'est pas absolue : depuis septembre 2026, MiMo-V2.6-Pro de Xiaomi (1,02T paramètres dont 42B actifs) est publié sous MIT[^8], et la plupart des MoE de taille petite à intermédiaire (Qwen3-30B-A3B, GLM-5.3-Flash, DeepSeek V4 / V4.1, Nemotron 3.5) restent en Apache 2.0, MIT ou OpenMDW. Sur Ollama, `kimi-k3:cloud` ou `glm-5.2:cloud` sont des tags **hébergés**, pas des poids téléchargeables (voir [[03-stack-logicielle/choose-your-model|🗺️ Choisir son modèle]])."
+      ]
+    },
+    {
+      "id": "H4",
+      "page": "00-lexique/moe.md",
+      "removed": [],
+      "added": [
+        "[^8]: Xiaomi, *MiMo-V2.6-Pro-MOPD* (MoE 1,02T / 42B actifs, contexte 1M, texte + image + vidéo + audio, licence MIT ; checkpoint RL du 2026-09-21, mise à jour MOPD du 2026-09-27), Hugging Face. [https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-MOPD](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-MOPD)"
+      ]
+    },
+    {
+      "id": "H5",
+      "page": "00-lexique/ollama.md",
+      "removed": [
+        "Distribution et CLI qui exécute des [[00-lexique/llm|LLM]] localement en quelques commandes, via **llama.cpp** (Linux, Windows, format [[00-lexique/gguf|GGUF]]) ou, depuis la version 0.40 (septembre 2026) sur Apple Silicon, via le moteur **MLX** d'Apple par défaut, avec serveur API compatible OpenAI sur le port 11434[^1][^3]."
+      ],
+      "added": [
+        "Distribution et CLI qui exécute des [[00-lexique/llm|LLM]] localement en quelques commandes, via **llama.cpp** (Linux, Windows, format [[00-lexique/gguf|GGUF]]) ou, depuis la version 0.40 (octobre 2026) sur Apple Silicon, via le moteur **MLX** d'Apple par défaut, avec serveur API compatible OpenAI sur le port 11434[^1][^3]."
+      ]
+    },
+    {
+      "id": "H6",
+      "page": "00-lexique/ollama.md",
+      "removed": [
+        "[^3]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), 25 septembre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0)"
+      ],
+      "added": [
+        "[^3]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), octobre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0)"
+      ]
+    },
+    {
+      "id": "H7",
+      "page": "00-lexique/ray.md",
+      "removed": [],
+      "added": [
+        "- Laisser un cluster multi-nœuds sans authentification : depuis Ray 2.59 (2 octobre 2026), l'authentification par jeton n'est active par défaut que sur les clusters locaux ; un cluster distant ou multi-nœuds reste ouvert jusqu'à Ray 2.61, sauf si `RAY_AUTH_MODE=token` est posé sur chaque nœud[^1]."
+      ]
+    },
+    {
+      "id": "H8",
+      "page": "00-lexique/ray.md",
+      "removed": [],
+      "added": [
+        "",
+        "[^1]: Ray Project, *Release ray-2.59.0* (« token authentication by default for local clusters … Remote and multi-node clusters are unchanged »), 2026-10-02 · Ray Docs, *Token authentication* (« Ray 2.61 extends the default to all clusters »), consulté le 2026-10-10. [https://github.com/ray-project/ray/releases/tag/ray-2.59.0](https://github.com/ray-project/ray/releases/tag/ray-2.59.0) · [https://docs.ray.io/en/latest/ray-security/token-auth.html](https://docs.ray.io/en/latest/ray-security/token-auth.html)"
+      ]
+    },
+    {
+      "id": "H9",
+      "page": "01-fondations/multimodality-vram-impact.md",
+      "removed": [],
+      "added": [
+        "**Temps réel : une alternative à Whisper.** Pour sous-titrer une réunion en direct, Mistral publie depuis février 2026 **Voxtral Mini 4B Realtime** (Apache 2.0) : un modèle de transcription nativement en streaming, avec un délai réglable de 80 ms à 2,4 s, 13 langues dont le français (WER de 6,4 % en français à 480 ms de délai selon l'éditeur), servi par vLLM[^5]. Contrairement à Whisper, il ne se pose pas sur CPU : l'éditeur indique un GPU d'au moins 16 Go (poids BF16, ~4,4B paramètres), à prévoir en plus du LLM. Whisper sur CPU reste le bon choix pour le batch ; Voxtral se justifie quand la latence compte. Mistral en décline des variantes par langue (dialectes arabes en octobre 2026).",
+        ""
+      ]
+    },
+    {
+      "id": "H10",
+      "page": "01-fondations/multimodality-vram-impact.md",
+      "removed": [],
+      "added": [
+        "[^5]: Mistral AI, *Voxtral Mini 4B Realtime 2602* (transcription temps réel en streaming, délai 80 ms – 2,4 s, 480 ms recommandé ; 13 langues ; BF16, un GPU ≥ 16 Go ; vLLM ; Apache 2.0), Hugging Face, février 2026 ; *Voxtral Mini 4B Realtime Arabic*, 2026-10-08. [https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602](https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602) · [https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-Arabic](https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-Arabic)"
+      ]
+    },
+    {
+      "id": "H11",
+      "page": "02-materiel/apu-and-unified-memory.md",
+      "removed": [
+        "[^16]: ServeTheHome, *NVIDIA DGX Spark 64GB Launched and Big 128GB GB10 Price Increases* (128 Go ≈ 6 950 $, 64 Go 4 999 $ OEM dès le 2026-10-23), 2 octobre 2026. [https://www.servethehome.com/nvidia-dgx-spark-64gb-launched-and-big-128gb-gb10-price-increases/](https://www.servethehome.com/nvidia-dgx-spark-64gb-launched-and-big-128gb-gb10-price-increases/)"
+      ],
+      "added": [
+        "[^16]: ServeTheHome, *NVIDIA DGX Spark 64GB Launched and Big 128GB GB10 Price Increases* (128 Go ≈ 6 950 $, 64 Go 4 999 $ OEM dès le 2026-10-23), 3 octobre 2026. [https://www.servethehome.com/nvidia-dgx-spark-64gb-launched-and-big-128gb-gb10-price-increases/](https://www.servethehome.com/nvidia-dgx-spark-64gb-launched-and-big-128gb-gb10-price-increases/)"
+      ]
+    },
+    {
+      "id": "H12",
+      "page": "03-stack-logicielle/choose-your-model.md",
+      "removed": [
+        "| [[04-blueprints/scenario-d-datacenter\\|D — Datacenter]] | Multi-H100 / MI300X | DeepSeek V4.1-Flash / V4-Pro (MIT)[^10], GLM-5.3 (licence custom)[^14], Kimi K3 (MXFP4 natif, licence custom)[^15], Qwen3.8-2.4T-A95B (licence custom) ; Llama 4 Scout / Maverick restent valables[^2] | Production 50+ utilisateurs, SLA, multimodal |"
+      ],
+      "added": [
+        "| [[04-blueprints/scenario-d-datacenter\\|D — Datacenter]] | Multi-H100 / MI300X | DeepSeek V4.1-Flash / V4-Pro (MIT)[^10], MiMo-V2.6-Pro (1,02T / 42B actifs) et MiMo-V2.6-Flash (309B / 15B actifs), MIT, texte + image + vidéo + audio, depuis septembre 2026[^20], GLM-5.3 (licence custom)[^14], Kimi K3 (MXFP4 natif, licence custom)[^15], Qwen3.8-2.4T-A95B (licence custom) ; Llama 4 Scout / Maverick restent valables[^2] | Production 50+ utilisateurs, SLA, multimodal |"
+      ]
+    },
+    {
+      "id": "H13",
+      "page": "03-stack-logicielle/choose-your-model.md",
+      "removed": [],
+      "added": [
+        "[^20]: Xiaomi, *MiMo-V2.6-Pro-MOPD* et *MiMo-V2.6-Flash-MOPD* (MoE 1,02T / 42B actifs et 309B / 15B actifs, contexte 1M, omni, licence MIT ; recettes vLLM de l'éditeur en TP 8 pour Pro et TP 4 pour Flash, recette SGLang de Pro sur deux nœuds ; mise à jour MOPD du 2026-09-27 contre la répétition d'appels d'outils), Hugging Face. [https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-MOPD](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-MOPD) · [https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Flash-MOPD](https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Flash-MOPD)"
+      ]
+    },
+    {
+      "id": "H14",
+      "page": "03-stack-logicielle/inference-engines-vllm-ollama.md",
+      "removed": [
+        "[Ollama](https://ollama.com/) est devenu le standard de fait pour tester des modèles rapidement — au T4 2026, son dépôt GitHub dépasse 180 000 étoiles et son image Docker officielle approche 185 millions de téléchargements cumulés[^1]. Sous le capot, [[00-lexique/ollama|Ollama]] est devenu un runtime à deux moteurs : **llama.cpp** (C/C++) sur Linux, Windows et pour la plupart des architectures, et **MLX** (Apple) qui, depuis la version 0.40 (septembre 2026), prend en charge par défaut les modèles compatibles sur Apple Silicon[^13]."
+      ],
+      "added": [
+        "[Ollama](https://ollama.com/) est devenu le standard de fait pour tester des modèles rapidement — au T4 2026, son dépôt GitHub dépasse 180 000 étoiles et son image Docker officielle approche 185 millions de téléchargements cumulés[^1]. Sous le capot, [[00-lexique/ollama|Ollama]] est devenu un runtime à deux moteurs : **llama.cpp** (C/C++) sur Linux, Windows et pour la plupart des architectures, et **MLX** (Apple) qui, depuis la version 0.40 (octobre 2026), prend en charge par défaut les modèles compatibles sur Apple Silicon[^13]."
+      ]
+    },
+    {
+      "id": "H15",
+      "page": "03-stack-logicielle/inference-engines-vllm-ollama.md",
+      "removed": [
+        "[^13]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), 25 septembre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0)"
+      ],
+      "added": [
+        "[^13]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), octobre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0)"
+      ]
+    },
+    {
+      "id": "H16",
+      "page": "03-stack-logicielle/rag-and-agents.md",
+      "removed": [
+        "| Transcription vocale (STT) | `faster-whisper` (CTranslate2)[^10] | **CPU** |"
+      ],
+      "added": [
+        "| Transcription vocale (STT) | `faster-whisper` (CTranslate2)[^10] ; en temps réel : Voxtral Mini 4B Realtime (GPU ≥ 16 Go)[^18] | **CPU** (Voxtral : GPU) |"
+      ]
+    },
+    {
+      "id": "H17",
+      "page": "03-stack-logicielle/rag-and-agents.md",
+      "removed": [],
+      "added": [
+        "[^18]: Mistral AI, *Voxtral Mini 4B Realtime 2602* (transcription temps réel en streaming, 13 langues, BF16, un GPU ≥ 16 Go ; Apache 2.0), Hugging Face, février 2026. [https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602](https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602)"
+      ]
+    },
+    {
+      "id": "H18",
+      "page": "04-blueprints/scenario-a-dev-lab.md",
+      "removed": [
+        "[^11]: Ollama, *Release v0.40.0* (MLX utilisé par défaut sur Apple Silicon), 25 septembre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0) · ggml-org, *llama.cpp — Release b11521* (port par défaut de `llama-server` passé de 8080 à 9931), 9 octobre 2026. [https://github.com/ggml-org/llama.cpp/releases/tag/b11521](https://github.com/ggml-org/llama.cpp/releases/tag/b11521) · incoai, *Splash* (moteur Metal expérimental, M3+ et ≥ 36 Go, Qwen3.8 ; débits annoncés par l'éditeur, non vérifiés indépendamment), 18 septembre 2026. [https://github.com/incoai/splash](https://github.com/incoai/splash)"
+      ],
+      "added": [
+        "[^11]: Ollama, *Release v0.40.0* (MLX utilisé par défaut sur Apple Silicon), octobre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0) · ggml-org, *llama.cpp — Release b11521* (port par défaut de `llama-server` passé de 8080 à 9931), 9 octobre 2026. [https://github.com/ggml-org/llama.cpp/releases/tag/b11521](https://github.com/ggml-org/llama.cpp/releases/tag/b11521) · incoai, *Splash* (moteur Metal expérimental, M3+ et ≥ 36 Go, Qwen3.8 ; débits annoncés par l'éditeur, non vérifiés indépendamment), 18 septembre 2026. [https://github.com/incoai/splash](https://github.com/incoai/splash)"
+      ]
+    },
+    {
+      "id": "H19",
+      "page": "04-blueprints/scenario-b-sme-appliance.md",
+      "removed": [
+        "[^9]: Ollama, *Release v0.40.0* (MLX utilisé par défaut sur Apple Silicon), 25 septembre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0) · ggml-org, *llama.cpp — Release b11521* (port par défaut de `llama-server` passé de 8080 à 9931), 9 octobre 2026. [https://github.com/ggml-org/llama.cpp/releases/tag/b11521](https://github.com/ggml-org/llama.cpp/releases/tag/b11521)"
+      ],
+      "added": [
+        "[^9]: Ollama, *Release v0.40.0* (MLX utilisé par défaut sur Apple Silicon), octobre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0) · ggml-org, *llama.cpp — Release b11521* (port par défaut de `llama-server` passé de 8080 à 9931), 9 octobre 2026. [https://github.com/ggml-org/llama.cpp/releases/tag/b11521](https://github.com/ggml-org/llama.cpp/releases/tag/b11521)"
+      ]
+    },
+    {
+      "id": "H20",
+      "page": "05-agents-et-assistants-on-prem/assistants-personnels/solutions/open-webui.md",
+      "removed": [
+        "Projet très utilisé et activement maintenu (environ 154 000 étoiles GitHub, v0.11.4 au 2026-09-21), avec une large communauté GitHub et un écosystème de plugins. La maturité produit est bonne, mais la surface d'attaque suit : 88 avis de sécurité publiés entre juin et septembre 2026, dont une trentaine de sévérité haute (prise de contrôle de compte via OAuth, SSRF vers les services internes, exécution d'outils entre utilisateurs) et trois exploitables sans compte. Les correctifs ne sont livrés que dans les versions courantes : une PME doit suivre le train de releases sans jamais rester sous la 0.11.1 (SSRF CVE-2026-87996), ne pas figer une version, et appliquer le guide de durcissement officiel[^4]."
+      ],
+      "added": [
+        "Projet très utilisé et activement maintenu (environ 154 000 étoiles GitHub, v0.11.4 au 2026-09-21), avec une large communauté GitHub et un écosystème de plugins. La maturité produit est bonne, mais la surface d'attaque suit : 88 avis de sécurité publiés entre juin et septembre 2026, dont une trentaine de sévérité haute (prise de contrôle de compte via OAuth, SSRF vers les services internes, exécution d'outils entre utilisateurs) et trois exploitables sans compte. Les correctifs ne sont livrés que dans les versions courantes : une PME doit suivre le train de releases sans jamais rester sous la 0.11.4 (2026-09-21), qui corrige les 15 avis publiés fin septembre 2026, dont un vol de jeton de session déclenchable depuis n'importe quel site web tant que le partage communautaire (actif par défaut) reste ouvert. Elle ne doit pas figer de version et doit appliquer le guide de durcissement officiel[^4]."
+      ]
+    },
+    {
+      "id": "H21",
+      "page": "06-mise-en-oeuvre/getting-started-with-ollama.md",
+      "removed": [
+        "- **macOS** (Apple Silicon recommandé — depuis Ollama 0.40, septembre 2026, les architectures compatibles tournent par défaut sur le moteur MLX d'Apple[^3]) ou **Linux** (GPU NVIDIA ou AMD, ou CPU seul)"
+      ],
+      "added": [
+        "- **macOS** (Apple Silicon recommandé — depuis Ollama 0.40, octobre 2026, les architectures compatibles tournent par défaut sur le moteur MLX d'Apple[^3]) ou **Linux** (GPU NVIDIA ou AMD, ou CPU seul)"
+      ]
+    },
+    {
+      "id": "H22",
+      "page": "06-mise-en-oeuvre/getting-started-with-ollama.md",
+      "removed": [
+        "[^3]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), 25 septembre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0)"
+      ],
+      "added": [
+        "[^3]: Ollama, *Release v0.40.0* (« Models run on MLX on Apple Silicon by default »), octobre 2026. [https://github.com/ollama/ollama/releases/tag/v0.40.0](https://github.com/ollama/ollama/releases/tag/v0.40.0)"
+      ]
+    },
+    {
+      "id": "H23",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [],
+      "added": [
+        "5. **Figer les outils MCP approuvés.** Un serveur MCP ou un fichier de configuration d'agent s'exécute avec les droits de l'agent : traitez-les comme du code. Au T4 2026, l'OWASP recense une campagne de serveurs MCP malveillants proposés par pull request à 23 dépôts IA en août 2026, et des vers npm/PyPI (mai–juin 2026) visant les fichiers de configuration des assistants de code. Enregistrez la définition des outils et des prompts au moment de l'approbation, exigez une nouvelle approbation à chaque changement, épinglez les dépendances avec leur empreinte et refusez par défaut l'accès de l'agent aux magasins de secrets[^21].",
+        ""
+      ]
+    },
+    {
+      "id": "H24",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [
+        "> vLLM ≥ 0.31.0 (RCE via `code_revision`, DoS `/v1/embeddings`, et la vague d'avis High publiée le 9 octobre 2026 : connecteurs KV, bombes de décompression image et vidéo, `prompt_logprobs` ; n'activez pas `--trust-request-mm-kwargs`, qui rouvre ces chemins, devant des clients que vous ne maîtrisez pas) · LiteLLM ≥ 1.100.4 ou dernier correctif de votre ligne (escalade admin 9.9, deux CVE au KEV CISA) · Ollama ≥ 0.31.2 (approbation Bash contournable en mode agent, durcissement GGUF ; CVE-2026-5757, lecture mémoire via import GGUF, sans correctif confirmé par le CERT/CC au 2026-04-22) · Open WebUI ≥ 0.11.1 (SSRF vers les services internes, CVE-2026-87996 ; nombreux avis entre juin et septembre 2026, tous authentifiés mais plusieurs High) · llama-server : build à jour et pas de `--sleep-idle-seconds` sur un port exposé. Ces planchers vieillissent en semaines : abonnez-vous aux advisories GitHub de chaque projet[^14][^15][^16][^18][^19]."
+      ],
+      "added": [
+        "> vLLM ≥ 0.31.0 (RCE via `code_revision`, DoS `/v1/embeddings`, et la vague d'avis High publiée le 9 octobre 2026 : connecteurs KV, bombes de décompression image et vidéo, `prompt_logprobs` ; n'activez pas `--trust-request-mm-kwargs`, qui rouvre ces chemins, devant des clients que vous ne maîtrisez pas) · LiteLLM ≥ 1.100.4 ou dernier correctif de votre ligne (escalade admin 9.9, deux CVE au KEV CISA) · Ollama ≥ 0.31.2 (approbation Bash contournable en mode agent, durcissement GGUF ; CVE-2026-5757, lecture mémoire via import GGUF, sans correctif confirmé par le CERT/CC au 2026-04-22) · Open WebUI ≥ 0.11.4 (publiée le 2026-09-21 : elle corrige les 15 avis publiés les 27 et 28 septembre 2026, dont 4 High ; l'un d'eux ne demande aucun compte, puisque n'importe quel site visité par un utilisateur connecté pouvait voler son jeton de session tant que le partage communautaire, actif par défaut, n'était pas coupé avec `ENABLE_COMMUNITY_SHARING=false` ; la 0.11.1 fermait déjà la SSRF CVE-2026-87996) · llama-server : build à jour et pas de `--sleep-idle-seconds` sur un port exposé. Ces planchers vieillissent en semaines : abonnez-vous aux advisories GitHub de chaque projet[^14][^15][^16][^18][^19]."
+      ]
+    },
+    {
+      "id": "H25",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [
+        "[^19]: GitHub Advisory Database, *GHSA-4v28-j6q3-5m4r* (Open WebUI, CVE-2026-87996, SSRF par DNS rebinding dans le chargeur Playwright, CVSS 7.7, versions 0.9.6 → < 0.11.1, corrigé 0.11.1, 2026-08-31) ; CERT/CC, *VU#518910* (Ollama, CVE-2026-5757, lecture/écriture hors limites lors de la quantification d'un GGUF importé, « patch not yet available », 2026-04-22), lus le 2026-10-10. [https://github.com/advisories/GHSA-4v28-j6q3-5m4r](https://github.com/advisories/GHSA-4v28-j6q3-5m4r) · [https://kb.cert.org/vuls/id/518910](https://kb.cert.org/vuls/id/518910)"
+      ],
+      "added": [
+        "[^19]: GitHub Advisory Database, *GHSA-4v28-j6q3-5m4r* (Open WebUI, CVE-2026-87996, SSRF par DNS rebinding dans le chargeur Playwright, CVSS 7.7, versions 0.9.6 → < 0.11.1, corrigé 0.11.1, 2026-08-31) ; CERT/CC, *VU#518910* (Ollama, CVE-2026-5757, lecture/écriture hors limites lors de la quantification d'un GGUF importé, « patch not yet available », 2026-04-22), lus le 2026-10-10. [https://github.com/advisories/GHSA-4v28-j6q3-5m4r](https://github.com/advisories/GHSA-4v28-j6q3-5m4r) · [https://kb.cert.org/vuls/id/518910](https://kb.cert.org/vuls/id/518910) ; Open WebUI, advisories *GHSA-vpq8-f445-hcq7* (vol du jeton de session depuis un site tiers via le gestionnaire de messages des statistiques communautaires, sans compte attaquant, 0.7.0 → < 0.11.4), *GHSA-qpqv-xwg8-cqpj* (lien `javascript:` dans une citation de chat partagé), *GHSA-f9xp-mfmq-x6cg* (script dans l'aperçu DOCX, 0.11.1 → 0.11.3) et *GHSA-q46m-r89w-j74p* (proxy Terminals vers l'API d'administration), tous corrigés en 0.11.4, 2026-09-27/28. [https://github.com/open-webui/open-webui/security/advisories/GHSA-vpq8-f445-hcq7](https://github.com/open-webui/open-webui/security/advisories/GHSA-vpq8-f445-hcq7) · [https://github.com/open-webui/open-webui/releases/tag/v0.11.4](https://github.com/open-webui/open-webui/releases/tag/v0.11.4)"
+      ]
+    },
+    {
+      "id": "H26",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [],
+      "added": [
+        "[^21]: OWASP GenAI Security Project, *GenAI and Agentic AI Exploit Roundup Q3 2026* (Deadbugz : serveur MCP malveillant proposé à 23 dépôts le 2026-08-10, aucun fusionné ; vers Mini Shai-Hulud / Miasma, plus de 170 paquets npm/PyPI, mai–juin 2026 ; recommandations : instantané des définitions d'outils MCP et réapprobation à chaque changement, épinglage par empreinte, accès aux secrets refusé par défaut), 8 octobre 2026. [https://genai.owasp.org/2026/10/08/genai-and-agentic-ai-exploit-roundup-q3-2026/](https://genai.owasp.org/2026/10/08/genai-and-agentic-ai-exploit-roundup-q3-2026/)"
+      ]
+    }
+  ],
+  "proposals": [
+    {
+      "id": "C1",
+      "page": "05-agents-et-assistants-on-prem/assistants-personnels/solutions/open-webui.md",
+      "current": "Les correctifs ne sont livrés que dans les versions courantes : une PME doit suivre le train de releases sans jamais rester sous la 0.11.1 (SSRF CVE-2026-87996), ne pas figer une version, et appliquer le guide de durcissement officiel[^4].",
+      "proposed": "Les correctifs ne sont livrés que dans les versions courantes : une PME doit suivre le train de releases sans jamais rester sous la 0.11.4 (SSRF CVE-2026-87996 corrigée en 0.11.1 ; quatre avis de sévérité haute publiés les 27 et 28 septembre 2026, dont le vol de jeton de session depuis un site externe ou un chat partagé et la prise de contrôle des terminaux d'autres utilisateurs, corrigés en 0.11.4), ne pas figer une version, et appliquer le guide de durcissement officiel[^4].",
+      "check": "ok"
+    }
+  ]
+}

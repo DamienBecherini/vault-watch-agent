@@ -29,6 +29,10 @@ cited source:
   a new sentence on an old one?
 
 Verdict keep, revise (give the full revised French text that would replace `current`) or reject.
+Reject only a correction that is wrong in substance or not worth making. When the substance is right but a
+detail is off (a date, a version number, a scope, a wording), revise it: fix the detail and keep the change.
+Sources can disagree on a detail (a release tagged on one day and published on another): then state the date
+the primary source shows, or drop the detail, rather than rejecting the correction.
 Then list the other passages of the guide that must change so the guide stays consistent once the accepted
 corrections apply (another page that states the old version floor, a summary table, an index that recommends
 the tool). Quote `current` verbatim from one page, short, and give the French replacement in the page's own

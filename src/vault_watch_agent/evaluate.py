@@ -56,6 +56,10 @@ def truth_hunks(vault: Path, base: str, head: str) -> list[dict]:
 
 class HunkMatch(BaseModel):
     hunk_id: str
+    kind: Literal["correction", "addition"] = Field(
+        description="correction: changes or updates a fact already in the page (or the footnote that supports it); "
+        "addition: brings a subject the page did not cover (a new tool, model, paragraph, pitfall)."
+    )
     matched_by: list[str] = Field(description="Ids of the proposals that make the same factual change (wording may differ).")
 
 
@@ -98,14 +102,24 @@ def judge(hunks: list[dict], corrections: list[dict], llm: LLM) -> tuple[Judgeme
                      schema=Judgement, effort="high", node="judge")
 
 
+def reviewable(corrections: list[dict]) -> list[dict]:
+    """Only what reaches the human review counts: refused proposals (quote not found, conflict, rejected by
+    the cross-check) never reach the vault."""
+    return [c for c in corrections if c["check"] == "ok"]
+
+
 def scores(hunks: list[dict], corrections: list[dict], j: Judgement) -> dict:
     found = sum(1 for h in j.hunks if h.matched_by)
+    fixes = [h for h in j.hunks if h.kind == "correction"]
     verdicts = [p.assessment for p in j.proposals]
     n = len(corrections)
     return {
         "truth_hunks": len(hunks),
+        "truth_corrections": len(fixes),
         "proposals": n,
         "recall": round(found / len(hunks), 3) if hunks else None,
+        # Additions are only listed as candidates by design (no page is written without a go-ahead)
+        "recall_corrections": round(sum(1 for h in fixes if h.matched_by) / len(fixes), 3) if fixes else None,
         "precision": round(verdicts.count("matches_truth") / n, 3) if n else None,
         "lenient_precision": round((verdicts.count("matches_truth") + verdicts.count("valid_extra")) / n, 3) if n else None,
         "verdicts": {k: verdicts.count(k) for k in ("matches_truth", "valid_extra", "wrong", "unclear")},

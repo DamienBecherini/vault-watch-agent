@@ -1,0 +1,27 @@
+{
+  "issue": 47,
+  "variant": "keyword",
+  "vault_commit": "4ca9e0054669eb04e4b6bdc0da6f07aaefab95ff",
+  "truth": null,
+  "scores": {
+    "truth_hunks": 0,
+    "proposals": 0,
+    "recall": null,
+    "precision": null,
+    "lenient_precision": null,
+    "verdicts": {
+      "matches_truth": 0,
+      "valid_extra": 0,
+      "wrong": 0,
+      "unclear": 0
+    }
+  },
+  "run_cost_usd": 0.42,
+  "judge_cost_usd": 0.0,
+  "judgement": {
+    "hunks": [],
+    "proposals": []
+  },
+  "truth_hunks": [],
+  "proposals": []
+}
