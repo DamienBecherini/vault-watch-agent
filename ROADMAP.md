@@ -1,0 +1,67 @@
+# Roadmap
+
+Measured on 2026-11-08 (first real run, issue #50 of the vault): 81 kept items → 8 corrections, 0.90 $;
+French content 408 k tokens (exact count), English mirror 353 k; French content grew from 575 KB to 853 KB
+between June and October 2026, the security page from 15.7 KB to 42.2 KB. Architecture and analysis:
+[docs/presentation.html](docs/presentation.html).
+
+Phases are ordered by dependency: finish the loop, measure, then improve what the measure points at.
+
+## Phase A — close the loop on issue #50
+
+- [ ] **A1. English mirror in the graph.** A translation node (Claude Sonnet 5.5) syncs the EN pages hunk by
+  hunk before the audits; `i18n-strict` blocks the PR otherwise (it did on issue #50).
+- [ ] **A2. Grouped corrections.** Corrections that depend on each other (C2, a footnote, only makes sense
+  with C1) are accepted or refused as one group.
+- [ ] **A3. One source of instructions.** Load the vault's `.agents/skills/vault-watch/brief.md` at run time
+  instead of the condensed copy in `prompts.py`, which would drift.
+- [ ] **A4. Unlocated items become addition candidates.** An item triaged "correct" that no French page
+  names (LFM3 in issue #50) is an addition lead, not a dead end.
+- [ ] Publish the PR of issue #50, then process issue #49.
+
+## Phase B — measure before choosing
+
+- [ ] **B1. Evaluation on past watches.** Issues #26, #30 and #47 were processed by hand and merged: replay
+  the agent on them and score its proposals against the merged changes (precision, recall, cost). Baseline:
+  keyword retrieval (current).
+
+## Phase C — corrections
+
+- [ ] **C1. Whole French vault in context, with prompt caching.** ≈ 2 $ to write the cache, ≈ 0.08 $ per call
+  after; the model sees every page concerned, footnotes and cross-page inconsistencies. Vector RAG only
+  becomes useful past the context budget. Re-run B1 to compare.
+- [ ] **C2. Replace, do not pile up.** A page states the current fact; a correction replaces the old one,
+  history stays in Git and in the source note. Say it in the instructions.
+- [ ] **C3. Web verification when cached notes are empty** (vLLM 0.33 and Mistral Large 4 had none), with a
+  web fetch tool limited to tier A domains; also re-checks the watchlist claims past their date (12 today).
+
+## Phase D — discovery
+
+Discovery becomes a tracker of candidates over time instead of a one-shot triage:
+`lead → enriched → watching → confirmed → proposed → added`, or `dismissed` with a reason and a re-check date.
+
+- [ ] **D1. Deterministic enrichment before any judgement.** Hugging Face: size, licence, context, GGUF
+  availability, downloads. GitHub: licence, releases, contributors, README head.
+- [ ] **D2. Group by entity across sources and weeks.** Normalise names (model family, tool), score =
+  sources × tier × persistence. "Two independent tier B sources" becomes a computation.
+- [ ] **D3. Candidate store with states and re-check dates**, replacing the flat `watch-seen.md`
+  (handles "weights announced for later": Reflection Beam, Mistral Large 4).
+- [ ] **D4. Relevance judged with the whole vault in context** (C1): where the addition fits and which
+  decision it changes, which is the opportunity note.
+
+## Phase E — keep the vault and the sources in shape
+
+- [ ] **E1. Size budget per page, checked in CI** (e.g. 20 KB for a solution sheet, 35 KB for a reference
+  page), warning first.
+- [ ] **E2. Quarterly compaction graph.** Proposes shorter versions of sections over budget and removes
+  advisories fixed more than six months ago below the version floor; human-reviewed diff as always.
+- [ ] **E3. Feed coverage audit.** Every tool with a solution sheet has a release feed and an advisory feed
+  (today advisories cover 9 tools out of about 25; Liquid AI, Microsoft, AllenAI, Aleph Alpha are not followed).
+- [ ] **E4. Gap-driven discovery, quarterly.** With the whole vault in context, list what an SME on-prem AI
+  guide should cover and does not. The model's knowledge only generates leads; each one goes through D1–D4.
+- [ ] **E5. Yield per source.** From past reports, leads per accepted addition; drop the feeds that never pay.
+
+## Phase F — publication
+
+- [ ] Tools exposed through MCP (LangChain MCP adapters), so the same graph can be driven from Claude Code.
+- [ ] README with the measures of B1 and C1, public GitHub repository, blog article.
