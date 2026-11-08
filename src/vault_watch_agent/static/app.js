@@ -30,6 +30,8 @@ const TEXTES = {
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
       aTraiter: n => `${n} piste(s) à traiter`, traitee: "Traitée", traiter: "Traiter",
+      aTraiterTitre: "À traiter", nouvelle: "Nouvelle vérification",
+      avertissement: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
       envoyee: "→ passe fix", ecartee: "écartée", retablir: "Rétablir", ecarter: n => `Écarter ${n} piste(s)`,
     },
     chargement: "Chargement…",
@@ -118,6 +120,8 @@ const TEXTES = {
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
       aTraiter: n => `${n} lead(s) to handle`, traitee: "Handled", traiter: "Handle",
+      aTraiterTitre: "To handle", nouvelle: "New check",
+      avertissement: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
       envoyee: "→ fix run", ecartee: "dismissed", retablir: "Reopen", ecarter: n => `Dismiss ${n} lead(s)`,
     },
     chargement: "Loading…",
@@ -458,9 +462,21 @@ async function vueVerifier() {
   const [options, passes] = await Promise.all([api("/api/verifications/options"), api("/api/verifications")]);
   const V = T.verif, titres = Object.fromEntries(options.map(o => [o.id, o.title[langue]]));
   const prix = o => o.model ? (o.usd == null ? V.inconnu : `≈ ${dollars(o.usd)}`) : V.gratuit;
+  // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
+  const ouvertes = passes.filter(p => ["to-handle", "running"].includes(p.status));
+  const restantes = ouvertes.reduce((s, p) => s + p.counts.open, 0);
+  const carteVerif = p => `<div class="carte ligne${["handled", "clear"].includes(p.status) ? " finie" : ""}"><div class="pousse"><b>${new Date(p.started * 1000).toLocaleString(langue)}</b>
+        <div class="doux petit">${p.checks.map(c => esc(titres[c] || c)).join(" · ")} · ${dollars(p.cost)}</div>
+        <div class="doux petit">${V.comptes(p.counts)}</div></div>
+        ${etatVerif(p)}
+        <a href="#/verifier/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="principal"' : ""}>${p.status === "to-handle" ? V.traiter : T.details}</button></a></div>`;
+  const anciennes = passes.filter(p => !ouvertes.includes(p));
   page.innerHTML = `
     <h1>${V.titre}</h1>
     <p class="sous-titre">${V.intro}</p>
+    ${ouvertes.length ? `<h2>${V.aTraiterTitre}</h2>${ouvertes.map(carteVerif).join("")}` : ""}
+    <details class="nouvelle"${ouvertes.length ? "" : " open"}><summary><h2>${V.nouvelle}</h2></summary>
+    ${restantes ? `<p class="attention-texte">${V.avertissement(restantes)}</p>` : ""}
     ${options.map(o => `<label class="carte option">
       <input type="checkbox" data-check="${o.id}" ${o.model ? "" : "checked"}>
       <div>
@@ -471,12 +487,9 @@ async function vueVerifier() {
         <p class="doux petit">${esc(o.note[langue])}${o.model ? ` · ${esc(o.model)}` : ""}${o.needs.length ? ` · ${V.necessite(o.needs.map(n => titres[n]).join(", "))}` : ""}</p>
       </div></label>`).join("")}
     <p><button class="principal" id="lancer"></button></p>
+    </details>
     <h2>${V.historique}</h2>
-    ${passes.map(p => `<div class="carte ligne${["handled", "clear"].includes(p.status) ? " finie" : ""}"><div class="pousse"><b>${new Date(p.started * 1000).toLocaleString(langue)}</b>
-        <div class="doux petit">${p.checks.map(c => esc(titres[c] || c)).join(" · ")} · ${dollars(p.cost)}</div>
-        <div class="doux petit">${V.comptes(p.counts)}</div></div>
-        ${etatVerif(p)}
-        <a href="#/verifier/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="principal"' : ""}>${p.status === "to-handle" ? V.traiter : T.details}</button></a></div>`).join("") || `<p class="doux">${V.aucune}</p>`}`;
+    ${anciennes.map(carteVerif).join("") || `<p class="doux">${V.aucune}</p>`}`;
   const cases = [...page.querySelectorAll("[data-check]")];
   const total = () => {
     const ids = new Set(cases.filter(c => c.checked).map(c => c.dataset.check));
