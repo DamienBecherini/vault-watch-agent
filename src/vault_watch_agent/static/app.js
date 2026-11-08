@@ -30,6 +30,7 @@ const TEXTES = {
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
       aTraiter: n => `${n} piste(s) à traiter`, traitee: "Traitée", traiter: "Traiter",
+      cocherCarte: n => `Cocher / décocher les ${n}`,
       aTraiterTitre: "À traiter", nouvelle: "Nouvelle vérification", passesFix: "Passes fix lancées depuis cette vérification",
       avertissement: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
       envoyee: "→ passe fix", ecartee: "écartée", retablir: "Rétablir", ecarter: n => `Écarter ${n} piste(s)`,
@@ -120,6 +121,7 @@ const TEXTES = {
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
       aTraiter: n => `${n} lead(s) to handle`, traitee: "Handled", traiter: "Handle",
+      cocherCarte: n => `Tick / untick the ${n}`,
       aTraiterTitre: "To handle", nouvelle: "New check", passesFix: "Fix runs started from this check",
       avertissement: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
       envoyee: "→ fix run", ecartee: "dismissed", retablir: "Reopen", ecarter: n => `Dismiss ${n} lead(s)`,
@@ -531,14 +533,14 @@ async function vueVerification(id) {
         : r.summary?.startsWith("could not run") ? `<span class="pastille erreur">${V.echec}</span>`
         : r.findings?.length && !r.open ? `<span class="pastille ok">${V.traitee}</span>`
         : `<span class="pastille ${r.ok ? "ok" : "attention"}">${r.ok ? V.ok : r.open ? V.aTraiter(r.open) : V.problemes}</span>`;
-      return `<div class="carte"><div class="entete"><b>${esc(titres[c] || c)}</b>${etat}</div>
+      return `<div class="carte"><div class="entete"><b>${esc(titres[c] || c)}</b>${etat}${r?.open ? ` <button class="petit-bouton" data-cocher-carte="${c}">${V.cocherCarte(r.open)}</button>` : ""}</div>
         ${r ? `<p class="doux petit">${esc(r.summary)}</p>
           ${liste(V.morts, (r.dead || []).map(d => `${lienExt(d.url, esc(d.url))} — ${esc(d.status)} ${esc(d.code ?? "")} (${esc(d.pages.join(", "))})`))}
           ${liste(V.bloques, (r.blocked || []).map(d => `${lienExt(d.url, esc(d.url))} (${esc(d.pages.join(", "))})`))}
           ${liste(V.affirmations, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${liste(V.pagesDues, (r.pages_due || []).map(esc))}
           ${r.log ? `<details><summary>${V.journal}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f => piste(f, r.fixable)).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f => piste(f, r.fixable, c)).join("")}</ul>` : ""}` : ""}
       </div>`;
     }).join("")}
     <div class="barre">
@@ -547,7 +549,7 @@ async function vueVerification(id) {
       <button class="principal" id="fix"></button>
     </div>`;
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
-  function piste(f, corrigeable) {
+  function piste(f, corrigeable, carte) {
     const h = v.handled[f];
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
@@ -555,7 +557,7 @@ async function vueVerification(id) {
         ${run.status ? pastille(run.status) : ""}${run.pr_url ? ` ${lienExt(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="traitee"><span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
-    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}"> ${esc(f)}</label></li>`;
+    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-carte="${carte}"> ${esc(f)}</label></li>`;
   }
   const cases = [...page.querySelectorAll("[data-piste]")];
   const coches = () => cases.filter(c => c.checked);
@@ -565,6 +567,12 @@ async function vueVerification(id) {
     $("#ecarter").textContent = V.ecarter(e); $("#ecarter").disabled = e === 0 || v.running;
   };
   cases.forEach(c => c.onchange = compte);
+  // Tick or untick every open finding of one card (all ticked: untick)
+  page.querySelectorAll("[data-cocher-carte]").forEach(b => b.onclick = () => {
+    const carte = cases.filter(c => c.dataset.carte === b.dataset.cocherCarte), tout = carte.every(c => c.checked);
+    carte.forEach(c => c.checked = !tout);
+    compte();
+  });
   $("#tout").onclick = () => { cases.forEach(c => c.checked = true); compte(); };
   $("#rien").onclick = () => { cases.forEach(c => c.checked = false); compte(); };
   compte();
