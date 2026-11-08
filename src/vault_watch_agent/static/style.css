@@ -90,3 +90,7 @@ details.nouvelle > summary { list-style: none; cursor: pointer; } details.nouvel
 details.nouvelle > summary h2 { display: inline-block; } details.nouvelle > summary h2::before { content: "▸ "; color: var(--doux); }
 details.nouvelle[open] > summary h2::before { content: "▾ "; }
 .attention-texte { color: var(--attention); }
+details.repliable > summary { list-style: none; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-weight: normal; }
+details.repliable > summary::-webkit-details-marker { display: none; }
+details.repliable > summary::before { content: "▸"; color: var(--doux); } details.repliable[open] > summary::before { content: "▾"; }
+details.repliable:not([open]) { padding-bottom: 16px; } details.repliable[open] > summary { margin-bottom: 8px; }

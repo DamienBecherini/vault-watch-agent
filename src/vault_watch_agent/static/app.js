@@ -537,7 +537,10 @@ async function vueVerification(id) {
         : r.summary?.startsWith("could not run") ? `<span class="pastille erreur">${V.echec}</span>`
         : r.findings?.length && !r.open ? `<span class="pastille ok">${V.traitee}</span>`
         : `<span class="pastille ${r.ok ? "ok" : "attention"}">${r.ok ? V.ok : r.open ? V.aTraiter(r.open) : V.problemes}</span>`;
-      return `<div class="carte"><div class="entete"><b>${esc(titres[c] || c)}</b>${etat}${r?.open ? ` <button class="petit-bouton" data-cocher-carte="${c}">${V.cocherCarte(r.open)}</button>` : ""}</div>
+      // Folded by default once nothing is left to do in it (all handled, or fine); the reader's choice is kept
+      const finie = r && !r.open && !r.summary?.startsWith("could not run") && (r.ok || r.findings?.length);
+      const ouverte = PLIS[`${id}/${c}`] ?? !finie;
+      return `<details class="carte repliable" data-pli="${id}/${c}"${ouverte ? " open" : ""}><summary class="entete"><b>${esc(titres[c] || c)}</b>${etat}${r?.open ? ` <button class="petit-bouton" data-cocher-carte="${c}">${V.cocherCarte(r.open)}</button>` : ""}</summary>
         ${r ? `<p class="doux petit">${esc(r.summary)}</p>
           ${liste(V.morts, (r.dead || []).map(d => `${lienExt(d.url, esc(d.url))} — ${esc(d.status)} ${esc(d.code ?? "")} (${esc(d.pages.join(", "))})`))}
           ${liste(V.bloques, (r.blocked || []).map(d => `${lienExt(d.url, esc(d.url))} (${esc(d.pages.join(", "))})`))}
@@ -545,7 +548,7 @@ async function vueVerification(id) {
           ${liste(V.pagesDues, (r.pages_due || []).map(esc))}
           ${r.log ? `<details><summary>${V.journal}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map((f, i) => piste(f, r.fixable, c, r.mode, i + 1)).join("")}</ul>` : ""}` : ""}
-      </div>`;
+      </details>`;
     }).join("")}
     <div class="barre">
       <button id="tout">${V.toutCocher}</button><button id="rien">${V.rienCocher}</button>
@@ -572,7 +575,9 @@ async function vueVerification(id) {
   };
   cases.forEach(c => c.onchange = compte);
   // Tick or untick every open finding of one card (all ticked: untick)
-  page.querySelectorAll("[data-cocher-carte]").forEach(b => b.onclick = () => {
+  page.querySelectorAll("[data-pli]").forEach(d => d.ontoggle = () => { PLIS[d.dataset.pli] = d.open; });
+  page.querySelectorAll("[data-cocher-carte]").forEach(b => b.onclick = e => {
+    e.preventDefault();  // in the card's summary: tick, do not fold
     const carte = cases.filter(c => c.dataset.carte === b.dataset.cocherCarte), tout = carte.every(c => c.checked);
     carte.forEach(c => c.checked = !tout);
     compte();
@@ -598,6 +603,8 @@ async function vueVerification(id) {
   }
   if (v.running) suivi = setTimeout(() => vueVerification(id).catch(() => {}), 3000);
 }
+
+const PLIS = {};  // check cards folded or opened by the reader, by verification/check, kept across refreshes
 
 // --- Report errors -----------------------------------------------------------------------------------
 function vueSignaler() {
