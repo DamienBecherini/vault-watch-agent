@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
@@ -81,6 +81,12 @@ class Publish(BaseModel):
 
 class Report(BaseModel):
     text: str  # one reported error per line
+    verification: str | None = None  # the check these findings come from, to mark them as sent
+
+
+class Handle(BaseModel):
+    findings: list[str]
+    status: Literal["dismissed", "open"]
 
 
 class Verification(BaseModel):
@@ -333,6 +339,8 @@ def create_app(settings: Settings) -> FastAPI:
                                as_node="propose")
             follow(graph, job, None)
 
+        if body.verification:  # the findings of a check, sent here: they are handled
+            mark(body.verification, findings, {"status": "fix", "thread": thread})
         start(thread, "fix", "fix", work)
         return {"thread": thread}
 
@@ -348,11 +356,46 @@ def create_app(settings: Settings) -> FastAPI:
         return sorted(verifs.glob("verif-*.json"), reverse=True) if verifs.is_dir() else []
 
     def verif_view(path: Path) -> dict:
+        """The verification with what became of its findings: open, sent to a fix run, or dismissed."""
         data = json.loads(path.read_text(encoding="utf-8"))
         job = jobs.get(data["id"])
         data["running"] = bool(job and not job.done)
         data["error"] = (job.error if job else "") or data.get("error", "")
+        handled = data.setdefault("handled", {})
+        every = [f for r in data["results"].values() for f in r.get("findings", [])]
+        counts = {"open": 0, "fix": 0, "dismissed": 0}
+        for f in every:
+            counts[handled.get(f, {}).get("status", "open")] += 1
+        data["counts"] = counts
+        data["status"] = ("running" if data["running"] else "to-handle" if counts["open"]
+                          else "handled" if every else "clear")
         return data
+
+    def verif_path(vid: str) -> Path:
+        path = verifs / f"{vid}.json"
+        if not re.fullmatch(r"verif-[\d-]+", vid) or not path.is_file():
+            raise HTTPException(404, f"no verification {vid}")
+        return path
+
+    def mark(vid: str, findings: list[str], entry: dict | None) -> None:
+        """Record what became of findings (None: back to open). Not while the check still writes its file."""
+        path = verif_path(vid)
+        with lock:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not data.get("done"):
+                raise HTTPException(409, "the check is still running")
+            handled = data.setdefault("handled", {})
+            for f in findings:
+                if entry:
+                    handled[f] = {**entry, "t": time.time()}
+                else:
+                    handled.pop(f, None)
+            path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    @app.post("/api/verifications/{vid}/pistes")
+    def verif_handle(vid: str, body: Handle):
+        mark(vid, body.findings, {"status": "dismissed"} if body.status == "dismissed" else None)
+        return verif_view(verif_path(vid))["counts"]
 
     @app.get("/api/verifications/options")
     def verif_options():
@@ -369,16 +412,11 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/verifications")
     def verif_list():
-        return [{k: v for k, v in verif_view(p).items() if k != "results"} | {
-                    "findings": sum(len(r.get("findings", [])) for r in json.loads(p.read_text(encoding="utf-8"))["results"].values())}
-                for p in verif_files()[:20]]
+        return [{k: v for k, v in verif_view(p).items() if k not in ("results", "handled")} for p in verif_files()[:20]]
 
     @app.get("/api/verifications/{vid}")
     def verif_get(vid: str):
-        path = verifs / f"{vid}.json"
-        if not re.fullmatch(r"verif-[\d-]+", vid) or not path.is_file():
-            raise HTTPException(404, f"no verification {vid}")
-        return verif_view(path)
+        return verif_view(verif_path(vid))
 
     @app.post("/api/verifications")
     def verif_start(body: Verification):

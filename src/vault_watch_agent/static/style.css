@@ -83,3 +83,5 @@ nav.externes { align-items: center; }
 .entete .pastille { margin-left: 4px; }
 ul.pistes { padding-left: 0; list-style: none; } ul.pistes li { margin: 6px 0; font-size: 14px; }
 ul.pistes label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; } ul.pistes input { margin-top: 4px; }
+ul.pistes li.traitee { opacity: .6; } ul.pistes li.traitee:hover { opacity: 1; }
+.petit-bouton { padding: 1px 8px; font-size: 12px; }

@@ -25,8 +25,12 @@ const TEXTES = {
       nonCorrigeable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       voirDetails: "Détails", morts: "Sources qui ne répondent pas", bloques: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       affirmations: "Affirmations à revérifier", pagesDues: "Pages à revoir", journal: "Journal",
-      creerFix: n => `Créer une passe fix avec ${n} point(s) · ≈ 6 $`, toutCocher: "Tout cocher", rienCocher: "Tout décocher",
+      creerFix: n => `Créer une passe fix avec ${n} piste(s) · ≈ 6 $`, toutCocher: "Tout cocher", rienCocher: "Tout décocher",
       cout: c => `Coût : ${c}`,
+      comptes: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
+        : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
+      aTraiter: n => `${n} piste(s) à traiter`, traitee: "Traitée", traiter: "Traiter",
+      envoyee: "→ passe fix", ecartee: "écartée", retablir: "Rétablir", ecarter: n => `Écarter ${n} piste(s)`,
     },
     chargement: "Chargement…",
     serveurArrete: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passages en pause n'ont rien perdu.",
@@ -111,6 +115,10 @@ const TEXTES = {
       affirmations: "Claims to re-check", pagesDues: "Pages due for review", journal: "Log",
       creerFix: n => `Create a fix run with ${n} point(s) · ≈ 6 $`, toutCocher: "Tick all", rienCocher: "Untick all",
       cout: c => `Cost: ${c}`,
+      comptes: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
+        : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
+      aTraiter: n => `${n} lead(s) to handle`, traitee: "Handled", traiter: "Handle",
+      envoyee: "→ fix run", ecartee: "dismissed", retablir: "Reopen", ecarter: n => `Dismiss ${n} lead(s)`,
     },
     chargement: "Loading…",
     serveurArrete: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
@@ -438,6 +446,14 @@ function vueFin(r, titre) {
 
 // --- Check the guide ---------------------------------------------------------------------------------------
 let suivi = null;  // timer following a running check
+const etatVerif = p => {
+  const V = T.verif, [texte, classe] = {
+    running: [V.enCours, "attention"], "to-handle": [V.aTraiter(p.counts.open), "attention"],
+    handled: [V.traitee, "ok"], clear: [V.ok, "ok"],
+  }[p.status] || [p.status, "neutre"];
+  return `<span class="pastille ${classe}">${texte}</span>`;
+};
+
 async function vueVerifier() {
   const [options, passes] = await Promise.all([api("/api/verifications/options"), api("/api/verifications")]);
   const V = T.verif, titres = Object.fromEntries(options.map(o => [o.id, o.title[langue]]));
@@ -456,10 +472,11 @@ async function vueVerifier() {
       </div></label>`).join("")}
     <p><button class="principal" id="lancer"></button></p>
     <h2>${V.historique}</h2>
-    ${passes.map(p => `<div class="carte ligne"><div class="pousse"><b>${new Date(p.started * 1000).toLocaleString(langue)}</b>
-        <div class="doux petit">${p.checks.map(c => esc(titres[c] || c)).join(" · ")} · ${V.pistes(p.findings)} · ${dollars(p.cost)}</div></div>
-        ${p.running ? `<span class="pastille attention">${V.enCours}</span>` : ""}
-        <a href="#/verifier/${encodeURIComponent(p.id)}"><button>${T.details}</button></a></div>`).join("") || `<p class="doux">${V.aucune}</p>`}`;
+    ${passes.map(p => `<div class="carte ligne${["handled", "clear"].includes(p.status) ? " finie" : ""}"><div class="pousse"><b>${new Date(p.started * 1000).toLocaleString(langue)}</b>
+        <div class="doux petit">${p.checks.map(c => esc(titres[c] || c)).join(" · ")} · ${dollars(p.cost)}</div>
+        <div class="doux petit">${V.comptes(p.counts)}</div></div>
+        ${etatVerif(p)}
+        <a href="#/verifier/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="principal"' : ""}>${p.status === "to-handle" ? V.traiter : T.details}</button></a></div>`).join("") || `<p class="doux">${V.aucune}</p>`}`;
   const cases = [...page.querySelectorAll("[data-check]")];
   const total = () => {
     const ids = new Set(cases.filter(c => c.checked).map(c => c.dataset.check));
@@ -484,8 +501,8 @@ async function vueVerification(id) {
   const V = T.verif, titres = Object.fromEntries(options.map(o => [o.id, o.title[langue]]));
   const liste = (titre, items) => items && items.length ? `<details><summary>${titre} (${items.length})</summary><ul>${items.map(x => `<li>${x}</li>`).join("")}</ul></details>` : "";
   page.innerHTML = `
-    <h1>${V.titre} · ${new Date(v.started * 1000).toLocaleString(langue)} ${v.running ? `<span class="pastille attention">${V.enCours}</span>` : ""}</h1>
-    <p class="sous-titre">${V.cout(dollars(v.cost))}</p>
+    <h1>${V.titre} · ${new Date(v.started * 1000).toLocaleString(langue)} ${etatVerif(v)}</h1>
+    <p class="sous-titre">${V.cout(dollars(v.cost))} · ${V.comptes(v.counts)}</p>
     ${v.error ? `<p class="erreur-texte">${esc(v.error)}</p>` : ""}
     ${v.checks.map(c => {
       const r = v.results[c];
@@ -499,26 +516,44 @@ async function vueVerification(id) {
           ${liste(V.affirmations, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${liste(V.pagesDues, (r.pages_due || []).map(esc))}
           ${r.log ? `<details><summary>${V.journal}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f =>
-            `<li>${r.fixable ? `<label><input type="checkbox" data-piste="${esc(f)}" checked> ` : ""}${esc(f)}${r.fixable ? "</label>" : ""}</li>`).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f => piste(f, r.fixable)).join("")}</ul>` : ""}` : ""}
       </div>`;
     }).join("")}
     <div class="barre">
       <button id="tout">${V.toutCocher}</button><button id="rien">${V.rienCocher}</button>
+      <button id="ecarter"></button>
       <button class="principal" id="fix"></button>
     </div>`;
+  // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
+  function piste(f, corrigeable) {
+    const h = v.handled[f];
+    if (h?.status === "fix") return `<li class="traitee"><span class="pastille ok">${V.envoyee}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a> · ${esc(f)}</li>`;
+    if (h?.status === "dismissed") return `<li class="traitee"><span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
+    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}"> ${esc(f)}</label></li>`;
+  }
   const cases = [...page.querySelectorAll("[data-piste]")];
-  const compte = () => { const n = cases.filter(c => c.checked).length; $("#fix").textContent = V.creerFix(n); $("#fix").disabled = n === 0 || v.running; };
+  const coches = () => cases.filter(c => c.checked);
+  const compte = () => {
+    const n = coches().filter(c => c.dataset.corrigeable === "true").length, e = coches().length;
+    $("#fix").textContent = V.creerFix(n); $("#fix").disabled = n === 0 || v.running;
+    $("#ecarter").textContent = V.ecarter(e); $("#ecarter").disabled = e === 0 || v.running;
+  };
   cases.forEach(c => c.onchange = compte);
   $("#tout").onclick = () => { cases.forEach(c => c.checked = true); compte(); };
   $("#rien").onclick = () => { cases.forEach(c => c.checked = false); compte(); };
   compte();
+  const pistes = (findings, status) => api(`/api/verifications/${encodeURIComponent(id)}/pistes`, { findings, status }).then(() => vueVerification(id));
+  page.querySelectorAll("[data-retablir]").forEach(b => b.onclick = () => pistes([b.dataset.retablir], "open"));
   if (!cases.length) page.querySelector(".barre").remove();
-  else $("#fix").onclick = async () => {
-    $("#fix").disabled = true;
-    const { thread } = await api("/api/fix", { text: cases.filter(c => c.checked).map(c => c.dataset.piste).join("\n") });
-    location.hash = `/run/${encodeURIComponent(thread)}`;
-  };
+  else {
+    $("#ecarter").onclick = () => pistes(coches().map(c => c.dataset.piste), "dismissed");
+    $("#fix").onclick = async () => {
+      $("#fix").disabled = true;
+      const text = coches().filter(c => c.dataset.corrigeable === "true").map(c => c.dataset.piste).join("\n");
+      const { thread } = await api("/api/fix", { text, verification: id });
+      location.hash = `/run/${encodeURIComponent(thread)}`;
+    };
+  }
   if (v.running) suivi = setTimeout(() => vueVerification(id).catch(() => {}), 3000);
 }
 

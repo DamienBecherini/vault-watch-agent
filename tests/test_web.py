@@ -84,3 +84,11 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
     assert len(v["results"]["freshness"]["claims"]) == 1
     assert [p["id"] for p in c.get("/api/verifications").json()] == [vid]
     assert c.post("/api/verifications", json={"checks": ["nope"]}, headers=ACT).status_code == 400
+    finding = v["results"]["coherence"]["findings"][0]
+    assert v["status"] == "to-handle" and v["counts"]["open"] == 1
+    act = lambda status: c.post(f"/api/verifications/{vid}/pistes", json={"findings": [finding], "status": status}, headers=ACT)
+    assert act("dismissed").json() == {"open": 0, "fix": 0, "dismissed": 1}
+    assert c.get(f"/api/verifications/{vid}").json()["status"] == "handled"
+    assert act("open").json()["open"] == 1
+    thread = c.post("/api/fix", json={"text": finding, "verification": vid}, headers=ACT).json()["thread"]
+    assert c.get(f"/api/verifications/{vid}").json()["handled"][finding]["thread"] == thread  # linked to its fix run

@@ -42,7 +42,8 @@ def french_pages(vault: Path) -> list[Path]:
     pages = []
     for path in vault.rglob("*.md*"):
         rel = path.relative_to(vault)
-        if path.suffix not in (".md", ".mdx") or rel.parts[0] in SKIPPED_DIRS:
+        # Dot folders are tooling, never content (.claude/skills, .cursor/plans were read as pages)
+        if path.suffix not in (".md", ".mdx") or rel.parts[0] in SKIPPED_DIRS or rel.parts[0].startswith("."):
             continue
         if len(rel.parts) == 1 and rel.name in SKIPPED_ROOT_FILES:
             continue

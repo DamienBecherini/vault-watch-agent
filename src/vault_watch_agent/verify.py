@@ -23,9 +23,11 @@ from . import inputs, vault
 from .llm import LLM, MODEL, PRICES, TRANSLATOR
 
 BYTES_PER_TOKEN = 2.1
-COHERENCE_OUT = 16_000  # output tokens of the whole-guide read
-CLAIM_USD = 0.12  # one watchlist claim checked on the web
-DEAD_LINK_USD = 0.10  # one dead source: find where it moved
+# Measured on the first full check (2026-11-08, 7.26 $): the whole-guide read wrote 27 k tokens; checking a
+# claim on the web read ≈ 46 k tokens of sources (0.21 $), finding where a dead source moved ≈ 0.27 $.
+COHERENCE_OUT = 27_000  # output tokens of the whole-guide read
+CLAIM_USD = 0.21  # one watchlist claim checked on the web
+DEAD_LINK_USD = 0.27  # one dead source: find where it moved
 OUTPUT_PER_CHAPTER = 3_000
 
 
@@ -39,6 +41,15 @@ class Finding(BaseModel):
 
 class Findings(BaseModel):
     findings: list[Finding]
+
+
+class TranslationFinding(Finding):
+    meaning_differs: bool = Field(description="False when, on reflection, both sides say the same thing (wording, "
+                                  "adaptation, a shared mistake): such findings are dropped.")
+
+
+class TranslationFindings(BaseModel):
+    findings: list[TranslationFinding]
 
 
 @dataclass
@@ -170,7 +181,8 @@ findings in English. Prefer a few solid findings to many weak ones."""
 TRANSLATION = """You compare French pages of a guide with their English mirror. For each pair below, report only
 real divergences of meaning: a paragraph, row or footnote missing on one side, a number, version, date, price or
 link that differs, a recommendation that says something else, text left untranslated. Do not report style or
-wording choices that keep the meaning. Each finding names the English page and quotes both sides. Write the
+wording choices that keep the meaning. A pair without divergence gets no finding at all: never write a finding
+that says nothing differs. Each finding names the English page and quotes both sides. Write the
 findings in English."""
 
 CLAIMS = """You check claims of a French-language guide on running AI on-premise whose « Recheck by » date has
@@ -209,9 +221,10 @@ def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dic
                 findings.append(f"[Major] en/{rel}: no English mirror for this French page.")
         if not pairs:
             continue
-        result, usage = llm.parse(system=TRANSLATION, prompt="\n\n".join(pairs), schema=Findings, effort="medium",
-                                  node=f"verify translation {chapter}")
-        findings += _findings(result)
+        result, usage = llm.parse(system=TRANSLATION, prompt="\n\n".join(pairs), schema=TranslationFindings,
+                                  effort="medium", node=f"verify translation {chapter}")
+        # The first run reported « no divergence found » as findings: they are filtered out here
+        findings += _findings(Findings(findings=[f for f in result.findings if f.meaning_differs]))
         usages.append(usage)
     return {"ok": not findings, "summary": f"{len(findings)} divergences", "findings": findings, "usage": usages}
 
