@@ -21,8 +21,11 @@ const STATUTS = {
   new: ["À analyser", "neutre"], running: ["En cours", "attention"], review: ["Relecture à faire", "attention"],
   publish: ["Publication à valider", "attention"], published: ["PR créée", "ok"],
   "nothing-applied": ["Rien appliqué", "neutre"], "not-published": ["Non publié", "neutre"], stopped: ["Interrompu", "erreur"],
-  closed: ["Traitée hors agent", "neutre"],
+  closed: ["Traitée hors agent", "neutre"], merged: ["✓ Terminée · PR fusionnée", "ok"],
+  "pr-open": ["PR à fusionner", "attention"], "pr-closed": ["PR fermée sans fusion", "neutre"],
 };
+// Nothing left to do: the card is dimmed
+const FINIS = ["closed", "merged", "pr-closed", "nothing-applied", "not-published"];
 const pastille = st => { const [t, c] = STATUTS[st] || [st, "neutre"]; return `<span class="pastille ${c}">${t}</span>`; };
 
 const NOMS = {
@@ -62,9 +65,10 @@ async function vueVeilles() {
       const r = v.run, lien = `#/run/${encodeURIComponent(r.thread)}`;
       const action = r.status === "closed" ? ""
         : r.status === "new" ? `<button class="principal" data-analyser="${v.number}">Analyser · ≈ 4 $</button>`
-        : `<a href="${lien}"><button${["review", "publish"].includes(r.status) ? ' class="principal"' : ""}>${
-            { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Voir" }[r.status] || "Voir"}</button></a>`;
-      return `<div class="carte ligne">
+        : r.status === "pr-open" ? `<a href="${esc(r.pr_url)}" target="_blank" rel="noopener"><button class="principal">Fusionner sur GitHub</button></a>`
+        : `<a href="${lien}"><button${["review", "publish", "stopped"].includes(r.status) ? ' class="principal"' : ""}>${
+            { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" }[r.status] || "Détails"}</button></a>`;
+      return `<div class="carte ligne${FINIS.includes(r.status) ? " finie" : ""}">
         <div class="pousse">
           <b>#${v.number}</b> ${esc(v.title)} ${v.urgent ? '<span class="pastille erreur">urgent</span>' : ""}
           <div class="doux petit">${v.date} · issue ${v.state === "open" ? "ouverte" : "fermée"}${
@@ -75,9 +79,10 @@ async function vueVeilles() {
       </div>`;
     }).join("") || `<p class="doux">Aucune veille.</p>`}
     ${autres.length ? `<h2>Autres passages</h2>${autres.map(r => `
-      <div class="carte ligne"><div class="pousse"><b>${esc(r.thread)}</b>
-        <div class="doux petit">${esc(r.source)} · ${r.corrections} correction(s) · ${dollars(r.cost)}</div></div>
-        ${pastille(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>Voir</button></a></div>`).join("")}` : ""}`;
+      <div class="carte ligne${FINIS.includes(r.status) ? " finie" : ""}"><div class="pousse"><b>${esc(r.thread)}</b>
+        <div class="doux petit">${esc(r.source)} · ${r.corrections} correction(s) · ${dollars(r.cost)}${
+          r.pr_url ? ` · <a href="${esc(r.pr_url)}" target="_blank" rel="noopener">pull request</a>` : ""}</div></div>
+        ${pastille(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>Détails</button></a></div>`).join("")}` : ""}`;
   page.querySelectorAll("[data-analyser]").forEach(b => b.onclick = async () => {
     b.disabled = true;
     const { thread } = await api("/api/analyses", { issue: Number(b.dataset.analyser) });
@@ -243,6 +248,9 @@ async function vuePublication(r, titre) {
 function vueFin(r, titre) {
   const texte = {
     published: `Pull request : <a href="${esc(r.pr_url)}" target="_blank" rel="noopener">${esc(r.pr_url)}</a>. Une fois relue et fusionnée sur GitHub, le site se redéploie tout seul.`,
+    "pr-open": `Pull request à relire et fusionner sur GitHub : <a href="${esc(r.pr_url)}" target="_blank" rel="noopener">${esc(r.pr_url)}</a>. Le site se redéploie tout seul après la fusion.`,
+    merged: `Terminé : la <a href="${esc(r.pr_url)}" target="_blank" rel="noopener">pull request</a> est fusionnée et le site redéployé.`,
+    "pr-closed": `La <a href="${esc(r.pr_url)}" target="_blank" rel="noopener">pull request</a> a été fermée sans fusion.`,
     "nothing-applied": "Aucune correction appliquée : le passage est clos.",
     "not-published": `Branche <code>${esc(r.branch)}</code> gardée en local, sans pull request.`,
     stopped: "Le passage s'est arrêté sur une erreur. Il peut reprendre à la dernière étape terminée.",
@@ -286,5 +294,11 @@ async function vueCouts() {
     <h2>Par mois</h2><div class="carte">${tableau(c.month, "Mois")}</div>
     <h2>Par passage</h2><div class="carte">${tableau([...c.run].reverse(), "Passage")}</div>`;
 }
+
+// Header links: the guide, its repository, this agent's repository
+api("/api/infos").then(i => {
+  $("#externes").innerHTML = [[i.site, "Guide"], [`https://github.com/${i.repo}`, "Dépôt du guide"], [i.agent, "Code de l'agent"]]
+    .filter(([url]) => url).map(([url, nom]) => `<a href="${esc(url)}" target="_blank" rel="noopener">${nom} ↗</a>`).join("");
+}).catch(() => {});
 
 route();

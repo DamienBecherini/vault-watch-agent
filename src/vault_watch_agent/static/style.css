@@ -71,3 +71,5 @@ td.nombre, th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
 textarea { width: 100%; min-height: 180px; font: inherit; padding: 10px; border-radius: 8px; border: 1px solid var(--bord);
   background: var(--carte); color: var(--texte); }
 .erreur-texte { color: var(--erreur); }
+.carte.finie { opacity: .6; } .carte.finie:hover { opacity: 1; }
+nav.externes { margin-left: auto; } nav.externes a { font-size: 13px; }

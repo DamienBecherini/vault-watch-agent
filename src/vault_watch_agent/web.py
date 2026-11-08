@@ -38,6 +38,7 @@ from . import costs, fix, inputs
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
+AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
          "apply", "mirror", "audits", "links", "publish"]
@@ -50,7 +51,9 @@ class Settings:
     journal: Path
     make_deps: Callable[[str, str], Deps]  # (thread, kind) -> Deps with its own model clients
     list_issues: Callable[[], list[dict]] | None = None  # watch issues; default: gh
+    pr_state: Callable[[str], str] | None = None  # "open", "merged" or "closed" for a PR url; default: gh
     repo: str = "DamienBecherini/ia-on-prem-vault"
+    site: str = "https://ia-on-prem.damien.becherini.fr/"
 
 
 @dataclass
@@ -153,11 +156,24 @@ def create_app(settings: Settings) -> FastAPI:
             return "nothing-applied"
         return "not-published"
 
+    pr_states: dict[str, str] = {}  # merged and closed are final, open is read again
+
+    def pr_state(url: str) -> str:
+        if pr_states.get(url) not in ("merged", "closed"):
+            try:
+                pr_states[url] = (settings.pr_state or gh_pr_state)(url)
+            except Exception:  # gh missing or offline: the run still shows as published
+                return ""
+        return pr_states[url]
+
     def summary(thread: str) -> dict:
         snapshot = viewer.get_state(config(thread))
         v, job = snapshot.values, jobs.get(thread)
+        st = status(snapshot, job)
+        if st == "published":
+            st = {"merged": "merged", "open": "pr-open", "closed": "pr-closed"}.get(pr_state(v["pr_url"]), st)
         return {
-            "thread": thread, "status": status(snapshot, job), "source": v.get("source", ""),
+            "thread": thread, "status": st, "source": v.get("source", ""),
             "as_of": v.get("as_of", ""), "pr_url": v.get("pr_url", ""),
             "cost": round(sum(u.get("cost_usd", 0.0) for u in v.get("usage", [])), 2),
             "corrections": len(v.get("corrections", [])), "applied": len(v.get("applied", [])),
@@ -178,11 +194,15 @@ def create_app(settings: Settings) -> FastAPI:
     def sante():
         return {"ok": True, "service": "vault-watch"}
 
+    @app.get("/api/infos")
+    def infos():
+        return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO}
+
     def run_of(issue: dict, known: list[str]) -> dict:
         """The run that counts for a watch: the published one, else the latest (re-runs are named issue-50b…)."""
         runs = [summary(t) for t in known if re.fullmatch(rf"issue-{issue['number']}[a-z]?", t)]
         if runs:
-            return next((r for r in runs if r["status"] == "published"), runs[0])
+            return next((r for r in runs if r["pr_url"]), runs[0])
         new = summary(f"issue-{issue['number']}")
         if issue["state"] == "closed":
             new["status"] = "closed"  # handled by hand, before the agent or without it
@@ -319,6 +339,10 @@ def create_app(settings: Settings) -> FastAPI:
         return FileResponse(STATIC / "index.html")
 
     return app
+
+
+def gh_pr_state(url: str) -> str:
+    return inputs.run(["gh", "pr", "view", url, "--json", "state", "--jq", ".state"]).strip().lower()
 
 
 def list_issues(repo: str) -> Callable[[], list[dict]]:
