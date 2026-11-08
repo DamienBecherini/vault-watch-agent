@@ -25,7 +25,7 @@ const TEXTES = {
       nonCorrigeable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       voirDetails: "Détails", morts: "Sources qui ne répondent pas", bloques: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       affirmations: "Affirmations à revérifier", pagesDues: "Pages à revoir", journal: "Journal",
-      creerFix: n => `Créer une passe fix avec ${n} piste(s) · ≈ 6 $`, toutCocher: "Tout cocher", rienCocher: "Tout décocher",
+      creerFix: n => `Créer une passe fix avec ${n} piste(s) · ≈ 6-8 $`, toutCocher: "Tout cocher", rienCocher: "Tout décocher",
       cout: c => `Coût : ${c}`,
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
@@ -115,7 +115,7 @@ const TEXTES = {
       nonCorrigeable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       voirDetails: "Details", morts: "Sources not answering", bloques: "Blocked by anti-bot protections (often fine in a browser)",
       affirmations: "Claims to re-check", pagesDues: "Pages due for review", journal: "Log",
-      creerFix: n => `Create a fix run with ${n} point(s) · ≈ 6 $`, toutCocher: "Tick all", rienCocher: "Untick all",
+      creerFix: n => `Create a fix run with ${n} point(s) · ≈ 6-8 $`, toutCocher: "Tick all", rienCocher: "Untick all",
       cout: c => `Cost: ${c}`,
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
