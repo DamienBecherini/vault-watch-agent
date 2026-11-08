@@ -91,7 +91,9 @@ def build(deps: Deps, checkpointer=None):
         by_id = {i["id"]: i for i in state["items"]}
         sends = [
             Send("propose", {"items": [by_id[i] for i in ids], "excerpts": excerpts})
-            for ids, excerpts in clusters(state["evidence"])
+            for ids, excerpts in clusters(
+                state["evidence"], {d["item_id"]: d["search_terms"] for d in state["decisions"]}
+            )
         ]
         return sends or "report"
 
@@ -291,13 +293,18 @@ HUB_ITEMS = 4  # a page cited for more items than this is a hub: it does not mer
 GROUP_EXCERPTS = 16000  # characters of excerpts per group
 
 
-def clusters(evidence: dict[str, list[dict]]) -> list[tuple[list[str], list[dict]]]:
-    """Group items whose excerpts come from the same pages, so one call sees every edit of a page.
+def clusters(evidence: dict[str, list[dict]], terms: dict[str, list[str]] | None = None) -> list[tuple[list[str], list[dict]]]:
+    """Group items about the same tool or the same pages, so one call sees every edit of a page.
 
-    Hub pages (a security overview cited for many tools) do not merge groups; the
-    conflict check in `mark_conflicts` still catches two edits of the same passage.
+    Items sharing a search term (the tool name: seven Jan advisories) always merge.
+    Items sharing a page merge too, except through hub pages (a security overview
+    cited for many tools); the conflict check in `mark_conflicts` still catches two
+    edits of the same passage.
     """
     pages_of = {i: {e["page"] for e in ex} for i, ex in evidence.items() if ex}
+    for i, ts in (terms or {}).items():
+        if i in pages_of:
+            pages_of[i] |= {f"term:{t.strip().lower()}" for t in ts if len(t.strip()) >= 3}
     count: dict[str, int] = {}
     for pages in pages_of.values():
         for p in pages:
@@ -313,7 +320,7 @@ def clusters(evidence: dict[str, list[dict]]) -> list[tuple[list[str], list[dict
     owner: dict[str, str] = {}
     for i, pages in pages_of.items():
         for p in pages:
-            if count[p] > HUB_ITEMS:
+            if count[p] > HUB_ITEMS and not p.startswith("term:"):
                 continue
             if p in owner:
                 parent[root(i)] = root(owner[p])

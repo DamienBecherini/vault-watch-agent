@@ -197,3 +197,7 @@ def test_clusters_merge_items_sharing_a_page_but_not_through_a_hub():
     groups = sorted(sorted(ids) for ids, _ in clusters(evidence))
     # security.md is cited for 5 items: a hub, it does not merge Jan with LiteLLM
     assert groups == [["W1", "W2"], ["W3"], ["W4"], ["W5"], ["W6"]]
+    # The same tool merges whatever the pages: five Jan advisories make a hub of jan.md otherwise
+    jan = {f"J{n}": ex("jan.md") for n in range(6)}
+    assert len(clusters(jan)) == 6
+    assert len(clusters(jan, {i: ["Jan"] for i in jan})) == 1
