@@ -60,6 +60,7 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   guide should cover and does not. The model's knowledge only generates leads; each one goes through D1–D4.
 - [x] **E6. External links of the changed pages checked before publish** (`links` node, the vault's
   `audit-sources.mjs`), listed in the publish pause and in the PR.
+- [x] **E8. On-demand health check** (`verify.py`, « Vérifier le guide » page): free checks (audits, dead links, freshness) and paid ones (whole-guide consistency, translation fidelity, re-check of dated claims, replacement of dead links), each with its estimate; findings go to a fix run.
 - [ ] **E7. Dead links fixed by a fix run.** The weekly source audit (warn-only today) feeds `vault-watch fix`:
   find the moved page or an equivalent primary source on the web; tell a real 404 from an anti-bot 403 with the
   API's web fetch. First case: the OpenHuman architecture README (404).

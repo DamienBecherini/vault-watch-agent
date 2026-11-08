@@ -16,6 +16,7 @@ from langgraph.types import Command
 from vault_watch_agent import vault
 from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck
 from vault_watch_agent.graph import Deps, build, pr_body
+from vault_watch_agent.verify import Finding, Findings
 from vault_watch_agent.state import (
     Correction,
     ClusterProposal,
@@ -78,6 +79,10 @@ class FakeLLM:
                 ],
                 other_findings=["a doubt elsewhere"],
             ), usage
+        if schema is Findings:
+            assert "<page path=" in (context or "") or "<pair page=" in prompt
+            return Findings(findings=[Finding(pages=["03-stack/engines.md"], problem="floor differs from another page",
+                                              severity="Major")]), usage
         if schema is TriageResult:
             assert "vault_contract" in system  # the vault's own brief is loaded at run time
             return TriageResult(decisions=[

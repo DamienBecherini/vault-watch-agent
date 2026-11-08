@@ -66,3 +66,21 @@ def test_idle_time_ignores_the_health_probe(client):
 def test_foreign_host_is_refused(client):
     c, _ = client
     assert c.get("/api/runs", headers={"Host": "evil.example"}).status_code == 403
+
+
+def test_check_of_the_guide_runs_what_its_checks_need(client):
+    c, _ = client
+    options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
+    assert options["audits"]["usd"] == 0 and options["coherence"]["usd"] > 0 and options["coherence"]["tokens"] > 0
+    assert options["claims"]["needs"] == ["freshness"]
+    vid = c.post("/api/verifications", json={"checks": ["coherence", "claims"]}, headers=ACT).json()["id"]
+    for _ in range(200):
+        v = c.get(f"/api/verifications/{vid}").json()
+        if not v["running"] and v["done"]:
+            break
+        time.sleep(0.05)
+    assert v["checks"] == ["freshness", "coherence", "claims"]  # claims needs the freshness script first
+    assert v["results"]["coherence"]["findings"] == ["[Major] 03-stack/engines.md: floor differs from another page"]
+    assert len(v["results"]["freshness"]["claims"]) == 1
+    assert [p["id"] for p in c.get("/api/verifications").json()] == [vid]
+    assert c.post("/api/verifications", json={"checks": ["nope"]}, headers=ACT).status_code == 400

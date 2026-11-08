@@ -77,3 +77,9 @@ nav.externes { margin-left: auto; } nav.externes a { font-size: 13px; }
 .langues button { border: 0; border-radius: 0; padding: 3px 9px; font-size: 12px; color: var(--doux); background: transparent; }
 .langues button.actif { background: var(--accent); color: var(--accent-texte); }
 nav.externes { align-items: center; }
+.option { display: grid; grid-template-columns: 28px 1fr; gap: 4px 12px; cursor: pointer; }
+.option input { width: 18px; height: 18px; margin-top: 3px; }
+.option p { margin: 4px 0 0; }
+.entete .pastille { margin-left: 4px; }
+ul.pistes { padding-left: 0; list-style: none; } ul.pistes li { margin: 6px 0; font-size: 14px; }
+ul.pistes label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; } ul.pistes input { margin-top: 4px; }

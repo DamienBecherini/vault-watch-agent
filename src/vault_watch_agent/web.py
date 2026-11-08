@@ -34,7 +34,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from . import costs, fix, inputs
+from . import costs, fix, inputs, verify
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -81,6 +81,10 @@ class Publish(BaseModel):
 
 class Report(BaseModel):
     text: str  # one reported error per line
+
+
+class Verification(BaseModel):
+    checks: list[str]  # ids of verify.CHECKS
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -336,6 +340,82 @@ def create_app(settings: Settings) -> FastAPI:
     def couts():
         entries = costs.load(settings.journal)
         return {by: costs.rows(entries, by) for by in ("month", "run")}
+
+    # -- health check of the guide (verify.py): one JSON file per verification ---------------------
+    verifs = settings.home / "verifications"
+
+    def verif_files() -> list[Path]:
+        return sorted(verifs.glob("verif-*.json"), reverse=True) if verifs.is_dir() else []
+
+    def verif_view(path: Path) -> dict:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        job = jobs.get(data["id"])
+        data["running"] = bool(job and not job.done)
+        data["error"] = (job.error if job else "") or data.get("error", "")
+        return data
+
+    @app.get("/api/verifications/options")
+    def verif_options():
+        known = {}
+        for p in verif_files():  # counts from the last checks that measured them, for the paid follow-ups
+            r = json.loads(p.read_text(encoding="utf-8")).get("results", {})
+            if "dead" not in known and "sources" in r:
+                known["dead"] = len(r["sources"].get("dead", []))
+            if "claims" not in known and "freshness" in r:
+                known["claims"] = len(r["freshness"].get("claims", []))
+        est = verify.estimates(settings.vault, known)
+        return [{"id": c.id, "title": c.title, "what": c.what, "model": c.model, "needs": list(c.needs),
+                 "fixable": c.fixable, **est[c.id]} for c in verify.CHECKS]
+
+    @app.get("/api/verifications")
+    def verif_list():
+        return [{k: v for k, v in verif_view(p).items() if k != "results"} | {
+                    "findings": sum(len(r.get("findings", [])) for r in json.loads(p.read_text(encoding="utf-8"))["results"].values())}
+                for p in verif_files()[:20]]
+
+    @app.get("/api/verifications/{vid}")
+    def verif_get(vid: str):
+        path = verifs / f"{vid}.json"
+        if not re.fullmatch(r"verif-[\d-]+", vid) or not path.is_file():
+            raise HTTPException(404, f"no verification {vid}")
+        return verif_view(path)
+
+    @app.post("/api/verifications")
+    def verif_start(body: Verification):
+        unknown = set(body.checks) - set(verify.BY_ID)
+        if not body.checks or unknown:
+            raise HTTPException(400, f"unknown or no checks: {sorted(unknown)}")
+        vid = time.strftime("verif-%Y-%m-%d-%H%M%S")
+        steps = verify.plan(body.checks)
+        verifs.mkdir(parents=True, exist_ok=True)
+        path, work_dir = verifs / f"{vid}.json", verifs / vid
+        data = {"id": vid, "started": time.time(), "checks": steps, "asked": body.checks, "results": {},
+                "cost": 0.0, "done": False}
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        def work(graph, job: Job):
+            deps = settings.make_deps(vid, "verify")
+            work_dir.mkdir(exist_ok=True)
+            try:
+                for step in steps:
+                    check = verify.BY_ID[step]
+                    model = None if not check.model else (deps.translator or deps.llm) if check.model == verify.TRANSLATOR else deps.llm
+                    job.events.append({"t": time.time(), "node": f"start:{step}"})
+                    try:
+                        result = verify.RUNNERS[step](settings.vault, work_dir, data["results"], model)
+                    except Exception as e:  # one check failing does not stop the others
+                        result = {"ok": False, "summary": f"could not run: {type(e).__name__}: {e}"[:500], "findings": []}
+                    result["fixable"] = check.fixable
+                    data["cost"] = round(data["cost"] + sum(u.get("cost_usd", 0) for u in result.get("usage", [])), 2)
+                    data["results"][step] = result
+                    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                    job.events.append({"t": time.time(), "node": step, "cost": data["cost"]})
+            finally:
+                data["done"] = True
+                path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+        start(vid, "verify", "verify", work)
+        return {"id": vid}
 
     # -- page ------------------------------------------------------------------------------------
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
