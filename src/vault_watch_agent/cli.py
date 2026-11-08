@@ -61,7 +61,7 @@ def main(argv: list[str] | None = None) -> None:
         # The model client is created lazily so `status` works without an API key.
         from .llm import Claude
 
-        graph = build(Deps(vault=VAULT, home=HOME, llm=Claude() if args.cmd != "status" else None), saver)
+        graph = build(Deps(vault=VAULT, home=HOME, llm=Claude(journal=HOME / "usage.jsonl") if args.cmd != "status" else None), saver)
         if args.cmd == "run":
             thread = args.thread or (f"issue-{args.issue}" if args.issue else args.watch_json.stem)
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}

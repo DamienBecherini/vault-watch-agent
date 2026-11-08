@@ -286,18 +286,12 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     return "\n".join(lines) + "\n"
 
 
-# Opus 5.5 / Sonnet 5.5 list prices, USD per million tokens (input, output).
-PRICES = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0)}
-
-
 def usage_line(usage: list[dict]) -> str:
-    tokens_in = sum(u["input"] for u in usage)
+    tokens_in = sum(u["input"] + u.get("cache_read", 0) + u.get("cache_write", 0) for u in usage)
     tokens_out = sum(u["output"] for u in usage)
-    cost = sum(
-        u["input"] / 1e6 * PRICES.get(u["model"], (0, 0))[0] + u["output"] / 1e6 * PRICES.get(u["model"], (0, 0))[1]
-        for u in usage
-    )
-    return f"{len(usage)} calls, {tokens_in:,} in / {tokens_out:,} out, ≈ {cost:.2f} $"
+    cache = sum(u.get("cache_read", 0) for u in usage)
+    cost = sum(u.get("cost_usd", 0.0) for u in usage)
+    return f"{len(usage)} calls, {tokens_in:,} in ({cache:,} from cache) / {tokens_out:,} out, ≈ {cost:.2f} $"
 
 
 def pr_body(state: WatchState) -> str:
