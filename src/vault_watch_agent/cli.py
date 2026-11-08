@@ -25,6 +25,8 @@ from .graph import Deps, build, describe
 
 HOME = Path(os.environ.get("VAULT_WATCH_HOME", ".vault-watch")).resolve()
 VAULT = Path(os.environ.get("VAULT_PATH", "../ia-on-prem-vault")).resolve()
+# One line per model call with its cost; versioned, it is the history of what the upkeep costs.
+JOURNAL = Path(os.environ.get("VAULT_WATCH_JOURNAL", "metrics/usage.jsonl")).resolve()
 
 
 def show(graph, config) -> None:
@@ -56,7 +58,15 @@ def main(argv: list[str] | None = None) -> None:
     st.add_argument("thread")
     x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole French vault")
     x.add_argument("thread")
+    c = sub.add_parser("costs", help="what the upkeep costs, from the call journal")
+    c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
     args = p.parse_args(argv)
+
+    if args.cmd == "costs":
+        from . import costs
+
+        print(costs.table(costs.load(JOURNAL), args.by))
+        return
 
     HOME.mkdir(parents=True, exist_ok=True)
     with SqliteSaver.from_conn_string(str(HOME / "checkpoints.sqlite")) as saver:
@@ -64,16 +74,20 @@ def main(argv: list[str] | None = None) -> None:
         from .llm import TRANSLATOR, Claude
 
         live = args.cmd != "status"
-        journal = HOME / "usage.jsonl"
         deps = Deps(
             vault=VAULT,
             home=HOME,
-            llm=Claude(journal=journal) if live else None,
-            translator=Claude(model=TRANSLATOR, journal=journal) if live else None,
+            llm=Claude(journal=JOURNAL) if live else None,
+            translator=Claude(model=TRANSLATOR, journal=JOURNAL) if live else None,
         )
+        thread = getattr(args, "thread", None) or (
+            (f"issue-{args.issue}" if args.issue else args.watch_json.stem) if args.cmd == "run" else None
+        )
+        for model in (deps.llm, deps.translator):
+            if model:
+                model.run, model.kind = thread, "crosscheck" if args.cmd == "crosscheck" else "watch"
         graph = build(deps, saver)
         if args.cmd == "run":
-            thread = args.thread or (f"issue-{args.issue}" if args.issue else args.watch_json.stem)
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
             start = {"issue": args.issue, "source": f"issue #{args.issue}" if args.issue else str(args.watch_json)}
             graph.invoke(start, config)

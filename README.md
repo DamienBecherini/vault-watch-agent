@@ -41,6 +41,18 @@ vault-watch resume issue-50 --publish yes  # push the branch and open the PR
 vault-watch status issue-50
 ```
 
+## What the upkeep costs
+
+Every model call is logged in [`metrics/usage.jsonl`](metrics/usage.jsonl) (run, step, model, tokens, cost at
+list price computed from the usage the API returns). The file is versioned: it is the history of what keeping
+the guide up to date costs.
+
+```bash
+vault-watch costs                # by month (also --by year, run, step)
+```
+
+The Console's billing page stays the reference; the journal is checked against it from time to time.
+
 `ANTHROPIC_API_KEY` must be in the environment. `gh` must be authenticated to read the watch issue and its
 workflow artifact. Tests run with a fake model: `pytest`.
 
