@@ -52,6 +52,17 @@ def test_review_and_publish_from_the_api(client):
     assert [r["thread"] for r in c.get("/api/runs").json()] == [thread]
 
 
+def test_idle_time_ignores_the_health_probe(client):
+    c, _ = client
+    c.get("/api/runs")
+    app = c.app
+    app.state.last_activity -= 7200
+    c.get("/api/sante")  # a supervisor polling the health endpoint is not someone using the page
+    assert app.state.idle_seconds() > 7000
+    c.get("/api/runs")
+    assert app.state.idle_seconds() < 5
+
+
 def test_foreign_host_is_refused(client):
     c, _ = client
     assert c.get("/api/runs", headers={"Host": "evil.example"}).status_code == 403

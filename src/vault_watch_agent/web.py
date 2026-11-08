@@ -99,6 +99,10 @@ def create_app(settings: Settings) -> FastAPI:
     def config(thread: str) -> dict:
         return {"configurable": {"thread_id": thread}, "max_concurrency": 4}
 
+    # -- idle time, for `serve --idle-exit`: requests count, the health probe of a supervisor does not --
+    app.state.last_activity = time.time()
+    app.state.idle_seconds = lambda: 0.0 if any(not j.done for j in jobs.values()) else time.time() - app.state.last_activity
+
     # -- local only ----------------------------------------------------------------------------
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -107,6 +111,8 @@ def create_app(settings: Settings) -> FastAPI:
             return JSONResponse({"detail": "local access only"}, status_code=403)
         if request.method != "GET" and request.headers.get("x-vault-watch") != "1":
             return JSONResponse({"detail": "missing X-Vault-Watch header"}, status_code=403)
+        if request.url.path != "/api/sante":
+            app.state.last_activity = time.time()
         return await call_next(request)
 
     # -- background runs ---------------------------------------------------------------------

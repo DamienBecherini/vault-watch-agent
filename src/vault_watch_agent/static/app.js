@@ -15,6 +15,7 @@ const TEXTES = {
     nav: { veilles: "Veilles", signaler: "Signaler une erreur", couts: "Coûts" },
     liens: ["Guide", "Dépôt du guide", "Code de l'agent"],
     chargement: "Chargement…",
+    serveurArrete: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passages en pause n'ont rien perdu.",
     statuts: {
       new: "À analyser", running: "En cours", review: "Relecture à faire", publish: "Publication à valider",
       published: "PR créée", "nothing-applied": "Rien appliqué", "not-published": "Non publié", stopped: "Interrompu",
@@ -84,6 +85,7 @@ const TEXTES = {
     nav: { veilles: "Watches", signaler: "Report an error", couts: "Costs" },
     liens: ["Guide", "Guide repository", "Agent code"],
     chargement: "Loading…",
+    serveurArrete: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
     statuts: {
       new: "To analyse", running: "Running", review: "Review pending", publish: "Publish pending",
       published: "PR opened", "nothing-applied": "Nothing applied", "not-published": "Not published", stopped: "Stopped",
@@ -167,7 +169,7 @@ async function api(path, body) {
     method: "POST", body: JSON.stringify(body),
     headers: { "Content-Type": "application/json", "X-Vault-Watch": "1" },
   };
-  const r = await fetch(path, opts);
+  const r = await fetch(path, opts).catch(() => { throw new Error(T.serveurArrete); });  // stopped (idle, closed)
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
   return (r.headers.get("content-type") || "").includes("json") ? r.json() : r.text();
 }

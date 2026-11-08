@@ -89,14 +89,28 @@ def make_deps(thread: str, kind: str) -> Deps:
     return Deps(vault=VAULT, home=HOME, llm=llm, translator=translator)
 
 
-def serve(port: int) -> None:
+def serve(port: int, idle_exit: int = 0) -> None:
+    """`idle_exit` seconds without a request and without a running analysis stop the server (0: never).
+    A run paused for review or publish loses nothing: its state is in the checkpoints."""
+    import threading
+    import time
+
     import uvicorn
 
     from .web import Settings, create_app
 
     app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps))
-    print(f"vault-watch: http://127.0.0.1:{port}/")
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    if idle_exit:
+        def watch_idle():
+            while not server.should_exit:
+                time.sleep(30)
+                if app.state.idle_seconds() > idle_exit:
+                    print(f"vault-watch: idle for {idle_exit // 60} min, stopping")
+                    server.should_exit = True
+        threading.Thread(target=watch_idle, daemon=True).start()
+    print(f"vault-watch: http://127.0.0.1:{port}/" + (f" (stops after {idle_exit // 60} min idle)" if idle_exit else ""))
+    server.run()
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -133,10 +147,12 @@ def main(argv: list[str] | None = None) -> None:
     c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
     w = sub.add_parser("serve", help="web interface on http://127.0.0.1:4430/ (same runs as the command line)")
     w.add_argument("--port", type=int, default=4430)
+    w.add_argument("--idle-exit", type=int, default=0, metavar="SECONDS",
+                   help="stop after this long without a request or a running analysis (0: never)")
     args = p.parse_args(argv)
 
     if args.cmd == "serve":
-        serve(args.port)
+        serve(args.port, args.idle_exit)
         return
     if args.cmd == "costs":
         from . import costs
