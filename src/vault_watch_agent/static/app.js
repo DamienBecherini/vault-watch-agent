@@ -544,7 +544,7 @@ async function vueVerification(id) {
           ${liste(V.affirmations, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${liste(V.pagesDues, (r.pages_due || []).map(esc))}
           ${r.log ? `<details><summary>${V.journal}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f => piste(f, r.fixable, c, r.mode)).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map((f, i) => piste(f, r.fixable, c, r.mode, i + 1)).join("")}</ul>` : ""}` : ""}
       </div>`;
     }).join("")}
     <div class="barre">
@@ -553,15 +553,15 @@ async function vueVerification(id) {
       <button class="principal" id="fix"></button>
     </div>`;
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
-  function piste(f, corrigeable, carte, mode = "fix") {
-    const h = v.handled[f];
+  function piste(f, corrigeable, carte, mode = "fix", n = 0) {
+    const h = v.handled[f], num = `<span class="num">${n}.</span>`;  // per card, stable: handled lines keep theirs
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
-      return `<li class="traitee"><span class="pastille ok">${V.envoyee}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a>
+      return `<li class="traitee">${num} <span class="pastille ok">${V.envoyee}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a>
         ${run.status ? pastille(run.status) : ""}${run.pr_url ? ` ${lienExt(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
     }
-    if (h?.status === "dismissed") return `<li class="traitee"><span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
-    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-mode="${mode}" data-carte="${carte}"> ${esc(f)}</label></li>`;
+    if (h?.status === "dismissed") return `<li class="traitee">${num} <span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
+    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-mode="${mode}" data-carte="${carte}"> ${num} <span>${esc(f)}</span></label></li>`;
   }
   const cases = [...page.querySelectorAll("[data-piste]")];
   const coches = () => cases.filter(c => c.checked);

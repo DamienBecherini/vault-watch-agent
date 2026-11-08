@@ -83,6 +83,7 @@ nav.externes { align-items: center; }
 .entete .pastille { margin-left: 4px; }
 ul.pistes { padding-left: 0; list-style: none; } ul.pistes li { margin: 6px 0; font-size: 14px; }
 ul.pistes label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; } ul.pistes input { margin-top: 4px; }
+ul.pistes .num { min-width: 2.2em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--doux, inherit); }
 ul.pistes li.traitee { opacity: .6; } ul.pistes li.traitee:hover { opacity: 1; }
 .petit-bouton { padding: 1px 8px; font-size: 12px; }
 details.nouvelle > summary { list-style: none; cursor: pointer; } details.nouvelle > summary::-webkit-details-marker { display: none; }
