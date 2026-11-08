@@ -7,17 +7,17 @@ between June and October 2026, the security page from 15.7 KB to 42.2 KB. Archit
 
 Phases are ordered by dependency: finish the loop, measure, then improve what the measure points at.
 
-## Phase A — close the loop on issue #50
+## Phase A — close the loop on issue #50 (done)
 
-- [ ] **A1. English mirror in the graph.** A translation node (Claude Sonnet 5.5) syncs the EN pages hunk by
+- [x] **A1. English mirror in the graph.** A translation node (Claude Sonnet 5.5) syncs the EN pages hunk by
   hunk before the audits; `i18n-strict` blocks the PR otherwise (it did on issue #50).
-- [ ] **A2. Grouped corrections.** Corrections that depend on each other (C2, a footnote, only makes sense
+- [x] **A2. Grouped corrections.** Corrections that depend on each other (C2, a footnote, only makes sense
   with C1) are accepted or refused as one group.
-- [ ] **A3. One source of instructions.** Load the vault's `.agents/skills/vault-watch/brief.md` at run time
+- [x] **A3. One source of instructions.** Load the vault's `.agents/skills/vault-watch/brief.md` at run time
   instead of the condensed copy in `prompts.py`, which would drift.
-- [ ] **A4. Unlocated items become addition candidates.** An item triaged "correct" that no French page
+- [x] **A4. Unlocated items become addition candidates.** An item triaged "correct" that no French page
   names (LFM3 in issue #50) is an addition lead, not a dead end.
-- [ ] Publish the PR of issue #50, then process issue #49.
+- [x] Publish the PR of issue #50, then process issue #49 (guide PRs #51, #53, #54 merged on 2026-11-08).
 
 ## Phase B — measure before choosing
 
@@ -68,4 +68,5 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 ## Phase F — publication
 
 - [ ] Tools exposed through MCP (LangChain MCP adapters), so the same graph can be driven from Claude Code.
-- [ ] README with the measures of B1 and C1, public GitHub repository, blog article.
+- [x] README with the measures of B1 and C1, MIT licence.
+- [ ] Public GitHub repository, blog article.

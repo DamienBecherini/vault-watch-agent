@@ -1,6 +1,6 @@
-"""The graph: watch → triage → locate → propose (one branch per item) → report
-→ human review → apply on a branch → English mirror → vault audits → human
-go-ahead → pull request.
+"""The graph: watch → triage → locate → propose (one branch per group) → cross-check
+→ report → human review → apply on a branch → English mirror → vault audits →
+link checks → human go-ahead → pull request.
 
 Two interrupts keep a human in the loop: nothing touches the vault before the
 review, and nothing leaves the machine before the second go-ahead.
