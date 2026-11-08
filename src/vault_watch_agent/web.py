@@ -96,6 +96,7 @@ class Publish(BaseModel):
 class Report(BaseModel):
     text: str  # one reported error per line
     verification: str | None = None  # the check these findings come from, to mark them as sent
+    mode: Literal["fix", "translation"] = "fix"  # translation: fix the English pages against the French ones
 
 
 class Handle(BaseModel):
@@ -392,15 +393,20 @@ def create_app(settings: Settings) -> FastAPI:
         findings = [line.strip() for line in body.text.splitlines() if line.strip()]
         if not findings:
             raise HTTPException(400, "no error reported")
-        existing = set(threads())
+        existing = set(threads()) | set(jobs)  # a run just started has no checkpoint yet
         base = f"fix-{date.today().isoformat()}"
         thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100))) if t not in existing)
 
         def work(graph, job: Job):
             deps = settings.make_deps(thread, "fix")
-            items, proposal, usage = fix.propose(settings.vault, findings, deps.llm)
+            if body.mode == "translation":
+                items, proposal, usage = fix.propose_translation(settings.vault, findings, deps.translator or deps.llm)
+                label = "translation divergences reported in the interface"
+            else:
+                items, proposal, usage = fix.propose(settings.vault, findings, deps.llm)
+                label = "errors reported in the interface"
             job.events.append({"t": time.time(), "node": "propose", "cost": round(usage.get("cost_usd", 0.0), 2)})
-            graph.update_state(config(thread), fix.initial_state("errors reported in the interface", items, proposal, usage, thread),
+            graph.update_state(config(thread), fix.initial_state(label, items, proposal, usage, thread, body.mode),
                                as_node="propose")
             follow(graph, job, None)
 
@@ -432,8 +438,10 @@ def create_app(settings: Settings) -> FastAPI:
         for f in every:
             counts[handled.get(f, {}).get("status", "open")] += 1
         data["counts"] = counts
-        for r in data["results"].values():  # per check: findings still open
+        for step, r in data["results"].items():  # per check: findings still open, and where they can go
             r["open"] = sum(1 for f in r.get("findings", []) if f not in handled)
+            if step in verify.BY_ID:  # as the check is now, not as it was when this verification ran
+                r["fixable"], r["mode"] = verify.BY_ID[step].fixable, verify.BY_ID[step].fix_mode
         # The fix runs the findings went to, with where they stand (review, publish, PR to merge, merged)
         data["runs"] = {}
         for h in handled.values():

@@ -10,6 +10,7 @@ go-ahead as a watch.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -35,7 +36,8 @@ right, for an internal inconsistency). Group with a shared `group` label the cor
 together. One outcome per reported error."""
 
 
-def propose(vault_dir: Path, findings: list[str], llm: LLM) -> tuple[list[dict], dict, dict]:
+def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM, context: str | None = None,
+            effort: str = "high", web: bool = True, node: str = "fix") -> tuple[list[dict], dict, dict]:
     items = [
         {"id": f"F{n}", "domain": "fix", "tier": "", "title": f, "url": "", "date": "", "urgent": False,
          "severity": "", "notes": ""}
@@ -43,8 +45,8 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM) -> tuple[list[dict],
     ]
     listing = "\n".join(f"<error id=\"{i['id']}\">{i['title']}</error>" for i in items)
     result, usage = llm.parse(
-        system=SYSTEM, prompt=f"Reported errors:\n\n{listing}", schema=ClusterProposal, effort="high",
-        node="fix", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=True,
+        system=system, prompt=f"Reported errors:\n\n{listing}", schema=ClusterProposal, effort=effort,
+        node=node, context=context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=web,
     )
     ids = [i["id"] for i in items]
     corrections = [
@@ -63,14 +65,52 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM) -> tuple[list[dict],
     return items, proposal, usage
 
 
-def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "") -> dict:
-    """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch."""
+TRANSLATION_SYSTEM = """You fix divergences between a French guide on running AI on-premise and its English translation.
+The French page is the reference. For each reported divergence (F1…) you get, above, the French page and its English
+mirror (`en/…`).
+
+For each one:
+- If it is not a real divergence (same meaning in other words, a cosmetic or `last_modified` difference, an alias or
+  tag that is naturally in each language), give an outcome with no_change_reason.
+- If the English page says something else, misses a passage, keeps untranslated French or misplaces a block, fix the
+  English page (`page` = `en/…`): natural technical English, same Markdown, wiki link targets and footnote markers
+  unchanged.
+- If the French page itself is wrong (English left in the French text, an error both sides share because the
+  French says it), fix the French page only: the English page will follow it automatically. Never fix both sides
+  for the same passage.
+
+`current` is copied verbatim from one page, short and unique in it; `proposed` is in the language of its page.
+Never edit `last_modified`. `source_url` is the French page's path. One outcome per reported divergence."""
+
+PAGE_PATH = re.compile(r"(?:en/)?((?:[\w.-]+/)*[\w.-]+\.mdx?)")
+
+
+def pages_of(finding: str) -> list[str]:
+    """The French page a translation finding is about, and its English mirror."""
+    m = PAGE_PATH.search(finding)
+    return [m.group(1), f"en/{m.group(1)}"] if m else []
+
+
+def propose_translation(vault_dir: Path, findings: list[str], llm: LLM) -> tuple[list[dict], dict, dict]:
+    """Same output as `propose`, from the French and English pages alone: no web, no whole guide."""
+    pages = sorted({p for f in findings for p in pages_of(f) if (vault_dir / p).is_file()})
+    context = "\n\n".join(f'<page path="{p}">\n{vault.read(vault_dir / p)}\n</page>' for p in pages)
+    return propose(vault_dir, findings, llm, system=TRANSLATION_SYSTEM, context=context, effort="medium",
+                   web=False, node="fix translation")
+
+
+def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "",
+                  mode: str = "fix") -> dict:
+    """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch.
+    `mode` "translation" skips the cross-check against the whole French guide."""
     today = date.today().isoformat()
+    kind = "fix(i18n): reviewed translation fixes" if mode == "translation" else "fix(content): reviewed corrections"
     return {
         "source": f"errors reported in the vault ({label})",
         "issue": None,
         "as_of": today,
-        "title": f"fix(content): reviewed corrections of errors reported in the vault ({label})",
+        "mode": mode,
+        "title": f"{kind} of errors reported in the vault ({label})",
         "branch_name": f"fix/{thread or f'vault-errors-{today}'}",
         "items": items,
         "claims_due": [],

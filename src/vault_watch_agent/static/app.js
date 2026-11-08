@@ -25,7 +25,9 @@ const TEXTES = {
       nonCorrigeable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       voirDetails: "Détails", morts: "Sources qui ne répondent pas", bloques: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       affirmations: "Affirmations à revérifier", pagesDues: "Pages à revoir", journal: "Journal",
-      creerFix: n => `Créer une passe fix avec ${n} piste(s) · ≈ 6-8 $`, toutCocher: "Tout cocher", rienCocher: "Tout décocher",
+      creerFix: (n, t) => t === n && n ? `Créer une passe traduction avec ${n} piste(s) · < 1 $`
+        : t ? `Créer 2 passes : ${n - t} piste(s) en fix (≈ 6-8 $), ${t} en traduction (< 1 $)`
+        : `Créer une passe fix avec ${n} piste(s) · ≈ 6-8 $`, toutCocher: "Tout cocher", rienCocher: "Tout décocher",
       cout: c => `Coût : ${c}`,
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
@@ -116,7 +118,9 @@ const TEXTES = {
       nonCorrigeable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       voirDetails: "Details", morts: "Sources not answering", bloques: "Blocked by anti-bot protections (often fine in a browser)",
       affirmations: "Claims to re-check", pagesDues: "Pages due for review", journal: "Log",
-      creerFix: n => `Create a fix run with ${n} point(s) · ≈ 6-8 $`, toutCocher: "Tick all", rienCocher: "Untick all",
+      creerFix: (n, t) => t === n && n ? `Create a translation run with ${n} point(s) · < 1 $`
+        : t ? `Create 2 runs: ${n - t} point(s) as a fix (≈ 6-8 $), ${t} as a translation run (< 1 $)`
+        : `Create a fix run with ${n} point(s) · ≈ 6-8 $`, toutCocher: "Tick all", rienCocher: "Untick all",
       cout: c => `Cost: ${c}`,
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
@@ -540,7 +544,7 @@ async function vueVerification(id) {
           ${liste(V.affirmations, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${liste(V.pagesDues, (r.pages_due || []).map(esc))}
           ${r.log ? `<details><summary>${V.journal}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f => piste(f, r.fixable, c)).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map(f => piste(f, r.fixable, c, r.mode)).join("")}</ul>` : ""}` : ""}
       </div>`;
     }).join("")}
     <div class="barre">
@@ -549,7 +553,7 @@ async function vueVerification(id) {
       <button class="principal" id="fix"></button>
     </div>`;
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
-  function piste(f, corrigeable, carte) {
+  function piste(f, corrigeable, carte, mode = "fix") {
     const h = v.handled[f];
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
@@ -557,13 +561,13 @@ async function vueVerification(id) {
         ${run.status ? pastille(run.status) : ""}${run.pr_url ? ` ${lienExt(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="traitee"><span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
-    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-carte="${carte}"> ${esc(f)}</label></li>`;
+    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-mode="${mode}" data-carte="${carte}"> ${esc(f)}</label></li>`;
   }
   const cases = [...page.querySelectorAll("[data-piste]")];
   const coches = () => cases.filter(c => c.checked);
   const compte = () => {
-    const n = coches().filter(c => c.dataset.corrigeable === "true").length, e = coches().length;
-    $("#fix").textContent = V.creerFix(n); $("#fix").disabled = n === 0 || v.running;
+    const ok = coches().filter(c => c.dataset.corrigeable === "true"), n = ok.length, e = coches().length;
+    $("#fix").textContent = V.creerFix(n, ok.filter(c => c.dataset.mode === "translation").length); $("#fix").disabled = n === 0 || v.running;
     $("#ecarter").textContent = V.ecarter(e); $("#ecarter").disabled = e === 0 || v.running;
   };
   cases.forEach(c => c.onchange = compte);
@@ -583,9 +587,13 @@ async function vueVerification(id) {
     $("#ecarter").onclick = () => pistes(coches().map(c => c.dataset.piste), "dismissed");
     $("#fix").onclick = async () => {
       $("#fix").disabled = true;
-      const text = coches().filter(c => c.dataset.corrigeable === "true").map(c => c.dataset.piste).join("\n");
-      const { thread } = await api("/api/fix", { text, verification: id });
-      location.hash = `/run/${encodeURIComponent(thread)}`;
+      // One run per mode: content fixes and translation fixes do not take the same path
+      const threads = [];
+      for (const mode of ["fix", "translation"]) {
+        const text = coches().filter(c => c.dataset.corrigeable === "true" && c.dataset.mode === mode).map(c => c.dataset.piste).join("\n");
+        if (text) threads.push((await api("/api/fix", { text, verification: id, mode })).thread);
+      }
+      location.hash = `/run/${encodeURIComponent(threads[0])}`;
     };
   }
   if (v.running) suivi = setTimeout(() => vueVerification(id).catch(() => {}), 3000);

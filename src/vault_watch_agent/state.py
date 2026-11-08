@@ -97,6 +97,7 @@ class WatchState(TypedDict, total=False):
     proposals: Annotated[list[dict], operator.add]
     usage: Annotated[list[dict], operator.add]
     # Review
+    mode: str  # "translation" for a fix run on English pages (no cross-check); absent otherwise
     corrections: list[dict]  # numbered C1, C2… with their deterministic check
     findings: list[str]  # doubts the cross-check noticed elsewhere in the vault, not proposed
     report_path: str

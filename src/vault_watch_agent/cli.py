@@ -142,6 +142,8 @@ def main(argv: list[str] | None = None) -> None:
     found = f.add_mutually_exclusive_group(required=True)
     found.add_argument("--findings", type=Path, help="text file, one reported error per line")
     found.add_argument("--from-threads", help="collect the cross-check findings of these runs, e.g. issue-50e,issue-49")
+    f.add_argument("--translation", action="store_true",
+                   help="translation divergences: fix the English pages against the French ones (no web, no cross-check)")
     e = sub.add_parser("eval", help="replay a past watch on the vault as it was, score it against the merged PR")
     e.add_argument("--issue", type=int, required=True)
     e.add_argument("--at", required=True, help="vault commit to replay on (before the human's PR)")
@@ -201,9 +203,13 @@ def main(argv: list[str] | None = None) -> None:
                     {"configurable": {"thread_id": r}}).values.get("findings", [])]
                 label = "cross-checks of " + ", ".join(runs)
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
-            items, proposal, usage = fix.propose(VAULT, findings, deps.llm)
+            if args.translation:
+                items, proposal, usage = fix.propose_translation(VAULT, findings, deps.translator or deps.llm)
+            else:
+                items, proposal, usage = fix.propose(VAULT, findings, deps.llm)
+            mode = "translation" if args.translation else "fix"
             # Enter the graph as if the proposals had just been made: numbering, cross-check, review…
-            graph.update_state(config, fix.initial_state(label, items, proposal, usage, thread), as_node="propose")
+            graph.update_state(config, fix.initial_state(label, items, proposal, usage, thread, mode), as_node="propose")
             graph.invoke(None, config)
             show(graph, config)
             return

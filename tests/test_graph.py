@@ -83,6 +83,15 @@ class FakeLLM:
             assert "<page path=" in (context or "") or "<pair page=" in prompt
             return Findings(findings=[Finding(pages=["03-stack/engines.md"], problem="floor differs from another page",
                                               severity="Major")]), usage
+        if node == "fix translation":
+            assert not web and '<page path="03-stack/engines.md">' in context
+            assert '<page path="en/03-stack/engines.md">' in context  # the pair, not the whole guide
+            return ClusterProposal(
+                outcomes=[ItemOutcome(item_id="F1", event="", no_change_reason=""),
+                          ItemOutcome(item_id="F2", event="", no_change_reason="same meaning")],
+                corrections=[correction("Ollama remains the easiest way to start.",
+                                        "Ollama is still the simplest way to get started.", page="en/03-stack/engines.md")],
+            ), usage
         if schema is TriageResult:
             assert "vault_contract" in system  # the vault's own brief is loaded at run time
             return TriageResult(decisions=[
@@ -257,6 +266,31 @@ def test_fix_run_enters_the_graph_after_the_proposals(setup):
     assert paused.tasks[0].interrupts[0].value["step"] == "review"
     assert llm.calls == ["crosscheck"]  # straight to numbering and cross-check, no triage
     assert Path(paused.values["report_path"]).name.startswith("fix-vault-errors-")
+
+
+def test_translation_run_edits_the_english_page_without_crosscheck_or_mirror(setup):
+    from vault_watch_agent import fix
+
+    deps, _, llm = setup
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "fix-tr"}}
+    findings = ["[Minor] en/03-stack/engines.md: the Ollama sentence drifts from the French.",
+                "[Minor] 03-stack/engines.md: footnote wording differs."]
+    items, proposal, usage = fix.propose_translation(deps.vault, findings, llm)
+    graph.update_state(config, fix.initial_state("test", items, proposal, usage, "fix-tr", "translation"),
+                       as_node="propose")
+    graph.invoke(None, config)
+    first = graph.get_state(config).tasks[0].interrupts[0].value
+    assert first["step"] == "review" and [c["check"] for c in first["corrections"]] == ["ok"]
+    assert llm.calls == ["fix translation"]  # no cross-check against the whole French guide
+
+    graph.invoke(Command(resume="all"), config)
+    state = graph.get_state(config).values
+    assert llm.calls == ["fix translation"]  # nothing to mirror: the English page was the one fixed
+    wt = Path(state["worktree"])
+    assert "simplest way to get started" in (wt / "en" / "03-stack" / "engines.md").read_text(encoding="utf-8")
+    assert "0.31" in (wt / "03-stack" / "engines.md").read_text(encoding="utf-8")  # French untouched
+    assert state["title"].startswith("fix(i18n)") and state["branch"] == "fix/fix-tr"
 
 
 def test_link_problems_put_new_broken_links_first_and_blocked_last():

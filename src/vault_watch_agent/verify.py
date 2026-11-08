@@ -60,7 +60,8 @@ class Check:
     model: str | None  # None: deterministic, free
     needs: tuple = ()  # checks whose results this one uses (run first, even when not ticked)
     estimate: Callable[[Path, dict], dict] | None = None
-    fixable: bool = True  # findings can go to a fix run (French pages); translation findings cannot yet
+    fixable: bool = True  # findings can go to a fix run
+    fix_mode: str = "fix"  # "translation": a fix run on the French and English pages alone (fix.propose_translation)
 
 
 def _tokens(paths: list[Path]) -> int:
@@ -270,7 +271,7 @@ CHECKS = [
           {"fr": "Chaque page anglaise comparée à sa page française, chapitre par chapitre : passages manquants, "
                  "chiffres ou versions différents, texte non traduit.",
            "en": "Each English page compared with its French page, chapter by chapter: missing passages, different "
-                 "figures or versions, untranslated text."}, TRANSLATOR, fixable=False),
+                 "figures or versions, untranslated text."}, TRANSLATOR, fix_mode="translation"),
     Check("claims", {"fr": "Revérification des affirmations datées", "en": "Re-check of dated claims"},
           {"fr": "Les affirmations dont la date est passée sont revérifiées sur le web.",
            "en": "Claims past their date are checked again on the web."}, MODEL, needs=("freshness",)),

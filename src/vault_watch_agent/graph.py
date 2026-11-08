@@ -155,7 +155,7 @@ def build(deps: Deps, checkpointer=None):
     # -- crosscheck: every correction re-read against the whole French vault -----
     def crosscheck_node(state: WatchState) -> dict:
         corrections = state.get("corrections", [])
-        if not deps.crosscheck or not corrections:
+        if not deps.crosscheck or not corrections or state.get("mode") == "translation":
             return {}
         result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm)
         amended = crosscheck.amend(corrections, result, checks)
@@ -225,7 +225,8 @@ def build(deps: Deps, checkpointer=None):
     def mirror(state: WatchState) -> dict:
         wt = Path(state["worktree"])
         translator = deps.translator or deps.llm
-        chosen = [c for c in state["corrections"] if c["id"] in state["applied"]]
+        # English pages edited directly (translation fixes) have nothing to follow
+        chosen = [c for c in state["corrections"] if c["id"] in state["applied"] and not c["page"].startswith("en/")]
         mirrored, problems, usage = [], [], []
         for page in sorted({c["page"] for c in chosen}):
             en = f"en/{page}"

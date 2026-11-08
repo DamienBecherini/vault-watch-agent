@@ -121,6 +121,7 @@ Other commands:
 vault-watch crosscheck issue-50                       # re-run the whole-guide cross-check of a paused run
 vault-watch fix fix-2026-11-08 --findings errors.txt  # reported errors → checked corrections, same review and PR flow
 vault-watch fix fix-2026-11-09 --from-threads issue-49,issue-50   # the doubts noticed by the cross-checks
+vault-watch fix fix-2026-11-09-2 --findings drift.txt --translation  # translation divergences: Sonnet fixes the English pages against the French
 vault-watch eval --issue 30 --at <commit> --truth <base>..<head> --variant full
 vault-watch costs --by month                          # or year, run, step
 ```
@@ -210,7 +211,7 @@ src/vault_watch_agent/
   vault.py       deterministic side: search, exact-quote check, apply, whole-guide corpus
   inputs.py      watch issue and workflow artifact (gh), freshness claims
   crosscheck.py  whole-guide cross-check of the corrections
-  fix.py         fix runs: reported errors → corrections
+  fix.py         fix runs: reported errors → corrections (translation mode: English pages fixed against the French)
   evaluate.py    replay of past watches and judge
   costs.py       cost journal totals
   cli.py         command line
