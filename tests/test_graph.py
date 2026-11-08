@@ -17,7 +17,8 @@ from vault_watch_agent import vault
 from vault_watch_agent.graph import Deps, build
 from vault_watch_agent.state import (
     Correction,
-    ItemProposal,
+    ClusterProposal,
+    ItemOutcome,
     MirrorEdit,
     MirrorResult,
     TriageDecision,
@@ -50,7 +51,7 @@ Ollama remains the easiest way to start.
 
 
 def correction(current, proposed, severity="Major", group="", page="03-stack/engines.md"):
-    return Correction(page=page, current=current, proposed=proposed, source_url="https://example.org/vllm",
+    return Correction(item_ids=["W1"], page=page, current=current, proposed=proposed, source_url="https://example.org/vllm",
                       severity=severity, rationale="floor moved", group=group)
 
 
@@ -76,15 +77,16 @@ class FakeLLM:
                 MirrorEdit(current="[^1]: vLLM, 0.31 release notes.", proposed="[^1]: vLLM, 0.33 release notes."),
             ]), usage
         assert "vLLM 0.31 est la version minimale" in prompt  # the excerpt reached the model
-        return ItemProposal(
-            event="2026-11-01: vLLM 0.33 fixes a high advisory",
-            no_change_reason="",
+        return ClusterProposal(
+            outcomes=[ItemOutcome(item_id="W1", event="2026-11-01: vLLM 0.33 fixes a high advisory", no_change_reason="")],
             corrections=[
                 correction("vLLM 0.31 est la version minimale recommandée[^1].",
                            "vLLM 0.33 est la version minimale recommandée (novembre 2026)[^1].", group="a"),
                 correction("texte inventé par le modèle", "x", severity="Minor"),
                 correction("[^1]: vLLM, notes de version 0.31.", "[^1]: vLLM, notes de version 0.33.",
                            severity="Minor", group="a"),
+                # Same passage as C1, from a parallel line of thought: refused by the conflict check.
+                correction("vLLM 0.31 est la version minimale", "vLLM 0.32 est la version minimale", severity="Minor"),
             ],
         ), usage
 
@@ -137,9 +139,9 @@ def test_run_pauses_twice_and_applies_only_accepted(setup):
     first = graph.get_state(config).tasks[0].interrupts[0].value
     assert first["step"] == "review"
     checks = {c["id"]: c["check"] for c in first["corrections"]}
-    assert checks == {"C1": "ok", "C2": "text-not-found", "C3": "ok"}
+    assert checks == {"C1": "ok", "C2": "text-not-found", "C3": "ok", "C4": "conflict with C1"}
     groups = {c["id"]: c.get("group") for c in first["corrections"]}
-    assert groups == {"C1": "C1", "C2": None, "C3": "C1"}  # sentence + footnote travel together
+    assert groups == {"C1": "C1", "C2": None, "C3": "C1", "C4": None}  # sentence + footnote travel together
     assert llm.calls == ["triage", "propose W1"]  # W2 dropped, W3 not in the vault
     decisions = {d["item_id"]: d for d in graph.get_state(config).values["decisions"]}
     assert decisions["W3"]["action"] == "addition"  # unlocated item becomes an addition candidate
@@ -184,3 +186,14 @@ def test_check_and_apply_keep_crlf(tmp_path):
     vault.apply(tmp_path, "p.md", "Ollama reste", "Ollama demeure", "2026-11-08")
     raw = page.read_bytes().decode("utf-8")
     assert "Ollama demeure" in raw and "\r\n" in raw and "\n" not in raw.replace("\r\n", "")
+
+
+def test_clusters_merge_items_sharing_a_page_but_not_through_a_hub():
+    from vault_watch_agent.graph import clusters
+
+    ex = lambda *pages: [{"page": p, "text": f"text of {p}"} for p in pages]
+    evidence = {"W1": ex("jan.md", "security.md"), "W2": ex("jan.md"), "W3": ex("litellm.md", "security.md"),
+                "W4": ex("security.md"), "W5": ex("security.md"), "W6": ex("security.md")}
+    groups = sorted(sorted(ids) for ids, _ in clusters(evidence))
+    # security.md is cited for 5 items: a hub, it does not merge Jan with LiteLLM
+    assert groups == [["W1", "W2"], ["W3"], ["W4"], ["W5"], ["W6"]]

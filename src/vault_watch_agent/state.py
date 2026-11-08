@@ -38,6 +38,7 @@ class TriageResult(BaseModel):
 
 
 class Correction(BaseModel):
+    item_ids: list[str] = Field(description="Ids of the watch items that support this correction (W1…).")
     page: str = Field(description="Vault-relative path of the French page, as given in the excerpts.")
     current: str = Field(description="The exact current text, copied verbatim from one excerpt, one sentence or table row.")
     proposed: str = Field(description="The replacement, in French, with dated wording (« au T4 2026 », « depuis la v0.33 »).")
@@ -50,10 +51,19 @@ class Correction(BaseModel):
     )
 
 
-class ItemProposal(BaseModel):
+class ItemOutcome(BaseModel):
+    item_id: str
     event: str = Field(description="The verified fact as a dated one-liner (YYYY-MM-DD: fact), or empty if nothing is verified.")
-    corrections: list[Correction]
-    no_change_reason: str = Field(description="Filled when corrections is empty: why the vault stays as is.")
+    no_change_reason: str = Field(description="Filled when no correction relies on this item: why the vault stays as is.")
+
+
+class ClusterProposal(BaseModel):
+    """One answer for a group of items that touch the same pages, so their edits never collide."""
+
+    outcomes: list[ItemOutcome] = Field(description="One entry per item of the group.")
+    corrections: list[Correction] = Field(
+        description="At most one correction per passage of a page: merge what several items say about the same text."
+    )
 
 
 class MirrorEdit(BaseModel):

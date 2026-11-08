@@ -18,7 +18,7 @@ from langgraph.types import Send, interrupt
 
 from . import inputs, prompts, vault
 from .llm import LLM
-from .state import ItemProposal, MirrorResult, TriageResult, WatchState
+from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
 TRIAGE_BATCH = 40  # items per triage call
 TRIAGE_NOTES = 1200  # characters of cached notes shown at triage
@@ -90,31 +90,41 @@ def build(deps: Deps, checkpointer=None):
     def fan_out(state: WatchState):
         by_id = {i["id"]: i for i in state["items"]}
         sends = [
-            Send("propose", {"item": by_id[item_id], "excerpts": excerpts})
-            for item_id, excerpts in state["evidence"].items()
-            if excerpts
+            Send("propose", {"items": [by_id[i] for i in ids], "excerpts": excerpts})
+            for ids, excerpts in clusters(state["evidence"])
         ]
         return sends or "report"
 
-    # -- propose (one branch per item, run in parallel) ----------------------
+    # -- propose (one branch per group of items sharing pages, in parallel) ----
     def propose(payload: dict) -> dict:
-        item, excerpts = payload["item"], payload["excerpts"]
+        items, excerpts = payload["items"], payload["excerpts"]
+        listing = "\n\n".join(
+            f"<item id=\"{i['id']}\">\n{i['title']}\nurl: {i['url']}\ndate: {i['date']} tier: {i['tier']}"
+            f"{' URGENT advisory' if i['urgent'] else ''}\nCached notes:\n{i['notes'] or '(none)'}\n</item>"
+            for i in items
+        )
         prompt = (
-            f"Item {item['id']}: {item['title']}\nurl: {item['url']}\ndate: {item['date']} tier: {item['tier']}"
-            f"{' URGENT advisory' if item['urgent'] else ''}\n\nCached notes:\n{item['notes'] or '(none)'}\n\n"
-            "Vault excerpts (French pages):\n\n"
+            f"Watch items:\n\n{listing}\n\nVault excerpts (French pages):\n\n"
             + "\n\n".join(f"<excerpt page=\"{e['page']}\">\n{e['text']}\n</excerpt>" for e in excerpts)
         )
+        ids = [i["id"] for i in items]
         result, u = deps.llm.parse(
-            system=prompts.propose(deps.vault), prompt=prompt, schema=ItemProposal, effort="high", node=f"propose {item['id']}"
+            system=prompts.propose(deps.vault), prompt=prompt, schema=ClusterProposal, effort="high",
+            node=f"propose {'+'.join(ids)}",
         )
         corrections = [
-            {**c.model_dump(), "check": vault.check(deps.vault, c.page, c.current)} for c in result.corrections
+            {**c.model_dump(), "item_ids": [i for i in c.item_ids if i in ids] or ids[:1],
+             "check": vault.check(deps.vault, c.page, c.current)}
+            for c in result.corrections
         ]
+        outcomes = {o.item_id: o for o in result.outcomes}
         proposal = {
-            "item_id": item["id"],
-            "event": result.event,
-            "no_change_reason": result.no_change_reason,
+            "item_ids": ids,
+            "outcomes": [
+                {"item_id": i, "event": outcomes[i].event if i in outcomes else "",
+                 "no_change_reason": outcomes[i].no_change_reason if i in outcomes else "no outcome returned"}
+                for i in ids
+            ],
             "corrections": corrections,
         }
         return {"proposals": [proposal], "usage": [u]}
@@ -122,16 +132,17 @@ def build(deps: Deps, checkpointer=None):
     # -- report ---------------------------------------------------------------
     def report(state: WatchState) -> dict:
         order = {i["id"]: n for n, i in enumerate(state["items"])}
-        proposals = sorted(state.get("proposals", []), key=lambda p: order[p["item_id"]])
+        proposals = sorted(state.get("proposals", []), key=lambda p: order[p["item_ids"][0]])
         corrections = [
-            {"id": f"C{n}", "item_id": p["item_id"], **c}
-            for n, (p, c) in enumerate(((p, c) for p in proposals for c in p["corrections"]), start=1)
+            {"id": f"C{n}", "item_id": c["item_ids"][0], "proposal": pi, **c}
+            for n, (pi, c) in enumerate(((pi, c) for pi, p in enumerate(proposals) for c in p["corrections"]), start=1)
         ]
         # A group is named after its first correction: "C1" for C1 + C2.
         first: dict[str, str] = {}
         for c in corrections:
-            key = f"{c['item_id']}/{c['group']}" if c.get("group") else c["id"]
+            key = f"{c['proposal']}/{c['group']}" if c.get("group") else c["id"]
             c["group"] = first.setdefault(key, c["id"])
+        mark_conflicts(deps.vault, corrections)
         name = f"watch-{state['as_of']}" + (f"-issue{state['issue']}" if state.get("issue") else "") + ".md"
         path = deps.home / "reports" / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -276,6 +287,71 @@ def build(deps: Deps, checkpointer=None):
 # ---------------------------------------------------------------------------
 
 
+HUB_ITEMS = 4  # a page cited for more items than this is a hub: it does not merge groups
+GROUP_EXCERPTS = 16000  # characters of excerpts per group
+
+
+def clusters(evidence: dict[str, list[dict]]) -> list[tuple[list[str], list[dict]]]:
+    """Group items whose excerpts come from the same pages, so one call sees every edit of a page.
+
+    Hub pages (a security overview cited for many tools) do not merge groups; the
+    conflict check in `mark_conflicts` still catches two edits of the same passage.
+    """
+    pages_of = {i: {e["page"] for e in ex} for i, ex in evidence.items() if ex}
+    count: dict[str, int] = {}
+    for pages in pages_of.values():
+        for p in pages:
+            count[p] = count.get(p, 0) + 1
+    parent = {i: i for i in pages_of}
+
+    def root(i: str) -> str:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    owner: dict[str, str] = {}
+    for i, pages in pages_of.items():
+        for p in pages:
+            if count[p] > HUB_ITEMS:
+                continue
+            if p in owner:
+                parent[root(i)] = root(owner[p])
+            else:
+                owner[p] = i
+    groups: dict[str, list[str]] = {}
+    for i in pages_of:
+        groups.setdefault(root(i), []).append(i)
+    out = []
+    for ids in groups.values():
+        seen, excerpts, budget = set(), [], GROUP_EXCERPTS
+        for i in ids:
+            for e in evidence[i]:
+                key = (e["page"], e["text"])
+                if key not in seen and budget > 0:
+                    seen.add(key)
+                    excerpts.append(e)
+                    budget -= len(e["text"])
+        out.append((ids, excerpts))
+    return out
+
+
+def mark_conflicts(vault_dir: Path, corrections: list[dict]) -> None:
+    """Two corrections that edit overlapping text of a page cannot both apply: the later one is refused."""
+    spans: dict[str, list[tuple[int, int, str]]] = {}
+    for c in corrections:
+        if c["check"] != "ok":
+            continue
+        text = vault.read(vault_dir / c["page"]).replace("\r\n", "\n")
+        start = text.find(c["current"].replace("\r\n", "\n"))
+        end = start + len(c["current"])
+        clash = next((cid for s, e, cid in spans.get(c["page"], []) if start < e and s < end), None)
+        if clash:
+            c["check"] = f"conflict with {clash}"
+        else:
+            spans.setdefault(c["page"], []).append((start, end, c["id"]))
+
+
 def _cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
 
@@ -315,7 +391,7 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
         lines += [
             f"### {c['id']} · {c['severity']} · `{c['page']}`{group}{check}",
             "",
-            f"From {c['item_id']} [{item['title']}]({item['url']}). {c['rationale']}",
+            f"From {', '.join(c['item_ids'])} [{item['title']}]({item['url']}). {c['rationale']}",
             "",
             "Current:",
             "",
@@ -329,9 +405,11 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
             "",
         ]
     lines += ["## Events and items without change", "", "| Item | Event | Why no change |", "| :-- | :-- | :-- |"]
+    used = {i for c in corrections for i in c["item_ids"]}
     for p in proposals:
-        if not p["corrections"]:
-            lines.append(f"| {p['item_id']} {_cell(items[p['item_id']]['title'])} | {_cell(p['event'])} | {_cell(p['no_change_reason'])} |")
+        for o in p["outcomes"]:
+            if o["item_id"] not in used:
+                lines.append(f"| {o['item_id']} {_cell(items[o['item_id']]['title'])} | {_cell(o['event'])} | {_cell(o['no_change_reason'])} |")
     lines += ["", "## Addition candidates (not written, opportunity notes need a go-ahead)", ""]
     adds = [d for d in decisions if d["action"] == "addition"]
     lines += [f"- {d['item_id']} [{items[d['item_id']]['title']}]({items[d['item_id']]['url']}): {d['reason']}" for d in adds] or ["None."]

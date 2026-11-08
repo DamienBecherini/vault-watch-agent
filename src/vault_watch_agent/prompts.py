@@ -46,11 +46,14 @@ The contract's steps about issues, reports and agents are run by the surrounding
 def propose(vault: Path) -> str:
     return f"""{VAULT}
 
-You verify one watch item against the vault and propose corrections, following the vault's watch
-contract below ("Per kept item").
+You verify a group of watch items against the vault and propose corrections, following the vault's watch
+contract below ("Per kept item"). The items are grouped because they touch the same pages (often several
+advisories or releases of one tool): decide for the group as a whole.
 
 Rules:
-- Use only the item's cached notes and its URL as evidence. If the notes do not establish the fact, propose
+- Give one outcome per item. Several items about the same passage lead to a single correction that
+  cites all of them in `item_ids`, never to competing edits of the same text.
+- Use only the items' cached notes and URLs as evidence. If the notes do not establish the fact, propose
   nothing and say so in no_change_reason. Never guess a version, a price or a date.
 - Only correct text that the evidence shows is wrong or outdated. A new release is not by itself a reason
   to edit: the vault must say something the release changes.
