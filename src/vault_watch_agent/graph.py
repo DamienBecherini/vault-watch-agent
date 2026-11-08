@@ -331,7 +331,8 @@ def build(deps: Deps, checkpointer=None):
 
 
 HUB_ITEMS = 4  # a page cited for more items than this is a hub: it does not merge groups
-GROUP_EXCERPTS = 16000  # characters of excerpts per group
+GROUP_EXCERPTS = 16000  # characters of excerpts per group, shared between its items…
+ITEM_EXCERPTS = 6000  # …but never less than this per item
 
 
 def clusters(evidence: dict[str, list[dict]], terms: dict[str, list[str]] | None = None) -> list[tuple[list[str], list[dict]]]:
@@ -372,14 +373,20 @@ def clusters(evidence: dict[str, list[dict]], terms: dict[str, list[str]] | None
         groups.setdefault(root(i), []).append(i)
     out = []
     for ids in groups.values():
-        seen, excerpts, budget = set(), [], GROUP_EXCERPTS
+        # Each item gets its own share: a shared budget let the first items of a group crowd out the last ones.
+        share = max(ITEM_EXCERPTS, GROUP_EXCERPTS // len(ids))
+        seen, excerpts = set(), []
         for i in ids:
+            budget = share
             for e in evidence[i]:
                 key = (e["page"], e["text"])
-                if key not in seen and budget > 0:
-                    seen.add(key)
-                    excerpts.append(e)
-                    budget -= len(e["text"])
+                if key in seen:
+                    continue
+                if budget <= 0:
+                    break
+                seen.add(key)
+                excerpts.append(e)
+                budget -= len(e["text"])
         out.append((ids, excerpts))
     return out
 

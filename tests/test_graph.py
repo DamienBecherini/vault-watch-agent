@@ -264,3 +264,14 @@ def test_link_problems_put_new_broken_links_first_and_blocked_last():
     assert rows[0].startswith("NEW dead 404: https://new/dead")
     assert rows[1].startswith("dead 404: https://old/dead")
     assert "anti-bot" in rows[2] and len(rows) == 3
+
+
+def test_clusters_give_each_item_its_share_of_excerpts():
+    from vault_watch_agent.graph import ITEM_EXCERPTS, clusters
+
+    big = lambda tag, n: [{"page": "hub.md", "text": f"{tag} {k} " + "x" * 2000} for k in range(n)]
+    evidence = {"W1": big("first", 20), "W2": big("second", 3) + [{"page": "dgx.md", "text": "DGX Spark price"}]}
+    [(ids, excerpts)] = clusters(evidence, {"W1": ["Spark"], "W2": ["Spark"]})
+    texts = [e["text"] for e in excerpts]
+    assert any(t == "DGX Spark price" for t in texts)  # the last item is not crowded out
+    assert sum(len(t) for t in texts if t.startswith("first")) <= ITEM_EXCERPTS + 2100

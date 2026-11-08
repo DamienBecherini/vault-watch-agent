@@ -5,8 +5,10 @@
   "truth": "7cb34a3a1b2d873c0d77a14273ef698f88ddaa2e..3cc82b5921b788fbc76120f67ca0125b524497bf",
   "scores": {
     "truth_hunks": 26,
+    "truth_corrections": 15,
     "proposals": 1,
     "recall": 0.038,
+    "recall_corrections": 0.067,
     "precision": 1.0,
     "lenient_precision": 1.0,
     "verdicts": {
@@ -22,108 +24,134 @@
     "hunks": [
       {
         "hunk_id": "H1",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H2",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H3",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H4",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H5",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H6",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H7",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H8",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H9",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H10",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H11",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H12",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H13",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H14",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H15",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H16",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H17",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H18",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H19",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H20",
+        "kind": "correction",
         "matched_by": [
           "C1"
         ]
       },
       {
         "hunk_id": "H21",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H22",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H23",
+        "kind": "addition",
         "matched_by": []
       },
       {
         "hunk_id": "H24",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H25",
+        "kind": "correction",
         "matched_by": []
       },
       {
         "hunk_id": "H26",
+        "kind": "addition",
         "matched_by": []
       }
     ],
@@ -131,7 +159,7 @@
       {
         "id": "C1",
         "assessment": "matches_truth",
-        "note": "Raises the Open WebUI floor from 0.11.1 to 0.11.4 because of the late-September advisories (session token theft), as in H20."
+        "note": "Raises the Open WebUI minimum version from 0.11.1 to 0.11.4, citing the late-September advisories, as H20 does."
       }
     ]
   },
