@@ -10,6 +10,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import inputs
+
 # Folders that are not French content pages (en/ is the mirror, kept in sync later).
 SKIPPED_DIRS = {
     ".git", ".github", ".agents", ".obsidian", "node_modules", "build", "public",
@@ -107,6 +109,18 @@ def date_bump_only(current: str, proposed: str) -> bool:
     """An edit of the `last_modified` line alone: `apply` already bumps it, so the edit is redundant
     (and its quote is gone once another edit of the same page has been applied)."""
     return all(LAST_MODIFIED.fullmatch(t.strip()) for t in (current, proposed))
+
+
+def sync(vault: Path, base: str = "main") -> None:
+    """Fast-forward the local `base` to origin before a run: proposals quote the pages as they are
+    on `base`, and the run's branch starts from it (a stale base gave PR #59 merge conflicts)."""
+    if "origin" not in inputs.run(["git", "remote"], cwd=vault).split():
+        return
+    inputs.run(["git", "fetch", "-q", "origin", base], cwd=vault)
+    if inputs.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=vault).strip() == base:
+        inputs.run(["git", "merge", "-q", "--ff-only", f"origin/{base}"], cwd=vault)
+    else:
+        inputs.run(["git", "fetch", "-q", "origin", f"{base}:{base}"], cwd=vault)  # fast-forward only
 
 
 def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> None:

@@ -288,6 +288,31 @@ def test_pr_closes_the_watch_issue():
     assert "Closes" not in pr_body({**state, "issue": None})  # fix runs have no issue
 
 
+def test_sync_fast_forwards_main_before_a_run(setup):
+    deps, _, _ = setup
+    origin = deps.vault.parent / "origin.git"
+    sh("git", "clone", "-q", "--bare", str(deps.vault), str(origin), cwd=deps.vault.parent)
+    sh("git", "remote", "add", "origin", str(origin), cwd=deps.vault)
+    other = deps.vault.parent / "other"
+    sh("git", "clone", "-q", str(origin), str(other), cwd=deps.vault.parent)
+    (other / "merged.md").write_text("merged elsewhere\n", encoding="utf-8")
+    sh("git", "add", ".", cwd=other)
+    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "merged PR", cwd=other)
+    sh("git", "push", "-q", "origin", "main", cwd=other)
+
+    vault.sync(deps.vault)
+    assert (deps.vault / "merged.md").is_file()  # checked-out main fast-forwarded
+
+    sh("git", "checkout", "-q", "-b", "elsewhere", cwd=deps.vault)
+    (other / "merged.md").write_text("merged again\n", encoding="utf-8")
+    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "second PR", cwd=other)
+    sh("git", "push", "-q", "origin", "main", cwd=other)
+    vault.sync(deps.vault)  # main not checked out: updated in place
+    log = subprocess.run(["git", "log", "-1", "--format=%s", "main"], cwd=deps.vault,
+                         capture_output=True, text=True, check=True).stdout
+    assert log.strip() == "second PR"
+
+
 def test_a_date_bump_alone_is_left_to_apply():
     assert vault.date_bump_only('last_modified: "2026-10-10"', 'last_modified: "2026-11-08"')
     assert not vault.date_bump_only("vLLM 0.31", "vLLM 0.33")

@@ -21,6 +21,7 @@ from pathlib import Path
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
+from . import vault
 from .graph import Deps, build, describe
 
 HOME = Path(os.environ.get("VAULT_WATCH_HOME", ".vault-watch")).resolve()
@@ -83,6 +84,7 @@ def make_deps(thread: str, kind: str) -> Deps:
 
     if kind == "view":
         return Deps(vault=VAULT, home=HOME, llm=None)
+    vault.sync(VAULT)
     llm, translator = Claude(journal=JOURNAL), Claude(model=TRANSLATOR, journal=JOURNAL)
     for model in (llm, translator):
         model.run, model.kind = thread, kind
