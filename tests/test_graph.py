@@ -1,7 +1,8 @@
 """End-to-end run of the graph on a throwaway vault, with a fake model.
 
-Checks the two human pauses, the deterministic check of quoted text, and that
-the vault is only modified on a branch, after the review.
+Checks the two human pauses, the deterministic check of quoted text, groups
+of corrections, the English mirror, and that the vault is only modified on a
+branch, after the review.
 """
 
 import json
@@ -14,17 +15,43 @@ from langgraph.types import Command
 
 from vault_watch_agent import vault
 from vault_watch_agent.graph import Deps, build
-from vault_watch_agent.state import Correction, ItemProposal, TriageDecision, TriageResult
+from vault_watch_agent.state import (
+    Correction,
+    ItemProposal,
+    MirrorEdit,
+    MirrorResult,
+    TriageDecision,
+    TriageResult,
+)
 
 PAGE = """---
 title: Moteurs d'inférence
 last_modified: "2026-06-10"
 ---
 
-vLLM 0.31 est la version minimale recommandée.
+vLLM 0.31 est la version minimale recommandée[^1].
 
 Ollama reste le plus simple pour démarrer.
+
+[^1]: vLLM, notes de version 0.31.
 """
+
+PAGE_EN = """---
+title: Inference engines
+last_modified: "2026-06-10"
+---
+
+vLLM 0.31 is the recommended minimum version[^1].
+
+Ollama remains the easiest way to start.
+
+[^1]: vLLM, 0.31 release notes.
+"""
+
+
+def correction(current, proposed, severity="Major", group="", page="03-stack/engines.md"):
+    return Correction(page=page, current=current, proposed=proposed, source_url="https://example.org/vllm",
+                      severity=severity, rationale="floor moved", group=group)
 
 
 class FakeLLM:
@@ -35,20 +62,29 @@ class FakeLLM:
         self.calls.append(node)
         usage = {"node": node, "model": "fake", "input": 10, "output": 5, "cache_read": 0}
         if schema is TriageResult:
+            assert "vault_contract" in system  # the vault's own brief is loaded at run time
             return TriageResult(decisions=[
                 TriageDecision(item_id="W1", action="correct", reason="new minimum", search_terms=["vLLM"]),
                 TriageDecision(item_id="W2", action="drop", reason="noise", search_terms=[]),
+                TriageDecision(item_id="W3", action="correct", reason="new model", search_terms=["LFM3"]),
+            ]), usage
+        if schema is MirrorResult:
+            assert "vLLM 0.31 is the recommended minimum version" in prompt
+            return MirrorResult(problem="", edits=[
+                MirrorEdit(current="vLLM 0.31 is the recommended minimum version[^1].",
+                           proposed="vLLM 0.33 is the recommended minimum version (November 2026)[^1]."),
+                MirrorEdit(current="[^1]: vLLM, 0.31 release notes.", proposed="[^1]: vLLM, 0.33 release notes."),
             ]), usage
         assert "vLLM 0.31 est la version minimale" in prompt  # the excerpt reached the model
         return ItemProposal(
             event="2026-11-01: vLLM 0.33 fixes a high advisory",
             no_change_reason="",
             corrections=[
-                Correction(page="03-stack/engines.md", current="vLLM 0.31 est la version minimale recommandée.",
-                           proposed="vLLM 0.33 est la version minimale recommandée (novembre 2026).",
-                           source_url="https://example.org/vllm", severity="Major", rationale="floor moved"),
-                Correction(page="03-stack/engines.md", current="texte inventé par le modèle",
-                           proposed="x", source_url="https://example.org", severity="Minor", rationale="hallucinated"),
+                correction("vLLM 0.31 est la version minimale recommandée[^1].",
+                           "vLLM 0.33 est la version minimale recommandée (novembre 2026)[^1].", group="a"),
+                correction("texte inventé par le modèle", "x", severity="Minor"),
+                correction("[^1]: vLLM, notes de version 0.31.", "[^1]: vLLM, notes de version 0.33.",
+                           severity="Minor", group="a"),
             ],
         ), usage
 
@@ -62,6 +98,10 @@ def setup(tmp_path: Path):
     repo = tmp_path / "vault"
     (repo / "03-stack").mkdir(parents=True)
     (repo / "03-stack" / "engines.md").write_text(PAGE, encoding="utf-8")
+    (repo / "en" / "03-stack").mkdir(parents=True)
+    (repo / "en" / "03-stack" / "engines.md").write_text(PAGE_EN, encoding="utf-8")
+    (repo / ".agents" / "skills" / "vault-watch").mkdir(parents=True)
+    (repo / ".agents" / "skills" / "vault-watch" / "brief.md").write_text("# Watch brief\n", encoding="utf-8")
     (repo / "scripts").mkdir()
     (repo / "scripts" / "audit-freshness.mjs").write_text(
         "import { writeFileSync } from 'node:fs';\n"
@@ -71,15 +111,16 @@ def setup(tmp_path: Path):
     )
     (repo / "scripts" / "run-audits.mjs").write_text("console.log('audits ok')\n", encoding="utf-8")
     sh("git", "init", "-q", "-b", "main", cwd=repo)
-    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "add", ".", cwd=repo)
-    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init", cwd=repo)
     sh("git", "config", "user.name", "t", cwd=repo)
     sh("git", "config", "user.email", "t@t", cwd=repo)
+    sh("git", "add", ".", cwd=repo)
+    sh("git", "commit", "-qm", "init", cwd=repo)
 
     watch = tmp_path / "watch.json"
     watch.write_text(json.dumps({"until": "2026-11-02", "items": [
         {"title": "vllm v0.33.0", "url": "https://example.org/vllm", "triage": "keep", "notes": "floor"},
         {"title": "some blog post", "url": "https://example.org/blog", "triage": "keep"},
+        {"title": "LFM3 released", "url": "https://example.org/lfm3", "triage": "keep"},
         {"title": "dropped by the script", "url": "https://example.org/x", "triage": "drop"},
     ]}), encoding="utf-8")
     llm = FakeLLM()
@@ -93,23 +134,31 @@ def test_run_pauses_twice_and_applies_only_accepted(setup):
     config = {"configurable": {"thread_id": "t1"}}
 
     graph.invoke({"source": str(watch), "issue": None}, config)
-    paused = graph.get_state(config)
-    first = paused.tasks[0].interrupts[0].value
+    first = graph.get_state(config).tasks[0].interrupts[0].value
     assert first["step"] == "review"
     checks = {c["id"]: c["check"] for c in first["corrections"]}
-    assert checks == {"C1": "ok", "C2": "text-not-found"}
-    assert llm.calls == ["triage", "propose W1"]  # W2 dropped, never sent to propose
+    assert checks == {"C1": "ok", "C2": "text-not-found", "C3": "ok"}
+    groups = {c["id"]: c.get("group") for c in first["corrections"]}
+    assert groups == {"C1": "C1", "C2": None, "C3": "C1"}  # sentence + footnote travel together
+    assert llm.calls == ["triage", "propose W1"]  # W2 dropped, W3 not in the vault
+    decisions = {d["item_id"]: d for d in graph.get_state(config).values["decisions"]}
+    assert decisions["W3"]["action"] == "addition"  # unlocated item becomes an addition candidate
     report = Path(first["report"]).read_text(encoding="utf-8")
-    assert "text-not-found" in report and "2026-10-24" in report
+    assert "text-not-found" in report and "2026-10-24" in report and "LFM3" in report
     assert "0.31" in (deps.vault / "03-stack" / "engines.md").read_text(encoding="utf-8")  # untouched
 
-    graph.invoke(Command(resume="all"), config)  # "all" = valid ones: C2 is refused
+    graph.invoke(Command(resume=["C1"]), config)  # naming C1 accepts its group (C3)
     second = graph.get_state(config).tasks[0].interrupts[0].value
-    assert second["step"] == "publish" and second["audit_ok"]
+    assert second["step"] == "publish" and second["audit_ok"] and second["mirror_problems"] == []
     state = graph.get_state(config).values
-    assert state["applied"] == ["C1"]
-    edited = (Path(state["worktree"]) / "03-stack" / "engines.md").read_text(encoding="utf-8")
-    assert "vLLM 0.33 est la version minimale" in edited and 'last_modified: "2026-11-08"' in edited
+    assert state["applied"] == ["C1", "C3"]
+    wt = Path(state["worktree"])
+    edited = (wt / "03-stack" / "engines.md").read_text(encoding="utf-8")
+    assert "vLLM 0.33 est la version minimale" in edited and "notes de version 0.33" in edited
+    assert 'last_modified: "2026-11-08"' in edited
+    english = (wt / "en" / "03-stack" / "engines.md").read_text(encoding="utf-8")
+    assert "vLLM 0.33 is the recommended" in english and 'last_modified: "2026-11-08"' in english
+    assert state["mirrored"] == ["en/03-stack/engines.md"]
     assert "0.31" in (deps.vault / "03-stack" / "engines.md").read_text(encoding="utf-8")  # main untouched
 
     graph.invoke(Command(resume=False), config)  # no push

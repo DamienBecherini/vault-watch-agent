@@ -59,9 +59,17 @@ def main(argv: list[str] | None = None) -> None:
     HOME.mkdir(parents=True, exist_ok=True)
     with SqliteSaver.from_conn_string(str(HOME / "checkpoints.sqlite")) as saver:
         # The model client is created lazily so `status` works without an API key.
-        from .llm import Claude
+        from .llm import TRANSLATOR, Claude
 
-        graph = build(Deps(vault=VAULT, home=HOME, llm=Claude(journal=HOME / "usage.jsonl") if args.cmd != "status" else None), saver)
+        live = args.cmd != "status"
+        journal = HOME / "usage.jsonl"
+        deps = Deps(
+            vault=VAULT,
+            home=HOME,
+            llm=Claude(journal=journal) if live else None,
+            translator=Claude(model=TRANSLATOR, journal=journal) if live else None,
+        )
+        graph = build(deps, saver)
         if args.cmd == "run":
             thread = args.thread or (f"issue-{args.issue}" if args.issue else args.watch_json.stem)
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}

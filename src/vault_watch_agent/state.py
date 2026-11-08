@@ -44,12 +44,26 @@ class Correction(BaseModel):
     source_url: str
     severity: Severity
     rationale: str = Field(description="Why the current text is wrong or outdated, one line, in English.")
+    group: str = Field(
+        description="Corrections that only make sense together (a sentence and the footnote it cites) share the "
+        "same short label, e.g. 'a'. Leave empty for a correction that stands alone."
+    )
 
 
 class ItemProposal(BaseModel):
     event: str = Field(description="The verified fact as a dated one-liner (YYYY-MM-DD: fact), or empty if nothing is verified.")
     corrections: list[Correction]
     no_change_reason: str = Field(description="Filled when corrections is empty: why the vault stays as is.")
+
+
+class MirrorEdit(BaseModel):
+    current: str = Field(description="The exact text of the English page that corresponds to the French text being replaced, copied verbatim.")
+    proposed: str = Field(description="Its faithful English translation of the new French text.")
+
+
+class MirrorResult(BaseModel):
+    edits: list[MirrorEdit]
+    problem: str = Field(description="Empty, or why the English page cannot be updated faithfully (passage missing, page diverged).")
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +92,8 @@ class WatchState(TypedDict, total=False):
     branch: str
     worktree: str
     applied: list[str]
+    mirrored: list[str]  # EN pages updated
+    mirror_problems: list[str]
     audit_ok: bool
     audit_log: str
     pr_url: str

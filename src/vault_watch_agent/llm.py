@@ -19,6 +19,7 @@ T = TypeVar("T", bound=BaseModel)
 
 # Verification needs judgement: Opus. Mechanical work (translation, day 2): Sonnet.
 MODEL = "claude-opus-5-5"
+TRANSLATOR = "claude-sonnet-5-5"
 
 
 class ModelError(RuntimeError):

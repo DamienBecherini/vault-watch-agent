@@ -1,5 +1,6 @@
 """The graph: watch → triage → locate → propose (one branch per item) → report
-→ human review → apply on a branch → vault audits → human go-ahead → pull request.
+→ human review → apply on a branch → English mirror → vault audits → human
+go-ahead → pull request.
 
 Two interrupts keep a human in the loop: nothing touches the vault before the
 review, and nothing leaves the machine before the second go-ahead.
@@ -17,7 +18,7 @@ from langgraph.types import Send, interrupt
 
 from . import inputs, prompts, vault
 from .llm import LLM
-from .state import ItemProposal, TriageResult, WatchState
+from .state import ItemProposal, MirrorResult, TriageResult, WatchState
 
 TRIAGE_BATCH = 40  # items per triage call
 TRIAGE_NOTES = 1200  # characters of cached notes shown at triage
@@ -28,6 +29,7 @@ class Deps:
     vault: Path  # local clone of the vault (read-only until apply)
     home: Path  # working folder: downloads, reports, worktrees
     llm: LLM
+    translator: LLM | None = None  # cheaper model for the English mirror; defaults to llm
     repo: str = "DamienBecherini/ia-on-prem-vault"
     base: str = "main"
     today: str = field(default_factory=lambda: date.today().isoformat())
@@ -60,7 +62,7 @@ def build(deps: Deps, checkpointer=None):
                 for i in batch
             )
             result, u = deps.llm.parse(
-                system=prompts.TRIAGE, prompt=listing, schema=TriageResult, effort="medium", node="triage"
+                system=prompts.triage(deps.vault), prompt=listing, schema=TriageResult, effort="medium", node="triage"
             )
             decisions.update({d.item_id: d.model_dump() for d in result.decisions})
             usage.append(u)
@@ -72,12 +74,18 @@ def build(deps: Deps, checkpointer=None):
 
     # -- locate -------------------------------------------------------------
     def locate(state: WatchState) -> dict:
-        evidence = {}
+        evidence, decisions = {}, []
         for d in state["decisions"]:
             if d["action"] == "correct":
                 excerpts = vault.search(deps.vault, d["search_terms"])
-                evidence[d["item_id"]] = [{"page": e.page, "text": e.text} for e in excerpts]
-        return {"evidence": evidence}
+                if excerpts:
+                    evidence[d["item_id"]] = [{"page": e.page, "text": e.text} for e in excerpts]
+                else:
+                    # Nothing to correct if no page names it: the vault may be missing the subject.
+                    d = {**d, "action": "addition",
+                         "reason": f"no French page names it ({', '.join(d['search_terms'])}); {d['reason']}"}
+            decisions.append(d)
+        return {"evidence": evidence, "decisions": decisions}
 
     def fan_out(state: WatchState):
         by_id = {i["id"]: i for i in state["items"]}
@@ -98,7 +106,7 @@ def build(deps: Deps, checkpointer=None):
             + "\n\n".join(f"<excerpt page=\"{e['page']}\">\n{e['text']}\n</excerpt>" for e in excerpts)
         )
         result, u = deps.llm.parse(
-            system=prompts.PROPOSE, prompt=prompt, schema=ItemProposal, effort="high", node=f"propose {item['id']}"
+            system=prompts.propose(deps.vault), prompt=prompt, schema=ItemProposal, effort="high", node=f"propose {item['id']}"
         )
         corrections = [
             {**c.model_dump(), "check": vault.check(deps.vault, c.page, c.current)} for c in result.corrections
@@ -119,6 +127,11 @@ def build(deps: Deps, checkpointer=None):
             {"id": f"C{n}", "item_id": p["item_id"], **c}
             for n, (p, c) in enumerate(((p, c) for p in proposals for c in p["corrections"]), start=1)
         ]
+        # A group is named after its first correction: "C1" for C1 + C2.
+        first: dict[str, str] = {}
+        for c in corrections:
+            key = f"{c['item_id']}/{c['group']}" if c.get("group") else c["id"]
+            c["group"] = first.setdefault(key, c["id"])
         name = f"watch-{state['as_of']}" + (f"-issue{state['issue']}" if state.get("issue") else "") + ".md"
         path = deps.home / "reports" / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -127,25 +140,30 @@ def build(deps: Deps, checkpointer=None):
 
     # -- review (interrupt 1) -------------------------------------------------
     def review(state: WatchState) -> dict:
-        valid = [c for c in state["corrections"] if c["check"] == "ok"]
+        corrections = state["corrections"]
         answer = interrupt(
             {
                 "step": "review",
                 "report": state["report_path"],
                 "corrections": [
-                    {"id": c["id"], "severity": c["severity"], "page": c["page"], "check": c["check"]}
-                    for c in state["corrections"]
+                    {"id": c["id"], "severity": c["severity"], "page": c["page"], "check": c["check"],
+                     **({"group": c["group"]} if c["group"] != c["id"] or _has_members(corrections, c) else {})}
+                    for c in corrections
                 ],
-                "question": "Which corrections to apply? 'all' (valid ones), 'none', or ids like C1,C3.",
+                "question": "Which corrections to apply? 'all' (valid ones), 'none', or ids like C1,C3. "
+                "A group is applied whole: naming one member accepts the others.",
             }
         )
-        valid_ids = [c["id"] for c in valid]
         if answer == "all":
-            accepted = valid_ids
+            asked = {c["id"] for c in corrections}
         elif answer == "none" or not answer:
-            accepted = []
+            asked = set()
         else:
-            accepted = [i for i in answer if i in valid_ids]
+            asked = set(answer)
+        groups = {c["group"] for c in corrections if c["id"] in asked}
+        # A group with one member that fails the check cannot be applied consistently.
+        broken = {c["group"] for c in corrections if c["check"] != "ok"}
+        accepted = [c["id"] for c in corrections if c["group"] in groups - broken]
         return {"accepted": accepted}
 
     # -- apply ----------------------------------------------------------------
@@ -164,6 +182,43 @@ def build(deps: Deps, checkpointer=None):
             "-m", summary, cwd=worktree)
         return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen]}
 
+    # -- mirror (English pages follow the French edits) --------------------------
+    def mirror(state: WatchState) -> dict:
+        wt = Path(state["worktree"])
+        translator = deps.translator or deps.llm
+        chosen = [c for c in state["corrections"] if c["id"] in state["applied"]]
+        mirrored, problems, usage = [], [], []
+        for page in sorted({c["page"] for c in chosen}):
+            en = f"en/{page}"
+            if not (wt / en).is_file():
+                problems.append(f"{en}: no English mirror")
+                continue
+            edits = "\n\n".join(
+                f"<edit>\n<old_french>\n{c['current']}\n</old_french>\n<new_french>\n{c['proposed']}\n</new_french>\n</edit>"
+                for c in chosen if c["page"] == page
+            )
+            prompt = f"English page `{en}`:\n\n<english_page>\n{vault.read(wt / en)}\n</english_page>\n\nFrench edits:\n\n{edits}"
+            result, u = translator.parse(
+                system=prompts.mirror(deps.vault), prompt=prompt, schema=MirrorResult, effort="medium",
+                node=f"mirror {en}",
+            )
+            usage.append(u)
+            if result.problem:
+                problems.append(f"{en}: {result.problem}")
+            done = 0
+            for e in result.edits:
+                if vault.check(wt, en, e.current) == "ok":
+                    vault.apply(wt, en, e.current, e.proposed, deps.today)
+                    done += 1
+                else:
+                    problems.append(f"{en}: quoted English text not found exactly once, edit skipped")
+            if done:
+                mirrored.append(en)
+        if mirrored:
+            git("add", *mirrored, cwd=wt)
+            git("commit", "-m", "chore(i18n): sync the English mirrors of the reviewed corrections", cwd=wt)
+        return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage}
+
     # -- audits (the vault's own checks, no model) ------------------------------
     def audits(state: WatchState) -> dict:
         try:
@@ -180,6 +235,7 @@ def build(deps: Deps, checkpointer=None):
                 "step": "publish",
                 "branch": state["branch"],
                 "audit_ok": state["audit_ok"],
+                "mirror_problems": state.get("mirror_problems", []),
                 "diffstat": diffstat,
                 "question": "Push the branch and open the pull request? yes / no",
             }
@@ -198,8 +254,8 @@ def build(deps: Deps, checkpointer=None):
 
     g = StateGraph(WatchState)
     for name, fn in [("collect", collect), ("triage", triage), ("locate", locate), ("propose", propose),
-                     ("report", report), ("review", review), ("apply", apply), ("audits", audits),
-                     ("publish", publish)]:
+                     ("report", report), ("review", review), ("apply", apply), ("mirror", mirror),
+                     ("audits", audits), ("publish", publish)]:
         g.add_node(name, fn)
     g.add_edge(START, "collect")
     g.add_edge("collect", "triage")
@@ -208,7 +264,8 @@ def build(deps: Deps, checkpointer=None):
     g.add_edge("propose", "report")
     g.add_edge("report", "review")
     g.add_conditional_edges("review", lambda s: "apply" if s.get("accepted") else END, ["apply", END])
-    g.add_edge("apply", "audits")
+    g.add_edge("apply", "mirror")
+    g.add_edge("mirror", "audits")
     g.add_edge("audits", "publish")
     g.add_edge("publish", END)
     return g.compile(checkpointer=checkpointer)
@@ -221,6 +278,10 @@ def build(deps: Deps, checkpointer=None):
 
 def _cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
+
+
+def _has_members(corrections: list[dict], c: dict) -> bool:
+    return any(o["group"] == c["id"] and o["id"] != c["id"] for o in corrections)
 
 
 def render_report(state: WatchState, proposals: list[dict], corrections: list[dict]) -> str:
@@ -249,8 +310,10 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     for c in corrections:
         item = items[c["item_id"]]
         check = "" if c["check"] == "ok" else f" — ⚠️ **{c['check']}**: cannot be applied as is"
+        grouped = c["group"] != c["id"] or _has_members(corrections, c)
+        group = f" · group {c['group']} (applied whole)" if grouped else ""
         lines += [
-            f"### {c['id']} · {c['severity']} · `{c['page']}`{check}",
+            f"### {c['id']} · {c['severity']} · `{c['page']}`{group}{check}",
             "",
             f"From {c['item_id']} [{item['title']}]({item['url']}). {c['rationale']}",
             "",
@@ -269,10 +332,6 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     for p in proposals:
         if not p["corrections"]:
             lines.append(f"| {p['item_id']} {_cell(items[p['item_id']]['title'])} | {_cell(p['event'])} | {_cell(p['no_change_reason'])} |")
-    located = state.get("evidence", {})
-    for d in decisions:
-        if d["action"] == "correct" and not located.get(d["item_id"]):
-            lines.append(f"| {d['item_id']} {_cell(items[d['item_id']]['title'])} | | no French page names it ({', '.join(d['search_terms'])}) |")
     lines += ["", "## Addition candidates (not written, opportunity notes need a go-ahead)", ""]
     adds = [d for d in decisions if d["action"] == "addition"]
     lines += [f"- {d['item_id']} [{items[d['item_id']]['title']}]({items[d['item_id']]['url']}): {d['reason']}" for d in adds] or ["None."]
@@ -302,8 +361,9 @@ def pr_body(state: WatchState) -> str:
         "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
         f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
-        "EN mirrors are not updated in this PR yet.\n"
-        + ("" if state.get("audit_ok") else f"\n```\n{state.get('audit_log', '')}\n```\n")
+        f"English mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
+        + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
+        +("" if state.get("audit_ok") else f"\n```\n{state.get('audit_log', '')}\n```\n")
     )
 
 
