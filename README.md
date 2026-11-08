@@ -15,7 +15,7 @@ It produced the pull requests [#51](https://github.com/DamienBecherini/ia-on-pre
 [#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54) of the guide, all reviewed and merged.
 
 ```mermaid
-flowchart LR
+flowchart TD
   collect --> triage --> locate
   locate -->|"Send: one branch per group"| propose --> number
   locate -->|nothing to check| number
@@ -23,6 +23,8 @@ flowchart LR
   review -->|accepted| apply --> mirror --> audits --> links --> publish{{"⏸ push + PR?"}}
   review -->|none| stop((end))
   publish --> stop
+  classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class review,publish human
 ```
 
 | Step | What it does |
