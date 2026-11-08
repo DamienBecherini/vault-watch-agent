@@ -219,3 +219,24 @@ def test_clusters_merge_items_sharing_a_page_but_not_through_a_hub():
     jan = {f"J{n}": ex("jan.md") for n in range(6)}
     assert len(clusters(jan)) == 6
     assert len(clusters(jan, {i: ["Jan"] for i in jan})) == 1
+
+
+def test_fix_run_enters_the_graph_after_the_proposals(setup):
+    from vault_watch_agent import fix
+
+    deps, _, llm = setup
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "fix"}}
+    item = {"id": "F1", "domain": "fix", "tier": "", "title": "vLLM floor outdated", "url": "", "date": "",
+            "urgent": False, "severity": "", "notes": ""}
+    proposal = {"item_ids": ["F1"], "outcomes": [{"item_id": "F1", "event": "", "no_change_reason": ""}],
+                "corrections": [{**correction("vLLM 0.31 est la version minimale recommandée[^1].",
+                                              "vLLM 0.33 est la version minimale recommandée[^1].").model_dump(),
+                                 "item_ids": ["F1"], "check": "ok"}]}
+    state = fix.initial_state("test", [item], proposal, {"node": "fix", "model": "fake", "input": 1, "output": 1})
+    graph.update_state(config, state, as_node="propose")
+    graph.invoke(None, config)
+    paused = graph.get_state(config)
+    assert paused.tasks[0].interrupts[0].value["step"] == "review"
+    assert llm.calls == ["crosscheck"]  # straight to numbering and cross-check, no triage
+    assert Path(paused.values["report_path"]).name.startswith("fix-vault-errors-")

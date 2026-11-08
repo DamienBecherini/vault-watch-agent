@@ -84,6 +84,8 @@ class MirrorResult(BaseModel):
 class WatchState(TypedDict, total=False):
     # Inputs
     source: str  # where the watch came from: "issue #50" or a file path
+    title: str  # commit and PR title (default: the watch's)
+    branch_name: str  # branch of the apply step (default: chore/watch-<as_of>)
     issue: int | None
     as_of: str  # YYYY-MM-DD
     items: list[dict]  # kept watch items, each with a run-local id W1, W2…

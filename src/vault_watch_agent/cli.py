@@ -58,6 +58,11 @@ def main(argv: list[str] | None = None) -> None:
     st.add_argument("thread")
     x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole French vault")
     x.add_argument("thread")
+    f = sub.add_parser("fix", help="turn errors reported in the vault into reviewed corrections (same review and PR flow)")
+    f.add_argument("thread")
+    found = f.add_mutually_exclusive_group(required=True)
+    found.add_argument("--findings", type=Path, help="text file, one reported error per line")
+    found.add_argument("--from-threads", help="collect the cross-check findings of these runs, e.g. issue-50e,issue-49")
     c = sub.add_parser("costs", help="what the upkeep costs, from the call journal")
     c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
     args = p.parse_args(argv)
@@ -85,8 +90,26 @@ def main(argv: list[str] | None = None) -> None:
         )
         for model in (deps.llm, deps.translator):
             if model:
-                model.run, model.kind = thread, "crosscheck" if args.cmd == "crosscheck" else "watch"
+                model.run, model.kind = thread, {"crosscheck": "crosscheck", "fix": "fix"}.get(args.cmd, "watch")
         graph = build(deps, saver)
+        if args.cmd == "fix":
+            from . import fix
+
+            if args.findings:
+                findings = [l.strip() for l in args.findings.read_text(encoding="utf-8").splitlines() if l.strip()]
+                label = args.findings.stem
+            else:
+                runs = args.from_threads.split(",")
+                findings = [x for r in runs for x in graph.get_state(
+                    {"configurable": {"thread_id": r}}).values.get("findings", [])]
+                label = "cross-checks of " + ", ".join(runs)
+            config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
+            items, proposal, usage = fix.propose(VAULT, findings, deps.llm)
+            # Enter the graph as if the proposals had just been made: numbering, cross-check, review…
+            graph.update_state(config, fix.initial_state(label, items, proposal, usage), as_node="propose")
+            graph.invoke(None, config)
+            show(graph, config)
+            return
         if args.cmd == "run":
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
             start = {"issue": args.issue, "source": f"issue #{args.issue}" if args.issue else str(args.watch_json)}

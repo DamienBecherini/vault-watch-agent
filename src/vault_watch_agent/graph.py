@@ -164,7 +164,8 @@ def build(deps: Deps, checkpointer=None):
 
     # -- report ---------------------------------------------------------------
     def report(state: WatchState) -> dict:
-        name = f"watch-{state['as_of']}" + (f"-issue{state['issue']}" if state.get("issue") else "") + ".md"
+        name = (state["branch_name"].replace("/", "-") + ".md" if state.get("branch_name") else
+                f"watch-{state['as_of']}" + (f"-issue{state['issue']}" if state.get("issue") else "") + ".md")
         path = deps.home / "reports" / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(render_report(state, sorted_proposals(state), state.get("corrections", [])), encoding="utf-8")
@@ -200,7 +201,8 @@ def build(deps: Deps, checkpointer=None):
 
     # -- apply ----------------------------------------------------------------
     def apply(state: WatchState) -> dict:
-        branch = f"chore/watch-{deps.today}"
+        # One branch per run: a watch is named after its window, a fix run after its own label.
+        branch = state.get("branch_name") or f"chore/watch-{state['as_of']}"
         worktree = deps.home / "worktrees" / branch.replace("/", "-")
         if not worktree.exists():
             git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
@@ -210,7 +212,7 @@ def build(deps: Deps, checkpointer=None):
         pages = sorted({c["page"] for c in chosen})
         git("add", *pages, cwd=worktree)
         summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
-        git("commit", "-m", f"chore(watch): apply reviewed corrections of the watch of {state['as_of']}",
+        git("commit", "-m", pr_title(state),
             "-m", summary, cwd=worktree)
         return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen]}
 
@@ -279,7 +281,7 @@ def build(deps: Deps, checkpointer=None):
         body = pr_body(state)
         url = inputs.run(
             ["gh", "pr", "create", "--repo", deps.repo, "--base", deps.base, "--head", state["branch"],
-             "--title", f"chore(watch): reviewed corrections, watch of {state['as_of']}", "--body", body],
+             "--title", pr_title(state), "--body", body],
             cwd=wt,
         ).strip()
         return {"pr_url": url}
@@ -465,11 +467,15 @@ def usage_line(usage: list[dict]) -> str:
     return f"{len(usage)} calls, {tokens_in:,} in ({cache:,} from cache) / {tokens_out:,} out, ≈ {cost:.2f} $"
 
 
+def pr_title(state: WatchState) -> str:
+    return state.get("title") or f"chore(watch): reviewed corrections, watch of {state['as_of']}"
+
+
 def pr_body(state: WatchState) -> str:
     applied = [c for c in state["corrections"] if c["id"] in state.get("applied", [])]
     rows = "\n".join(f"| {c['id']} | {c['severity']} | `{c['page']}` | {_cell(c['rationale'])} | {c['source_url']} |" for c in applied)
     return (
-        f"Corrections from the ecosystem watch of {state['as_of']} ({state['source']}), reviewed before apply.\n\n"
+        f"Corrections from {state['source']}, reviewed before apply.\n\n"
         "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
         f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
