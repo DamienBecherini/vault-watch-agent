@@ -406,6 +406,14 @@ def create_app(settings: Settings) -> FastAPI:
         for f in every:
             counts[handled.get(f, {}).get("status", "open")] += 1
         data["counts"] = counts
+        for r in data["results"].values():  # per check: findings still open
+            r["open"] = sum(1 for f in r.get("findings", []) if f not in handled)
+        # The fix runs the findings went to, with where they stand (review, publish, PR to merge, merged)
+        data["runs"] = {}
+        for h in handled.values():
+            if h.get("status") == "fix" and h["thread"] not in data["runs"]:
+                s = summary(h["thread"])
+                data["runs"][h["thread"]] = {"status": s["status"], "pr_url": s["pr_url"]}
         data["status"] = ("running" if data["running"] else "to-handle" if counts["open"]
                           else "handled" if every else "clear")
         return data

@@ -30,7 +30,7 @@ const TEXTES = {
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
       aTraiter: n => `${n} piste(s) à traiter`, traitee: "Traitée", traiter: "Traiter",
-      aTraiterTitre: "À traiter", nouvelle: "Nouvelle vérification",
+      aTraiterTitre: "À traiter", nouvelle: "Nouvelle vérification", passesFix: "Passes fix lancées depuis cette vérification",
       avertissement: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
       envoyee: "→ passe fix", ecartee: "écartée", retablir: "Rétablir", ecarter: n => `Écarter ${n} piste(s)`,
     },
@@ -120,7 +120,7 @@ const TEXTES = {
       comptes: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
       aTraiter: n => `${n} lead(s) to handle`, traitee: "Handled", traiter: "Handle",
-      aTraiterTitre: "To handle", nouvelle: "New check",
+      aTraiterTitre: "To handle", nouvelle: "New check", passesFix: "Fix runs started from this check",
       avertissement: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
       envoyee: "→ fix run", ecartee: "dismissed", retablir: "Reopen", ecarter: n => `Dismiss ${n} lead(s)`,
     },
@@ -517,11 +517,20 @@ async function vueVerification(id) {
     <h1>${V.titre} · ${new Date(v.started * 1000).toLocaleString(langue)} ${etatVerif(v)}</h1>
     <p class="sous-titre">${V.cout(dollars(v.cost))} · ${V.comptes(v.counts)}</p>
     ${v.error ? `<p class="erreur-texte">${esc(v.error)}</p>` : ""}
+    ${Object.keys(v.runs).length ? `<h2>${V.passesFix}</h2>${Object.entries(v.runs).map(([t, run]) => `
+      <div class="carte ligne${FINIS.includes(run.status) ? " finie" : ""}"><div class="pousse"><b>${esc(t)}</b>
+        ${run.pr_url ? `<div class="doux petit">${lienExt(run.pr_url, run.pr_url)}</div>` : ""}</div>
+        ${pastille(run.status)}
+        ${run.status === "pr-open" ? lienExt(run.pr_url, `<button class="principal">${T.fusionner}</button>`)
+          : `<a href="#/run/${encodeURIComponent(t)}"><button${["review", "publish"].includes(run.status) ? ' class="principal"' : ""}>${
+            T.boutons[run.status] || T.details}</button></a>`}</div>`).join("")}` : ""}
     ${v.checks.map(c => {
       const r = v.results[c];
+      // A check whose findings are all handled (sent or dismissed) is done, even if it found problems
       const etat = !r ? `<span class="pastille neutre">${v.running ? V.attente : "—"}</span>`
         : r.summary?.startsWith("could not run") ? `<span class="pastille erreur">${V.echec}</span>`
-        : `<span class="pastille ${r.ok ? "ok" : "attention"}">${r.ok ? V.ok : V.problemes}</span>`;
+        : r.findings?.length && !r.open ? `<span class="pastille ok">${V.traitee}</span>`
+        : `<span class="pastille ${r.ok ? "ok" : "attention"}">${r.ok ? V.ok : r.open ? V.aTraiter(r.open) : V.problemes}</span>`;
       return `<div class="carte"><div class="entete"><b>${esc(titres[c] || c)}</b>${etat}</div>
         ${r ? `<p class="doux petit">${esc(r.summary)}</p>
           ${liste(V.morts, (r.dead || []).map(d => `${lienExt(d.url, esc(d.url))} — ${esc(d.status)} ${esc(d.code ?? "")} (${esc(d.pages.join(", "))})`))}
@@ -540,7 +549,11 @@ async function vueVerification(id) {
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
   function piste(f, corrigeable) {
     const h = v.handled[f];
-    if (h?.status === "fix") return `<li class="traitee"><span class="pastille ok">${V.envoyee}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a> · ${esc(f)}</li>`;
+    if (h?.status === "fix") {
+      const run = v.runs[h.thread] || {};
+      return `<li class="traitee"><span class="pastille ok">${V.envoyee}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a>
+        ${run.status ? pastille(run.status) : ""}${run.pr_url ? ` ${lienExt(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
+    }
     if (h?.status === "dismissed") return `<li class="traitee"><span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
     return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}"> ${esc(f)}</label></li>`;
   }
