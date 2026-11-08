@@ -100,7 +100,7 @@ def serve(port: int, idle_exit: int = 0, notify_lang: str | None = None) -> None
     from .notify import toast
     from .web import Settings, create_app
 
-    app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps,
+    app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps, idle_exit=idle_exit,
                               notifier=toast if notify_lang else None, notify_lang=notify_lang or "en",
                               base_url=f"http://127.0.0.1:{port}/"))
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))

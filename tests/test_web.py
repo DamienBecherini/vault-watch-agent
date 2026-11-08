@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from test_graph import setup  # noqa: F401  (fixture: throwaway vault, fake model, watch file)
-from vault_watch_agent.web import Settings, create_app
+from vault_watch_agent.web import Job, Settings, create_app
 
 ACT = {"X-Vault-Watch": "1"}
 
@@ -60,6 +60,26 @@ def test_idle_time_ignores_the_health_probe(client):
     c.get("/api/sante")  # a supervisor polling the health endpoint is not someone using the page
     assert app.state.idle_seconds() > 7000
     c.get("/api/runs")
+    assert app.state.idle_seconds() < 5
+
+
+def test_health_follows_the_local_service_contract(client):
+    c, _ = client
+    d = c.get("/api/sante").json()
+    assert d["ok"] and (d["etat"], d["contrat"], d["service"]) == ("pret", 1, "vault-watch")
+    assert d["occupe"] is False and d["activite"] == ""
+    assert d["inactivite"] == {"delai_s": 0, "restant_s": None}
+
+
+def test_idle_delay_runs_from_the_end_of_the_work(client):
+    c, _ = client
+    app = c.app
+    job = app.state.jobs["t"] = Job("t", "run")
+    app.state.last_activity -= 7200
+    assert app.state.idle_seconds() == 0
+    d = c.get("/api/sante").json()
+    assert d["occupe"] and d["activite"] == "analysing"
+    job.done = True
     assert app.state.idle_seconds() < 5
 
 

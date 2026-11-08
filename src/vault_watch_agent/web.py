@@ -24,6 +24,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date
+from importlib import metadata
 from pathlib import Path
 from typing import Callable, Literal
 
@@ -42,6 +43,15 @@ AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
          "apply", "mirror", "audits", "links", "publish"]
+# What a running job is doing, in the health response.
+ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming"}
+
+
+def _version() -> str:
+    try:
+        return metadata.version("vault-watch-agent")
+    except metadata.PackageNotFoundError:
+        return "0"
 
 
 @dataclass
@@ -57,6 +67,7 @@ class Settings:
     notifier: Callable[[str, str, str], object] | None = None  # (title, body, url to open): notify.toast with --notify
     notify_lang: str = "en"
     base_url: str = "http://127.0.0.1:4430/"
+    idle_exit: int = 0  # seconds of inactivity before `serve --idle-exit` stops the server (0: never)
 
 
 @dataclass
@@ -114,7 +125,15 @@ def create_app(settings: Settings) -> FastAPI:
 
     # -- idle time, for `serve --idle-exit`: requests count, the health probe of a supervisor does not --
     app.state.last_activity = time.time()
-    app.state.idle_seconds = lambda: 0.0 if any(not j.done for j in jobs.values()) else time.time() - app.state.last_activity
+    app.state.jobs = jobs
+
+    def idle_seconds() -> float:
+        if any(not j.done for j in list(jobs.values())):
+            app.state.last_activity = time.time()  # the delay runs from the end of the work
+            return 0.0
+        return time.time() - app.state.last_activity
+
+    app.state.idle_seconds = idle_seconds
 
     # -- local only ----------------------------------------------------------------------------
     @app.middleware("http")
@@ -173,6 +192,7 @@ def create_app(settings: Settings) -> FastAPI:
                 job.error = f"{type(e).__name__}: {e}"
             finally:
                 job.done = True
+                app.state.last_activity = time.time()
                 if settings.notifier:
                     try:
                         announce(job)
@@ -247,7 +267,13 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/sante")
     def sante():
-        return {"ok": True, "service": "vault-watch"}
+        """The "local service" contract shared with the launcher: state, busy or not, idle countdown."""
+        running = [j for j in list(jobs.values()) if not j.done]
+        idle = app.state.idle_seconds()
+        remaining = None if running or not settings.idle_exit else round(max(0.0, settings.idle_exit - idle), 1)
+        return {"ok": True, "etat": "pret", "contrat": 1, "service": "vault-watch", "version": _version(),
+                "occupe": bool(running), "activite": ACTIVITIES.get(running[0].action, running[0].action) if running else "",
+                "inactivite": {"delai_s": settings.idle_exit, "restant_s": remaining}}
 
     @app.get("/api/infos")
     def infos():
