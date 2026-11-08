@@ -79,6 +79,11 @@ For each one:
   French says it), fix the French page only: the English page will follow it automatically. Never fix both sides
   for the same passage.
 
+Fix every instance a report lists, not a sample: when it names several footnotes or lines, one correction per
+footnote or line. To move a block (a footnote definition in the wrong place), use two corrections with the same
+`group`: one removes it where it is, the other inserts it where it belongs (`current` = the line it must follow,
+`proposed` = that line, a newline, then the block). A correction must change something.
+
 `current` is copied verbatim from one page, short and unique in it; `proposed` is in the language of its page.
 Never edit `last_modified`. `source_url` is the French page's path. One outcome per reported divergence."""
 

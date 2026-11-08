@@ -9,6 +9,7 @@ review, and nothing leaves the machine before the second go-ahead.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -399,8 +400,29 @@ def clusters(evidence: dict[str, list[dict]], terms: dict[str, list[str]] | None
     return out
 
 
+FOOTNOTE_DEF = re.compile(r"^\[\^([^\]]+)\]:", re.M)
+
+
+def mark_unsafe(corrections: list[dict]) -> None:
+    """Refuse an edit that changes nothing, or that deletes a footnote definition its group does not put back
+    elsewhere (a "move" done as a deletion left a dangling [^11] in fix-2026-11-08-6)."""
+    added: dict[str, set[str]] = {}
+    for c in corrections:
+        added.setdefault(c.get("group") or c["id"], set()).update(FOOTNOTE_DEF.findall(c["proposed"]))
+    for c in corrections:
+        if c["check"] != "ok":
+            continue
+        if c["current"].strip() == c["proposed"].strip():
+            c["check"] = "no change"
+            continue
+        lost = set(FOOTNOTE_DEF.findall(c["current"])) - added[c.get("group") or c["id"]]
+        if lost:
+            c["check"] = "drops footnote " + ", ".join(f"[^{n}]" for n in sorted(lost))
+
+
 def mark_conflicts(vault_dir: Path, corrections: list[dict]) -> None:
     """Two corrections that edit overlapping text of a page cannot both apply: the later one is refused."""
+    mark_unsafe(corrections)
     spans: dict[str, list[tuple[int, int, str]]] = {}
     for c in corrections:
         if c["check"] != "ok":

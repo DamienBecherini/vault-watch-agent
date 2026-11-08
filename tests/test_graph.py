@@ -293,6 +293,20 @@ def test_translation_run_edits_the_english_page_without_crosscheck_or_mirror(set
     assert state["title"].startswith("fix(i18n)") and state["branch"] == "fix/fix-tr"
 
 
+def test_unsafe_edits_are_refused():
+    from vault_watch_agent.graph import mark_unsafe
+
+    note = "[^11]: vLLM, release v0.31."
+    cs = [
+        {"id": "C1", "group": "C1", "check": "ok", "current": f"{note}\n\n| metric |", "proposed": "\n| metric |"},
+        {"id": "C2", "group": "C1", "check": "ok", "current": "[^10]: vLLM, metrics.", "proposed": "[^10]: vLLM, metrics."},
+        {"id": "C3", "group": "C3", "check": "ok", "current": f"{note}\n| a |", "proposed": "| a |"},
+        {"id": "C4", "group": "C3", "check": "ok", "current": "[^10]: x.", "proposed": f"[^10]: x.\n{note}"},
+    ]
+    mark_unsafe(cs)
+    assert [c["check"] for c in cs] == ["drops footnote [^11]", "no change", "ok", "ok"]  # C3 + C4: a real move
+
+
 def test_link_problems_put_new_broken_links_first_and_blocked_last():
     from vault_watch_agent.graph import link_problems
 
