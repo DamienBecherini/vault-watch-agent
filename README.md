@@ -41,6 +41,32 @@ vault-watch resume issue-50 --publish yes  # push the branch and open the PR
 vault-watch status issue-50
 ```
 
+## Evaluation on past watches
+
+Two watches processed by hand before the agent existed are replayed on the vault as it was then, up to the
+review pause, and a judge model matches each proposal with the diff the human merged (`vault-watch eval`,
+results in [`metrics/eval/`](metrics/eval/)).
+
+| Watch | Human decision | Agent, keyword excerpts | Agent, whole-vault cross-check |
+| :-- | :-- | :-- | :-- |
+| #30 (urgent, 89 items) | PR #32, 26 hunks | 1 proposal, right | 3 proposals: 2 match, 1 valid extra page |
+| #47 (biweekly) | nothing applied | 0 proposals | 0 proposals |
+
+No proposal that reached the review was wrong. The raw recall on #30 is low (2 of 15 correction hunks), and
+reading the misses says more than the number:
+
+- the substantive change of the watch (Open WebUI floor raised to 0.11.4 after 15 advisories) was found on every
+  page that states it, plus one page the human had left out;
+- 9 of the 13 missed correction hunks change only a date (Ollama 0.40 « septembre » → « octobre » on 8 pages,
+  a footnote 2 → 3 October). GitHub gives 25 September for the Ollama release: the agent declined for lack of
+  evidence, which is defensible; the human's change is debatable;
+- additions (new paragraphs: real-time transcription, MCP supply chain) are listed as candidates by design and
+  are not counted in the correction recall.
+
+The replay found two real defects, both fixed: the cross-check rejected a right correction over a debatable
+date (it now revises the detail), and grouped items shared one excerpt budget, so the last item of a group
+could get none (each item now has its own share).
+
 ## What the upkeep costs
 
 Every model call is logged in [`metrics/usage.jsonl`](metrics/usage.jsonl) (run, step, model, tokens, cost at

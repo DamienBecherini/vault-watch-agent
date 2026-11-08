@@ -21,13 +21,12 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
 
 ## Phase B — measure before choosing
 
-- [ ] **B1. Evaluation on past watches.** Issues #26, #30 and #47 were processed by hand and merged: replay
-  the agent on them and score its proposals against the merged changes (precision, recall, cost). Baseline:
-  keyword retrieval (current).
+- [x] **B1. Evaluation on past watches** (done 2026-11-08 on #30 and #47, see the README; #26 has no artifact
+  left). Next: score substantive changes apart from date-only edits, add the next human-reviewed watches.
 
 ## Phase C — corrections
 
-- [ ] **C1. Whole French vault in context, with prompt caching.** ≈ 2 $ to write the cache, ≈ 0.08 $ per call
+- [x] **C1. Whole French vault in context, with prompt caching** (done as the cross-check node).** ≈ 2 $ to write the cache, ≈ 0.08 $ per call
   after; the model sees every page concerned, footnotes and cross-page inconsistencies. Vector RAG only
   becomes useful past the context budget. Re-run B1 to compare.
 - [ ] **C2. Replace, do not pile up.** A page states the current fact; a correction replaces the old one,
