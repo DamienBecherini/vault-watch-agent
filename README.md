@@ -172,9 +172,17 @@ Measured in November 2026:
 | Watch with excerpts only (issue #50, 81 items kept, 8 corrections) | 0.90 $ |
 | Full watch with the whole-guide cross-check (issues #49, #50) | 3.80 – 4.40 $ |
 | Fix run on the errors found by the cross-checks (26 corrections, guide PR #54) | 6.60 $ |
+| Other fix runs on reported errors (five runs) | 5.60 – 8.15 $ |
+| Translation-only fix run (Sonnet) | 0.35 $ |
+| On-demand check of the guide (one run) | 7.25 $ |
 
 The cross-check dominates: writing 400 k tokens to the prompt cache costs about 2 $, a later call on the same
-cache about 0.08 $. At two watches a month the upkeep is in the order of 100 $ a year.
+cache about 0.08 $. Two full watches a month come to about 100 $ a year, for the watches alone. Fix runs and
+on-demand checks come on top and depend on how many errors are reported: each one adds about 6 to 8 $.
+
+The journal totals 73.70 $, all spent on 2026-11-08 while the agent was being set up: 15.75 $ of watches
+(including repeated runs of issues #49 and #50), 40.61 $ of fix runs, 10.09 $ of evaluation replays and 7.25 $
+for one check. That day is a start-up cost, not a monthly rate.
 
 ## Design choices
 
