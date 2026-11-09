@@ -64,6 +64,13 @@ class FakeLLM:
     def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
         self.calls.append(node)
         usage = {"node": node, "model": "fake", "input": 10, "output": 5, "cache_read": 0}
+        if schema is CrossCheck and node == "sweep":
+            assert web and '<page path="03-stack/engines.md">' in context  # same prefix as the cross-check: cached
+            assert "03-stack/engines.md:" in prompt and "Déployez vLLM 0.31" in prompt
+            return CrossCheck(reviews=[], other_findings=["a sweep doubt"], consistency_edits=[
+                ConsistencyEdit(page="03-stack/engines.md", current="Déployez vLLM 0.31 en production.",
+                                proposed="Déployez vLLM 0.33 en production.", reason="old minimum", related_to=["C1"]),
+            ]), {**usage, "node": "sweep"}
         if schema is CrossCheck:
             assert web and '<page path="03-stack/engines.md">' in context  # the whole vault, sources online
             return CrossCheck(
@@ -359,6 +366,117 @@ def test_sync_fast_forwards_main_before_a_run(setup):
     log = subprocess.run(["git", "log", "-1", "--format=%s", "main"], cwd=deps.vault,
                          capture_output=True, text=True, check=True).stdout
     assert log.strip() == "second PR"
+
+
+def commit_page(deps, text):
+    (deps.vault / "03-stack" / "engines.md").write_text(text, encoding="utf-8")
+    sh("git", "add", ".", cwd=deps.vault)
+    sh("git", "commit", "-qm", "page", cwd=deps.vault)
+
+
+def test_the_sweep_turns_remaining_values_into_corrections(setup):
+    deps, watch, llm = setup
+    commit_page(deps, PAGE.replace("Ollama reste", "Déployez vLLM 0.31 en production.\n\n"
+                                                   "La 0.31 a corrigé une faille.\n\nOllama reste"))
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "sweep"}}
+    graph.invoke({"source": str(watch), "issue": None}, config)
+    assert llm.calls == ["triage", "propose W1", "crosscheck", "sweep"]
+    values = graph.get_state(config).values
+    added = next(c for c in values["corrections"] if c["current"] == "Déployez vLLM 0.31 en production.")
+    assert added["group"] == "C1" and added["review"] == "added by the sweep for C1"
+    # The sweep did not erase the verdicts of the cross-check
+    assert next(c for c in values["corrections"] if c["id"] == "C1")["review"].startswith("revised")
+    assert "a doubt elsewhere" in values["findings"] and "a sweep doubt" in values["findings"]
+    assert [h["line"] for h in values["leftovers"]] == [10]  # history: the model left it, the reviewer sees it
+    report = Path(values["report_path"]).read_text(encoding="utf-8")
+    assert "Removed values still present" in report and "03-stack/engines.md:10" in report
+
+
+def test_leftovers_find_variants_and_skip_replaced_text_and_footnotes(tmp_path):
+    page = """---
+title: x
+---
+
+Installez la roue cu129 si besoin.
+
+Le pilote CUDA 12 reste accepté.
+
+CUDA 13 suffit, Qwen3.31 aussi, et 10.31 n'a rien à voir.
+
+Sur 0.31.x, fixez `--old-flag`.
+
+Ancien texte en 0.31.0 avec CUDA 12.9 et -cu129 et --old-flag.
+
+[^1]: Notes de la 0.31.0.
+"""
+    (tmp_path / "p.md").write_text(page, encoding="utf-8")
+    c = {"id": "C1", "page": "p.md", "check": "ok", "proposed": "Nouveau texte en 0.33.0.",
+         "current": "Ancien texte en 0.31.0 avec CUDA 12.9 et -cu129 et --old-flag."}
+    hits = {h["line"]: h["tokens"] for h in vault.leftovers(tmp_path, [c])}
+    assert hits == {5: ["cu129"], 7: ["CUDA 12"], 11: ["--old-flag", "0.31"]}
+    assert vault.leftovers(tmp_path, [{**c, "check": "text-not-found"}]) == []  # an invalid edit removes nothing
+
+
+def test_a_value_the_replacement_keeps_is_not_a_leftover(tmp_path):
+    (tmp_path / "p.md").write_text("Texte A en 0.31.\n\nAilleurs 0.31.\n", encoding="utf-8")
+    c = {"id": "C1", "page": "p.md", "check": "ok", "current": "Texte A en 0.31.", "proposed": "Texte B, avant la 0.31.0."}
+    assert vault.leftovers(tmp_path, [c]) == []
+
+
+def test_unsourced_versions_read_the_footnotes_as_they_will_be(tmp_path):
+    page = """Déployez la 0.31[^1].
+
+Le plancher est 0.31 selon la note[^2].
+
+Case à cocher 0.31 sans note.
+
+[^1]: Notes de la 0.31.
+[^2]: Notes de la 0.31.
+"""
+    (tmp_path / "p.md").write_text(page, encoding="utf-8")
+    cs = [
+        {"id": "C1", "page": "p.md", "check": "ok", "current": "Déployez la 0.31", "proposed": "Déployez la 0.33"},
+        {"id": "C2", "page": "p.md", "check": "ok", "current": "Le plancher est 0.31", "proposed": "Le plancher est 0.33"},
+        {"id": "C3", "page": "p.md", "check": "ok", "current": "[^2]: Notes de la 0.31.", "proposed": "[^2]: Notes de la v0.33.0rc3."},
+        {"id": "C4", "page": "p.md", "check": "ok", "current": "Case à cocher 0.31", "proposed": "Case à cocher 0.33"},
+    ]
+    assert vault.unsourced_versions(tmp_path, cs) == {"C1": "adds 0.33, which the footnotes it cites ([^1]) do not mention"}
+
+
+def test_the_warning_reaches_the_report(setup):
+    deps, watch, _ = setup
+    commit_page(deps, PAGE.replace("[^1]: vLLM, notes de version 0.31.", "[^1]: vLLM, notes de version 0.31 (bis)."))
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "warn"}}
+    graph.invoke({"source": str(watch), "issue": None}, config)
+    values = graph.get_state(config).values
+    # The footnote edit no longer matches, so nothing brings 0.33 into [^1]
+    assert "do not mention" in next(c for c in values["corrections"] if c["id"] == "C1")["warning"]
+    assert "⚠️ Source: adds 0.33" in Path(values["report_path"]).read_text(encoding="utf-8")
+
+
+def test_apply_commits_the_floors_the_guide_script_aligns(setup):
+    deps, watch, _ = setup
+    floors = deps.vault / ".agents" / "vault-maintenance"
+    floors.mkdir(parents=True)
+    (floors / "version-floors.json").write_text('{"floors": {"adv-vllm": "0.31.0"}}\n', encoding="utf-8")
+    (deps.vault / "scripts" / "audit-version-floors.mjs").write_text(
+        "import { writeFileSync } from 'node:fs';\n"
+        "if (process.argv.includes('--write')) writeFileSync('.agents/vault-maintenance/version-floors.json', "
+        "'{\"floors\": {\"adv-vllm\": \"0.33.0\"}}\\n');\n",
+        encoding="utf-8",
+    )
+    sh("git", "add", ".", cwd=deps.vault)
+    sh("git", "commit", "-qm", "floors", cwd=deps.vault)
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "floors"}}
+    graph.invoke({"source": str(watch), "issue": None}, config)
+    graph.invoke(Command(resume=["C1"]), config)
+    wt = Path(graph.get_state(config).values["worktree"])
+    shown = subprocess.run(["git", "show", "HEAD~1:.agents/vault-maintenance/version-floors.json"], cwd=wt,
+                           capture_output=True, text=True, check=True).stdout
+    assert "0.33.0" in shown  # in the commit of the corrections, the mirror commit comes after
 
 
 def test_a_date_bump_alone_is_left_to_apply():

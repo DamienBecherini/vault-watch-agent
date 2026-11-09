@@ -65,6 +65,7 @@ const TEXTES = {
     avancement: (min, cout) => `Démarré il y a ${min} min · coût de ce passage ≈ ${cout}`,
     appliquerId: id => `Appliquer ${id}`,
     relectureGlobale: "Relecture globale", dapres: "D'après",
+    sourceManquante: "Source à vérifier", valeursRestantes: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     chiffresRelecture: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
     aideRelecture: "Coche ce qui doit être appliqué. Les corrections liées (une phrase et sa note, par exemple) forment un groupe : elles se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier.",
@@ -158,6 +159,7 @@ const TEXTES = {
     avancement: (min, cout) => `Started ${min} min ago · cost of this run ≈ ${cout}`,
     appliquerId: id => `Apply ${id}`,
     relectureGlobale: "Cross-check", dapres: "From",
+    sourceManquante: "Source to check", valeursRestantes: n => `Removed values still present, left as they are (${n})`,
     chiffresRelecture: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
     aideRelecture: "Tick what should be applied. Related corrections (a sentence and its footnote, for instance) form a group and are ticked together. A group with a member that cannot apply is left out whole.",
@@ -359,6 +361,7 @@ function carteCorrection(c, r) {
         ${valide ? "" : `<span class="pastille erreur">${esc(c.check)}</span>`}</div>
       <p>${esc(c.rationale)}</p>
       ${c.review ? `<p class="doux petit">${T.relectureGlobale} : ${esc(c.review)}</p>` : ""}
+      ${c.warning ? `<p class="petit">⚠️ ${T.sourceManquante} : ${esc(c.warning)}</p>` : ""}
       <div class="diff avant" lang="fr">${av}</div>
       <div class="diff apres" lang="fr">${ap}</div>
       <div class="doux petit">${T.dapres} ${sources || "—"}${c.source_url ? ` · ${lienExt(c.source_url, "source")}` : ""}</div>
@@ -385,6 +388,8 @@ function vueRelecture(r, titre) {
     <details><summary>${T.remarque(r.findings.length)}</summary>
       <ul>${r.findings.map(f => `<li>${esc(f)}</li>`).join("") || `<li>${T.rien}</li>`}</ul>
       ${r.findings.length ? `<p class="doux petit">${T.remarqueAide}</p>` : ""}</details>
+    <details><summary>${T.valeursRestantes(r.leftovers.length)}</summary>
+      <ul>${r.leftovers.map(h => `<li><code>${esc(h.page)}:${h.line}</code> (${esc(h.tokens.join(", "))}) : ${esc(h.text)}</li>`).join("") || `<li>${T.aucune}</li>`}</ul></details>
     <details><summary>${T.affirmations(r.claims_due.length)}</summary>
       <ul>${r.claims_due.map(c => `<li>${esc(c.recheckBy)} <code>${esc(c.page)}</code> : ${esc(c.claim)}</li>`).join("") || `<li>${T.aucune}</li>`}</ul></details>
     <p class="petit"><a href="/api/runs/${encodeURIComponent(r.thread)}/rapport" target="_blank">${T.rapport}</a></p>

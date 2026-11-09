@@ -23,6 +23,8 @@ from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
 TRIAGE_BATCH = 40  # items per triage call
 TRIAGE_NOTES = 1200  # characters of cached notes shown at triage
+FLOORS_SCRIPT = "scripts/audit-version-floors.mjs"
+FLOORS_FILE = ".agents/vault-maintenance/version-floors.json"
 
 
 @dataclass
@@ -161,7 +163,16 @@ def build(deps: Deps, checkpointer=None):
         result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm)
         amended = crosscheck.amend(corrections, result, checks)
         mark_conflicts(deps.vault, amended)
-        return {"corrections": amended, "findings": result.other_findings, "usage": [usage]}
+        findings, usages = list(result.other_findings), [usage]
+        swept = crosscheck.sweep(deps.vault, amended, deps.llm)
+        if swept:
+            result, usage, checks = swept
+            amended = crosscheck.add_edits(amended, result, checks, "the sweep")
+            mark_conflicts(deps.vault, amended)
+            findings += result.other_findings
+            usages.append(usage)
+        return {"corrections": amended, "findings": findings, "usage": usages,
+                "leftovers": vault.leftovers(deps.vault, amended)}
 
     # -- report ---------------------------------------------------------------
     def report(state: WatchState) -> dict:
@@ -169,8 +180,12 @@ def build(deps: Deps, checkpointer=None):
                 f"watch-{state['as_of']}" + (f"-issue{state['issue']}" if state.get("issue") else "") + ".md")
         path = deps.home / "reports" / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(render_report(state, sorted_proposals(state), state.get("corrections", [])), encoding="utf-8")
-        return {"report_path": str(path)}
+        corrections = state.get("corrections", [])
+        if state.get("mode") != "translation":
+            unsourced = vault.unsourced_versions(deps.vault, corrections)
+            corrections = [{**c, "warning": unsourced.get(c["id"], "")} for c in corrections]
+        path.write_text(render_report(state, sorted_proposals(state), corrections), encoding="utf-8")
+        return {"report_path": str(path), "corrections": corrections}
 
     # -- review (interrupt 1) -------------------------------------------------
     def review(state: WatchState) -> dict:
@@ -216,6 +231,12 @@ def build(deps: Deps, checkpointer=None):
             if not vault.date_bump_only(c["current"], c["proposed"]):  # apply bumps the date itself
                 vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
         pages = sorted({c["page"] for c in chosen})
+        if (worktree / FLOORS_SCRIPT).is_file():
+            try:  # the guide's own script follows the minimum versions its pages now state
+                inputs.run(["node", FLOORS_SCRIPT, "--write"], cwd=worktree)
+                pages.append(FLOORS_FILE)
+            except RuntimeError:
+                pass  # the audits step runs the same check and reports it before the PR
         git("add", *pages, cwd=worktree)
         summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
         git("commit", "-m", pr_title(state),
@@ -481,6 +502,7 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
             f"From {', '.join(c['item_ids'])} [{item['title']}]({item['url']}). {c['rationale']}",
             "",
             *([f"Cross-check: {c['review']}", ""] if c.get("review") else []),
+            *([f"⚠️ Source: {c['warning']}.", ""] if c.get("warning") else []),
             "Current:",
             "",
             *[f"> {line}" for line in c["current"].splitlines()],
@@ -503,6 +525,9 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     lines += [f"- {d['item_id']} [{items[d['item_id']]['title']}]({items[d['item_id']]['url']}): {d['reason']}" for d in adds] or ["None."]
     lines += ["", "## Noticed elsewhere in the vault by the cross-check (not proposed)", ""]
     lines += [f"- {f}" for f in state.get("findings", [])] or ["None."]
+    lines += ["", "## Removed values still present, left as they are", ""]
+    lines += [f"- `{h['page']}:{h['line']}` ({', '.join(h['tokens'])}): {_cell(h['text'])}"
+              for h in state.get("leftovers", [])] or ["None."]
     lines += ["", "## Claims due for re-check", ""]
     for claim in state.get("claims_due", []):
         lines.append(f"- {claim.get('recheckBy', '')} `{claim.get('page', '')}`: {_cell(str(claim.get('claim', '')))}")

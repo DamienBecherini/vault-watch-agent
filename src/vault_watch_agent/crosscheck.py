@@ -36,9 +36,32 @@ the primary source shows, or drop the detail, rather than rejecting the correcti
 Then list the other passages of the guide that must change so the guide stays consistent once the accepted
 corrections apply (another page that states the old version floor, a summary table, an index that recommends
 the tool). Quote `current` verbatim from one page, short, and give the French replacement in the page's own
-style. Only list what the corrections make wrong or inconsistent, not general improvements. Finally, note in
-one line each any contradiction or factual doubt you noticed elsewhere in the guide while reading, without
-proposing a fix."""
+style. Only list what the corrections make wrong or inconsistent, not general improvements. A new fact you add
+in a consistency edit has consequences too: list what it makes wrong as well (a command, a table row, a
+troubleshooting tip). If a reason you give says that another passage should change, that passage is a consistency
+edit. Finally, note in one line each any contradiction or factual doubt you noticed elsewhere in the guide while
+reading, without proposing a fix; a problem that the corrections or your edits cause never goes in this list, only
+a problem that exists regardless of them."""
+
+SWEEP_SYSTEM = """You finish the review of corrections to a French-language guide on running AI on-premise for
+SMEs. The whole French guide is above, one <page> per file. The corrections were already checked: do not judge
+them again and leave `reviews` empty.
+
+The corrections remove some values (a version, a flag, a package variant) that still appear elsewhere; you get
+each remaining occurrence. For each one, decide:
+- it states a current fact or recommendation that the corrections make wrong or inconsistent: give a consistency
+  edit. This includes a sentence that still makes sense only with the old value, and advice about a version
+  below the new minimum.
+- it stays true (what a past version fixed, a constraint of an old version stated as such, an unrelated number
+  that only looks the same): leave it, list nothing.
+Then read what the corrections now assert and list any other passage that contradicts it, even without a listed
+value (a table row whose argument no longer holds).
+
+Quote `current` verbatim from one page, short, give the French replacement in the page's own style, and put in
+`related_to` the ids of the corrections that require the edit. When an edit states a fact that the footnotes it
+cites do not cover, add a consistency edit of the footnote too, from the sources of the corrections. Open a source
+only for a fact the corrections do not give. `other_findings` is for problems unrelated to the corrections and is
+usually empty."""
 
 
 class CorrectionReview(BaseModel):
@@ -71,10 +94,37 @@ def run(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck,
     )
     result, usage = llm.parse(
         system=SYSTEM, prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort="high",
-        node="crosscheck", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=True,
+        node="crosscheck", context=_guide(vault_dir), web=True,
     )
     checks = [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
     return result, usage, checks
+
+
+def _guide(vault_dir: Path) -> str:
+    return f"<guide>\n{vault.corpus(vault_dir)}\n</guide>"
+
+
+def sweep(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck, dict, list[str]] | None:
+    """Second pass, on what the corrections leave behind, the ones the cross-check added included.
+
+    The code finds the values they remove that still appear elsewhere; the model only decides which of
+    those occurrences are wrong. No occurrence, no call. Same guide, tools and schema as the cross-check,
+    so this call reads its cache.
+    """
+    hits = vault.leftovers(vault_dir, corrections)
+    if not hits:
+        return None
+    listing = "\n\n".join(
+        f"<correction id=\"{c['id']}\" page=\"{c['page']}\">\n<current>\n{c['current']}\n</current>\n"
+        f"<proposed>\n{c['proposed']}\n</proposed>\n<source>{c['source_url']}</source>\n</correction>"
+        for c in corrections if c["check"] == "ok"
+    )
+    occurrences = "\n".join(f"- {h['page']}:{h['line']} ({', '.join(h['tokens'])}): {h['text']}" for h in hits)
+    result, usage = llm.parse(
+        system=SWEEP_SYSTEM, prompt=f"Corrections:\n\n{listing}\n\nRemaining occurrences:\n\n{occurrences}",
+        schema=CrossCheck, effort="high", node="sweep", context=_guide(vault_dir), web=True,
+    )
+    return result, usage, [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
 
 
 def amend(corrections: list[dict], result: CrossCheck, checks: list[str]) -> list[dict]:
@@ -101,6 +151,12 @@ def amend(corrections: list[dict], result: CrossCheck, checks: list[str]) -> lis
         else:
             c["review"] = f"keep: {r.reason}"
         out.append(c)
+    return add_edits(out, result, checks, "the cross-check")
+
+
+def add_edits(corrections: list[dict], result: CrossCheck, checks: list[str], origin: str) -> list[dict]:
+    """Turn consistency edits into corrections, in the group of the correction that requires them."""
+    out = list(corrections)
     by_id = {c["id"]: c for c in out}
     known = {(c["page"], c["current"]) for c in out}
     n = len(out)
@@ -114,7 +170,7 @@ def amend(corrections: list[dict], result: CrossCheck, checks: list[str]) -> lis
             "id": f"C{n}", "item_id": ref["item_id"], "item_ids": ref["item_ids"], "proposal": ref["proposal"],
             "page": e.page, "current": e.current, "proposed": e.proposed, "source_url": ref["source_url"],
             "severity": ref["severity"], "rationale": e.reason, "group": ref["group"], "check": check,
-            "review": f"added by the cross-check for {', '.join(e.related_to)}",
+            "review": f"added by {origin} for {', '.join(e.related_to)}",
         })
     return out
 

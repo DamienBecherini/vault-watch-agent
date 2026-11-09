@@ -319,6 +319,7 @@ def create_app(settings: Settings) -> FastAPI:
             "corrections": v.get("corrections", []),
             "additions": [{**items.get(d["item_id"], {}), "reason": d["reason"]} for d in decisions if d["action"] == "addition"],
             "findings": v.get("findings", []),
+            "leftovers": v.get("leftovers", []),
             "claims_due": v.get("claims_due", []),
             "usage": usage_line(v.get("usage", [])),
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),

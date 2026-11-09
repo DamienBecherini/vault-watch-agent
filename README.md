@@ -34,10 +34,10 @@ flowchart TD
 | `locate` | Finds the French pages concerned and groups the items that touch the same pages or the same tool |
 | `propose` | One parallel branch per group: corrections that quote the current text, give the new text and a source |
 | `number` | Numbers the corrections (C1, C2…), checks each quote, flags overlapping edits |
-| `crosscheck` | Re-reads every correction with the whole French guide in context (prompt caching) and the web: keep, revise or reject, plus consistency edits on other pages |
-| `report` | Writes the Markdown report the human reviews |
+| `crosscheck` | Re-reads every correction with the whole French guide in context (prompt caching) and the web: keep, revise or reject, plus consistency edits on other pages. Then a sweep: the code finds the values the corrections remove (a version, a flag) that still appear elsewhere, and a second call decides which occurrences must change |
+| `report` | Writes the Markdown report the human reviews, with the corrections that add a version their footnotes do not mention and the removed values left in place |
 | `review` | ⏸ Pause: the human accepts all, none, or a list (a group is accepted or refused as a whole) |
-| `apply` | Applies the accepted corrections on a git worktree and bumps `last_modified` |
+| `apply` | Applies the accepted corrections on a git worktree, bumps `last_modified` and aligns the guide's `version-floors.json` with the pages |
 | `mirror` | Translates the changed hunks into the English pages (Claude Sonnet) |
 | `audits` | Runs the guide's `npm test` (structure, sources, freshness, strict i18n) |
 | `links` | Checks the external links of the changed pages |

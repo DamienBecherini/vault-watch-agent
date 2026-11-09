@@ -105,6 +105,101 @@ def check(vault: Path, page: str, current: str) -> str:
     return {0: "text-not-found", 1: "ok"}.get(count, "ambiguous")
 
 
+_VERSION = re.compile(r"(?<![\w.])v?(\d+)\.(\d+)(?:\.\d+)*(?:\.x|rc\d+)?(?!\w)")
+_PRODUCT_MAJOR = re.compile(r"\b([A-Z][A-Za-z]+) ([1-9]\d*)(?:\.\d+)+")  # "CUDA 12.9" also stands for "CUDA 12"
+_IDENTIFIER = re.compile(r"(?<![\w.-])-?([a-z]+\d+[a-z\d]*)(?![\w.])")  # cu129, -cu129
+_FLAG = re.compile(r"--[a-z][a-z-]+")
+_FOOTNOTE_MARK = re.compile(r"\[\^([^\]]+)\](?!:)")
+MAX_LEFTOVERS = 80  # lines handed to the model and listed in the report
+
+
+def _versions(text: str) -> set[str]:
+    """Versions reduced to major.minor: "0.33.0", "v0.33.0rc3" and "0.33" are one value."""
+    return {f"{m[1]}.{m[2]}" for m in _VERSION.finditer(text)}
+
+
+def _tokens(text: str) -> set[str]:
+    return (_versions(text) | {f"{m[1]} {m[2]}" for m in _PRODUCT_MAJOR.finditer(text)}
+            | set(_IDENTIFIER.findall(text)) | set(_FLAG.findall(text)))
+
+
+def _needle(token: str) -> re.Pattern:
+    if re.fullmatch(r"\d+\.\d+", token):
+        major, minor = token.split(".")
+        return re.compile(rf"(?<![\w.])v?{major}\.{minor}(?!\d)")
+    return re.compile(rf"(?<!\w){re.escape(token)}(?!\w)")
+
+
+def _valid_french(corrections: list[dict]) -> list[dict]:
+    return [c for c in corrections if c["check"] == "ok" and not c["page"].startswith("en/")]
+
+
+def leftovers(vault: Path, corrections: list[dict], limit: int = MAX_LEFTOVERS) -> list[dict]:
+    """Where the values these corrections remove (a version, a flag, a package variant) still appear.
+
+    Text the corrections replace is skipped, and so are footnote definitions, which
+    record what a past source said. A hit is not an error: "fixed in 0.31.0" stays true.
+    """
+    valid = _valid_french(corrections)
+    needles = {t: _needle(t) for c in valid for t in sorted(_tokens(c["current"]) - _tokens(c["proposed"]))}
+    if not needles:
+        return []
+    hits: list[dict] = []
+    for path in french_pages(vault):
+        rel = path.relative_to(vault).as_posix()
+        text = read(path).replace("\r\n", "\n")
+        for c in valid:
+            if c["page"] == rel:
+                current = c["current"].replace("\r\n", "\n")
+                text = text.replace(current, re.sub(r"[^\n]", " ", current))  # blanked: line numbers stay right
+        for number, line in enumerate(text.split("\n"), start=1):
+            if line.startswith("[^"):
+                continue
+            found = {t: m.start() for t, n in needles.items() if (m := n.search(line))}
+            if found:
+                at = min(found.values())
+                hits.append({"page": rel, "line": number, "tokens": sorted(found),
+                             "text": line[max(0, at - 160):at + 160].strip()})
+    return hits[:limit]
+
+
+def unsourced_versions(vault: Path, corrections: list[dict]) -> dict[str, str]:
+    """Corrections whose text adds a version that none of the footnotes it cites mentions.
+
+    Footnotes are read as they will be once every valid correction of the page applies.
+    A passage citing no footnote is left alone: there is nothing that could contradict it.
+    """
+    out: dict[str, str] = {}
+    valid = _valid_french(corrections)
+    for page in sorted({c["page"] for c in valid}):
+        on_page = [c for c in valid if c["page"] == page]
+        before = read(vault / page).replace("\r\n", "\n")
+        after = before
+        for c in on_page:
+            after = after.replace(c["current"].replace("\r\n", "\n"), c["proposed"].replace("\r\n", "\n"))
+        for c in on_page:
+            current = c["current"].replace("\r\n", "\n")
+            added = _versions(c["proposed"]) - _versions(current)
+            if not added or current.lstrip().startswith("[^"):
+                continue
+            start = before.find(current)
+            end = before.find("\n", start + len(current))
+            passage = before[before.rfind("\n", 0, start) + 1: end if end >= 0 else len(before)]
+            marks = sorted(set(_FOOTNOTE_MARK.findall(passage)) | set(_FOOTNOTE_MARK.findall(c["proposed"])))
+            if not marks:
+                continue
+            cited: set[str] = set()
+            for mark in marks:
+                definition = re.search(rf"^\[\^{re.escape(mark)}\]:.*$", after, re.M)
+                if definition:
+                    cited |= _versions(definition.group(0))
+            missing = sorted(added - cited)
+            if missing:
+                out[c["id"]] = (f"adds {', '.join(missing)}, which the footnotes it cites "
+                                f"({', '.join(f'[^{m}]' for m in marks)}) do not mention")
+    return out
+
+
 def date_bump_only(current: str, proposed: str) -> bool:
     """An edit of the `last_modified` line alone: `apply` already bumps it, so the edit is redundant
     (and its quote is gone once another edit of the same page has been applied)."""
