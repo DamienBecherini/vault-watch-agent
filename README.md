@@ -165,7 +165,9 @@ Every model call is logged in [`metrics/usage.jsonl`](metrics/usage.jsonl) (run,
 list price computed from the usage the API returns). The file is versioned: it is the history of what keeping
 the guide up to date costs. The Console's billing page stays the reference.
 
-Measured in November 2026:
+Measured in November 2026, on the Claude API at list price, with Claude Opus 5.5 for the triage (medium effort),
+the proposals and the cross-check (high effort), and Claude Sonnet 5.5 for the English mirror (medium effort).
+Another model or effort level would change these figures; no other model has been evaluated on this task.
 
 | Run | Cost |
 | :-- | --: |

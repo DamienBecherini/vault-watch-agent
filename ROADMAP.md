@@ -24,6 +24,10 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
 - [x] **B1. Evaluation on past watches** (done 2026-11-08 on #30 and #47, see the README; #26 has no artifact
   left). Next: score substantive changes apart from date-only edits, add the next human-reviewed watches.
 
+- [ ] **B2. Compare models.** Replay the past watches with `vault-watch eval` on cheaper and local models, against the
+  human decisions, before changing the model. Porting needs an equivalent for prompt caching, web search and
+  structured output.
+
 ## Phase C — corrections
 
 - [x] **C1. Whole French vault in context, with prompt caching** (done as the cross-check node). ≈ 2 $ to write the cache, ≈ 0.08 $ per call
