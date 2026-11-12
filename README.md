@@ -1,4 +1,22 @@
+<div align="center">
+
 # vault-watch-agent
+
+**A LangGraph agent that keeps a 400 k-token technical guide up to date, with a human review before anything is published.**
+
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![LangGraph](https://img.shields.io/badge/LangGraph-1.2-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
+[![Claude API](https://img.shields.io/badge/Claude-API-D97757?logo=anthropic&logoColor=white)](https://docs.anthropic.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-web%20UI-009688?logo=fastapi&logoColor=white)](#web-interface)
+[![Human in the loop](https://img.shields.io/badge/human-in%20the%20loop-FFC107)](#principles)
+[![Guide](https://img.shields.io/badge/maintains-ia--on--prem.damien.becherini.fr-0A7EA4)](https://ia-on-prem.damien.becherini.fr)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**English** · [Français](README.fr.md)
+
+</div>
+
+---
 
 A [LangGraph](https://langchain-ai.github.io/langgraph/) agent that maintains the guide
 [Zero to Hero: On-Premise AI](https://ia-on-prem.damien.becherini.fr/)
