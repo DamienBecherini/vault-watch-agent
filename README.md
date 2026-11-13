@@ -250,7 +250,8 @@ tests/           fake model, throwaway git repository standing for the guide
 metrics/         cost journal and evaluation results (versioned)
 ```
 
-Next steps: [ROADMAP.md](ROADMAP.md).
+Overview with diagrams: [docs/presentation.md](docs/presentation.md). How the code fits together (modules, graph state,
+model calls, pause and resume): [docs/code.md](docs/code.md). Next steps: [ROADMAP.md](ROADMAP.md).
 
 ## License
 

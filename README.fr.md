@@ -266,7 +266,8 @@ tests/           faux modèle, dépôt git jetable qui tient lieu de guide
 metrics/         journal des coûts et résultats d'évaluation (versionnés)
 ```
 
-Étapes suivantes : [ROADMAP.md](ROADMAP.md).
+Présentation avec schémas : [docs/presentation.fr.md](docs/presentation.fr.md). Structure du code (modules, état du
+graphe, appels au modèle, pause et reprise) : [docs/code.fr.md](docs/code.fr.md). Étapes suivantes : [ROADMAP.md](ROADMAP.md).
 
 ## Licence
 
