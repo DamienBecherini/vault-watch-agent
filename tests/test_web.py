@@ -30,7 +30,7 @@ def wait(client, thread):
 
 def test_review_and_publish_from_the_api(client):
     c, watch = client
-    assert c.get("/api/sante").json()["ok"]
+    assert c.get("/api/health").json()["state"] == "ready"
     assert c.post("/api/analyses", json={"watch_json": str(watch)}).status_code == 403  # no header, no action
     thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=ACT).json()["thread"]
 
@@ -39,7 +39,7 @@ def test_review_and_publish_from_the_api(client):
     assert [x["id"] for x in run["corrections"]] == ["C1", "C2", "C3", "C4", "C5"]
     assert run["triage"] == {"correct": 1, "addition": 1, "drop": 1}
     assert {e["node"] for e in run["job"]["events"]} >= {"collect", "triage", "propose", "crosscheck", "report", "pause"}
-    assert "Watch report" in c.get(f"/api/runs/{thread}/rapport").text
+    assert "Watch report" in c.get(f"/api/runs/{thread}/report").text
     assert c.post("/api/analyses", json={"watch_json": str(watch)}, headers=ACT).status_code == 409  # one run per watch
 
     c.post(f"/api/runs/{thread}/review", json={"accept": ["C3"]}, headers=ACT)  # a group member: C1, C3, C5 go together
@@ -57,7 +57,7 @@ def test_idle_time_ignores_the_health_probe(client):
     c.get("/api/runs")
     app = c.app
     app.state.last_activity -= 7200
-    c.get("/api/sante")  # a supervisor polling the health endpoint is not someone using the page
+    c.get("/api/health")  # a supervisor polling the health endpoint is not someone using the page
     assert app.state.idle_seconds() > 7000
     c.get("/api/runs")
     assert app.state.idle_seconds() < 5
@@ -65,10 +65,10 @@ def test_idle_time_ignores_the_health_probe(client):
 
 def test_health_follows_the_local_service_contract(client):
     c, _ = client
-    d = c.get("/api/sante").json()
-    assert d["ok"] and (d["etat"], d["contrat"], d["service"]) == ("pret", 1, "vault-watch")
-    assert d["occupe"] is False and d["activite"] == ""
-    assert d["inactivite"] == {"delai_s": 0, "restant_s": None}
+    d = c.get("/api/health").json()
+    assert (d["state"], d["contract"], d["service"]) == ("ready", 2, "vault-watch")
+    assert d["busy"] is False and d["activity"] == "" and d["remaining_work_s"] is None
+    assert d["idle"] == {"timeout_s": 0, "remaining_s": None}
 
 
 def test_idle_delay_runs_from_the_end_of_the_work(client):
@@ -77,8 +77,8 @@ def test_idle_delay_runs_from_the_end_of_the_work(client):
     job = app.state.jobs["t"] = Job("t", "run")
     app.state.last_activity -= 7200
     assert app.state.idle_seconds() == 0
-    d = c.get("/api/sante").json()
-    assert d["occupe"] and d["activite"] == "analysing"
+    d = c.get("/api/health").json()
+    assert d["busy"] and d["activity"] == "analysing"
     job.done = True
     assert app.state.idle_seconds() < 5
 
@@ -108,7 +108,7 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
     assert c.post("/api/verifications", json={"checks": ["nope"]}, headers=ACT).status_code == 400
     finding = v["results"]["coherence"]["findings"][0]
     assert v["status"] == "to-handle" and v["counts"]["open"] == 1
-    act = lambda status: c.post(f"/api/verifications/{vid}/pistes", json={"findings": [finding], "status": status}, headers=ACT)
+    act = lambda status: c.post(f"/api/verifications/{vid}/leads", json={"findings": [finding], "status": status}, headers=ACT)
     assert act("dismissed").json() == {"open": 0, "fix": 0, "dismissed": 1}
     assert c.get(f"/api/verifications/{vid}").json()["status"] == "handled"
     assert act("open").json()["open"] == 1

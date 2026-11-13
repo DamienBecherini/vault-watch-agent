@@ -107,7 +107,7 @@ vault-watch serve --notify en         # Windows notification when a run waits fo
 
 With `--idle-exit`, the server can be started on demand by a launcher and forgotten: a run paused for review
 or publish loses nothing, its state is in the checkpoints. The delay runs from the end of the last analysis, and
-`GET /api/sante` tells a launcher whether the server is busy and how long it will stay up.
+`GET /api/health` (local service contract v2: `state`, `busy`, `activity`, `idle`) tells a launcher whether the server is busy and how long it will stay up.
 
 A FastAPI server drives the same graph as the command line, one screen per pause: the list of watch issues
 with their run status, a run in progress (each finished step streamed to the page by server-sent events), the

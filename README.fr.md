@@ -109,7 +109,7 @@ vault-watch serve --notify fr         # notification Windows quand un run vous a
 
 Avec `--idle-exit`, le serveur peut être lancé à la demande par un lanceur, puis oublié : un run en pause pour
 la relecture ou la publication ne perd rien, son état est dans les checkpoints. Le délai court depuis la fin de
-la dernière analyse, et `GET /api/sante` indique à un lanceur si le serveur est occupé et combien de temps il
+la dernière analyse, et `GET /api/health` (contrat « service local » v2 : `state`, `busy`, `activity`, `idle`) indique à un lanceur si le serveur est occupé et combien de temps il
 restera actif.
 
 Un serveur FastAPI pilote le même graphe que la ligne de commande, avec un écran par pause : la liste des

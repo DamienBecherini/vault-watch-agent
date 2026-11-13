@@ -144,7 +144,7 @@ def create_app(settings: Settings) -> FastAPI:
             return JSONResponse({"detail": "local access only"}, status_code=403)
         if request.method != "GET" and request.headers.get("x-vault-watch") != "1":
             return JSONResponse({"detail": "missing X-Vault-Watch header"}, status_code=403)
-        if request.url.path != "/api/sante":
+        if request.url.path != "/api/health":
             app.state.last_activity = time.time()
         return await call_next(request)
 
@@ -168,7 +168,7 @@ def create_app(settings: Settings) -> FastAPI:
         texts = MESSAGES.get(settings.notify_lang, MESSAGES["en"])
         if job.thread.startswith("verif-"):
             v = verif_view(verif_path(job.thread))
-            key, n, page = ("verif-error" if job.error else "verif"), v["counts"]["open"], f"#/verifier/{job.thread}"
+            key, n, page = ("verif-error" if job.error else "verif"), v["counts"]["open"], f"#/check/{job.thread}"
         else:
             s = summary(job.thread)
             key = ("error" if job.error else "pr" if s["pr_url"] else s["status"])
@@ -266,18 +266,18 @@ def create_app(settings: Settings) -> FastAPI:
                 return []
         return [t for t, _ in sorted(rows, key=lambda r: r[1], reverse=True) if not t.startswith("eval-")]
 
-    @app.get("/api/sante")
-    def sante():
-        """The "local service" contract shared with the launcher: state, busy or not, idle countdown."""
+    @app.get("/api/health")
+    def health():
+        """The "local service" contract (v2) shared with the launcher: state, busy or not, idle countdown."""
         running = [j for j in list(jobs.values()) if not j.done]
         idle = app.state.idle_seconds()
         remaining = None if running or not settings.idle_exit else round(max(0.0, settings.idle_exit - idle), 1)
-        return {"ok": True, "etat": "pret", "contrat": 1, "service": "vault-watch", "version": _version(),
-                "occupe": bool(running), "activite": ACTIVITIES.get(running[0].action, running[0].action) if running else "",
-                "inactivite": {"delai_s": settings.idle_exit, "restant_s": remaining}}
+        return {"state": "ready", "contract": 2, "service": "vault-watch", "version": _version(),
+                "busy": bool(running), "activity": ACTIVITIES.get(running[0].action, running[0].action) if running else "",
+                "remaining_work_s": None, "idle": {"timeout_s": settings.idle_exit, "remaining_s": remaining}}
 
-    @app.get("/api/infos")
-    def infos():
+    @app.get("/api/info")
+    def info():
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO}
 
     def run_of(issue: dict, known: list[str]) -> dict:
@@ -290,8 +290,8 @@ def create_app(settings: Settings) -> FastAPI:
             new["status"] = "closed"  # handled by hand, before the agent or without it
         return new
 
-    @app.get("/api/veilles")
-    def veilles():
+    @app.get("/api/watches")
+    def watches():
         issues, known = (settings.list_issues or list_issues(settings.repo))(), threads()
         return [{**i, "run": run_of(i, known)} for i in issues]
 
@@ -330,8 +330,8 @@ def create_app(settings: Settings) -> FastAPI:
             "steps": STEPS,
         }
 
-    @app.get("/api/runs/{thread}/rapport", response_class=PlainTextResponse)
-    def rapport(thread: str):
+    @app.get("/api/runs/{thread}/report", response_class=PlainTextResponse)
+    def report(thread: str):
         path = viewer.get_state(config(thread)).values.get("report_path")
         if not path or not Path(path).is_file():
             raise HTTPException(404, "no report yet")
@@ -423,8 +423,8 @@ def create_app(settings: Settings) -> FastAPI:
         start(thread, "fix", "fix", work)
         return {"thread": thread}
 
-    @app.get("/api/couts")
-    def couts():
+    @app.get("/api/costs")
+    def costs_view():
         entries = costs.load(settings.journal)
         return {by: costs.rows(entries, by) for by in ("month", "run")}
 
@@ -481,7 +481,7 @@ def create_app(settings: Settings) -> FastAPI:
                     handled.pop(f, None)
             path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
-    @app.post("/api/verifications/{vid}/pistes")
+    @app.post("/api/verifications/{vid}/leads")
     def verif_handle(vid: str, body: Handle):
         mark(vid, body.findings, {"status": "dismissed"} if body.status == "dismissed" else None)
         return verif_view(verif_path(vid))["counts"]
