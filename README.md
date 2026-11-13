@@ -250,8 +250,7 @@ tests/           fake model, throwaway git repository standing for the guide
 metrics/         cost journal and evaluation results (versioned)
 ```
 
-Architecture overview with diagrams (French, snapshot of 2026-11-08 before phase A):
-[docs/presentation.html](docs/presentation.html). Next steps: [ROADMAP.md](ROADMAP.md).
+Next steps: [ROADMAP.md](ROADMAP.md).
 
 ## License
 

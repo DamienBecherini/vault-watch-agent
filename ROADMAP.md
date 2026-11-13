@@ -2,8 +2,7 @@
 
 Measured on 2026-11-08 (first real run, issue #50 of the vault): 81 kept items → 8 corrections, 0.90 $;
 French content 408 k tokens (exact count), English mirror 353 k; French content grew from 575 KB to 853 KB
-between June and October 2026, the security page from 15.7 KB to 42.2 KB. Architecture and analysis:
-[docs/presentation.html](docs/presentation.html).
+between June and October 2026, the security page from 15.7 KB to 42.2 KB.
 
 Phases are ordered by dependency: finish the loop, measure, then improve what the measure points at.
 

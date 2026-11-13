@@ -266,8 +266,7 @@ tests/           faux modèle, dépôt git jetable qui tient lieu de guide
 metrics/         journal des coûts et résultats d'évaluation (versionnés)
 ```
 
-Présentation de l'architecture avec schémas (en français, état du 2026-11-08 avant la phase A) :
-[docs/presentation.html](docs/presentation.html). Étapes suivantes : [ROADMAP.md](ROADMAP.md).
+Étapes suivantes : [ROADMAP.md](ROADMAP.md).
 
 ## Licence
 
