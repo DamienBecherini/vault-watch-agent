@@ -17,7 +17,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import crosscheck, inputs, prompts, vault
+from . import crosscheck, inputs, prompts, quotes, vault
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
@@ -163,15 +163,18 @@ def build(deps: Deps, checkpointer=None):
         result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm)
         amended = crosscheck.amend(corrections, result, checks)
         mark_conflicts(deps.vault, amended)
-        findings, usages = list(result.other_findings), [usage]
+        findings, excerpts = crosscheck.noticed(deps.vault, result)
+        usages = [usage]
         swept = crosscheck.sweep(deps.vault, amended, deps.llm)
         if swept:
             result, usage, checks = swept
             amended = crosscheck.add_edits(amended, result, checks, "the sweep")
             mark_conflicts(deps.vault, amended)
-            findings += result.other_findings
+            more, found = crosscheck.noticed(deps.vault, result)
+            findings += more
+            excerpts.update(found)
             usages.append(usage)
-        return {"corrections": amended, "findings": findings, "usage": usages,
+        return {"corrections": amended, "findings": findings, "finding_excerpts": excerpts, "usage": usages,
                 "leftovers": vault.leftovers(deps.vault, amended)}
 
     # -- report ---------------------------------------------------------------
@@ -524,7 +527,9 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
     adds = [d for d in decisions if d["action"] == "addition"]
     lines += [f"- {d['item_id']} [{items[d['item_id']]['title']}]({items[d['item_id']]['url']}): {d['reason']}" for d in adds] or ["None."]
     lines += ["", "## Noticed elsewhere in the vault by the cross-check (not proposed)", ""]
-    lines += [f"- {f}" for f in state.get("findings", [])] or ["None."]
+    excerpts = state.get("finding_excerpts", {})
+    lines += [line for f in state.get("findings", []) for line in (f"- {f}", *quotes.markdown(excerpts.get(f, [])))] \
+        or ["None."]
     lines += ["", "## Removed values still present, left as they are", ""]
     lines += [f"- `{h['page']}:{h['line']}` ({', '.join(h['tokens'])}): {_cell(h['text'])}"
               for h in state.get("leftovers", [])] or ["None."]
@@ -574,11 +579,17 @@ def pr_title(state: WatchState) -> str:
 def pr_body(state: WatchState) -> str:
     applied = [c for c in state["corrections"] if c["id"] in state.get("applied", [])]
     rows = "\n".join(f"| {c['id']} | {c['severity']} | `{c['page']}` | {_cell(c['rationale'])} | {c['source_url']} |" for c in applied)
+    # A fix run: the reported errors behind the applied corrections, with the passages they are about
+    used = {i for c in applied for i in c.get("item_ids", [c["item_id"]])}
+    reported = [i for i in state.get("items", []) if i.get("domain") == "fix" and i["id"] in used]
+    errors = "".join(f"- {i['id']}: {i['title']}\n" + "".join(f"{line}\n" for line in quotes.markdown(i.get("excerpts", [])))
+                     for i in reported)
     return (
         f"Corrections from {state['source']}, reviewed before apply.\n\n"
         "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
-        f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
+        + (f"Reported errors:\n\n{errors}\n" if errors else "")
+        + f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
         f"English mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
         + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
         + "\nExternal sources of the changed pages (`scripts/audit-sources.mjs`): "

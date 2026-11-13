@@ -14,8 +14,9 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from vault_watch_agent import vault
-from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck
+from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck, Noticed
 from vault_watch_agent.graph import Deps, build, pr_body
+from vault_watch_agent.quotes import Quote
 from vault_watch_agent.verify import Finding, Findings
 from vault_watch_agent.state import (
     Correction,
@@ -67,7 +68,7 @@ class FakeLLM:
         if schema is CrossCheck and node == "sweep":
             assert web and '<page path="03-stack/engines.md">' in context  # same prefix as the cross-check: cached
             assert "03-stack/engines.md:" in prompt and "Déployez vLLM 0.31" in prompt
-            return CrossCheck(reviews=[], other_findings=["a sweep doubt"], consistency_edits=[
+            return CrossCheck(reviews=[], other_findings=[Noticed(problem="a sweep doubt")], consistency_edits=[
                 ConsistencyEdit(page="03-stack/engines.md", current="Déployez vLLM 0.31 en production.",
                                 proposed="Déployez vLLM 0.33 en production.", reason="old minimum", related_to=["C1"]),
             ]), {**usage, "node": "sweep"}
@@ -84,12 +85,15 @@ class FakeLLM:
                                     proposed="Ollama reste le plus simple pour démarrer (vLLM 0.33 ensuite).",
                                     reason="same floor elsewhere", related_to=["C1"]),
                 ],
-                other_findings=["a doubt elsewhere"],
+                other_findings=[Noticed(problem="a doubt elsewhere", excerpts=[
+                    Quote(page="03-stack/engines.md", quote="Ollama reste le plus simple pour démarrer.")])],
             ), usage
         if schema is Findings:
             assert "<page path=" in (context or "") or "<pair page=" in prompt
             return Findings(findings=[Finding(pages=["03-stack/engines.md"], problem="floor differs from another page",
-                                              severity="Major")]), usage
+                                              severity="Major", excerpts=[
+                Quote(page="03-stack/engines.md", quote="vLLM 0.31 est la version minimale recommandée"),
+                Quote(page="03-stack/engines.md", quote="a sentence the model made up")])]), usage
         if node == "fix translation":
             assert not web and '<page path="03-stack/engines.md">' in context
             assert '<page path="en/03-stack/engines.md">' in context  # the pair, not the whole guide
@@ -388,6 +392,9 @@ def test_the_sweep_turns_remaining_values_into_corrections(setup):
     # The sweep did not erase the verdicts of the cross-check
     assert next(c for c in values["corrections"] if c["id"] == "C1")["review"].startswith("revised")
     assert "a doubt elsewhere" in values["findings"] and "a sweep doubt" in values["findings"]
+    [excerpt] = values["finding_excerpts"]["a doubt elsewhere"]  # found in the page, for the review card
+    assert excerpt["match"] == "exact" and excerpt["page"] == "03-stack/engines.md"
+    assert "a sweep doubt" not in values["finding_excerpts"]  # no passage quoted, none shown
     assert [h["line"] for h in values["leftovers"]] == [10]  # history: the model left it, the reviewer sees it
     report = Path(values["report_path"]).read_text(encoding="utf-8")
     assert "Removed values still present" in report and "03-stack/engines.md:10" in report

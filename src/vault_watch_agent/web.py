@@ -319,6 +319,7 @@ def create_app(settings: Settings) -> FastAPI:
             "corrections": v.get("corrections", []),
             "additions": [{**items.get(d["item_id"], {}), "reason": d["reason"]} for d in decisions if d["action"] == "addition"],
             "findings": v.get("findings", []),
+            "finding_excerpts": v.get("finding_excerpts", {}),
             "leftovers": v.get("leftovers", []),
             "claims_due": v.get("claims_due", []),
             "usage": usage_line(v.get("usage", [])),
@@ -397,14 +398,20 @@ def create_app(settings: Settings) -> FastAPI:
         existing = set(threads()) | set(jobs)  # a run just started has no checkpoint yet
         base = f"fix-{date.today().isoformat()}"
         thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100))) if t not in existing)
+        # Findings of a check keep the passages found when it ran; a line typed by hand has none
+        excerpts = {}
+        if body.verification:
+            results = json.loads(verif_path(body.verification).read_text(encoding="utf-8"))["results"]
+            excerpts = {f: e for r in results.values() for f, e in r.get("excerpts", {}).items() if f in findings}
 
         def work(graph, job: Job):
             deps = settings.make_deps(thread, "fix")
             if body.mode == "translation":
-                items, proposal, usage = fix.propose_translation(settings.vault, findings, deps.translator or deps.llm)
+                items, proposal, usage = fix.propose_translation(settings.vault, findings, deps.translator or deps.llm,
+                                                                 excerpts)
                 label = "translation divergences reported in the interface"
             else:
-                items, proposal, usage = fix.propose(settings.vault, findings, deps.llm)
+                items, proposal, usage = fix.propose(settings.vault, findings, deps.llm, excerpts=excerpts)
                 label = "errors reported in the interface"
             job.events.append({"t": time.time(), "node": "propose", "cost": round(usage.get("cost_usd", 0.0), 2)})
             graph.update_state(config(thread), fix.initial_state(label, items, proposal, usage, thread, body.mode),

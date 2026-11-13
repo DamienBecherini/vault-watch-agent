@@ -194,19 +194,23 @@ def main(argv: list[str] | None = None) -> None:
         if args.cmd == "fix":
             from . import fix
 
+            excerpts: dict[str, list[dict]] = {}
             if args.findings:
                 findings = [l.strip() for l in args.findings.read_text(encoding="utf-8").splitlines() if l.strip()]
                 label = args.findings.stem
             else:
                 runs = args.from_threads.split(",")
-                findings = [x for r in runs for x in graph.get_state(
-                    {"configurable": {"thread_id": r}}).values.get("findings", [])]
+                findings = []
+                for r in runs:
+                    values = graph.get_state({"configurable": {"thread_id": r}}).values
+                    findings += values.get("findings", [])
+                    excerpts.update(values.get("finding_excerpts", {}))
                 label = "cross-checks of " + ", ".join(runs)
             config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
             if args.translation:
-                items, proposal, usage = fix.propose_translation(VAULT, findings, deps.translator or deps.llm)
+                items, proposal, usage = fix.propose_translation(VAULT, findings, deps.translator or deps.llm, excerpts)
             else:
-                items, proposal, usage = fix.propose(VAULT, findings, deps.llm)
+                items, proposal, usage = fix.propose(VAULT, findings, deps.llm, excerpts=excerpts)
             mode = "translation" if args.translation else "fix"
             # Enter the graph as if the proposals had just been made: numbering, cross-check, review…
             graph.update_state(config, fix.initial_state(label, items, proposal, usage, thread, mode), as_node="propose")

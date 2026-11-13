@@ -94,3 +94,11 @@ details.repliable > summary { list-style: none; display: flex; gap: 8px; align-i
 details.repliable > summary::-webkit-details-marker { display: none; }
 details.repliable > summary::before { content: "▸"; color: var(--doux); } details.repliable[open] > summary::before { content: "▾"; }
 details.repliable:not([open]) { padding-bottom: 16px; } details.repliable[open] > summary { margin-bottom: 8px; }
+/* The passage a finding is about, as found in the page */
+.extraits { margin: 6px 0 4px; display: grid; gap: 6px; }
+ul.pistes .extraits { margin-left: calc(2.2em + 30px); }
+.lignes { background: var(--fond); border-radius: 8px; padding: 6px 0; font-size: 13px; overflow-wrap: anywhere; }
+.lignes > div { display: grid; grid-template-columns: 3.2em 1fr; gap: 8px; padding: 1px 10px 1px 0; color: var(--doux); }
+.lignes > div.vise { color: var(--texte); box-shadow: inset 3px 0 var(--accent); }
+.lignes .n { text-align: right; font-variant-numeric: tabular-nums; opacity: .7; }
+.lignes mark { background: var(--plus-fort); color: inherit; border-radius: 3px; padding: 0 1px; }

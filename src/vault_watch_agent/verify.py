@@ -19,7 +19,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs, vault
+from . import inputs, quotes, vault
 from .llm import LLM, MODEL, PRICES, TRANSLATOR
 
 BYTES_PER_TOKEN = 2.1
@@ -37,6 +37,9 @@ class Finding(BaseModel):
                          "the passages, and what a fix should check. Someone who has not read the guide must be able "
                          "to act on it.")
     severity: Literal["Critical", "Major", "Minor"]
+    excerpts: list[quotes.Quote] = Field(default_factory=list, description="The passages in question, each copied "
+                                         "verbatim from its page (both sides for a divergence between two pages), so "
+                                         "the reviewer sees them without opening the page.")
 
 
 class Findings(BaseModel):
@@ -145,9 +148,14 @@ def run_sources(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> 
     return {"ok": not dead, "summary": f"{len(report.get('sources', []))} sources: {len(dead)} not answering, "
             f"{len(blocked)} blocked by anti-bot protections (usually fine in a browser)",
             "dead": dead, "blocked": blocked,
-            "findings": [f"{', '.join(r['pages'])} cites {r['url']}, which answers {r['status']} {r['code'] or ''}. "
-                         "Find where it moved or an equivalent primary source and replace the link, keeping what the "
-                         "citation supports." for r in dead]}
+            "findings": [_dead(r) for r in dead],
+            # The line citing the URL, found by the code: no model, always exact
+            "excerpts": {_dead(r): [quotes.locate(vault_dir, p, r["url"]) for p in r["pages"]] for r in dead}}
+
+
+def _dead(r: dict) -> str:
+    return (f"{', '.join(r['pages'])} cites {r['url']}, which answers {r['status']} {r['code'] or ''}. Find where it "
+            "moved or an equivalent primary source and replace the link, keeping what the citation supports.")
 
 
 def run_freshness(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
@@ -197,19 +205,30 @@ dead URL, the replacement URL you opened and checked, and what it supports. If y
 the finding. Write the findings in English."""
 
 
-def _findings(result: Findings) -> list[str]:
-    return [f"[{f.severity}] {', '.join(f.pages)}: {f.problem}" for f in result.findings]
+EXCERPTS = ("\nIn `excerpts`, copy each passage in question verbatim from its page (one sentence or one table row): "
+            "the reviewer reads it without opening the page.")
+
+
+def _line(f: Finding) -> str:
+    return f"[{f.severity}] {', '.join(f.pages)}: {f.problem}"
+
+
+def _findings(vault_dir: Path, result: Findings) -> dict:
+    """The findings as lines (what the human keeps, dismisses or sends to a fix run), and per line the passages
+    found in the pages."""
+    return {"findings": [_line(f) for f in result.findings],
+            "excerpts": {_line(f): quotes.locate_all(vault_dir, f.excerpts) for f in result.findings if f.excerpts}}
 
 
 def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
-    result, usage = llm.parse(system=COHERENCE, prompt="List the findings.", schema=Findings, effort="high",
+    result, usage = llm.parse(system=COHERENCE + EXCERPTS, prompt="List the findings.", schema=Findings, effort="high",
                               node="verify coherence", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
-    return {"ok": not result.findings, "summary": f"{len(result.findings)} findings", "findings": _findings(result),
+    return {"ok": not result.findings, "summary": f"{len(result.findings)} findings", **_findings(vault_dir, result),
             "usage": [usage]}
 
 
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
-    findings, usages = [], []
+    findings, found, usages = [], {}, []
     for chapter, pages in sorted(by_chapter(vault_dir).items()):
         pairs = []
         for p in pages:
@@ -222,12 +241,15 @@ def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dic
                 findings.append(f"[Major] en/{rel}: no English mirror for this French page.")
         if not pairs:
             continue
-        result, usage = llm.parse(system=TRANSLATION, prompt="\n\n".join(pairs), schema=TranslationFindings,
+        result, usage = llm.parse(system=TRANSLATION + EXCERPTS, prompt="\n\n".join(pairs), schema=TranslationFindings,
                                   effort="medium", node=f"verify translation {chapter}")
         # The first run reported « no divergence found » as findings: they are filtered out here
-        findings += _findings(Findings(findings=[f for f in result.findings if f.meaning_differs]))
+        kept = _findings(vault_dir, Findings(findings=[f for f in result.findings if f.meaning_differs]))
+        findings += kept["findings"]
+        found.update(kept["excerpts"])
         usages.append(usage)
-    return {"ok": not findings, "summary": f"{len(findings)} divergences", "findings": findings, "usage": usages}
+    return {"ok": not findings, "summary": f"{len(findings)} divergences", "findings": findings, "excerpts": found,
+            "usage": usages}
 
 
 def run_claims(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
@@ -235,10 +257,10 @@ def run_claims(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     if not claims:
         return {"ok": True, "summary": "no claim due", "findings": []}
     listing = "\n".join(f"- {c.get('page', '')} (recheck by {c.get('recheckBy', '')}): {c.get('claim', '')}" for c in claims)
-    result, usage = llm.parse(system=CLAIMS, prompt=f"Claims to check:\n{listing}", schema=Findings, effort="high",
-                              node="verify claims", web=True)
+    result, usage = llm.parse(system=CLAIMS + EXCERPTS, prompt=f"Claims to check:\n{listing}", schema=Findings,
+                              effort="high", node="verify claims", web=True)
     return {"ok": not result.findings, "summary": f"{len(claims)} claims checked, {len(result.findings)} outdated",
-            "findings": _findings(result), "usage": [usage]}
+            **_findings(vault_dir, result), "usage": [usage]}
 
 
 def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
@@ -246,10 +268,10 @@ def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     if not dead:
         return {"ok": True, "summary": "no dead source", "findings": []}
     listing = "\n".join(f"- {', '.join(d['pages'])}: {d['url']} ({d['status']} {d['code'] or ''})" for d in dead)
-    result, usage = llm.parse(system=DEAD_LINKS, prompt=f"Dead sources:\n{listing}", schema=Findings, effort="medium",
-                              node="verify deadlinks", web=True)
+    result, usage = llm.parse(system=DEAD_LINKS + EXCERPTS, prompt=f"Dead sources:\n{listing}", schema=Findings,
+                              effort="medium", node="verify deadlinks", web=True)
     return {"ok": not result.findings, "summary": f"{len(dead)} dead sources, {len(result.findings)} replacements",
-            "findings": _findings(result), "usage": [usage]}
+            **_findings(vault_dir, result), "usage": [usage]}
 
 
 CHECKS = [

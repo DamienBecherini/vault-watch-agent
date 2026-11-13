@@ -74,6 +74,7 @@ const TEXTES = {
     pistes: n => `Pistes d'ajout (${n}, non rédigées)`, aucune: "Aucune.", rien: "Rien.",
     remarque: n => `Remarqué ailleurs dans le guide (${n})`,
     remarqueAide: "Pour les corriger : « Signaler une erreur », en copiant les lignes utiles.",
+    extraitIntrouvable: "extrait introuvable dans la page", extraitApproche: "passage le plus proche, pas une citation exacte",
     affirmations: n => `Affirmations à revérifier (${n})`,
     rapport: "Rapport complet (Markdown)",
     neRienAppliquer: "Ne rien appliquer", appliquerN: n => `Appliquer ${n} correction${n > 1 ? "s" : ""}`,
@@ -168,6 +169,7 @@ const TEXTES = {
     pistes: n => `Addition leads (${n}, not drafted)`, aucune: "None.", rien: "Nothing.",
     remarque: n => `Noticed elsewhere in the guide (${n})`,
     remarqueAide: "To fix them: « Report an error », with the relevant lines.",
+    extraitIntrouvable: "excerpt not found in the page", extraitApproche: "closest passage, not an exact quote",
     affirmations: n => `Claims due for re-check (${n})`,
     rapport: "Full report (Markdown)",
     neRienAppliquer: "Apply nothing", appliquerN: n => `Apply ${n} correction${n > 1 ? "s" : ""}`,
@@ -349,6 +351,17 @@ function diffMots(a, b) {
   return [av, ap];
 }
 
+// The passages a finding is about, as the server found them in the page: never the model's own words
+function extraits(liste) {
+  if (!liste?.length) return "";
+  const ligne = l => `<div${l.hit ? ' class="vise"' : ""}><span class="n">${l.n}</span><span>${
+    l.parts ? `${esc(l.parts[0])}<mark>${esc(l.parts[1])}</mark>${esc(l.parts[2])}` : esc(l.text)}</span></div>`;
+  return `<div class="extraits">${liste.map(e => e.match === "missing"
+    ? `<div class="extrait doux petit"><code>${esc(e.page)}</code> · ${T.extraitIntrouvable}</div>`
+    : `<div class="extrait"><div class="doux petit"><code>${esc(e.page)}:${e.line}</code>${e.match === "approx" ? ` · ${T.extraitApproche}` : ""}</div>
+        <div class="lignes" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(ligne).join("")}</div></div>`).join("")}</div>`;
+}
+
 function carteCorrection(c, r) {
   const valide = c.check === "ok";
   const [av, ap] = diffMots(c.current, c.proposed);
@@ -386,7 +399,7 @@ function vueRelecture(r, titre) {
     <details><summary>${T.pistes(r.additions.length)}</summary>
       <ul>${r.additions.map(a => `<li>${a.url ? lienExt(a.url, esc(a.title)) : esc(a.title)} : ${esc(a.reason)}</li>`).join("") || `<li>${T.aucune}</li>`}</ul></details>
     <details><summary>${T.remarque(r.findings.length)}</summary>
-      <ul>${r.findings.map(f => `<li>${esc(f)}</li>`).join("") || `<li>${T.rien}</li>`}</ul>
+      <ul>${r.findings.map(f => `<li>${esc(f)}${extraits(r.finding_excerpts?.[f])}</li>`).join("") || `<li>${T.rien}</li>`}</ul>
       ${r.findings.length ? `<p class="doux petit">${T.remarqueAide}</p>` : ""}</details>
     <details><summary>${T.valeursRestantes(r.leftovers.length)}</summary>
       <ul>${r.leftovers.map(h => `<li><code>${esc(h.page)}:${h.line}</code> (${esc(h.tokens.join(", "))}) : ${esc(h.text)}</li>`).join("") || `<li>${T.aucune}</li>`}</ul></details>
@@ -552,7 +565,7 @@ async function vueVerification(id) {
           ${liste(V.affirmations, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${liste(V.pagesDues, (r.pages_due || []).map(esc))}
           ${r.log ? `<details><summary>${V.journal}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map((f, i) => piste(f, r.fixable, c, r.mode, i + 1)).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="doux petit">${V.nonCorrigeable}</p>`}<ul class="pistes">${r.findings.map((f, i) => piste(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
     <div class="barre">
@@ -561,7 +574,8 @@ async function vueVerification(id) {
       <button class="principal" id="fix"></button>
     </div>`;
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
-  function piste(f, corrigeable, carte, mode = "fix", n = 0) {
+  // Handled findings stay one line; an open one shows the passages it is about
+  function piste(f, corrigeable, carte, mode = "fix", n = 0, passages = []) {
     const h = v.handled[f], num = `<span class="num">${n}.</span>`;  // per card, stable: handled lines keep theirs
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
@@ -569,7 +583,7 @@ async function vueVerification(id) {
         ${run.status ? pastille(run.status) : ""}${run.pr_url ? ` ${lienExt(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="traitee">${num} <span class="pastille neutre">${V.ecartee}</span> <button class="petit-bouton" data-retablir="${esc(f)}">${V.retablir}</button> ${esc(f)}</li>`;
-    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-mode="${mode}" data-carte="${carte}"> ${num} <span>${esc(f)}</span></label></li>`;
+    return `<li><label><input type="checkbox" data-piste="${esc(f)}" data-corrigeable="${corrigeable}" data-mode="${mode}" data-carte="${carte}"> ${num} <span>${esc(f)}</span></label>${extraits(passages)}</li>`;
   }
   const cases = [...page.querySelectorAll("[data-piste]")];
   const coches = () => cases.filter(c => c.checked);

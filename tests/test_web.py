@@ -101,6 +101,8 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
         time.sleep(0.05)
     assert v["checks"] == ["freshness", "coherence", "claims"]  # claims needs the freshness script first
     assert v["results"]["coherence"]["findings"] == ["[Major] 03-stack/engines.md: floor differs from another page"]
+    exact, invented = v["results"]["coherence"]["excerpts"][v["results"]["coherence"]["findings"][0]]
+    assert exact["match"] == "exact" and exact["line"] == 6 and invented["match"] == "missing"
     assert len(v["results"]["freshness"]["claims"]) == 1
     assert [p["id"] for p in c.get("/api/verifications").json()] == [vid]
     assert c.post("/api/verifications", json={"checks": ["nope"]}, headers=ACT).status_code == 400

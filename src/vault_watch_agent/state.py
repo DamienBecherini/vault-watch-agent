@@ -100,6 +100,7 @@ class WatchState(TypedDict, total=False):
     mode: str  # "translation" for a fix run on English pages (no cross-check); absent otherwise
     corrections: list[dict]  # numbered C1, C2… with their deterministic check
     findings: list[str]  # doubts the cross-check noticed elsewhere in the vault, not proposed
+    finding_excerpts: dict[str, list[dict]]  # finding -> the passages it is about, found in the pages (quotes.locate)
     leftovers: list[dict]  # lines that still hold a value the corrections remove: {page, line, tokens, text}
     report_path: str
     accepted: list[str]

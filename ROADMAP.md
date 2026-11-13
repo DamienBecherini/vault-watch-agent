@@ -76,4 +76,8 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 - [x] README with the measures of B1 and C1, MIT licence.
 - [x] Public GitHub repository (source on Gitea, pushed to GitHub by a Gitea push mirror).
 - [x] Web interface: `vault-watch serve` (FastAPI, server-sent events), one screen per pause of the graph.
+- [x] Leads with their passage: a finding of a check of the guide or of the cross-check shows the sentence it is
+  about, with its line number and the nearest lines, in the interface, the report and the fix run's pull request.
+  The model quotes it, the code finds it in the page (exact, else the closest passage, flagged; else « not
+  found »), so a quote the model got wrong is never shown as the guide's text.
 - [ ] Blog article.

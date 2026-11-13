@@ -36,14 +36,22 @@ right, for an internal inconsistency). Group with a shared `group` label the cor
 together. One outcome per reported error."""
 
 
+def _passages(item: dict) -> str:
+    """The passages a reported error is about, as found in the pages when it was reported."""
+    return "".join(f"\n<passage page=\"{e['page']}\" line=\"{e['line']}\">{e['quote']}</passage>"
+                   for e in item.get("excerpts", []) if e["match"] == "exact")
+
+
 def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM, context: str | None = None,
-            effort: str = "high", web: bool = True, node: str = "fix") -> tuple[list[dict], dict, dict]:
+            effort: str = "high", web: bool = True, node: str = "fix",
+            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
+    """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request."""
     items = [
         {"id": f"F{n}", "domain": "fix", "tier": "", "title": f, "url": "", "date": "", "urgent": False,
-         "severity": "", "notes": ""}
+         "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, [])}
         for n, f in enumerate(findings, start=1)
     ]
-    listing = "\n".join(f"<error id=\"{i['id']}\">{i['title']}</error>" for i in items)
+    listing = "\n".join(f"<error id=\"{i['id']}\">{i['title']}{_passages(i)}</error>" for i in items)
     result, usage = llm.parse(
         system=system, prompt=f"Reported errors:\n\n{listing}", schema=ClusterProposal, effort=effort,
         node=node, context=context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=web,
@@ -96,12 +104,13 @@ def pages_of(finding: str) -> list[str]:
     return [m.group(1), f"en/{m.group(1)}"] if m else []
 
 
-def propose_translation(vault_dir: Path, findings: list[str], llm: LLM) -> tuple[list[dict], dict, dict]:
+def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,
+                        excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
     """Same output as `propose`, from the French and English pages alone: no web, no whole guide."""
     pages = sorted({p for f in findings for p in pages_of(f) if (vault_dir / p).is_file()})
     context = "\n\n".join(f'<page path="{p}">\n{vault.read(vault_dir / p)}\n</page>' for p in pages)
     return propose(vault_dir, findings, llm, system=TRANSLATION_SYSTEM, context=context, effort="medium",
-                   web=False, node="fix translation")
+                   web=False, node="fix translation", excerpts=excerpts)
 
 
 def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "",

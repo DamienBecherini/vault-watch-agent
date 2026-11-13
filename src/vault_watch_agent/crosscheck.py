@@ -15,8 +15,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import vault
+from . import quotes, vault
 from .llm import LLM
+from .quotes import Quote
 
 SYSTEM = """You review proposed corrections to a French-language guide on running AI on-premise for SMEs.
 The whole French guide is above, one <page> per file. For each correction, judge it against the guide and the
@@ -40,8 +41,8 @@ style. Only list what the corrections make wrong or inconsistent, not general im
 in a consistency edit has consequences too: list what it makes wrong as well (a command, a table row, a
 troubleshooting tip). If a reason you give says that another passage should change, that passage is a consistency
 edit. Finally, note in one line each any contradiction or factual doubt you noticed elsewhere in the guide while
-reading, without proposing a fix; a problem that the corrections or your edits cause never goes in this list, only
-a problem that exists regardless of them."""
+reading, without proposing a fix, and copy the passages in question verbatim into its `excerpts`; a problem that the
+corrections or your edits cause never goes in this list, only a problem that exists regardless of them."""
 
 SWEEP_SYSTEM = """You finish the review of corrections to a French-language guide on running AI on-premise for
 SMEs. The whole French guide is above, one <page> per file. The corrections were already checked: do not judge
@@ -79,10 +80,22 @@ class ConsistencyEdit(BaseModel):
     related_to: list[str] = Field(description="Ids of the corrections that make this edit necessary.")
 
 
+class Noticed(BaseModel):
+    problem: str = Field(description="The contradiction or factual doubt, one line, in English, naming the page.")
+    excerpts: list[Quote] = Field(default_factory=list, description="The passages in question, each copied verbatim "
+                                  "from its page, so the reviewer sees them without opening the page.")
+
+
 class CrossCheck(BaseModel):
     reviews: list[CorrectionReview]
     consistency_edits: list[ConsistencyEdit]
-    other_findings: list[str] = Field(description="Contradictions or factual doubts noticed elsewhere, one line each.")
+    other_findings: list[Noticed] = Field(description="Contradictions or factual doubts noticed elsewhere.")
+
+
+def noticed(vault_dir: Path, result: CrossCheck) -> tuple[list[str], dict[str, list[dict]]]:
+    """The other findings as lines, and per line the passages found in the pages (`quotes.locate`)."""
+    return ([f.problem for f in result.other_findings],
+            {f.problem: quotes.locate_all(vault_dir, f.excerpts) for f in result.other_findings if f.excerpts})
 
 
 def run(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck, dict, list[str]]:
@@ -194,5 +207,5 @@ def render(result: CrossCheck, checks: list[str], usage: dict, source: str) -> s
                   *[f"> {line}" for line in e.current.splitlines()], "", "Proposed:", "",
                   *[f"> {line}" for line in e.proposed.splitlines()], ""]
     lines += ["", "## Noticed elsewhere (not proposed)", ""]
-    lines += [f"- {f}" for f in result.other_findings] or ["None."]
+    lines += [f"- {f.problem}" for f in result.other_findings] or ["None."]
     return "\n".join(lines) + "\n"
