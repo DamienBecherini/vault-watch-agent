@@ -14,6 +14,8 @@
 
 **Français** · [English](README.md)
 
+[Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
+
 </div>
 
 ---

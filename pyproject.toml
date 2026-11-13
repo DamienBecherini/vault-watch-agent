@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "httpx>=0.28", "markdown>=3.7"]
+dev = ["pytest>=8", "httpx>=0.28"]
 
 [project.scripts]
 vault-watch = "vault_watch_agent.cli:main"

@@ -14,6 +14,8 @@
 
 **English** · [Français](README.fr.md)
 
+[Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+
 </div>
 
 ---

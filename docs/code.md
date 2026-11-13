@@ -33,28 +33,25 @@ flowchart TB
     prompts["prompts.py<br/><i>system prompts</i>"]
     quotes["quotes.py<br/><i>find a passage</i>"]
   end
-  subgraph base["Foundations"]
+  subgraph base["Foundations, used by all"]
     state["state.py<br/><i>state + output schemas</i>"]
     llm["llm.py<br/><i>the only Claude caller</i>"]
     vault["vault.py<br/><i>pages, search, edits</i>"]
     inputs["inputs.py<br/><i>gh, watch, scripts</i>"]
-    costs["costs.py"]
-    notify["notify.py"]
+    costs["costs.py<br/><i>cost journal</i>"]
+    notify["notify.py<br/><i>notifications</i>"]
   end
-  cli --> graphpy & fix & evaluate & crosscheck & costs & notify & web
-  web --> graphpy & fix & verify & costs
-  graphpy --> crosscheck & prompts & quotes & state & llm & vault & inputs
-  fix --> state & llm & vault
-  verify --> quotes & llm & vault & inputs
-  evaluate --> llm & inputs
-  crosscheck --> quotes & llm & vault
-  quotes --> vault
-  vault --> inputs
+  cli -->|"serve"| web
+  cli --> graphpy & fix & evaluate
+  web --> graphpy & fix & verify
+  graphpy --> crosscheck & prompts & quotes
+  verify --> quotes
+  steps ==> state & llm & vault & inputs & costs & notify
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
   class llm model
 ```
 
-Two rules shape this graph:
+Only the main links are drawn; the table below gives each module's role. Two rules shape the code:
 
 - **One door to the model.** Only [`llm.py`](../src/vault_watch_agent/llm.py) imports `anthropic`. Every other
   module receives an object with a `parse(system, prompt, schema, effort, node, context, web)` method (the `LLM`
@@ -85,31 +82,36 @@ Two rules shape this graph:
 
 ```mermaid
 flowchart TB
-  subgraph g["graph.py · build(deps)"]
-    direction TB
-    collect --> triage --> locate
-    locate -. "fan_out → Send" .-> propose
-    propose --> number --> crosscheck --> report --> review
-    review --> apply --> mirror --> audits --> links --> publish
+  subgraph before["Up to the first pause"]
+    direction LR
+    collect --> triage --> locate -->|"Send"| propose --> number --> crosscheck --> report --> review
   end
-  collect -.-> I["inputs.download_watch<br/>inputs.load_items<br/>inputs.claims_due"]
-  triage -.-> L1["llm.parse(TriageResult)<br/>prompts.triage"]
-  locate -.-> V1["vault.search<br/>clusters()"]
-  propose -.-> L2["llm.parse(ClusterProposal)<br/>prompts.propose"]
-  number -.-> V2["vault.check<br/>mark_unsafe / mark_conflicts"]
-  crosscheck -.-> C["crosscheck.run / sweep / amend<br/>vault.corpus · quotes.locate_all"]
-  report -.-> R["render_report"]
-  review -.-> P1["interrupt()"]
-  apply -.-> V3["git worktree · vault.apply"]
-  mirror -.-> L3["translator.parse(MirrorResult)<br/>prompts.mirror"]
-  audits -.-> N["npm test (guide)"]
-  links -.-> K["link_problems"]
-  publish -.-> P2["interrupt() · git push · gh pr create"]
+  subgraph after["After the review"]
+    direction LR
+    apply --> mirror --> audits --> links --> publish
+  end
+  before -->|"accepted"| after
   classDef pause fill:#fff4d6,stroke:#a65f00,color:#3d2a00
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
-  class review,publish,P1,P2 pause
-  class triage,propose,crosscheck,mirror,L1,L2,L3,C model
+  class review,publish pause
+  class triage,propose,crosscheck,mirror model
 ```
+
+| Step | What it calls | Kind |
+| :-- | :-- | :-- |
+| `collect` | `inputs.download_watch`, `inputs.load_items`, `inputs.claims_due` |  |
+| `triage` | `llm.parse(TriageResult)`, `prompts.triage` | Claude |
+| `locate` | `vault.search`, `clusters()`; then `fan_out` returns one `Send` per group |  |
+| `propose` | `llm.parse(ClusterProposal)`, `prompts.propose` | Claude |
+| `number` | `vault.check`, `mark_unsafe`, `mark_conflicts` |  |
+| `crosscheck` | `crosscheck.run` / `sweep` / `amend`, `vault.corpus`, `quotes.locate_all` | Claude |
+| `report` | `render_report` |  |
+| `review` | `interrupt()` | ⏸ human |
+| `apply` | `git worktree`, `vault.apply` |  |
+| `mirror` | `translator.parse(MirrorResult)`, `prompts.mirror` | Claude |
+| `audits` | `npm test` of the guide |  |
+| `links` | `link_problems` |  |
+| `publish` | `interrupt()`, `git push`, `gh pr create` | ⏸ human |
 
 `build(deps, checkpointer)` receives a `Deps` dataclass: the guide path, the model for the reasoning steps (`llm`),
 the model for the English mirror (`translator`), whether to run the cross-check, the GitHub repository and base
@@ -231,5 +233,5 @@ No test calls the real API. `vault-watch eval` is the measure against real watch
 5. [`web.py`](../src/vault_watch_agent/web.py) or [`cli.py`](../src/vault_watch_agent/cli.py): how runs are started,
    paused and resumed.
 
-These pages also exist as HTML in `docs/`, to read a downloaded copy of the repository with its diagrams: they are
-generated from the Markdown by [`docs/build_html.py`](build_html.py).
+The diagrams are Mermaid: GitHub displays them; in VS Code or Cursor, the Markdown preview needs the
+*Markdown Preview Mermaid Support* extension.
