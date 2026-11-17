@@ -3,6 +3,11 @@
 Versions follow the milestones of [docs/modular-action-plan.md](docs/modular-action-plan.md). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- The search for a replacement of a dead link gets what each page says with that source (the lines that cite it
+  and, for a footnote, the lines that call it): it had only the URL, and said it could not open the pages.
+
 ## 0.2.0 (2026-11-17), M0: ground
 
 - One version, read from `vault_watch_agent.__version__` by `pyproject.toml`, `/api/health`, `/api/info` and the page

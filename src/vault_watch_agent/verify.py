@@ -13,6 +13,7 @@ make the real cost vary, hence « ≈ ».
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
@@ -265,11 +266,29 @@ def run_claims(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
             **_findings(vault_dir, result), "usage": [usage]}
 
 
+def citing(vault_dir: Path, page: str, url: str, width: int = 600) -> str:
+    """What a page says with a source: the lines that hold its URL and, for a footnote, the lines that call that
+    footnote. The model searching a replacement had only the URL (17/11/2026: « I could not open the guide's
+    pages »), so it could neither check what the new source must support nor quote the passage."""
+    path = vault_dir / page
+    if not path.is_file():
+        return f'  <page path="{page}">(not found)</page>'
+    lines = vault.read(path).replace("\r\n", "\n").split("\n")
+    shown = [n for n, line in enumerate(lines) if url in line]
+    for n in list(shown):
+        mark = re.match(r"\[\^([^\]]+)\]:", lines[n])
+        if mark:
+            shown += [k for k, line in enumerate(lines) if f"[^{mark.group(1)}]" in line and k != n][:3]
+    body = "\n".join(f"{k + 1}: {lines[k][:width]}" for k in sorted(set(shown)))
+    return f'  <page path="{page}">\n{body}\n  </page>'
+
+
 def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     dead = results["sources"]["dead"]
     if not dead:
         return {"ok": True, "summary": "no dead source", "findings": []}
-    listing = "\n".join(f"- {', '.join(d['pages'])}: {d['url']} ({d['status']} {d['code'] or ''})" for d in dead)
+    listing = "\n".join(f"- {', '.join(d['pages'])}: {d['url']} ({d['status']} {d['code'] or ''})"
+                        + "".join(f"\n{citing(vault_dir, p, d['url'])}" for p in d["pages"]) for d in dead)
     result, usage = llm.parse(system=DEAD_LINKS + EXCERPTS, prompt=f"Dead sources:\n{listing}", schema=Findings,
                               effort="medium", node="verify deadlinks", web=True)
     return {"ok": not result.findings, "summary": f"{len(dead)} dead sources, {len(result.findings)} replacements",

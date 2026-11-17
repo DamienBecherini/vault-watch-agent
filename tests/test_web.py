@@ -220,3 +220,14 @@ def test_models_come_from_the_api_or_from_what_the_agent_knows(client, monkeypat
     monkeypatch.setattr(engines, "list_models", refuse)
     r = c.get("/api/models").json()
     assert r["source"] == "known" and r["error"] == "no key" and "claude-fable-5-2" in [m["id"] for m in r["models"]]
+
+
+def test_the_search_for_a_dead_link_gets_what_the_page_says_with_it(tmp_path):
+    from vault_watch_agent.verify import citing
+    (tmp_path / "p.md").write_text("Intro.\n\nLe MI350X a 288 Go de HBM3E[^2].\n\nAutre.\n\n"
+                                   "[^1]: Ailleurs, https://example.org/a\n[^2]: AMD, fiche, https://example.org/dead\n",
+                                   encoding="utf-8")
+    shown = citing(tmp_path, "p.md", "https://example.org/dead")
+    assert "3: Le MI350X a 288 Go de HBM3E[^2]." in shown and "8: [^2]: AMD, fiche" in shown
+    assert "Intro" not in shown and "example.org/a" not in shown
+    assert "(not found)" in citing(tmp_path, "absent.md", "https://example.org/dead")
