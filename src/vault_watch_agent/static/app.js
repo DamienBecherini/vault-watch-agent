@@ -250,7 +250,8 @@ function header() {
   const tools = $("#tools");
   tools.innerHTML = `${themeButtons()}${notifyButton()}<span class="langs">${["fr", "en"].map(l =>
     `<button data-lang="${l}" class="${l === lang ? "active" : ""}" aria-pressed="${l === lang}">${l.toUpperCase()}</button>`).join("")}</span>
-    <a class="icon-link${location.hash.startsWith("#/settings") ? " active" : ""}" href="#/settings" title="${T.settings.open}" aria-label="${T.settings.open}">${SETTINGS_ICONS.gear}</a>`;
+    <button type="button" class="icon" data-tool="settings" title="${T.settings.open}" aria-label="${T.settings.open}">${SETTINGS_ICONS.gear}</button>`;
+  tools.querySelector('[data-tool="settings"]').onclick = openSettings;
   bindThemeButtons(tools, header);
   bindNotifyButton(tools, header);
   tools.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
@@ -266,10 +267,14 @@ function header() {
 async function route() {
   if (source) { source.close(); source = null; }
   clearTimeout(followTimer);
-  const h = location.hash.slice(1) || "/";
+  let h = location.hash.slice(1) || "/";
+  if (h === "/settings") {   // an address to open the Settings: the window, over the first page
+    history.replaceState(null, "", "#/");
+    h = "/";
+    openSettings();
+  }
   document.querySelectorAll("nav [data-nav]").forEach(a =>
     a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : h.startsWith(`/${a.dataset.nav}`)));
-  document.querySelector(".icon-link")?.classList.toggle("active", h === "/settings");
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
@@ -277,7 +282,6 @@ async function route() {
     else if (h === "/check") await viewChecks();
     else if (h === "/report") viewReport();
     else if (h === "/costs") await viewCosts();
-    else if (h === "/settings") await viewSettings();
     else await viewWatches();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
@@ -688,4 +692,4 @@ new ResizeObserver(() => document.documentElement.style.setProperty("--header-h"
 watchNotices();
 route();
 // The engine in use arrives a moment later (the server asks Claude Code): on a subscription, the costs shown change
-api("/api/info").then(i => { info = i; header(); if (onSubscription() && location.hash !== "#/settings") route(); }).catch(() => {});
+api("/api/info").then(i => { info = i; header(); if (onSubscription()) route(); }).catch(() => {});

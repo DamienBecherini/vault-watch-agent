@@ -1,5 +1,8 @@
-/* vault-watch: the Settings page (#/settings), loaded before app.js, which owns the router, the texts and the helpers
-   used here ($, page, api, esc, T, info, header). What it edits is the settings file of the server (config.py):
+/* vault-watch: the Settings, a window over the current page (the gear of the header, or the address #/settings),
+   loaded before app.js, which owns the router, the texts and the helpers used here ($, api, esc, T, info, route).
+   The page under it is not drawn again when the window closes, unless the engine changed (the costs shown follow
+   it). Close, Cancel, the Escape key or a click outside close it; with changes not saved, only Cancel does (it
+   drops them), so a stray click loses nothing. What it edits is the settings file of the server (config.py):
    the engine that calls the model (Claude Code on a subscription, or the API), where the API key is (a reference,
    never the key) and the model of each role. A change applies to the next run.
    Layout after the Settings of dl-sub-dub: the categories at the left, one page each, Claude Code found on the
@@ -7,7 +10,8 @@
 
 const SETTINGS_TEXTS = {
   fr: {
-    title: "Réglages", open: "Réglages", save: "Enregistrer", cancel: "Annuler",
+    title: "Réglages", open: "Réglages", save: "Enregistrer", cancel: "Annuler", close: "Fermer",
+    unsaved: "Modifications non enregistrées : Enregistrer, ou Annuler pour les abandonner.", loading: "Chargement…",
     saved: "Enregistré. S'applique au prochain passage.", modified: "modifié, pas encore enregistré",
     categories: "Catégories", cat: { engine: "Moteur", models: "Modèles et effort" },
     engineHelp: "Qui appelle le modèle. Un changement s'applique au prochain passage ; un passage en cours garde son moteur.",
@@ -49,7 +53,8 @@ const SETTINGS_TEXTS = {
     byDefault: "par défaut",
   },
   en: {
-    title: "Settings", open: "Settings", save: "Save", cancel: "Cancel",
+    title: "Settings", open: "Settings", save: "Save", cancel: "Cancel", close: "Close",
+    unsaved: "Changes not saved: Save, or Cancel to drop them.", loading: "Loading…",
     saved: "Saved. Applies to the next run.", modified: "changed, not saved yet",
     categories: "Categories", cat: { engine: "Engine", models: "Models and effort" },
     engineHelp: "What calls the model. A change applies to the next run; a run in progress keeps its engine.",
@@ -102,13 +107,44 @@ const KEY_REFERENCES = ["env:", "sops:", "file:"];
 const modelName = m => m.replace(/^claude-/, "").replace(/-(\d+)-(\d+)$/, " $1.$2").replace(/^./, c => c.toUpperCase());
 let settingsCategory = "engine";  // the category shown, kept across redraws
 
-async function viewSettings() {
-  drawSettings(await api("/api/settings"));
+let settingsEngine = null;         // the engine in use when the window opened: the page is drawn again if it changed
+let settingsChanged = () => false; // whether the window holds changes not saved
+let settingsOpening = 0;           // counts the openings: an answer of the server for an earlier one is dropped
+
+/* Opens the window over the current page. */
+async function openSettings() {
+  let dialog = $("#settings-dialog");
+  if (!dialog) {
+    dialog = document.createElement("dialog");
+    dialog.id = "settings-dialog";
+    dialog.className = "settings-dialog";
+    document.body.appendChild(dialog);
+    const keep = () => { const m = $("#settings-message"); if (m) m.innerHTML = `<span class="attention-text">${T.settings.unsaved}</span>`; };
+    dialog.addEventListener("click", e => { if (e.target === dialog) settingsChanged() ? keep() : dialog.close(); });   // a click outside
+    dialog.addEventListener("cancel", e => { if (settingsChanged()) { e.preventDefault(); keep(); } });                 // the Escape key
+    // The browser can send `close` late, after the window opened again (seen in a tab not in sight): it must not
+    // undo anything of the new opening, so the state of the window is reset when it opens, not here.
+    dialog.addEventListener("close", () => {
+      if (info && info.engine !== settingsEngine) { settingsEngine = info.engine; route(); }   // the costs shown follow the engine
+    });
+  }
+  if (dialog.open) return;
+  settingsEngine = info?.engine;
+  settingsChanged = () => false;
+  dialog.innerHTML = `<p class="muted settings-loading">${T.settings.loading}</p>`;
+  dialog.showModal();
+  try {
+    const opening = ++settingsOpening, s = await api("/api/settings");
+    if (opening === settingsOpening && dialog.open) drawSettings(s);   // closed, or opened again, meanwhile: not this answer
+  } catch (e) {
+    dialog.innerHTML = `<div class="settings-loading"><p class="error-text">${esc(e.message)}</p><button type="button" id="settings-cancel">${T.settings.close}</button></div>`;
+    $("#settings-cancel").onclick = () => dialog.close();
+  }
 }
 
-/* `s`: the settings as the server holds them, with what it found (Claude Code, the key); the page edits a copy. */
+/* `s`: the settings as the server holds them, with what it found (Claude Code, the key); the window edits a copy. */
 function drawSettings(s, message = "") {
-  const S = T.settings, cc = s.claude_code;
+  const S = T.settings, cc = s.claude_code, page = $("#settings-dialog");   // `page`: the window, not the page under it
   const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort } };
   const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator]);
   const engineNow = d => s.engine_forced || d.engine || (cc.subscription ? "claude-code" : "api");
@@ -117,11 +153,11 @@ function drawSettings(s, message = "") {
       <h2 class="cfg-title">${S.cat[id]}</h2>${body}</section>`;
 
   page.innerHTML = `
-    <h1>${S.title}</h1>
-    <form class="card settings-page" id="settings" autocomplete="off">
+    <form class="settings-page" id="settings" autocomplete="off">
       <div class="settings-bar">
+        <h2>${S.title}</h2>
         <span class="muted small grow" id="settings-message" role="status">${esc(message)}</span>
-        <button type="button" id="settings-cancel">${S.cancel}</button>
+        <button type="button" id="settings-cancel"></button>
         <button type="submit" class="primary" id="settings-save">${S.save}</button>
       </div>
       <div class="cfg-layout">
@@ -205,9 +241,10 @@ function drawSettings(s, message = "") {
       page.querySelector(`[data-unpriced="${role}"]`).hidden = models === null || models.find(m => m.id === draft.models[role])?.priced !== false;
     }
     $("#settings-save").disabled = !changed || plainKey();
-    $("#settings-cancel").disabled = !changed;
+    $("#settings-cancel").textContent = changed ? S.cancel : S.close;   // always there: it closes, dropping the changes if any
     if (changed) $("#settings-message").textContent = "";
   };
+  settingsChanged = () => state(draft) !== state(s);
 
   page.querySelectorAll(".cfg-cat").forEach(b => b.onclick = () => {
     settingsCategory = b.dataset.cat;
@@ -248,7 +285,7 @@ function drawSettings(s, message = "") {
     $("#models-source").textContent = r.source === "api" ? S.modelsFromApi : S.modelsKnown(r.error);
     fill(r.models);
   }).catch(e => { if ($("#models-source")) $("#models-source").textContent = S.modelsKnown(e.message); });
-  $("#settings-cancel").onclick = () => drawSettings(s);
+  $("#settings-cancel").onclick = () => { settingsChanged = () => false; page.close(); };
   $("#settings").onsubmit = async e => {
     e.preventDefault();
     if (plainKey()) return;

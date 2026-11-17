@@ -328,7 +328,7 @@ def create_app(settings: Settings) -> FastAPI:
         efforts of a role and the level each step of that role then runs at."""
         return {**cfg, "engine_now": llm.engine(cfg["engine"]),
                 "engine_forced": os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower(),
-                "claude_code": llm.claude_code_status(fresh=True), "key_status": user_settings.key_status(cfg["key"]),
+                "claude_code": llm.claude_code_status(), "key_status": user_settings.key_status(cfg["key"]),
                 "key_forms": user_settings.KEY_FORMS,
                 "choices": {"models": user_settings.MODELS, "effort": user_settings.EFFORTS,
                             "steps": {role: [{"step": step, "effort": effort,

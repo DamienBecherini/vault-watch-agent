@@ -155,7 +155,7 @@ with their run status, a run in progress (each finished step streamed to the pag
 review (one card per correction with a word-level diff of the current and proposed text, its sources and the
 cross-check's verdict; members of a group are ticked together), the publish step (audits, link problems, the
 diff of the branch), then the pull request. Two more pages report errors to fix and show what the upkeep
-costs, and the Settings (the gear) choose the model engine. The header also holds the size of the text (two
+costs, and the Settings (the gear: a window over the current page) choose the model engine. The header also holds the size of the text (two
 magnifiers), light or dark, the palettes (built-in ones and your own, each with its WCAG contrast level) and a
 bell: notifications of the browser when a run waits for you, ends or fails, while the page is not in sight
 (off by default, the browser asks its permission on the first click). These choices stay in the browser. A lead (a doubt of the cross-check, a finding of a check of the guide) shows the passage it is about with

@@ -157,13 +157,14 @@ ul.leads .excerpts { margin-left: calc(2.2em + 30px); }
 .lines > div.target { color: var(--text); box-shadow: inset 3px 0 var(--accent); }
 .lines .n { text-align: right; font-variant-numeric: tabular-nums; opacity: .7; }
 .lines mark { background: var(--plus-strong); color: inherit; border-radius: 3px; padding: 0 1px; }
-/* Header: icon links (Settings) */
-.icon-link { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); }
-.icon-link:hover, .icon-link.active { color: var(--text); border-color: var(--accent); }
-.icon-link svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* Header: the gear of the Settings (its drawing has no size of its own) */
+button.icon[data-tool="settings"] svg { width: 18px; height: 18px; }
 /* Settings (settings.js), after the Settings of dl-sub-dub: the categories at the left, one page each */
+.settings-dialog { width: min(980px, 94vw); padding: 0; }
+.settings-loading { margin: 0; padding: 20px 24px; }
 .settings-page { padding: 0 20px 20px; }
-.settings-bar { position: sticky; top: var(--header-h, 49px); z-index: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+.settings-bar h2 { margin: 0; font-size: 18px; }
+.settings-bar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   margin: 0 -20px 16px; padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; }
 .settings-bar .grow { flex: 1; min-width: 120px; }
 .cfg-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 0 20px; align-items: start; }

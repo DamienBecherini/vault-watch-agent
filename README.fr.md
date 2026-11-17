@@ -157,7 +157,7 @@ tickets de veille et l'état de leur run, un run en cours (chaque étape termin�
 server-sent events), la relecture (une carte par correction avec un diff au mot près entre le texte actuel et le
 texte proposé, ses sources et l'avis de la relecture croisée ; les membres d'un groupe sont cochés ensemble),
 l'étape de publication (contrôles, liens en défaut, diff de la branche), puis la pull request. Deux autres pages
-servent à signaler des erreurs à corriger et à suivre le coût de l'entretien, et les Réglages (la roue dentée)
+servent à signaler des erreurs à corriger et à suivre le coût de l'entretien, et les Réglages (la roue dentée : une fenêtre par-dessus la page)
 choisissent le moteur du modèle. L'en-tête porte aussi la taille du texte (deux loupes), le mode clair ou sombre,
 les palettes (celles fournies et les vôtres, chacune avec son niveau de contraste WCAG) et une cloche :
 notifications du navigateur quand un run vous attend, se termine ou échoue, tant que la page n'est pas affichée
