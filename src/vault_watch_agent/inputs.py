@@ -1,9 +1,8 @@
-"""Inputs of a run: the watch collected by the vault's own scripts.
+"""Inputs of a run: the watch collected by the guide's own tooling, and its checks.
 
-`scripts/watch-feeds.mjs` (weekly GitHub workflow) already did the
-deterministic pre-triage and cached release notes and advisory texts in
-`watch.json`; `scripts/audit-freshness.mjs` lists the watchlist claims past
-their "Recheck by" date. This module only fetches and normalises them.
+The guide's collector (for the IA on-prem guide, a weekly GitHub workflow) already did the deterministic
+pre-triage and cached release notes and advisory texts in `watch.json`; its `claims_due` check lists the claims
+past their "Recheck by" date. This module only fetches and normalises them, and runs the commands of `[checks]`.
 """
 
 from __future__ import annotations

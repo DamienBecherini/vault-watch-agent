@@ -1,7 +1,7 @@
-"""Second reading of a paused run's corrections against the whole French vault.
+"""Second reading of a paused run's corrections against the whole guide.
 
 The proposals of the graph see excerpts found by keyword. This pass gives the
-model every French page at once (≈ 400 k tokens, cached) and asks whether each
+model every page of the guide at once (≈ 400 k tokens, cached) and asks whether each
 correction is right, worth it and consistent with the rest of the guide, and
 which other passages must change with it. It only writes a report: the human
 review decides, and every extra edit it suggests goes through the same exact
@@ -15,12 +15,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import quotes, vault
+from . import prompts, quotes, vault
 from .llm import LLM
 from .quotes import Quote
 
-SYSTEM = """You review proposed corrections to a French-language guide on running AI on-premise for SMEs.
-The whole French guide is above, one <page> per file. For each correction, judge it against the guide and the
+SYSTEM = """You review proposed corrections to <<GUIDE>>.
+The whole guide is above, one <page> per file. For each correction, judge it against the guide and the
 cited source:
 - correct: open the cited source with web_fetch and check each fact against it (versions, dates, scope of an
   advisory). Use web_search to find the primary source when the cited one does not settle a fact. Do not
@@ -29,14 +29,14 @@ cited source:
 - consistent: does it agree with what other pages say, and does it state the current fact instead of piling
   a new sentence on an old one?
 
-Verdict keep, revise (give the full revised French text that would replace `current`) or reject.
+Verdict keep, revise (give the full revised <<LANG>> text that would replace `current`) or reject.
 Reject only a correction that is wrong in substance or not worth making. When the substance is right but a
 detail is off (a date, a version number, a scope, a wording), revise it: fix the detail and keep the change.
 Sources can disagree on a detail (a release tagged on one day and published on another): then state the date
 the primary source shows, or drop the detail, rather than rejecting the correction.
 Then list the other passages of the guide that must change so the guide stays consistent once the accepted
 corrections apply (another page that states the old version floor, a summary table, an index that recommends
-the tool). Quote `current` verbatim from one page, short, and give the French replacement in the page's own
+the tool). Quote `current` verbatim from one page, short, and give the <<LANG>> replacement in the page's own
 style. Only list what the corrections make wrong or inconsistent, not general improvements. A new fact you add
 in a consistency edit has consequences too: list what it makes wrong as well (a command, a table row, a
 troubleshooting tip). If a reason you give says that another passage should change, that passage is a consistency
@@ -44,8 +44,8 @@ edit. Finally, note in one line each any contradiction or factual doubt you noti
 reading, without proposing a fix, and copy the passages in question verbatim into its `excerpts`; a problem that the
 corrections or your edits cause never goes in this list, only a problem that exists regardless of them."""
 
-SWEEP_SYSTEM = """You finish the review of corrections to a French-language guide on running AI on-premise for
-SMEs. The whole French guide is above, one <page> per file. The corrections were already checked: do not judge
+SWEEP_SYSTEM = """You finish the review of corrections to <<GUIDE>>.
+The whole guide is above, one <page> per file. The corrections were already checked: do not judge
 them again and leave `reviews` empty.
 
 The corrections remove some values (a version, a flag, a package variant) that still appear elsewhere; you get
@@ -58,7 +58,7 @@ each remaining occurrence. For each one, decide:
 Then read what the corrections now assert and list any other passage that contradicts it, even without a listed
 value (a table row whose argument no longer holds).
 
-Quote `current` verbatim from one page, short, give the French replacement in the page's own style, and put in
+Quote `current` verbatim from one page, short, give the <<LANG>> replacement in the page's own style, and put in
 `related_to` the ids of the corrections that require the edit. When an edit states a fact that the footnotes it
 cites do not cover, add a consistency edit of the footnote too, from the sources of the corrections. Open a source
 only for a fact the corrections do not give. `other_findings` is for problems unrelated to the corrections and is
@@ -69,7 +69,7 @@ class CorrectionReview(BaseModel):
     id: str
     verdict: Literal["keep", "revise", "reject"]
     reason: str = Field(description="One or two sentences, in English.")
-    revised: str = Field(description="Full revised French text replacing `current`, empty unless verdict is revise.")
+    revised: str = Field(description="Full revised text replacing `current`, in the page's language, empty unless verdict is revise.")
 
 
 class ConsistencyEdit(BaseModel):
@@ -106,7 +106,7 @@ def run(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck,
         for c in corrections
     )
     result, usage = llm.parse(
-        system=SYSTEM, prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort="high",
+        system=prompts.fill(SYSTEM, vault_dir), prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort="high",
         node="crosscheck", context=_guide(vault_dir), web=True,
     )
     checks = [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
@@ -134,7 +134,7 @@ def sweep(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossChec
     )
     occurrences = "\n".join(f"- {h['page']}:{h['line']} ({', '.join(h['tokens'])}): {h['text']}" for h in hits)
     result, usage = llm.parse(
-        system=SWEEP_SYSTEM, prompt=f"Corrections:\n\n{listing}\n\nRemaining occurrences:\n\n{occurrences}",
+        system=prompts.fill(SWEEP_SYSTEM, vault_dir), prompt=f"Corrections:\n\n{listing}\n\nRemaining occurrences:\n\n{occurrences}",
         schema=CrossCheck, effort="high", node="sweep", context=_guide(vault_dir), web=True,
     )
     return result, usage, [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
@@ -189,7 +189,7 @@ def add_edits(corrections: list[dict], result: CrossCheck, checks: list[str], or
 
 
 def render(result: CrossCheck, checks: list[str], usage: dict, source: str) -> str:
-    lines = [f"# Cross-check against the whole French vault — {source}", "",
+    lines = [f"# Cross-check against the whole guide — {source}", "",
              f"Model usage: {usage['input']:,} in + {usage.get('cache_write', 0):,} written to cache + "
              f"{usage.get('cache_read', 0):,} read from cache / {usage['output']:,} out, "
              f"{usage.get('web_searches', 0)} web searches, ≈ {usage.get('cost_usd', 0):.2f} $", "",

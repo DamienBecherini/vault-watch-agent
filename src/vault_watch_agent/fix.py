@@ -1,10 +1,10 @@
 """Fix run: errors noticed in the vault (by a cross-check, a reader, a review) become reviewed corrections.
 
-There is no watch here: the model reads the whole French vault, checks each
+There is no watch here: the model reads the whole guide, checks each
 reported error on primary sources (web search and fetch), and proposes exact
 corrections. The result enters the same graph right after the proposals
 (LangGraph `update_state(..., as_node="propose")`), so it goes through the same
-numbering, cross-check, human review, apply, English mirror, audits and
+numbering, cross-check, human review, apply, mirrors, audits and
 go-ahead as a watch.
 """
 
@@ -14,11 +14,11 @@ import re
 from datetime import date
 from pathlib import Path
 
-from . import vault
+from . import prompts, vault
 from .llm import LLM
 from .state import ClusterProposal
 
-SYSTEM = """You fix errors reported in a French-language guide on running AI on-premise for SMEs. The whole French guide
+SYSTEM = """You fix errors reported in <<GUIDE>>. The whole guide
 is above, one <page> per file. Each reported error has an id (F1…).
 
 For each one:
@@ -29,7 +29,7 @@ For each one:
   states the wrong fact, with the figure, sentence or table row fixed. Recompute numbers yourself (show the
   formula in the rationale) and keep them consistent with the pages that are already right.
 
-Corrections follow the guide's style: French, same Markdown, wiki links [[...]] and footnote markers kept,
+Corrections follow the guide's style: <<LANG>>, same Markdown, wiki links [[...]] and footnote markers kept,
 dated wording for facts that move. `current` is copied verbatim from one page, short; `item_ids` lists the
 reported errors it fixes; `source_url` is the primary source you checked (or the page of the guide that is
 right, for an internal inconsistency). Group with a shared `group` label the corrections that only make sense
@@ -46,6 +46,8 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
             effort: str = "high", web: bool = True, node: str = "fix",
             excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
     """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request."""
+    if "<<" in system:  # written with the markers of prompts.fill
+        system = prompts.fill(system, vault_dir)
     items = [
         {"id": f"F{n}", "domain": "fix", "tier": "", "title": f, "url": "", "date": "", "urgent": False,
          "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, [])}
@@ -73,18 +75,18 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
     return items, proposal, usage
 
 
-TRANSLATION_SYSTEM = """You fix divergences between a French guide on running AI on-premise and its English translation.
-The French page is the reference. For each reported divergence (F1…) you get, above, the French page and its English
-mirror (`en/…`).
+TRANSLATION_SYSTEM = """You fix divergences between <<GUIDE>> and its <<MIRROR>> translation.
+The <<LANG>> page is the reference. For each reported divergence (F1…) you get, above, the <<LANG>> page and its <<MIRROR>>
+mirror (`<<MIRROR_DIR>>…`).
 
 For each one:
 - If it is not a real divergence (same meaning in other words, a cosmetic or `last_modified` difference, an alias or
   tag that is naturally in each language), give an outcome with no_change_reason.
-- If the English page says something else, misses a passage, keeps untranslated French or misplaces a block, fix the
-  English page (`page` = `en/…`): natural technical English, same Markdown, wiki link targets and footnote markers
-  unchanged.
-- If the French page itself is wrong (English left in the French text, an error both sides share because the
-  French says it), fix the French page only: the English page will follow it automatically. Never fix both sides
+- If the <<MIRROR>> page says something else, misses a passage, keeps untranslated <<LANG>> or misplaces a block, fix the
+  <<MIRROR>> page (`page` = `<<MIRROR_DIR>>…`): natural technical <<MIRROR>>, same Markdown, wiki link targets and
+  footnote markers unchanged.
+- If the <<LANG>> page itself is wrong (<<MIRROR>> left in the <<LANG>> text, an error both sides share because the
+  <<LANG>> says it), fix the <<LANG>> page only: the <<MIRROR>> page will follow it automatically. Never fix both sides
   for the same passage.
 
 Fix every instance a report lists, not a sample: when it names several footnotes or lines, one correction per
@@ -93,30 +95,43 @@ footnote or line. To move a block (a footnote definition in the wrong place), us
 `proposed` = that line, a newline, then the block). A correction must change something.
 
 `current` is copied verbatim from one page, short and unique in it; `proposed` is in the language of its page.
-Never edit `last_modified`. `source_url` is the French page's path. One outcome per reported divergence."""
+Never edit the date of the front matter. `source_url` is the <<LANG>> page's path. One outcome per reported
+divergence."""
 
-PAGE_PATH = re.compile(r"(?:en/)?((?:[\w.-]+/)*[\w.-]+\.mdx?)")
+PAGE_PATH = re.compile(r"(?:[\w.-]+/)*[\w.-]+\.mdx?")
 
 
-def pages_of(finding: str) -> list[str]:
-    """The French page a translation finding is about, and its English mirror."""
+def pages_of(finding: str, vault_dir: Path) -> tuple[list[str], str | None]:
+    """The source page a translation finding is about and its mirror page, and the mirror's language: the finding
+    names the mirror page (`en/a/b.md`) or the source page."""
     m = PAGE_PATH.search(finding)
-    return [m.group(1), f"en/{m.group(1)}"] if m else []
+    if not m:
+        return [], None
+    path, guide = m.group(0), vault.guide_of(vault_dir)
+    for code, folder in sorted(guide.mirrors.items()):
+        if path.startswith(folder):
+            return [path[len(folder):], path], code
+    code = next(iter(sorted(guide.mirrors)), None)
+    return ([path, guide.mirror_of(path, code)] if code else [path]), code
 
 
 def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,
                         excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
-    """Same output as `propose`, from the French and English pages alone: no web, no whole guide."""
-    pages = sorted({p for f in findings for p in pages_of(f) if (vault_dir / p).is_file()})
+    """Same output as `propose`, from the source and mirror pages alone: no web, no whole guide. The findings are
+    about one mirror (a verification checks each mirror apart): the first one that names its mirror gives it."""
+    found = [pages_of(f, vault_dir) for f in findings]
+    mirror = next((code for _, code in found if code), None)
+    pages = sorted({p for paths, _ in found for p in paths if (vault_dir / p).is_file()})
     context = "\n\n".join(f'<page path="{p}">\n{vault.read(vault_dir / p)}\n</page>' for p in pages)
-    return propose(vault_dir, findings, llm, system=TRANSLATION_SYSTEM, context=context, effort="medium",
+    system = prompts.fill(TRANSLATION_SYSTEM, vault_dir, mirror) if mirror else prompts.fill(SYSTEM, vault_dir)
+    return propose(vault_dir, findings, llm, system=system, context=context, effort="medium",
                    web=False, node="fix translation", excerpts=excerpts)
 
 
 def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "",
                   mode: str = "fix") -> dict:
     """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch.
-    `mode` "translation" skips the cross-check against the whole French guide."""
+    `mode` "translation" skips the cross-check against the whole guide."""
     today = date.today().isoformat()
     kind = "fix(i18n): reviewed translation fixes" if mode == "translation" else "fix(content): reviewed corrections"
     return {

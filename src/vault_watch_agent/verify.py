@@ -20,7 +20,8 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs, quotes, vault
+from . import inputs, prompts, quotes, vault
+from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
 BYTES_PER_TOKEN = 2.1
@@ -77,17 +78,22 @@ def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int =
     return (tokens_in * p_in + tokens_out * p_out + cache_write * p_write) / 1e6
 
 
-def english_pages(vault_dir: Path) -> list[Path]:
-    return [vault_dir / "en" / p.relative_to(vault_dir) for p in vault.french_pages(vault_dir)
-            if (vault_dir / "en" / p.relative_to(vault_dir)).is_file()]
+def mirror_pages(vault_dir: Path) -> list[Path]:
+    """The pages of every mirror of the guide that have their source page."""
+    guide = vault.guide_of(vault_dir)
+    return [vault_dir / folder / p.relative_to(vault_dir) for folder in guide.mirrors.values()
+            for p in vault.pages(vault_dir) if (vault_dir / folder / p.relative_to(vault_dir)).is_file()]
+
+
+english_pages = mirror_pages  # its name before manifests
 
 
 def estimates(vault_dir: Path, known: dict, models: dict | None = None) -> dict[str, dict]:
     """{check id: {tokens, usd, note}}; `known` holds counts from the last run (dead links, claims due).
     `models`: the models of the user's settings ({reasoning, translator}), priced instead of the defaults."""
     reasoning, translator = (models or {}).get("reasoning", MODEL), (models or {}).get("translator", TRANSLATOR)
-    fr = _tokens(vault.french_pages(vault_dir))
-    en = _tokens(english_pages(vault_dir))
+    fr = _tokens(vault.pages(vault_dir))
+    en = _tokens(mirror_pages(vault_dir))
     chapters = len(by_chapter(vault_dir))
     claims, dead = known.get("claims"), known.get("dead")
     note = lambda fr_, en_: {"fr": fr_, "en": en_}  # noqa: E731
@@ -111,7 +117,7 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None) -> dict[
 
 
 def by_chapter(vault_dir: Path) -> dict[str, list[Path]]:
-    """French pages by top folder; the pages at the root (index, home) form one group."""
+    """The pages by top folder; the pages at the root (index, home) form one group."""
     groups: dict[str, list[Path]] = {}
     for p in vault.french_pages(vault_dir):
         parts = p.relative_to(vault_dir).parts
@@ -185,7 +191,7 @@ def run_freshness(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -
 # Model checks
 # ---------------------------------------------------------------------------
 
-COHERENCE = """You audit a French-language guide on running AI on-premise for SMEs. The whole guide is above, one
+COHERENCE = """You audit <<GUIDE>>. The whole guide is above, one
 <page> per file. List what a careful editor would fix:
 - contradictions between pages (a figure, a version floor, a recommendation, a price, a date stated differently);
 - a page left behind by the others (an older hardware generation or version presented as current while other pages
@@ -197,19 +203,19 @@ Do not report style, tone, length or missing topics. Do not report what is consi
 and quotes the passages, so that someone who has not read the guide can check it on primary sources. Write the
 findings in English. Prefer a few solid findings to many weak ones."""
 
-TRANSLATION = """You compare French pages of a guide with their English mirror. For each pair below, report only
+TRANSLATION = """You compare the <<LANG>> pages of <<GUIDE>> with their <<MIRROR>> mirror (<<MIRROR_DIR>>). For each pair below, report only
 real divergences of meaning: a paragraph, row or footnote missing on one side, a number, version, date, price or
 link that differs, a recommendation that says something else, text left untranslated. Do not report style or
 wording choices that keep the meaning. A pair without divergence gets no finding at all: never write a finding
-that says nothing differs. Each finding names the English page and quotes both sides. Write the
+that says nothing differs. Each finding names the <<MIRROR>> page and quotes both sides. Write the
 findings in English."""
 
-CLAIMS = """You check claims of a French-language guide on running AI on-premise whose « Recheck by » date has
+CLAIMS = """You check claims of <<GUIDE>> whose « Recheck by » date has
 passed. For each claim, search the web and open primary sources (release notes, official docs, vendor pages).
 Report a finding only for a claim that is now wrong or outdated, with what the sources say today and their URLs.
 Write the findings in English."""
 
-DEAD_LINKS = """Sources cited by a French-language guide no longer answer. For each, search the web for where the
+DEAD_LINKS = """Sources cited by <<GUIDE>> no longer answer. For each, search the web for where the
 page moved, or an equivalent primary source (same publisher first). Report one finding per source: the page, the
 dead URL, the replacement URL you opened and checked, and what it supports. If you find nothing reliable, say so in
 the finding. Write the findings in English."""
@@ -231,7 +237,7 @@ def _findings(vault_dir: Path, result: Findings) -> dict:
 
 
 def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
-    result, usage = llm.parse(system=COHERENCE + EXCERPTS, prompt="List the findings.", schema=Findings, effort="high",
+    result, usage = llm.parse(system=prompts.fill(COHERENCE, vault_dir) + EXCERPTS, prompt="List the findings.", schema=Findings, effort="high",
                               node="verify coherence", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
     return {"ok": not result.findings, "summary": f"{len(result.findings)} findings", **_findings(vault_dir, result),
             "usage": [usage]}
@@ -239,20 +245,25 @@ def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
 
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     findings, found, usages = [], {}, []
-    for chapter, pages in sorted(by_chapter(vault_dir).items()):
+    guide = vault.guide_of(vault_dir)
+    if not guide.mirrors:
+        return {"ok": True, "summary": "not checked: the guide declares no mirror", "findings": []}
+    for (code, folder), (chapter, pages) in ((m, c) for m in sorted(guide.mirrors.items())
+                                             for c in sorted(by_chapter(vault_dir).items())):
         pairs = []
         for p in pages:
             rel = p.relative_to(vault_dir).as_posix()
-            en = vault_dir / "en" / rel
-            if en.is_file():
-                pairs.append(f"<pair page=\"{rel}\">\n<french>\n{vault.read(p)}\n</french>\n"
-                             f"<english path=\"en/{rel}\">\n{vault.read(en)}\n</english>\n</pair>")
+            copy = vault_dir / folder / rel
+            if copy.is_file():
+                pairs.append(f"<pair page=\"{rel}\">\n<source>\n{vault.read(p)}\n</source>\n"
+                             f"<mirror path=\"{folder}{rel}\">\n{vault.read(copy)}\n</mirror>\n</pair>")
             else:
-                findings.append(f"[Major] en/{rel}: no English mirror for this French page.")
+                findings.append(f"[Major] {folder}{rel}: no {language_name(code)} mirror for this page.")
         if not pairs:
             continue
-        result, usage = llm.parse(system=TRANSLATION + EXCERPTS, prompt="\n\n".join(pairs), schema=TranslationFindings,
-                                  effort="medium", node=f"verify translation {chapter}")
+        result, usage = llm.parse(system=prompts.fill(TRANSLATION, vault_dir, code) + EXCERPTS,
+                                  prompt="\n\n".join(pairs), schema=TranslationFindings, effort="medium",
+                                  node=f"verify translation {chapter}" + (f" {code}" if len(guide.mirrors) > 1 else ""))
         # The first run reported « no divergence found » as findings: they are filtered out here
         kept = _findings(vault_dir, Findings(findings=[f for f in result.findings if f.meaning_differs]))
         findings += kept["findings"]
@@ -267,7 +278,7 @@ def run_claims(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     if not claims:
         return {"ok": True, "summary": "no claim due", "findings": []}
     listing = "\n".join(f"- {c.get('page', '')} (recheck by {c.get('recheckBy', '')}): {c.get('claim', '')}" for c in claims)
-    result, usage = llm.parse(system=CLAIMS + EXCERPTS, prompt=f"Claims to check:\n{listing}", schema=Findings,
+    result, usage = llm.parse(system=prompts.fill(CLAIMS, vault_dir) + EXCERPTS, prompt=f"Claims to check:\n{listing}", schema=Findings,
                               effort="high", node="verify claims", web=True)
     return {"ok": not result.findings, "summary": f"{len(claims)} claims checked, {len(result.findings)} outdated",
             **_findings(vault_dir, result), "usage": [usage]}
@@ -296,7 +307,7 @@ def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
         return {"ok": True, "summary": "no dead source", "findings": []}
     listing = "\n".join(f"- {', '.join(d['pages'])}: {d['url']} ({d['status']} {d['code'] or ''})"
                         + "".join(f"\n{citing(vault_dir, p, d['url'])}" for p in d["pages"]) for d in dead)
-    result, usage = llm.parse(system=DEAD_LINKS + EXCERPTS, prompt=f"Dead sources:\n{listing}", schema=Findings,
+    result, usage = llm.parse(system=prompts.fill(DEAD_LINKS, vault_dir) + EXCERPTS, prompt=f"Dead sources:\n{listing}", schema=Findings,
                               effort="medium", node="verify deadlinks", web=True)
     return {"ok": not result.findings, "summary": f"{len(dead)} dead sources, {len(result.findings)} replacements",
             **_findings(vault_dir, result), "usage": [usage]}

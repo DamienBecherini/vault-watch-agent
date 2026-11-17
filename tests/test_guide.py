@@ -151,3 +151,31 @@ def test_the_checks_of_the_manifest_run_with_their_output_file(tmp_path):
     out = tmp_path / "work dir" / "due.json"  # a space in the path: one argument all the same
     assert inputs.claims_due(root, out) == [{"page": "a.md", "claim": "x"}]
     assert inputs.check("audits", root) is None  # not declared: not checked
+
+
+def test_the_prompts_and_translation_follow_the_manifest(tmp_path):
+    from vault_watch_agent import crosscheck, fix, prompts, verify
+    root = _guide(tmp_path, 'mirrors = { es = "es/" }\n')
+    for text in (crosscheck.SYSTEM, crosscheck.SWEEP_SYSTEM, fix.SYSTEM, verify.COHERENCE, verify.CLAIMS, verify.DEAD_LINKS):
+        filled = prompts.fill(text, root)
+        assert "German" in filled and "French" not in filled and "on-premise" not in filled
+    for text in (fix.TRANSLATION_SYSTEM, verify.TRANSLATION):
+        filled = prompts.fill(text, root, "es")
+        assert "Spanish" in filled and "es/" in filled and "English mirror" not in filled and "en/" not in filled
+    assert fix.pages_of("[Minor] es/notes/b.md: a row is missing", root) == (["notes/b.md", "es/notes/b.md"], "es")
+    assert fix.pages_of("[Minor] notes/b.md: differs", root) == (["notes/b.md", "es/notes/b.md"], "es")
+    assert verify.mirror_pages(root) == [root / "es" / "a.md"]  # notes/b.md has no copy in es/
+
+
+def test_no_string_of_the_ia_on_prem_guide_left_in_the_code():
+    """What is specific to one guide is in its manifest (or guide.legacy, for a guide without one)."""
+    src = Path(__file__).resolve().parent.parent / "src" / "vault_watch_agent"
+    for path in src.glob("*.py"):
+        if path.name == "guide.py":  # its legacy() describes the IA on-prem guide, for a guide without a manifest
+            continue
+        if path.name == "cli.py":  # until T1.5 (--guide): its default guide folder is ../ia-on-prem-vault
+            continue
+        text = path.read_text(encoding="utf-8")
+        for needle in ("ia-on-prem-vault", "ia-on-prem.damien", "French-language guide", "on-premise for SMEs",
+                       '"en/', "scripts/run-audits", "scripts/audit-"):
+            assert needle not in text, f"{path.name}: {needle}"

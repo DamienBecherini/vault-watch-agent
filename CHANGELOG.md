@@ -20,6 +20,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   « not checked » in the verification and on the publish screen, not a failure.
 - The repository, the site, the base branch, the label of the watch issues and the name of the watch artifact come
   from the manifest. A guide without repository is local: no issue listed, no link to GitHub in the header.
+- Every prompt names the guide and its language from the manifest (`prompts.fill`): cross-check, fix, verification,
+  evaluation judge. The translation check and the translation fixes work on each declared mirror, in its language;
+  a guide without mirror skips the translation check. A test fails if a string of the IA on-prem guide comes back
+  into the code (outside `guide.legacy`, and `cli.py` until `--guide`).
 
 ## 0.2.1 (2026-11-17)
 

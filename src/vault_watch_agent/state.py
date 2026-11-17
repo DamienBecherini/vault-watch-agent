@@ -29,7 +29,7 @@ class TriageDecision(BaseModel):
     )
     reason: str = Field(description="One line, in English.")
     search_terms: list[str] = Field(
-        description="Tool, model, flag or version names to grep in the French pages (empty when dropped)."
+        description="Tool, model, flag or version names to grep in the pages of the guide (empty when dropped)."
     )
 
 
@@ -39,9 +39,9 @@ class TriageResult(BaseModel):
 
 class Correction(BaseModel):
     item_ids: list[str] = Field(description="Ids of the watch items that support this correction (W1…).")
-    page: str = Field(description="Vault-relative path of the French page, as given in the excerpts.")
+    page: str = Field(description="Path of the page relative to the guide, as given in the excerpts.")
     current: str = Field(description="The exact current text, copied verbatim from one excerpt, one sentence or table row.")
-    proposed: str = Field(description="The replacement, in French, with dated wording (« au T4 2026 », « depuis la v0.33 »).")
+    proposed: str = Field(description="The replacement, in the page's language, with dated wording (in French: « au T4 2026 », « depuis la v0.33 »).")
     source_url: str
     severity: Severity
     rationale: str = Field(description="Why the current text is wrong or outdated, one line, in English.")

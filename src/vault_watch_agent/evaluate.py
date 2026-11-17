@@ -2,7 +2,7 @@
 
 A past watch is replayed on the vault as it was then (a detached worktree at
 the commit before the human's PR), up to the review pause: nothing is applied.
-The ground truth is the diff of the PR the human merged (French pages only,
+The ground truth is the diff of the PR the human merged (pages of the guide only, no mirror,
 frontmatter dates left out), or nothing at all when the human decided to apply
 nothing. A judge model matches each proposal with the hunks of that diff.
 
@@ -22,15 +22,19 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs
+from . import inputs, prompts
+from . import vault as vault_mod  # `vault` is the name of a parameter here
+from .guide import matches
 from .llm import LLM
 
-SKIP_TOP = ("en/", ".agents/", ".github/", "scripts/", "docs/", "_private/", "_templates/")
 DATE_LINE = re.compile(r"^(last_modified|last_verified|verified_by|verified_hitl\w*):")
 
 
 def truth_hunks(vault: Path, base: str, head: str) -> list[dict]:
-    """Hunks of the French pages changed between two commits, without date-only frontmatter edits."""
+    """Hunks of the guide's pages changed between two commits, without date-only frontmatter edits. Its pages:
+    the manifest's include and exclude, no mirror, no dot folder, and not at the root (the home page is left out of
+    the scores, as it was before manifests)."""
+    guide = vault_mod.guide_of(vault)
     diff = inputs.run(["git", "diff", "-U0", f"{base}..{head}", "--", "*.md", "*.mdx"], cwd=vault)
     hunks, page, cur = [], None, None
     for line in diff.splitlines():
@@ -45,7 +49,9 @@ def truth_hunks(vault: Path, base: str, head: str) -> list[dict]:
             cur["added"].append(line[1:])
     out = []
     for h in hunks:
-        if not h["page"] or h["page"].startswith(SKIP_TOP) or "/" not in h["page"]:
+        page = h["page"] or ""
+        if ("/" not in page or page.startswith(".") or vault_mod.in_mirror(vault, page)
+                or not any(matches(page, p) for p in guide.include) or any(matches(page, p) for p in guide.exclude)):
             continue
         lines = h["removed"] + h["added"]
         if lines and all(DATE_LINE.match(l.strip()) for l in lines):
@@ -74,8 +80,8 @@ class Judgement(BaseModel):
     proposals: list[ProposalVerdict]
 
 
-JUDGE = """You evaluate an agent that maintains a French guide on running AI on-premise. For one past ecosystem watch,
-you get the changes a human reviewer actually merged (ground-truth hunks, French pages) and the corrections the
+JUDGE = """You evaluate an agent that maintains <<GUIDE>>. For one past ecosystem watch,
+you get the changes a human reviewer actually merged (ground-truth hunks, <<LANG>> pages) and the corrections the
 agent proposed. Match them on substance: a proposal matches a hunk when it makes the same factual change on the
 same page (same new version, figure, recommendation), even with different wording or a different sentence boundary.
 
@@ -87,7 +93,7 @@ For each hunk, list the proposals that match it (often none). For each proposal,
 Content changes count; a footnote that only supports a matched change matches too."""
 
 
-def judge(hunks: list[dict], corrections: list[dict], llm: LLM) -> tuple[Judgement, dict]:
+def judge(hunks: list[dict], corrections: list[dict], llm: LLM, vault: Path) -> tuple[Judgement, dict]:
     truth = "\n\n".join(
         f"<hunk id=\"{h['id']}\" page=\"{h['page']}\">\n<removed>\n" + "\n".join(h["removed"])
         + "\n</removed>\n<added>\n" + "\n".join(h["added"]) + "\n</added>\n</hunk>"
@@ -98,7 +104,7 @@ def judge(hunks: list[dict], corrections: list[dict], llm: LLM) -> tuple[Judgeme
         f"<proposed>\n{c['proposed']}\n</proposed>\n<source>{c['source_url']}</source>\n</proposal>"
         for c in corrections
     ) or "(none)"
-    return llm.parse(system=JUDGE, prompt=f"Ground truth:\n\n{truth}\n\nAgent proposals:\n\n{proposals}",
+    return llm.parse(system=prompts.fill(JUDGE, vault), prompt=f"Ground truth:\n\n{truth}\n\nAgent proposals:\n\n{proposals}",
                      schema=Judgement, effort="high", node="judge")
 
 

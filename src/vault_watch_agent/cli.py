@@ -61,7 +61,7 @@ def run_eval(args, deps: Deps, saver) -> None:
     values = graph.get_state(config).values
     hunks = evaluate.truth_hunks(VAULT, *args.truth.split("..")) if args.truth else []
     reviewed = evaluate.reviewable(values.get("corrections", []))
-    judgement, usage = evaluate.judge(hunks, reviewed, deps.llm)
+    judgement, usage = evaluate.judge(hunks, reviewed, deps.llm, VAULT)
     result = {
         "issue": args.issue, "variant": args.variant, "vault_commit": args.at, "truth": args.truth,
         "scores": evaluate.scores(hunks, reviewed, judgement),

@@ -21,6 +21,19 @@ def describe(g: Guide) -> str:
     return f"The guide « {g.name} » is written in {lang}.{about} Its {lang} pages are the source.{mirrors}"
 
 
+def fill(text: str, vault: Path, mirror: str | None = None) -> str:
+    """A prompt written with markers, for the guide at `vault`: <<GUIDE>> (the guide in a few words), <<LANG>> (the
+    language of its pages), and for a translation <<MIRROR>> (the mirror's language) and <<MIRROR_DIR>> (its folder)."""
+    g = guide_of(vault)
+    lang = language_name(g.language)
+    about = f", about {g.description}" if g.description else ""
+    text = text.replace("<<GUIDE>>", f"a guide written in {lang}, « {g.name} »{about}").replace("<<LANG>>", lang)
+    if mirror:
+        text = text.replace("<<MIRROR>>", language_name(mirror)).replace("<<MIRROR_DIR>>", g.mirrors[mirror])
+    assert "<<" not in text, text[text.index("<<"):][:40]
+    return text
+
+
 def _contract(g: Guide, path: Path | None) -> str:
     if path is None or not path.is_file():
         return ""
