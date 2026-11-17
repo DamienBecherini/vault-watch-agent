@@ -331,6 +331,7 @@ def create_app(settings: Settings) -> FastAPI:
                 "engine_forced": os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower(),
                 "claude_code": llm.claude_code_status(), "key_status": user_settings.key_status(cfg["key"]),
                 "key_forms": user_settings.KEY_FORMS,
+                "guide": vault.guide_of(settings.vault).summary(),  # read-only: from its manifest
                 "choices": {"models": user_settings.MODELS, "effort": user_settings.EFFORTS,
                             "steps": {role: [{"step": step, "effort": effort,
                                               "levels": {e: llm.shift_effort(effort, llm.EFFORT_STEPS[e]) for e in user_settings.EFFORTS}}

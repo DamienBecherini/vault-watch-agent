@@ -182,6 +182,8 @@ fake model; the changelog holds the baseline.
   no `[checks].audits` → no audit step and "not checked" in the publish screen; no mirror → no translation; no
   floors → no floor alignment; no `claims_due` → none listed. The interface shows what the guide provides
   (a "Guide" category in the Settings: read-only, from the manifest).
+  Done 2026-11-18: the « Guide » category (checked in a page on the sample guide); « not checked » on the publish
+  screen and in the pull request for audits and the source audit.
 - **T1.4 Default rules.** A brief and a translation policy shipped with the agent (`src/…/defaults/`), written
   from the IA on-prem ones without what is specific to it; the prompts no longer assume French (the language of
   the manifest is named in them).

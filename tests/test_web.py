@@ -145,6 +145,8 @@ def test_settings_keep_a_reference_to_the_key_never_the_key(client, monkeypatch)
     s = c.get("/api/settings").json()
     assert (s["engine"], s["engine_now"], s["key"]) == ("", "claude-code", "env:ANTHROPIC_API_KEY")  # a subscription: preferred
     assert s["claude_code"] == signed and s["choices"]["models"]["reasoning"][0] == s["models"]["reasoning"]
+    g = s["guide"]  # read-only, from the manifest; the test vault has none: the IA on-prem layout
+    assert (g["from_manifest"], g["language"], g["mirrors"][0]["folder"], g["pages"]) == (False, "fr", "en/", 1)
     assert c.get("/api/info").json()["engine"] == "claude-code"
     from vault_watch_agent import __version__
     assert c.get("/api/info").json()["version"] == c.get("/api/health").json()["version"] == __version__

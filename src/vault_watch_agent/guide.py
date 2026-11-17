@@ -89,6 +89,23 @@ class Guide:
                 found.add(path)
         return sorted(found)
 
+    def summary(self) -> dict:
+        """What the guide provides, for the interface (read-only): its parts, and the ones it lacks."""
+        rel = lambda p: p.relative_to(self.root).as_posix() if p and p.is_relative_to(self.root) else (str(p) if p else "")  # noqa: E731
+        return {"name": self.name, "description": self.description, "language": self.language,
+                "language_name": language_name(self.language), "repository": self.repository, "site": self.site,
+                "base_branch": self.base_branch, "pages": len(self.pages()),
+                "mirrors": [{"language": c, "language_name": language_name(c), "folder": f}
+                            for c, f in sorted(self.mirrors.items())],
+                "modified_field": self.modified_field or "",
+                "watch": {"source": self.watch.source, "label": self.watch.label, "artifact": self.watch.artifact,
+                          "path": self.watch.path},
+                "rules": {"brief": rel(self.brief), "translation_policy": rel(self.translation_policy)},
+                "checks": {"audits": self.audits or "", "claims_due": self.claims_due or "", "sources": self.sources or "",
+                           "version_floors": self.version_floors.script if self.version_floors else ""},
+                "max_context_tokens": self.max_context_tokens, "from_manifest": self.from_manifest,
+                "manifest": MANIFEST}
+
     def mirror_of(self, page: str, language: str) -> str | None:
         """Path of the copy of `page` in `language`, or None when the guide has no mirror in it."""
         folder = self.mirrors.get(language)

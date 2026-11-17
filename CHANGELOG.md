@@ -24,6 +24,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   evaluation judge. The translation check and the translation fixes work on each declared mirror, in its language;
   a guide without mirror skips the translation check. A test fails if a string of the IA on-prem guide comes back
   into the code (outside `guide.legacy`, and `cli.py` until `--guide`).
+- Settings: a « Guide » category, read-only, from the manifest: name, subject, language and pages, repository, site,
+  branch, and each part (mirror, modified date, watch, rules, checks, context budget) provided or missing, with what
+  a missing one switches off. Without a manifest it says the guide is read as the IA on-prem guide.
+- A check the guide does not declare reads « not checked » on the publish screen and in the pull request (audits
+  and source audit), instead of « passed » or « all answer ».
 
 ## 0.2.1 (2026-11-17)
 

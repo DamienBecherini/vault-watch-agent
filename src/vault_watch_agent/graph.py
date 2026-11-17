@@ -312,7 +312,7 @@ def build(deps: Deps, checkpointer=None):
         out.parent.mkdir(parents=True, exist_ok=True)
         try:
             if inputs.check("sources", wt, out) is None:
-                return {"link_problems": []}  # the guide declares no [checks] sources: nothing to probe
+                return {"link_problems": None}  # the guide declares no [checks] sources: not checked
         except RuntimeError as e:
             return {"link_problems": [f"source audit could not run: {str(e)[:200]}"]}
         added = git("diff", "-U0", f"{deps.base}...HEAD", cwd=wt)
@@ -603,13 +603,15 @@ def pr_body(state: WatchState) -> str:
         "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
         + (f"Reported errors:\n\n{errors}\n" if errors else "")
-        + f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
-        f"English mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
+        + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
+            state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
+        f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
         + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
         + "\nExternal sources of the changed pages (the guide's source audit): "
-        + ("all answer.\n" if not state.get("link_problems") else
+        + ("not checked (the guide declares no source audit).\n" if state.get("link_problems", []) is None else
+           "all answer.\n" if not state.get("link_problems") else
            "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
-        +("" if state.get("audit_ok") else f"\n```\n{state.get('audit_log', '')}\n```\n")
+        + ("" if state.get("audit_ok") is not False else f"\n```\n{state.get('audit_log', '')}\n```\n")
         + (f"\nCloses #{state['issue']}.\n" if state.get("issue") else "")  # the watch is handled once merged
     )
 

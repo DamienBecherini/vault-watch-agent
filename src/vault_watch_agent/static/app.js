@@ -87,6 +87,7 @@ const TEXTS = {
     auditsRed: "Les contrôles du guide échouent : la PR serait rouge.",
     translation: "Traduction", linksTitle: "Liens", linksNew: "(« NEW » : ajouté par ce passage)",
     linksOk: "Toutes les sources des pages modifiées répondent.",
+    linksNotChecked: "Sources non vérifiées : le guide ne déclare pas d'audit des sources.",
     changes: "Modifications", doNotPublish: "Ne pas publier", publish: "Pousser et ouvrir la pull request",
     confirmNo: "Garder la branche en local sans pull request ?",
     end: {
@@ -186,6 +187,7 @@ const TEXTS = {
     auditsRed: "The guide audits fail: the PR would be red.",
     translation: "Translation", linksTitle: "Links", linksNew: "(« NEW »: added by this run)",
     linksOk: "Every source of the changed pages answers.",
+    linksNotChecked: "Sources not checked: the guide declares no source audit.",
     changes: "Changes", doNotPublish: "Do not publish", publish: "Push and open the pull request",
     confirmNo: "Keep the branch locally, without a pull request?",
     end: {
@@ -461,16 +463,18 @@ function viewReview(r, title) {
 
 async function viewPublish(r, title) {
   const p = { mirror_problems: [], link_problems: [], ...r.pause };
+  const linksChecked = p.link_problems !== null;   // null: the guide declares no source audit
+  if (!linksChecked) p.link_problems = [];
   const diff = await api(`/api/runs/${encodeURIComponent(r.thread)}/diff`).catch(() => "");
   const color = l => l.startsWith("+") && !l.startsWith("+++") ? "plus" : l.startsWith("-") && !l.startsWith("---") ? "minus" : "";
-  const figures = [r.applied.length, r.mirrored.length, p.audit_ok === null ? T.notChecked : p.audit_ok ? "OK" : T.failed, p.link_problems.length];
+  const figures = [r.applied.length, r.mirrored.length, p.audit_ok === null ? T.notChecked : p.audit_ok ? "OK" : T.failed, linksChecked ? p.link_problems.length : T.notChecked];
   page.innerHTML = `${title}
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.publishFigures[i]}</div>`).join("")}</div>
     <div class="card">
       <p>${T.branchReady(esc(p.branch))}</p>
       ${p.audit_ok !== false ? "" : `<p class="error-text">${T.auditsRed}</p><pre>${esc(r.audit_log)}</pre>`}
       ${p.mirror_problems.length ? `<p><b>${T.translation}</b></p><ul>${p.mirror_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-      ${p.link_problems.length ? `<p><b>${T.linksTitle}</b> ${T.linksNew}</p><ul>${p.link_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">${T.linksOk}</p>`}
+      ${p.link_problems.length ? `<p><b>${T.linksTitle}</b> ${T.linksNew}</p><ul>${p.link_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">${linksChecked ? T.linksOk : T.linksNotChecked}</p>`}
     </div>
     <details open><summary>${T.changes}</summary>
       <pre>${diff.split("\n").map(l => `<span class="${color(l)}">${esc(l)}</span>`).join("\n") || esc(p.diffstat)}</pre></details>

@@ -13,7 +13,7 @@ const SETTINGS_TEXTS = {
     title: "Réglages", open: "Réglages", save: "Enregistrer", cancel: "Annuler", close: "Fermer",
     unsaved: "Modifications non enregistrées : Enregistrer, ou Annuler pour les abandonner.", loading: "Chargement…",
     saved: "Enregistré. S'applique au prochain passage.", modified: "modifié, pas encore enregistré",
-    categories: "Catégories", cat: { engine: "Moteur", models: "Modèles et effort" },
+    categories: "Catégories", cat: { engine: "Moteur", models: "Modèles et effort", guide: "Guide" },
     engineHelp: "Qui appelle le modèle. Un changement s'applique au prochain passage ; un passage en cours garde son moteur.",
     found: plan => `Claude Code trouvé sur cette machine (abonnement ${plan})`,
     foundHelp: "Les appels passent par ton abonnement Claude : pas de clé d'API, rien de facturé. L'usage compte dans les limites de l'abonnement.",
@@ -51,12 +51,30 @@ const SETTINGS_TEXTS = {
     roleHelp: { reasoning: "Tri de la veille, propositions, relecture croisée, vérifications du guide.",
       translator: "Miroir anglais et contrôle des traductions." },
     byDefault: "par défaut",
+    guide: {
+      help: "Ce que le guide déclare dans son manifeste. En lecture seule : se modifie dans le fichier du guide, puis s'applique au prochain passage.",
+      noManifest: m => `Pas de <code>${m}</code> dans le dossier du guide : il est lu comme le guide IA on-prem (pages en français, miroir <code>en/</code>, ses scripts). <code>vault-watch init</code> en écrira un.`,
+      fromManifest: m => `Lu dans <code>${m}</code>.`,
+      name: "Nom", about: "Sujet", language: "Langue des pages", pages: n => `${n} page(s)`,
+      repository: "Dépôt", local: "aucun : guide local (pas d'issue, pas de pull request)", site: "Site", base: "Branche",
+      parts: "Ses parties", provided: "fournie", missing: "absente",
+      mirror: "Miroir de traduction", mirrorOn: m => `${m.language_name}, sous <code>${m.folder}</code>`,
+      mirrorOff: "pas d'étape de traduction ni de contrôle des traductions",
+      modified: "Date de modification", modifiedOn: f => `champ <code>${f}</code> mis à jour par une correction`,
+      modifiedOff: "les dates des pages ne changent pas",
+      watch: "Veille", watchSources: { none: "vérifications et erreurs signalées seulement",
+        "github-issue": w => `issues GitHub d'étiquette « ${w.label || "veille"} »`, file: w => `fichier <code>${w.path}</code>` },
+      brief: "Consignes de veille", policy: "Politique de traduction", rulesOff: "celles de l'agent s'appliquent",
+      audits: "Contrôles du guide", claims: "Affirmations datées", sources: "Audit des sources", floors: "Versions minimales",
+      checkOff: "« non vérifié » à chaque passage, jamais un échec",
+      budget: "Budget de contexte", tokens: n => `${n.toLocaleString()} tokens`, budgetOff: "aucune limite fixée",
+    },
   },
   en: {
     title: "Settings", open: "Settings", save: "Save", cancel: "Cancel", close: "Close",
     unsaved: "Changes not saved: Save, or Cancel to drop them.", loading: "Loading…",
     saved: "Saved. Applies to the next run.", modified: "changed, not saved yet",
-    categories: "Categories", cat: { engine: "Engine", models: "Models and effort" },
+    categories: "Categories", cat: { engine: "Engine", models: "Models and effort", guide: "Guide" },
     engineHelp: "What calls the model. A change applies to the next run; a run in progress keeps its engine.",
     found: plan => `Claude Code found on this machine (${plan} subscription)`,
     foundHelp: "The calls go through your Claude subscription: no API key, nothing billed. The usage counts in the limits of the subscription.",
@@ -94,6 +112,24 @@ const SETTINGS_TEXTS = {
     roleHelp: { reasoning: "Triage of the watch, proposals, cross-check, checks of the guide.",
       translator: "English mirror and translation checks." },
     byDefault: "default",
+    guide: {
+      help: "What the guide declares in its manifest. Read-only: it changes in the guide's file, and applies to the next run.",
+      noManifest: m => `No <code>${m}</code> in the guide's folder: it is read as the IA on-prem guide (French pages, an <code>en/</code> mirror, its scripts). <code>vault-watch init</code> will write one.`,
+      fromManifest: m => `Read from <code>${m}</code>.`,
+      name: "Name", about: "Subject", language: "Language of the pages", pages: n => `${n} page(s)`,
+      repository: "Repository", local: "none: a local guide (no issue, no pull request)", site: "Site", base: "Branch",
+      parts: "Its parts", provided: "provided", missing: "missing",
+      mirror: "Translation mirror", mirrorOn: m => `${m.language_name}, under <code>${m.folder}</code>`,
+      mirrorOff: "no translation step and no translation check",
+      modified: "Modified date", modifiedOn: f => `field <code>${f}</code> updated by a correction`,
+      modifiedOff: "the dates of the pages do not change",
+      watch: "Watch", watchSources: { none: "checks and reported errors only",
+        "github-issue": w => `GitHub issues labelled « ${w.label || "veille"} »`, file: w => `file <code>${w.path}</code>` },
+      brief: "Watch brief", policy: "Translation policy", rulesOff: "the agent's own apply",
+      audits: "Guide audits", claims: "Dated claims", sources: "Source audit", floors: "Version floors",
+      checkOff: "« not checked » in every run, never a failure",
+      budget: "Context budget", tokens: n => `${n.toLocaleString()} tokens`, budgetOff: "no limit set",
+    },
   },
 };
 
@@ -101,6 +137,7 @@ const SETTINGS_ICONS = {
   gear: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>`,
   engine: `<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>`,
   models: `<svg viewBox="0 0 24 24"><path d="M12 3l8 4.5-8 4.5-8-4.5z"/><path d="M4 12l8 4.5 8-4.5M4 16.5L12 21l8-4.5"/></svg>`,
+  guide: `<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h6"/></svg>`,
 };
 
 const KEY_REFERENCES = ["env:", "sops:", "file:"];
@@ -142,6 +179,38 @@ async function openSettings() {
   }
 }
 
+/* The « Guide » category: what the guide's manifest declares, read-only, and for each part it lacks what the agent
+   then skips (a step, or « not checked » instead of a check). */
+function guidePage(g) {
+  const G = T.settings.guide;
+  const row = (label, value) => `<div class="cfg-row"><span class="cfg-label">${label}</span><span>${value}</span></div>`;
+  const part = (label, on, value, off) => `<li class="${on ? "" : "muted"}"><b>${label}</b> · ${on
+    ? `<span class="ok-text">${G.provided}</span> — ${value}` : `${G.missing} — ${off}`}</li>`;
+  const code = x => `<code>${esc(x)}</code>`;
+  const w = g.watch, src = G.watchSources[w.source];
+  return `<p class="muted small">${G.help}</p>
+    <p class="${g.from_manifest ? "muted" : "attention-text"} small">${g.from_manifest ? G.fromManifest(g.manifest) : G.noManifest(g.manifest)}</p>
+    ${row(G.name, esc(g.name))}
+    ${g.description ? row(G.about, esc(g.description)) : ""}
+    ${row(G.language, `${esc(g.language_name)} · ${G.pages(g.pages)}`)}
+    ${row(G.repository, g.repository ? code(g.repository) : `<span class="muted">${G.local}</span>`)}
+    ${g.site ? row(G.site, extLink(g.site, esc(g.site))) : ""}
+    ${row(G.base, code(g.base_branch))}
+    <h3 class="cfg-sub">${G.parts}</h3>
+    <ul class="small cfg-list">
+      ${g.mirrors.length ? g.mirrors.map(m => part(G.mirror, true, G.mirrorOn({ ...m, folder: esc(m.folder) }))).join("") : part(G.mirror, false, "", G.mirrorOff)}
+      ${part(G.modified, !!g.modified_field, G.modifiedOn(esc(g.modified_field)), G.modifiedOff)}
+      ${part(G.watch, w.source !== "none", typeof src === "function" ? src({ label: esc(w.label), path: esc(w.path) }) : "", G.watchSources.none)}
+      ${part(G.brief, !!g.rules.brief, code(g.rules.brief), G.rulesOff)}
+      ${part(G.policy, !!g.rules.translation_policy, code(g.rules.translation_policy), G.rulesOff)}
+      ${part(G.audits, !!g.checks.audits, code(g.checks.audits), G.checkOff)}
+      ${part(G.claims, !!g.checks.claims_due, code(g.checks.claims_due), G.checkOff)}
+      ${part(G.sources, !!g.checks.sources, code(g.checks.sources), G.checkOff)}
+      ${part(G.floors, !!g.checks.version_floors, code(g.checks.version_floors), G.checkOff)}
+      ${part(G.budget, !!g.max_context_tokens, G.tokens(g.max_context_tokens || 0), G.budgetOff)}
+    </ul>`;
+}
+
 /* `s`: the settings as the server holds them, with what it found (Claude Code, the key); the window edits a copy. */
 function drawSettings(s, message = "") {
   const S = T.settings, cc = s.claude_code, page = $("#settings-dialog");   // `page`: the window, not the page under it
@@ -162,7 +231,7 @@ function drawSettings(s, message = "") {
       </div>
       <div class="cfg-layout">
         <nav class="cfg-nav" aria-label="${S.categories}">
-          ${["engine", "models"].map(id => `<button type="button" class="cfg-cat" data-cat="${id}"${id === settingsCategory ? ' aria-current="page"' : ""}>
+          ${["engine", "models", "guide"].map(id => `<button type="button" class="cfg-cat" data-cat="${id}"${id === settingsCategory ? ' aria-current="page"' : ""}>
             <span class="cfg-ic" aria-hidden="true">${SETTINGS_ICONS[id]}</span>
             <span class="cfg-t"><b>${S.cat[id]}</b><span class="cfg-sum" data-sum="${id}"></span></span>
             <span class="cfg-dot" data-dot="${id}" title="${S.modified}" hidden></span></button>`).join("")}
@@ -207,6 +276,7 @@ function drawSettings(s, message = "") {
                 <span class="muted small" data-steps="${role}"></span></div>
             </fieldset>`).join("")}
             <p class="muted small">${S.effortHelp}</p>`)}
+          ${category("guide", guidePage(s.guide))}
         </div>
       </div>
     </form>`;
@@ -231,6 +301,7 @@ function drawSettings(s, message = "") {
     $("#key-status").innerHTML = text + (now === "claude-code" && !plainKey() ? ` · ${S.keyOnlyApi}` : "");
     key.setAttribute("aria-invalid", plainKey());
     page.querySelector('[data-sum="engine"]').textContent = S.engines[draft.engine];
+    page.querySelector('[data-sum="guide"]').textContent = s.guide.name;
     page.querySelector('[data-sum="models"]').textContent = Object.keys(draft.models)
       .map(r => `${modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ");
     page.querySelector('[data-dot="engine"]').hidden = draft.engine === s.engine && draft.key === s.key;

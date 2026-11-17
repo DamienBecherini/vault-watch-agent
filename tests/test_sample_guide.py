@@ -11,7 +11,7 @@ from langgraph.types import Command
 
 from vault_watch_agent import vault
 from vault_watch_agent.crosscheck import CrossCheck, CorrectionReview
-from vault_watch_agent.graph import Deps, build
+from vault_watch_agent.graph import Deps, build, pr_body
 from vault_watch_agent.state import ClusterProposal, Correction, ItemOutcome, TriageDecision, TriageResult
 
 # The planted errors of the sample guide and what a good run proposes for them: search term, page, current, proposed
@@ -84,7 +84,9 @@ def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_pa
     assert "Python 3.11" in edited and 'last_modified: "2026-11-17"' in edited
     assert publish["mirror_problems"] == [] and graph.get_state(config).values["mirrored"] == []  # no mirror declared
     # No [checks] in its manifest: not checked, which is not a failure
-    assert publish["audit_ok"] is None and publish["link_problems"] == []
+    assert publish["audit_ok"] is None and publish["link_problems"] is None
+    body = pr_body(graph.get_state(config).values)
+    assert "Guide audits: not checked" in body and "not checked (the guide declares no source audit)" in body
 
     graph.invoke(Command(resume=False), config)  # no push
     assert not graph.get_state(config).next
