@@ -7,6 +7,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 - The search for a replacement of a dead link gets what each page says with that source (the lines that cite it
   and, for a footnote, the lines that call it): it had only the URL, and said it could not open the pages.
+- The review takes the ids as a list or as one string "C1,C3": a string was read letter by letter, and the run ended
+  with nothing applied.
 - One git operation at a time on the guide's repository: a fix pass and a translation pass started together
   failed on git's `index.lock` (both updated the reading copy of main at once).
 

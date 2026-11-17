@@ -542,3 +542,13 @@ def test_two_runs_reading_the_guide_together_do_not_collide_on_git(setup):
     for t in threads:
         t.join()
     assert errors == []
+
+
+def test_a_review_given_as_one_string_of_ids_applies_them(setup):
+    """17/11/2026: "C1,C2,…" sent as one string was read letter by letter, and nothing was applied."""
+    deps, watch, _ = setup
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "t-string"}}
+    graph.invoke({"source": str(watch), "issue": None}, config)
+    graph.invoke(Command(resume=" C1 , "), config)
+    assert graph.get_state(config).values["accepted"] == ["C1", "C3", "C5"]  # C1 and its group

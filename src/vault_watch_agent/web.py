@@ -456,7 +456,11 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.post("/api/runs/{thread}/review")
     def review(thread: str, body: Review):
-        answer = body.accept if isinstance(body.accept, str) else [i.strip() for i in body.accept if i.strip()]
+        # "all", "none", or ids: a list, or one string "C1,C3" (sent as such on 17/11/2026, it was read as a set of
+        # characters and the run ended with nothing applied)
+        accept = body.accept.strip() if isinstance(body.accept, str) else body.accept
+        answer = accept if accept in ("all", "none") else [
+            i.strip() for i in (accept.split(",") if isinstance(accept, str) else accept) if i.strip()]
         start(thread, "review", "watch", lambda g, job: follow(g, job, Command(resume=answer)))
         return {"thread": thread}
 

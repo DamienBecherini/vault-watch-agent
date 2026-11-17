@@ -210,8 +210,8 @@ def build(deps: Deps, checkpointer=None):
             asked = {c["id"] for c in corrections}
         elif answer == "none" or not answer:
             asked = set()
-        else:
-            asked = set(answer)
+        else:  # a list of ids; a string "C1,C3" (the CLI, an older client) is split, never read letter by letter
+            asked = {i.strip() for i in (answer.split(",") if isinstance(answer, str) else answer) if i.strip()}
         groups = {c["group"] for c in corrections if c["id"] in asked}
         # A group with one member that fails the check cannot be applied consistently.
         broken = {c["group"] for c in corrections if c["check"] != "ok"}
