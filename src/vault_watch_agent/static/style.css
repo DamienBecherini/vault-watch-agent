@@ -64,7 +64,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 syst
 a { color: var(--accent); }
 header { display: flex; align-items: center; gap: 10px 16px; padding: 10px 20px; background: var(--card);
   border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
-.brand { font-weight: 700; text-decoration: none; color: var(--text); }
+.brand { font-weight: 700; text-decoration: none; color: var(--text); display: inline-flex; align-items: center; gap: 8px; }
+.brand img { flex: none; border-radius: 5px; }
 nav { display: flex; gap: 6px 14px; flex-wrap: wrap; }
 nav a { text-decoration: none; color: var(--muted); padding: 4px 0; border-bottom: 2px solid transparent; }
 nav a.active { color: var(--text); border-color: var(--accent); }

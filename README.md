@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="src/vault_watch_agent/static/icon.svg" alt="" width="96" height="96">
+
 # vault-watch-agent
 
 **A LangGraph agent that keeps a 400 k-token technical guide up to date, with a human review before anything is published.**
