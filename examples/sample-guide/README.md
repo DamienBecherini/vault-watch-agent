@@ -16,4 +16,4 @@ Planted errors, one per check, so a run has something to find:
 
 The tests copy this folder into a temporary git repository (`tests/conftest.py`, fixture `sample_guide`). Until the
 optional parts of milestone M1 land, the fixture adds what the agent still requires of a guide (a stub
-`scripts/audit-freshness.mjs`); see [docs/modular-action-plan.md](../../docs/modular-action-plan.md).
+`scripts/audit-freshness.mjs`); see [phase G of ROADMAP.md](../../ROADMAP.md#phase-g--a-modular-agent).

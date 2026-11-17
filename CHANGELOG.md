@@ -1,6 +1,6 @@
 # Changelog
 
-Versions follow the milestones of [docs/modular-action-plan.md](docs/modular-action-plan.md). The version is written
+Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
 ## Unreleased (0.3.0, M1: any guide)

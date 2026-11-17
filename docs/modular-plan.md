@@ -1,7 +1,7 @@
 # Plan: from one guide to a modular agent
 
 Status: proposal of 2026-11-17, nothing of it is built. The work, task by task, is in
-[modular-action-plan.md](modular-action-plan.md). This page answers one question: what has to change for someone
+[phase G of ROADMAP.md](../ROADMAP.md#phase-g--a-modular-agent). This page answers one question: what has to change for someone
 else to run this agent on their own guide, with the model of their choice, and trust the costs it shows.
 
 ## Where the agent stands
