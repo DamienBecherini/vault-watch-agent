@@ -15,7 +15,7 @@ let source = null;  // EventSource of the run being followed
 const TEXTS = {
   fr: {
     nav: { watches: "Veilles", check: "Vérifier le guide", report: "Signaler une erreur", costs: "Coûts" },
-    links: ["Guide", "Dépôt du guide", "Code de l'agent"],
+    links: ["Guide", "Dépôt du guide", "Code de l'agent", "Claude API"],
     verif: {
       title: "Vérifier le guide",
       intro: "Un bilan de santé du guide entier, à la demande. Les contrôles gratuits utilisent les scripts du guide ; les autres font lire le guide par Claude. Les résultats sont des pistes : celles que tu gardes partent dans une passe fix, qui les vérifie sur les sources et passe par ta relecture.",
@@ -114,7 +114,7 @@ const TEXTS = {
   },
   en: {
     nav: { watches: "Watches", check: "Check the guide", report: "Report an error", costs: "Costs" },
-    links: ["Guide", "Guide repository", "Agent code"],
+    links: ["Guide", "Guide repository", "Agent code", "Claude API"],
     verif: {
       title: "Check the guide",
       intro: "A health check of the whole guide, on demand. The free checks run the guide's own scripts; the others have Claude read the guide. Results are leads: the ones you keep go to a fix run, which checks them on sources and goes through your review.",
@@ -237,13 +237,14 @@ async function api(path, body) {
 
 // --- Header -------------------------------------------------------------------------------------------
 let info = null;
+const CLAUDE_BILLING = "https://platform.claude.com/settings/billing";  // API credits left (the API engine spends them)
 // What a paid action costs: its estimate on the API, nothing on Claude Code with a subscription (info.engine)
 const onSubscription = () => info?.engine === "claude-code";
 const cost = usd => onSubscription() ? T.subscription : usd;
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
-  const links = info ? [info.site, `https://github.com/${info.repo}`, info.agent]
+  const links = info ? [info.site, `https://github.com/${info.repo}`, info.agent, CLAUDE_BILLING]
     .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
   $("#external").innerHTML = links;
   $("#footer").textContent = info?.version ? `vault-watch ${info.version}` : "";
