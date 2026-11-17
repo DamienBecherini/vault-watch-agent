@@ -154,7 +154,12 @@ tickets de veille et l'état de leur run, un run en cours (chaque étape termin�
 server-sent events), la relecture (une carte par correction avec un diff au mot près entre le texte actuel et le
 texte proposé, ses sources et l'avis de la relecture croisée ; les membres d'un groupe sont cochés ensemble),
 l'étape de publication (contrôles, liens en défaut, diff de la branche), puis la pull request. Deux autres pages
-servent à signaler des erreurs à corriger et à suivre le coût de l'entretien. Une piste (un doute de la relecture
+servent à signaler des erreurs à corriger et à suivre le coût de l'entretien, et les Réglages (la roue dentée)
+choisissent le moteur du modèle. L'en-tête porte aussi la taille du texte (deux loupes), le mode clair ou sombre,
+les palettes (celles fournies et les vôtres, chacune avec son niveau de contraste WCAG) et une cloche :
+notifications du navigateur quand un run vous attend, se termine ou échoue, tant que la page n'est pas affichée
+(désactivées par défaut, le navigateur demande l'autorisation au premier clic). Ces choix restent dans le
+navigateur. Une piste (un doute de la relecture
 croisée, un constat d'une vérification du guide) montre le passage en cause avec son numéro de ligne : le modèle
 le cite, le code le retrouve dans la page, et une citation introuvable est signalée comme telle, jamais montrée
 comme le texte du guide. L'interface est en anglais ou en
@@ -300,7 +305,9 @@ src/vault_watch_agent/
   evaluate.py    rejeu des veilles passées et juge
   costs.py       totaux du journal des coûts
   cli.py         ligne de commande
-  web.py         serveur FastAPI ; static/ contient la page (JS sans framework, sans étape de build)
+  web.py         serveur FastAPI ; static/ contient la page (JS sans framework, sans étape de build) : app.js,
+                 settings.js, themes.js et boot.js (taille du texte, mode, palettes), notify.js (notifications
+                 du navigateur)
 tests/           faux modèle, dépôt git jetable qui tient lieu de guide
 metrics/         journal des coûts et résultats d'évaluation (versionnés)
 ```

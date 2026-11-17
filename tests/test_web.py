@@ -158,3 +158,30 @@ def test_settings_keep_a_reference_to_the_key_never_the_key(client, monkeypatch)
     assert c.get("/api/settings").json()["models"]["translator"] == "claude-haiku-5-5"
     options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
     assert options["translation"]["model"] == "claude-haiku-5-5"  # the check names and prices the model of the settings
+
+
+def test_the_page_and_its_scripts_are_asked_again_each_time(client):
+    c, _ = client
+    for path in ("/", "/static/app.js", "/static/boot.js", "/static/themes.js", "/static/notify.js", "/static/settings.js"):
+        r = c.get(path)
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", path
+    assert "cache-control" not in c.get("/api/health").headers
+
+
+def test_notices_tell_a_page_what_stopped_without_counting_as_activity(client):
+    c, watch = client
+    assert c.get("/api/notices").json() == {"last": 0, "notices": []}
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=ACT).json()["thread"]
+    wait(c, thread)
+    for _ in range(100):  # the notice follows the end of the background work
+        if c.get("/api/notices").json()["last"]:
+            break
+        time.sleep(0.05)
+    assert c.get("/api/notices").json() == {"last": 1, "notices": []}  # a page that just opened: only what comes next
+    (n,) = c.get("/api/notices?since=0").json()["notices"]
+    assert (n["id"], n["thread"], n["key"], n["page"]) == (1, thread, "review", f"#/run/{thread}")
+    assert "Relecture à faire" in n["fr"]["title"] and "5 correction(s)" in n["fr"]["body"] and "Review pending" in n["en"]["title"]
+    assert c.get("/api/notices?since=1").json()["notices"] == []
+    c.app.state.last_activity -= 7200
+    c.get("/api/notices?since=1")  # a page left open with its bell on is not someone using it
+    assert c.app.state.idle_seconds() > 7000

@@ -152,11 +152,17 @@ def create_app(settings: Settings) -> FastAPI:
             return JSONResponse({"detail": "local access only"}, status_code=403)
         if request.method != "GET" and request.headers.get("x-vault-watch") != "1":
             return JSONResponse({"detail": "missing X-Vault-Watch header"}, status_code=403)
-        if request.url.path != "/api/health":
+        if request.url.path not in ("/api/health", "/api/notices"):  # probes: a page left open is not someone using it
             app.state.last_activity = time.time()
-        return await call_next(request)
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            # The page and its scripts go together: the browser asks again each time (a 304 when nothing changed),
+            # so an update never leaves an old page with new scripts.
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
-    # -- desktop notification when background work stops: what the human has to do next ------------
+    # -- notifications when background work stops: what the human has to do next. On the desktop with
+    #    `serve --notify` (settings.notifier), and in the browser of a page whose bell is on (GET /api/notices) --
     MESSAGES = {
         "fr": {"review": ("Relecture à faire", "{n} correction(s) proposée(s) : à toi de trancher."),
                "publish": ("Publication à valider", "Corrections appliquées et contrôlées : la PR attend ton feu vert."),
@@ -172,8 +178,9 @@ def create_app(settings: Settings) -> FastAPI:
                "verif": ("Check finished", "{n} lead(s) to handle."), "verif-error": ("Check stopped", "{error}")},
     }
 
+    notices: list[dict] = []  # one per background work that stopped with something to say, since the server started
+
     def announce(job: Job) -> None:
-        texts = MESSAGES.get(settings.notify_lang, MESSAGES["en"])
         if job.thread.startswith("verif-"):
             v = verif_view(verif_path(job.thread))
             key, n, page = ("verif-error" if job.error else "verif"), v["counts"]["open"], f"#/check/{job.thread}"
@@ -181,11 +188,22 @@ def create_app(settings: Settings) -> FastAPI:
             s = summary(job.thread)
             key = ("error" if job.error else "pr" if s["pr_url"] else s["status"])
             n, page = s["corrections"], f"#/run/{job.thread}"
-        if key not in texts:
+        if key not in MESSAGES["en"]:
             return
-        title, body = texts[key]
-        settings.notifier(f"vault-watch · {job.thread} · {title}", body.format(n=n, error=job.error[:150]),
-                          settings.base_url + page)
+        texts = {lang: {"title": f"vault-watch · {job.thread} · {m[key][0]}", "body": m[key][1].format(n=n, error=job.error[:150])}
+                 for lang, m in MESSAGES.items()}
+        with lock:
+            notices.append({"id": len(notices) + 1, "t": time.time(), "thread": job.thread, "key": key, "page": page, **texts})
+        if settings.notifier:
+            mine = texts.get(settings.notify_lang, texts["en"])
+            settings.notifier(mine["title"], mine["body"], settings.base_url + page)
+
+    @app.get("/api/notices")
+    def notices_view(since: int = -1):
+        """What stopped since the notice `since`, for the notifications of the page, in both languages. A page that
+        just opened asks without `since`: it gets the last id only, and is told of what happens from then on."""
+        with lock:
+            return {"last": len(notices), "notices": [n for n in notices if n["id"] > since] if since >= 0 else []}
 
     # -- background runs ---------------------------------------------------------------------
     def start(thread: str, action: str, kind: str, work: Callable[[object, Job], None]) -> Job:
@@ -202,11 +220,10 @@ def create_app(settings: Settings) -> FastAPI:
             finally:
                 job.done = True
                 app.state.last_activity = time.time()
-                if settings.notifier:
-                    try:
-                        announce(job)
-                    except Exception:  # a notification never breaks a run
-                        pass
+                try:
+                    announce(job)
+                except Exception:  # a notification never breaks a run
+                    pass
 
         threading.Thread(target=target, daemon=True, name=f"vault-watch {thread}").start()
         return job

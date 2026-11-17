@@ -1,5 +1,6 @@
 /* vault-watch: one screen per pause of the graph. Routes: #/ (watches), #/run/<thread>, #/check, #/check/<id>, #/report, #/costs,
-   #/settings (settings.js, loaded before this file).
+   #/settings (settings.js). The buttons of the header: themes.js (size of the text, light or dark, palettes) and
+   notify.js (notifications of the browser); the three are loaded before this file.
    The server holds every state (checkpoints); this page only shows it and sends the human's answers.
    Interface in French or English (toggle in the header, remembered); the guide's own text stays in French. */
 
@@ -211,8 +212,7 @@ const TEXTS = {
     subscription: "subscription, not billed",
   },
 };
-TEXTS.fr.settings = SETTINGS_TEXTS.fr;  // settings.js
-TEXTS.en.settings = SETTINGS_TEXTS.en;
+for (const l of ["fr", "en"]) Object.assign(TEXTS[l], { settings: SETTINGS_TEXTS[l], theme: THEME_TEXTS[l], notify: NOTIFY_TEXTS[l] });
 const savedLang = () => { try { return localStorage.getItem("vault-watch-lang"); } catch { return null; } };
 let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").startsWith("fr") ? "fr" : "en";
 let T = TEXTS[lang];
@@ -245,10 +245,15 @@ function header() {
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
   const links = info ? [info.site, `https://github.com/${info.repo}`, info.agent]
     .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
-  $("#external").innerHTML = `${links}<span class="langs">${["fr", "en"].map(l =>
+  $("#external").innerHTML = links;
+  // The size of the text, light or dark, the palettes (themes.js), the bell (notify.js), the language, the Settings
+  const tools = $("#tools");
+  tools.innerHTML = `${themeButtons()}${notifyButton()}<span class="langs">${["fr", "en"].map(l =>
     `<button data-lang="${l}" class="${l === lang ? "active" : ""}" aria-pressed="${l === lang}">${l.toUpperCase()}</button>`).join("")}</span>
     <a class="icon-link${location.hash.startsWith("#/settings") ? " active" : ""}" href="#/settings" title="${T.settings.open}" aria-label="${T.settings.open}">${SETTINGS_ICONS.gear}</a>`;
-  $("#external").querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
+  bindThemeButtons(tools, header);
+  bindNotifyButton(tools, header);
+  tools.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
     lang = b.dataset.lang;
     T = TEXTS[lang];
     try { localStorage.setItem("vault-watch-lang", lang); } catch { /* private window: per page only */ }
@@ -677,6 +682,10 @@ async function viewCosts() {
 }
 
 header();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { window.themes.apply(); header(); });  // the system's mode changes (evening): follow it
+// The height of the header (it wraps on a narrow window, grows with the text): what sticks under it starts there
+new ResizeObserver(() => document.documentElement.style.setProperty("--header-h", `${$("header").offsetHeight}px`)).observe($("header"));
+watchNotices();
 route();
 // The engine in use arrives a moment later (the server asks Claude Code): on a subscription, the costs shown change
 api("/api/info").then(i => { info = i; header(); if (onSubscription() && location.hash !== "#/settings") route(); }).catch(() => {});

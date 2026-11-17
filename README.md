@@ -151,7 +151,10 @@ with their run status, a run in progress (each finished step streamed to the pag
 review (one card per correction with a word-level diff of the current and proposed text, its sources and the
 cross-check's verdict; members of a group are ticked together), the publish step (audits, link problems, the
 diff of the branch), then the pull request. Two more pages report errors to fix and show what the upkeep
-costs. A lead (a doubt of the cross-check, a finding of a check of the guide) shows the passage it is about with
+costs, and the Settings (the gear) choose the model engine. The header also holds the size of the text (two
+magnifiers), light or dark, the palettes (built-in ones and your own, each with its WCAG contrast level) and a
+bell: notifications of the browser when a run waits for you, ends or fails, while the page is not in sight
+(off by default, the browser asks its permission on the first click). These choices stay in the browser. A lead (a doubt of the cross-check, a finding of a check of the guide) shows the passage it is about with
 its line number: the model quotes it, the code finds it in the page, and a quote it cannot find is shown as such,
 never as the guide's text. The interface is in English or French (toggle in the header, the browser language by default); the
 corrections themselves are in French, the language of the guide.
@@ -285,7 +288,8 @@ src/vault_watch_agent/
   evaluate.py    replay of past watches and judge
   costs.py       cost journal totals
   cli.py         command line
-  web.py         FastAPI server; static/ holds the page (vanilla JS, no build step)
+  web.py         FastAPI server; static/ holds the page (vanilla JS, no build step): app.js, settings.js,
+                 themes.js and boot.js (size of the text, mode, palettes), notify.js (browser notifications)
 tests/           fake model, throwaway git repository standing for the guide
 metrics/         cost journal and evaluation results (versioned)
 ```

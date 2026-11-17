@@ -36,6 +36,7 @@ flowchart TB
   subgraph base["Fondations, utilisées par tous"]
     state["state.py<br/><i>état + schémas de sortie</i>"]
     llm["llm.py<br/><i>seul appelant de Claude</i>"]
+    config["config.py<br/><i>réglages de l'utilisateur</i>"]
     vault["vault.py<br/><i>pages, recherche, modifications</i>"]
     inputs["inputs.py<br/><i>gh, veille, scripts</i>"]
     costs["costs.py<br/><i>journal des coûts</i>"]
@@ -47,35 +48,39 @@ flowchart TB
   graphpy --> crosscheck & prompts & quotes
   verify --> quotes
   steps ==> state & llm & vault & inputs & costs & notify
+  llm --> config
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
   class llm model
 ```
 
 Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle de chaque module. Deux règles donnent sa forme au code :
 
-- **Une seule porte vers le modèle.** Seul [`llm.py`](../src/vault_watch_agent/llm.py) importe `anthropic`. Tous les
-  autres modules reçoivent un objet doté d'une méthode `parse(system, prompt, schema, effort, node, context, web)`
-  (le protocole `LLM`) : les tests le remplacent par un faux.
+- **Une seule porte vers le modèle.** Seul [`llm.py`](../src/vault_watch_agent/llm.py) importe `anthropic` ou lance
+  Claude Code. Tous les autres modules reçoivent un objet doté d'une méthode
+  `parse(system, prompt, schema, effort, node, context, web)` (le protocole `LLM`) : les tests le remplacent par un
+  faux. Deux moteurs l'implémentent : `Claude` (l'API) et `ClaudeCode` (`claude -p` sur un abonnement Claude) ;
+  `create(role, journal, settings)` choisit d'après les réglages de l'utilisateur.
 - **Une seule porte vers le guide.** Lire, chercher et modifier les pages passe par
   [`vault.py`](../src/vault_watch_agent/vault.py) ; les appels à `git`, `gh` et aux scripts du guide passent par
   [`inputs.py`](../src/vault_watch_agent/inputs.py). Le modèle ne touche jamais un fichier.
 
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
-| `graph.py` | 606 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
-| `web.py` | 570 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, la page statique |
-| `verify.py` | 315 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
-| `cli.py` | 247 | `vault-watch run / resume / fix / eval / costs / serve` ; branche le checkpointer et les dépendances |
+| `graph.py` | 608 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
+| `web.py` | 627 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
+| `verify.py` | 317 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
+| `llm.py` | 310 | Les deux moteurs (API, Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts |
+| `cli.py` | 251 | `vault-watch run / resume / fix / eval / costs / serve` ; branche le checkpointer et les dépendances |
 | `vault.py` | 234 | Pages françaises, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
 | `crosscheck.py` | 211 | Seconde lecture des corrections avec tout le guide en cache dans le contexte, puis le balayage |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
 | `fix.py` | 135 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
 | `evaluate.py` | 126 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
-| `llm.py` | 121 | Sortie structurée, cache de prompt, recherche et lecture web côté serveur, journal des coûts |
+| `config.py` | 121 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
 | `state.py` | 116 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
 | `prompts.py` | 79 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
 | `inputs.py` | 65 | Issue et artefact de la veille (`gh`), éléments, affirmations à revérifier |
-| `costs.py` | 63 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape |
+| `costs.py` | 77 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
 | `notify.py` | 47 | Notifications Windows de `serve --notify` |
 
 ## Le graphe, étape par étape
@@ -221,15 +226,17 @@ correction de traduction met `mode = "translation"` et saute la relecture crois�
 | [`tests/test_web.py`](../tests/test_web.py) | Les routes FastAPI, les tâches de fond, le contrat de santé |
 | [`tests/test_quotes.py`](../tests/test_quotes.py) | Retrouver un passage : correspondance exacte, fenêtre la plus proche |
 | [`tests/test_costs.py`](../tests/test_costs.py) | Totaux du journal des coûts |
+| [`tests/test_llm.py`](../tests/test_llm.py) | Le moteur Claude Code avec un faux `claude` : la commande lancée, ce qu'il en lit, ce qu'il refuse |
+| [`tests/test_config.py`](../tests/test_config.py) | Les réglages de l'utilisateur : valeurs par défaut, ce qui est refusé, une clé qui n'est jamais qu'une référence |
 
-Aucun test n'appelle la vraie API. `vault-watch eval` est la mesure sur de vraies veilles (résultats dans
+Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est la mesure sur de vraies veilles (résultats dans
 [`metrics/eval/`](../metrics/eval/)).
 
 ## Par où commencer la lecture
 
 1. [`state.py`](../src/vault_watch_agent/state.py) : ce qu'un passage sait à chaque étape.
 2. [`graph.py`](../src/vault_watch_agent/graph.py), `build()` : les étapes et les arêtes, puis l'étape qui vous intéresse.
-3. [`llm.py`](../src/vault_watch_agent/llm.py) : cache, outils web, journal des coûts, en 120 lignes environ.
+3. [`llm.py`](../src/vault_watch_agent/llm.py) : les deux moteurs, cache, outils web, journal des coûts, en 300 lignes environ.
 4. [`vault.py`](../src/vault_watch_agent/vault.py), `check()` et `apply()` : pourquoi le modèle ne peut pas abîmer une
    page.
 5. [`web.py`](../src/vault_watch_agent/web.py) ou [`cli.py`](../src/vault_watch_agent/cli.py) : comment les passages sont

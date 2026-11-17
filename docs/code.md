@@ -36,6 +36,7 @@ flowchart TB
   subgraph base["Foundations, used by all"]
     state["state.py<br/><i>state + output schemas</i>"]
     llm["llm.py<br/><i>the only Claude caller</i>"]
+    config["config.py<br/><i>user settings</i>"]
     vault["vault.py<br/><i>pages, search, edits</i>"]
     inputs["inputs.py<br/><i>gh, watch, scripts</i>"]
     costs["costs.py<br/><i>cost journal</i>"]
@@ -47,35 +48,39 @@ flowchart TB
   graphpy --> crosscheck & prompts & quotes
   verify --> quotes
   steps ==> state & llm & vault & inputs & costs & notify
+  llm --> config
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
   class llm model
 ```
 
 Only the main links are drawn; the table below gives each module's role. Two rules shape the code:
 
-- **One door to the model.** Only [`llm.py`](../src/vault_watch_agent/llm.py) imports `anthropic`. Every other
-  module receives an object with a `parse(system, prompt, schema, effort, node, context, web)` method (the `LLM`
-  protocol), so the tests swap it for a fake.
+- **One door to the model.** Only [`llm.py`](../src/vault_watch_agent/llm.py) imports `anthropic` or runs Claude
+  Code. Every other module receives an object with a `parse(system, prompt, schema, effort, node, context, web)`
+  method (the `LLM` protocol), so the tests swap it for a fake. Two engines implement it: `Claude` (the API) and
+  `ClaudeCode` (`claude -p` on a Claude subscription); `create(role, journal, settings)` picks one from the
+  user's settings.
 - **One door to the guide.** Reading, searching and editing pages go through
   [`vault.py`](../src/vault_watch_agent/vault.py); calls to `git`, `gh` and the guide's own scripts go through
   [`inputs.py`](../src/vault_watch_agent/inputs.py). The model never touches a file.
 
 | Module | Lines | Role |
 | :-- | --: | :-- |
-| `graph.py` | 606 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
-| `web.py` | 570 | `create_app(settings)`: REST routes, server-sent events, background jobs, the static page |
-| `verify.py` | 315 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
-| `cli.py` | 247 | `vault-watch run / resume / fix / eval / costs / serve`; wires the checkpointer and the dependencies |
+| `graph.py` | 608 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
+| `web.py` | 627 | `create_app(settings)`: REST routes, server-sent events, background jobs, the user's settings, the notices of the page, the static page |
+| `verify.py` | 317 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
+| `llm.py` | 310 | The two engines (API, Claude Code on a subscription): structured output, prompt caching, web search and fetch, cost journal |
+| `cli.py` | 251 | `vault-watch run / resume / fix / eval / costs / serve`; wires the checkpointer and the dependencies |
 | `vault.py` | 234 | French pages, keyword search with excerpts, exact-quote check, apply an edit, leftovers sweep |
 | `crosscheck.py` | 211 | Second reading of the corrections with the whole guide cached in context, then the sweep |
 | `quotes.py` | 158 | Locates the passage a finding talks about: exact match, else the closest window of lines on normalised text |
 | `fix.py` | 135 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
 | `evaluate.py` | 126 | Hunks of the human's merged diff vs. the agent's proposals, matched by a judge model |
-| `llm.py` | 121 | Structured output, prompt caching, server-side web search and fetch, cost journal |
+| `config.py` | 121 | The user's settings (`settings.json`): engine, models, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
 | `state.py` | 116 | `WatchState` and the Pydantic schemas the model must answer with |
 | `prompts.py` | 79 | System prompts built from the guide's own editorial brief and translation policy |
 | `inputs.py` | 65 | Watch issue and artifact (`gh`), items, freshness claims due |
-| `costs.py` | 63 | Totals of `metrics/usage.jsonl` by month, year, run or step |
+| `costs.py` | 77 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |
 | `notify.py` | 47 | Windows toast notifications for `serve --notify` |
 
 ## The graph, node by node
@@ -220,15 +225,17 @@ graph, the same report, the same review and the same pull request as a watch. A 
 | [`tests/test_web.py`](../tests/test_web.py) | The FastAPI routes, background jobs, health contract |
 | [`tests/test_quotes.py`](../tests/test_quotes.py) | Locating passages: exact match, closest window |
 | [`tests/test_costs.py`](../tests/test_costs.py) | Cost journal totals |
+| [`tests/test_llm.py`](../tests/test_llm.py) | The Claude Code engine with a fake `claude`: the command it runs, what it reads back, what it refuses |
+| [`tests/test_config.py`](../tests/test_config.py) | The user's settings: defaults, what is refused, a key that is only ever a reference |
 
-No test calls the real API. `vault-watch eval` is the measure against real watches (results in
+No test calls the real API nor the real Claude Code. `vault-watch eval` is the measure against real watches (results in
 [`metrics/eval/`](../metrics/eval/)).
 
 ## Where to look first
 
 1. [`state.py`](../src/vault_watch_agent/state.py): what a run knows at each step.
 2. [`graph.py`](../src/vault_watch_agent/graph.py), `build()`: the nodes and the edges, then the node you care about.
-3. [`llm.py`](../src/vault_watch_agent/llm.py): caching, web tools, cost journal, in about 120 lines.
+3. [`llm.py`](../src/vault_watch_agent/llm.py): the two engines, caching, web tools, cost journal, in about 300 lines.
 4. [`vault.py`](../src/vault_watch_agent/vault.py), `check()` and `apply()`: why the model cannot damage a page.
 5. [`web.py`](../src/vault_watch_agent/web.py) or [`cli.py`](../src/vault_watch_agent/cli.py): how runs are started,
    paused and resumed.
