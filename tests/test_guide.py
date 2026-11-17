@@ -209,6 +209,13 @@ def test_each_guide_has_its_working_folder_and_the_old_runs_stay_where_they_are(
     local = parse(minimal(), tmp_path / "my guide")
     assert working_folder(home, local) == home / "guides" / "my-guide"
 
+    # The IA on-prem guide with its manifest (0.3.0) keeps the runs of before
+    fresh = tmp_path / "fresh"
+    fresh.mkdir()
+    (fresh / "checkpoints.sqlite").write_text("", encoding="utf-8")
+    manifest = parse(minimal(guide={"repository": legacy(tmp_path).repository}), tmp_path / "ia-on-prem-vault")
+    assert working_folder(fresh, manifest) == fresh and (fresh / "guide.json").is_file()
+
 
 def test_the_command_line_finds_the_guide(tmp_path, monkeypatch):
     from vault_watch_agent import cli

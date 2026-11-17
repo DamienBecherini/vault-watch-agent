@@ -3,6 +3,12 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 0.3.1 (2026-11-18)
+
+- The runs made before 0.3.0 stay visible once the IA on-prem guide has its manifest: they belong to that guide
+  whether it is read with its manifest or without one (0.3.0 gave a guide with a manifest a new, empty working
+  folder).
+
 ## 0.3.0 (2026-11-18), M1: any guide
 
 - `guide.py`: the manifest of a guide (`vault-watch.toml`): name, repository, site, base branch, language, pages

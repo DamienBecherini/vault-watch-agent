@@ -237,15 +237,17 @@ def working_folder(home: Path, guide: Guide) -> Path:
     shared by every guide.
 
     The runs made before manifests are in `home` itself: they stay there for the guide they belong to, recorded in
-    `home/guide.json` (written the first time, for a guide without manifest, the only kind that existed). Nothing is
-    moved: the worktrees of those runs are registered in the guide's repository with their path."""
+    `home/guide.json`. That guide is the IA on-prem guide, the only one the agent knew: read without a manifest, or
+    with one that names its repository (it has one since 0.3.0). Nothing is moved: the worktrees of those runs are
+    registered in the guide's repository with their path."""
     import json
 
     marker, root = home / "guide.json", str(guide.root.resolve())
     if marker.is_file():
         if json.loads(marker.read_text(encoding="utf-8")).get("root") == root:
             return home
-    elif (home / "checkpoints.sqlite").is_file() and not guide.from_manifest:
+    elif (home / "checkpoints.sqlite").is_file() and (
+            not guide.from_manifest or guide.repository == legacy(guide.root).repository):
         marker.write_text(json.dumps({"root": root}), encoding="utf-8")
         return home
     name = guide.repository.replace("/", "-") or guide.root.resolve().name
