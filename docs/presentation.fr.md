@@ -120,12 +120,12 @@ plus tard, depuis la page web ou la ligne de commande, dans un autre processus.
 
 ## Ce qu'il a produit
 
-Dix pull requests du guide, toutes relues et fusionnées, les 8 et 9 novembre 2026 :
+Douze pull requests du guide, toutes relues et fusionnées, du 8 au 17 novembre 2026 :
 
 | Type | Pull requests | Contenu |
 | :-- | :-- | :-- |
-| Veilles | [#51](https://github.com/DamienBecherini/ia-on-prem-vault/pull/51), [#53](https://github.com/DamienBecherini/ia-on-prem-vault/pull/53), [#72](https://github.com/DamienBecherini/ia-on-prem-vault/pull/72) | Corrections issues des veilles du 26 octobre, du 2 novembre et du 9 novembre (vLLM 0.33.0 minimum, CUDA 13 seulement) |
-| Passes de correction | [#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54), [#55](https://github.com/DamienBecherini/ia-on-prem-vault/pull/55), [#57](https://github.com/DamienBecherini/ia-on-prem-vault/pull/57), [#58](https://github.com/DamienBecherini/ia-on-prem-vault/pull/58), [#59](https://github.com/DamienBecherini/ia-on-prem-vault/pull/59), [#61](https://github.com/DamienBecherini/ia-on-prem-vault/pull/61) | Erreurs trouvées par les relectures croisées et les vérifications à la demande |
+| Veilles | [#51](https://github.com/DamienBecherini/ia-on-prem-vault/pull/51), [#53](https://github.com/DamienBecherini/ia-on-prem-vault/pull/53), [#72](https://github.com/DamienBecherini/ia-on-prem-vault/pull/72), [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) | Corrections issues des veilles du 26 octobre, des 2, 9 et 16 novembre (vLLM 0.33.0 minimum, CUDA 13 seulement) |
+| Passes de correction | [#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54), [#55](https://github.com/DamienBecherini/ia-on-prem-vault/pull/55), [#57](https://github.com/DamienBecherini/ia-on-prem-vault/pull/57), [#58](https://github.com/DamienBecherini/ia-on-prem-vault/pull/58), [#59](https://github.com/DamienBecherini/ia-on-prem-vault/pull/59), [#61](https://github.com/DamienBecherini/ia-on-prem-vault/pull/61), [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) | Erreurs trouvées par les relectures croisées, les vérifications à la demande et la vérification de tout le guide |
 | Traduction | [#60](https://github.com/DamienBecherini/ia-on-prem-vault/pull/60) | Pages anglaises corrigées d'après le français |
 
 Sur le rejeu des veilles passées, aucune proposition arrivée à la relecture n'était fausse ; les oublis sont analysés
@@ -134,21 +134,26 @@ dans le [README](../README.fr.md).
 ## Ce qu'il coûte
 
 Chaque appel au modèle est noté dans [`metrics/usage.jsonl`](../metrics/usage.jsonl), au prix catalogue. Le journal au
-9 novembre 2026 (78 $, presque tout dépensé le jour de la mise en route) :
+17 novembre 2026 (99 $, surtout dépensés le jour de la mise en route et pour la première vérification de tout le
+guide) :
 
 ```mermaid
 pie showData
   title Journal des coûts par type de passage (USD)
-  "Passes de correction" : 39.54
-  "Veilles" : 17.66
+  "Passes de correction" : 45.88
+  "Veilles" : 21.34
+  "Vérification du guide" : 18.08
   "Rejeux d'évaluation" : 10.09
-  "Vérification à la demande" : 7.25
   "Relectures croisées seules" : 3.50
 ```
 
 En régime normal, une veille avec relecture croisée de tout le guide coûte environ 4 $ ; deux par mois font environ 100 $
 par an. Écrire les 400 k tokens du guide dans le cache coûte environ 2 $, chaque appel suivant sur ce cache environ
 0,08 $ : c'est pourquoi l'agent lit tout le guide plutôt que d'utiliser un index de recherche.
+
+Ce sont des prix d'API. L'agent peut aussi passer par Claude Code connecté avec un abonnement Claude (le moteur par
+défaut quand il en trouve un) : rien n'est facturé, les appels comptent dans les limites de l'abonnement, et le
+journal garde leurs tokens avec ce qu'ils auraient coûté sur l'API.
 
 ## La suite
 
@@ -157,13 +162,18 @@ flowchart LR
   A["A. Boucler sur<br/>une vraie veille"]:::done --> B["B. Mesurer<br/>(rejeu des veilles)"]:::done
   B --> C["C. Corrections<br/>(tout le guide en contexte)"]:::done
   C --> F["F. Publication<br/>et interface web"]:::done
-  F --> D["D. Découverte<br/>(nouveaux modèles et outils)"]:::next
+  F --> G["G. N'importe quel guide,<br/>n'importe quel modèle"]:::now
+  G --> D["D. Découverte<br/>(nouveaux modèles et outils)"]:::next
   D --> E["E. Entretien des pages<br/>et des sources"]:::next
   classDef done fill:#e3f3e8,stroke:#2f7d4f,color:#123d22
+  classDef now fill:#fdf3dc,stroke:#b07a12,color:#4a3305
   classDef next fill:#f3f4f6,stroke:#8a96a0,color:#2b3a42,stroke-dasharray:4 3
 ```
 
-Les phases A, B, C et F sont faites ; la phase E l'est en partie (liens vérifiés avant publication, vérification à la
+La phase G est en cours : l'agent a été écrit pour ce seul guide, il apprend à tenir n'importe quel guide en
+Markdown, décrit par un manifeste qui lui est propre ([Brancher son guide](connect-your-guide.fr.md)), avec un choix
+de modèles et des prix dont l'origine est affichée ([le plan](modular-plan.md), en anglais). Les phases A, B, C et F
+sont faites ; la phase E l'est en partie (liens vérifiés avant publication, vérification à la
 demande). La découverte (phase D) vient ensuite : aujourd'hui, les ajouts sont listés comme pistes dans le rapport et
 laissés à l'éditeur. Détails et mesures : [ROADMAP.md](../ROADMAP.md) (en anglais).
 
@@ -171,6 +181,7 @@ laissés à l'éditeur. Détails et mesures : [ROADMAP.md](../ROADMAP.md) (en an
 
 - [README](../README.fr.md) : utilisation (interface web et ligne de commande), fonctions de LangGraph utilisées, choix
   de conception, limites.
+- [Brancher son guide](connect-your-guide.fr.md) : le manifeste d'un guide, `vault-watch init` et `doctor`.
 - [Structure du code](code.fr.md) : modules, état du graphe, appels au modèle, pause et reprise.
 - [ROADMAP.md](../ROADMAP.md) : phases, mesures, suite.
 - Le guide : [site](https://ia-on-prem.damien.becherini.fr/) · [dépôt](https://github.com/DamienBecherini/ia-on-prem-vault).

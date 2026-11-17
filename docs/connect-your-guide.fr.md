@@ -1,0 +1,171 @@
+*[English version](connect-your-guide.md)*
+
+# Brancher son guide
+
+vault-watch-agent tient à jour un guide en Markdown : il lit une veille (ce qui a changé dans le domaine), propose
+des corrections avec leurs sources, vous les fait relire, et ouvre une pull request avec celles que vous acceptez. Il
+connaît votre guide par un seul fichier à sa racine, `vault-watch.toml`. Cette page décrit ce fichier clé par clé,
+ce que chaque partie facultative débloque, et comment vérifier que tout est prêt.
+
+Le minimum pour un guide : des pages Markdown dans un dépôt git (le guide est la racine de son dépôt), et un nom et
+une langue dans son manifeste. Tout le reste est facultatif : une partie absente désactive une étape, elle ne fait
+jamais échouer un passage.
+
+## En trois commandes
+
+```bash
+vault-watch --guide ../mon-guide init      # écrit vault-watch.toml d'après ce que montre le dossier
+vault-watch --guide ../mon-guide doctor    # ce qui est prêt, ce qui manque (code de sortie 1 si un passage ne peut pas partir)
+vault-watch --guide ../mon-guide serve     # l'interface web, sur ce guide
+```
+
+`init` regarde le dossier : le dépôt GitHub de son remote `origin`, sa branche, la langue des pages, les dossiers
+qui les répètent dans une autre langue, le champ de date de leur front matter. Il laisse de côté l'outillage
+(`node_modules/`, `scripts/`, `docs/`…), les dossiers dont le nom commence par `_` (notes privées, modèles) et les
+fichiers du dépôt (`README.md`, `CLAUDE.md`…), et liste les scripts npm du guide comme pistes pour `[checks]`.
+Chaque supposition est commentée : relisez le fichier avant le premier passage. `--print` l'affiche sans l'écrire,
+`--force` remplace un manifeste existant.
+
+`doctor` vérifie le manifeste, les pages, chaque miroir, git, `gh` et le dépôt, la veille, chaque contrôle et le
+programme dont il a besoin, et le moteur (Claude Code connecté avec un abonnement, ou une clé d'API trouvée).
+
+Sans `--guide`, les commandes prennent `VAULT_PATH`, puis le dossier courant s'il contient un `vault-watch.toml`.
+Les passages de chaque guide sont rangés à part, dans un dossier à eux sous `.vault-watch/guides/` ; les réglages
+(moteur, modèles) sont communs à tous les guides.
+
+## Le manifeste
+
+Le plus petit qui serve, celui du guide d'exemple (`examples/sample-guide/`) :
+
+```toml
+schema = 1
+
+[guide]
+name = "Self-hosted notes server"
+description = "running Quillnote, a notes server, and Larkdb, its database, on a machine of your own"
+
+[content]
+language = "en"
+exclude = ["README.md"]
+modified_field = "last_modified"
+
+[watch]
+source = "file"
+path = "watch.json"
+```
+
+Un guide qui utilise toutes les parties : [`examples/manifests/ia-on-prem-vault.toml`](../examples/manifests/ia-on-prem-vault.toml).
+
+Une clé inconnue, ou une valeur du mauvais type, arrête l'agent avec un message qui nomme la clé : une faute de
+frappe ne doit pas désactiver une partie sans rien dire.
+
+### `schema`
+
+`1`, la version du format. Facultatif (1 par défaut).
+
+### `[guide]`
+
+| Clé | Obligatoire | Ce que c'est |
+| :-- | :-- | :-- |
+| `name` | oui | Le nom du guide, dans l'interface et dans les consignes du modèle. |
+| `description` | non | Le sujet du guide, en une phrase. Elle entre dans les consignes : le modèle juge la pertinence d'après elle. |
+| `repository` | non | `propriétaire/nom` sur GitHub. Sans lui, le guide est local : aucune issue lue, aucune pull request, la branche d'un passage reste sur votre machine. |
+| `site` | non | Le site publié, lié depuis l'interface. |
+| `base_branch` | non | La branche d'où partent les passages et que visent les pull requests (`main` par défaut). |
+
+### `[content]`
+
+| Clé | Obligatoire | Ce que c'est |
+| :-- | :-- | :-- |
+| `language` | oui | La langue des pages (`fr`, `en`, `de`…). Les corrections sont demandées dans cette langue. |
+| `include` | non | Motifs glob des pages (`["**/*.md", "**/*.mdx"]` par défaut). `*` reste dans un dossier, `**` traverse les dossiers. |
+| `exclude` | non | Motifs glob écartés (`["docs/**", "README.md"]`). Les dossiers qui commencent par un point (`.git`, `.agents`…) sont toujours écartés. |
+| `mirrors` | non | Copies traduites tenues au même niveau : `{ en = "en/" }` veut dire que `en/<page>` est la copie anglaise de `<page>`. Le dossier finit par `/` ; ses pages ne sont pas des pages de la langue source. |
+| `modified_field` | non | Une date du front matter qu'une correction acceptée met à la date du jour (`last_modified`). Sans elle, les dates des pages ne changent pas. |
+
+### `[watch]`
+
+D'où viennent les éléments d'une veille.
+
+| `source` | Avec | Ce que lit l'agent |
+| :-- | :-- | :-- |
+| `none` (défaut) | | Pas de veille : l'agent vérifie le guide et corrige seulement les erreurs signalées. |
+| `github-issue` | `label` (`veille` par défaut), `artifact` (`weekly-watch` par défaut) | Les issues ouvertes de `repository` qui portent cette étiquette. Le corps de l'issue contient le lien du run du workflow qui a collecté la veille (`.../actions/runs/<id>`) ; les éléments sont le `watch.json` de l'artefact `artifact` de ce run. |
+| `file` | `path` | Un `watch.json` dans le guide, ou donné en ligne de commande (`vault-watch run --watch-json`). |
+
+Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) :
+
+```json
+{
+  "until": "2026-11-02",
+  "items": [
+    { "title": "Quillnote 5.0 released: Python 3.11 required", "url": "https://example.org/quillnote/releases/5.0",
+      "triage": "keep", "date": "2026-10-28", "notes": "The minimum Python version moves to 3.11." },
+    { "title": "Larkdb security advisory", "url": "https://example.org/larkdb/advisories/7", "triage": "keep",
+      "date": "2026-10-30", "urgent": true, "severity": "High", "notes": "larkdb dump before 2.1..." }
+  ]
+}
+```
+
+Seuls les éléments `"triage": "keep"` sont lus, les urgents d'abord. `notes` est ce que le modèle lit de
+l'élément : plus il contient de faits (versions, dates, chiffres), moins le modèle doit deviner. `until` est la fin
+de la fenêtre de veille, la date du rapport du passage.
+
+### `[rules]`
+
+Vos propres consignes pour le modèle, sous forme de fichiers du guide. Sans elles, l'agent prend les siennes, dans
+[`src/vault_watch_agent/defaults/`](../src/vault_watch_agent/defaults/) : lisez-les avant d'écrire les vôtres.
+
+| Clé | Ce qu'elle règle |
+| :-- | :-- |
+| `brief` | Ce à quoi peut mener un élément de veille (rien, une correction, un ajout), les sources qui comptent, la taille d'une correction, la gravité. |
+| `translation_policy` | Comment un miroir suit les pages source (fidélité, ce qui ne se traduit jamais, front matter). Utilisée seulement avec `mirrors`. |
+
+### `[checks]`
+
+Les scripts du guide, lancés par l'agent dans une copie du guide. Chacun est facultatif : un contrôle que le guide
+ne déclare pas est « non vérifié » dans le rapport, sur l'écran de publication et dans la pull request, jamais
+« réussi ». Dans une commande, `{out}` est remplacé par le chemin d'un fichier JSON que l'agent lit ensuite.
+
+| Clé | Quand | Attendu |
+| :-- | :-- | :-- |
+| `audits` | avant la pull request, sur la copie corrigée | Code de sortie 0 quand le guide est sain. Sa sortie va dans la pull request en cas d'échec. |
+| `claims_due` | au début d'un passage (sans réseau) | `{out}` : `{"claimsDue": [{"page": "...", "claim": "...", "recheckBy": "2026-11-01"}]}`, les affirmations datées dont la date de revérification est passée. Elles sont listées dans le rapport. |
+| `sources` | avant la pull request | `{out}` : `{"sources": [{"url": "...", "citations": [{"page": "..."}], "probe": {"status": "ok", "code": 200}}]}`. Une source citée par une page corrigée dont le statut est `dead`, `server-error`, `network-error`, `timeout` ou `blocked` est signalée sur l'écran de publication. |
+| `version_floors` | après l'application des corrections | Une table `{ script = "...", file = "..." }` : `node <script> --write` met à jour `file` (les versions minimales qu'énoncent les pages), commité avec les corrections. |
+
+### `[budget]`
+
+`max_context_tokens` : un plafond de ce qu'un seul appel du modèle peut lire (le guide entier pour la
+contre-vérification). Il est lu et vérifié aujourd'hui, et appliqué à partir du M2 (tâche T2.7 de la
+[feuille de route](../ROADMAP.md)) : d'ici là, un appel lit ce qu'il lit aujourd'hui, jusqu'à la limite du modèle.
+
+## Ce que débloque chaque partie
+
+| Sans | L'agent |
+| :-- | :-- |
+| `repository` | travaille en local : pas d'issue, pas de pull request, pas de lien vers GitHub. |
+| `mirrors` | n'a pas d'étape de traduction ni de contrôle des traductions. |
+| `modified_field` | laisse les dates des pages telles quelles. |
+| `[watch]` | vérifie le guide et corrige les erreurs que vous signalez (`vault-watch fix`, « Vérifier le guide » dans l'interface). |
+| `[rules]` | suit ses consignes de veille et sa politique de traduction par défaut. |
+| un contrôle de `[checks]` | écrit « non vérifié » là où le contrôle aurait rendu compte. |
+
+La catégorie « Guide » des réglages montre la même chose pour le guide servi : chaque partie, fournie ou absente,
+et ce qu'une partie absente désactive.
+
+## Le guide d'exemple
+
+`examples/sample-guide/` est un guide inventé de douze pages, avec une erreur plantée par contrôle, et son
+manifeste utilise le moins de parties possible. Pour essayer l'agent dessus, copiez-le hors de ce dépôt (un guide
+est la racine de son propre dépôt git), puis :
+
+```bash
+cp -r examples/sample-guide ../sample-guide && cd ../sample-guide
+git init -b main && git add . && git commit -m "sample guide"
+vault-watch doctor
+vault-watch run --watch-json watch.json
+```
+
+Un passage appelle le modèle : avec le moteur Claude Code, il prend sur votre abonnement Claude ; avec le moteur
+API, il est facturé sur votre clé (voir « Moteur » dans le README).

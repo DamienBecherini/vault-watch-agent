@@ -202,8 +202,14 @@ fake model; the changelog holds the baseline.
   and its repository; its watch, rules and checks are left for the editor to fill (T1.7 does it for that guide).
 - **T1.7 The manifest of the IA on-prem guide.** A pull request of the guide adding `vault-watch.toml`; in the
   same one, the lines of its `CLAUDE.md` and of the `vault-watch` skill that still say a run is billed.
+  Done 2026-11-18: [pull request #81 of the guide](https://github.com/DamienBecherini/ia-on-prem-vault/pull/81),
+  the manifest of `examples/manifests/`, which gives the same pages, mirror, watch, rules and checks as the
+  built-in layout; the lines now say what a run costs with each engine.
 - **T1.8 Docs.** "Connect your guide": the manifest key by key, what each optional part unlocks, the sample
   guide as the worked example.
+  Done 2026-11-18: `docs/connect-your-guide.md` and its French version (the commands of the sample guide tested as
+  written), linked from the READMEs; `docs/presentation*.md` brought up to date (twelve pull requests, the cost
+  journal of 17 November, the Claude Code engine, phase G) without repeating the README.
 
 Done when: the IA on-prem guide runs a real watch with its manifest and gives the same corrections as the
 baseline run within the usual variation; the sample guide runs end to end; `init` on a repository it never saw

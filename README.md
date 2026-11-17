@@ -16,7 +16,7 @@
 
 **English** · [Français](README.fr.md)
 
-[Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+[Overview with diagrams](docs/presentation.md) · [Connect your guide](docs/connect-your-guide.md) · [How the code fits together](docs/code.md)
 
 </div>
 
@@ -100,6 +100,11 @@ python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]"   # Wind
 export VAULT_PATH=../ia-on-prem-vault                                    # local clone of the guide (default)
 export ANTHROPIC_API_KEY=...                                             # API engine only: read by the Anthropic SDK
 ```
+
+Another guide: `vault-watch --guide ../my-guide init` writes its manifest (`vault-watch.toml`), `vault-watch --guide
+../my-guide doctor` says what is ready and what is missing. The manifest, key by key, and what each optional part
+unlocks: [Connect your guide](docs/connect-your-guide.md). Node.js and `gh` are needed only when the guide's checks
+use Node and when it names a GitHub repository.
 
 ### Model engine: Claude Code on a subscription, or the API
 
