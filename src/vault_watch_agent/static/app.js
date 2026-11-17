@@ -89,6 +89,7 @@ const TEXTS = {
     linksOk: "Toutes les sources des pages modifiées répondent.",
     linksNotChecked: "Sources non vérifiées : le guide ne déclare pas d'audit des sources.",
     changes: "Modifications", doNotPublish: "Ne pas publier", publish: "Pousser et ouvrir la pull request",
+    keepLocal: "Terminer (branche gardée en local)",
     confirmNo: "Garder la branche en local sans pull request ?",
     end: {
       published: pr => `Pull request : ${pr}. Une fois relue et fusionnée sur GitHub, le site se redéploie tout seul.`,
@@ -189,6 +190,7 @@ const TEXTS = {
     linksOk: "Every source of the changed pages answers.",
     linksNotChecked: "Sources not checked: the guide declares no source audit.",
     changes: "Changes", doNotPublish: "Do not publish", publish: "Push and open the pull request",
+    keepLocal: "Finish (branch kept locally)",
     confirmNo: "Keep the branch locally, without a pull request?",
     end: {
       published: pr => `Pull request: ${pr}. Once reviewed and merged on GitHub, the site redeploys by itself.`,
@@ -482,7 +484,7 @@ async function viewPublish(r, title) {
       <pre>${diff.split("\n").map(l => `<span class="${color(l)}">${esc(l)}</span>`).join("\n") || esc(p.diffstat)}</pre></details>
     <div class="bar">
       <button id="no">${T.doNotPublish}</button>
-      <button class="primary" id="yes">${T.publish}</button>
+      <button class="primary" id="yes">${p.local ? T.keepLocal : T.publish}</button>
     </div>`;
   const send = async go => {
     page.querySelectorAll(".bar button").forEach(b => b.disabled = true);

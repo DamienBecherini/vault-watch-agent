@@ -221,7 +221,7 @@ def build(deps: Deps, checkpointer=None):
         # A group with one member that fails the check cannot be applied consistently.
         broken = {c["group"] for c in corrections if c["check"] != "ok"}
         accepted = [c["id"] for c in corrections if c["group"] in groups - broken]
-        if not accepted and state.get("issue"):
+        if not accepted and state.get("issue") and deps.repo:
             # The watch is handled: its issue closes (a PR closes it on merge otherwise, see pr_body)
             inputs.run(["gh", "issue", "close", str(state["issue"]), "--repo", deps.repo, "--comment",
                         f"Reviewed with vault-watch-agent: no correction applied ({len(corrections)} proposed)."])
@@ -332,10 +332,12 @@ def build(deps: Deps, checkpointer=None):
                 "mirror_problems": state.get("mirror_problems", []),
                 "link_problems": state.get("link_problems", []),
                 "diffstat": diffstat,
-                "question": "Push the branch and open the pull request? yes / no",
+                "local": not deps.repo,  # no repository: the branch stays on this machine
+                "question": "Push the branch and open the pull request? yes / no" if deps.repo else
+                            f"The guide has no repository: the corrections stay on the branch {state['branch']}. yes / no",
             }
         )
-        if go is not True:
+        if go is not True or not deps.repo:
             return {}
         wt = Path(state["worktree"])
         git("push", "-u", "origin", state["branch"], cwd=wt)

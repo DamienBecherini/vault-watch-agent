@@ -36,6 +36,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   what is ready and what is missing before a run: the manifest, the pages, each mirror, git (the guide must be the
   root of its repository), `gh` and the repository, the watch, each check and its program, the engine (Claude Code
   signed in with a subscription, or the API key found). Exit code 1 when something stops a run.
+- A guide without repository: « publish » keeps the branch on the machine (no push, no pull request, no issue to
+  close); the button says so. Found by running the sample guide end to end on Claude Code.
 - Docs: « Connect your guide » (`docs/connect-your-guide.md`, in French `docs/connect-your-guide.fr.md`): the
   manifest key by key, the formats the checks and the watch must produce, what each optional part unlocks, the
   sample guide as the worked example. The overview (`docs/presentation*.md`) is up to date: twelve pull requests of

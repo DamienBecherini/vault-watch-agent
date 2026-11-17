@@ -87,6 +87,10 @@ def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_pa
     assert publish["audit_ok"] is None and publish["link_problems"] is None
     body = pr_body(graph.get_state(config).values)
     assert "Guide audits: not checked" in body and "not checked (the guide declares no source audit)" in body
+    # No repository: « yes » keeps the branch on the machine, nothing is pushed
+    assert publish["local"] is True and "no repository" in publish["question"]
+    graph.invoke(Command(resume=True), config)
+    assert not graph.get_state(config).next and not graph.get_state(config).values.get("pr_url")
 
     graph.invoke(Command(resume=False), config)  # no push
     assert not graph.get_state(config).next
