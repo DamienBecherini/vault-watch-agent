@@ -1,0 +1,35 @@
+# Manifest of the IA on-prem guide (https://github.com/DamienBecherini/ia-on-prem-vault), every part used.
+# It goes to the root of that repository as vault-watch.toml (milestone M1, task T1.7).
+schema = 1
+
+[guide]
+name = "Zero to Hero: On-Premise AI"
+repository = "DamienBecherini/ia-on-prem-vault"   # where issues and pull requests go
+site = "https://ia-on-prem.damien.becherini.fr/"
+base_branch = "main"
+
+[content]
+language = "fr"                                    # the language the pages are written in
+include = ["**/*.md", "**/*.mdx"]
+exclude = ["assets/**", "docs/**", "scripts/**", "_private/**", "_templates/**", "build/**", "public/**",
+           "node_modules/**", "README.md", "CLAUDE.md", "AGENTS.md"]
+mirrors = { en = "en/" }                           # translated copies kept in step (excluded from the pages)
+modified_field = "last_modified"                   # front matter date bumped by an edit
+
+[watch]
+source = "github-issue"
+label = "veille"
+artifact = "weekly-watch"
+
+[rules]                                            # optional: the agent ships defaults
+brief = ".agents/skills/vault-watch/brief.md"
+translation_policy = ".agents/skills/vault-translate-content/references/translation-policy.md"
+
+[checks]                                           # optional, each one; {out} = a JSON file the agent reads
+audits = "node scripts/run-audits.mjs"
+claims_due = "node scripts/audit-freshness.mjs --due-only --json={out}"
+sources = "node scripts/audit-sources.mjs --concurrency=8 --timeout=15000 --json={out}"
+version_floors = { script = "scripts/audit-version-floors.mjs", file = ".agents/vault-maintenance/version-floors.json" }
+
+[budget]
+max_context_tokens = 450000

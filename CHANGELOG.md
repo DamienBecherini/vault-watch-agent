@@ -3,6 +3,13 @@
 Versions follow the milestones of [docs/modular-action-plan.md](docs/modular-action-plan.md). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased (0.3.0, M1: any guide)
+
+- `guide.py`: the manifest of a guide (`vault-watch.toml`): name, repository, site, base branch, language, pages
+  (include and exclude globs), mirrors, modified field, watch, rules, checks, budget. An unknown key or a wrong value
+  is an error that names the key. Two manifests in `examples/`: the sample guide's, and the IA on-prem guide's,
+  which finds the same 129 pages as the agent does today. Not used by the rest of the code yet (T1.2).
+
 ## 0.2.1 (2026-11-17)
 
 - The search for a replacement of a dead link gets what each page says with that source (the lines that cite it

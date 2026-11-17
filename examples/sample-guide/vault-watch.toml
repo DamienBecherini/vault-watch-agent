@@ -1,0 +1,15 @@
+# Manifest of the sample guide: the smallest useful one. Format: docs/connect-your-guide.md
+schema = 1
+
+[guide]
+name = "Self-hosted notes server"
+# no repository: local only (no issue, no pull request)
+
+[content]
+language = "en"
+exclude = ["README.md"]
+modified_field = "last_modified"
+
+[watch]
+source = "file"
+path = "watch.json"
