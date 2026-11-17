@@ -1,5 +1,6 @@
 """Command line: start a run, answer its pauses, show where it stands.
 
+    vault-watch --guide ../my-guide run --issue 50   # any command: --guide names the guide
     vault-watch run --issue 50                 # stops at the review, prints the report path
     vault-watch run --watch-json path/watch.json
     vault-watch resume <thread> --accept all   # or none, or C1,C3
@@ -8,6 +9,11 @@
 
 The run is checkpointed in SQLite: each command is a separate process, and a
 paused run waits as long as needed.
+
+The guide: --guide, else VAULT_PATH, else the current folder when it holds a vault-watch.toml, else
+../ia-on-prem-vault (the folder the agent was written for, kept so that existing set-ups go on working). Each guide
+has its working folder under VAULT_WATCH_HOME (default .vault-watch, see guide.working_folder); the settings are
+shared.
 """
 
 from __future__ import annotations
@@ -24,10 +30,42 @@ from langgraph.types import Command
 from . import vault
 from .graph import Deps, build, describe
 
-HOME = Path(os.environ.get("VAULT_WATCH_HOME", ".vault-watch")).resolve()
-VAULT = Path(os.environ.get("VAULT_PATH", "../ia-on-prem-vault")).resolve()
+CONFIG_HOME = Path(os.environ.get("VAULT_WATCH_HOME", ".vault-watch")).resolve()  # settings, shared by the guides
+VAULT = Path(".").resolve()  # the guide, and its working folder: set by use_guide() from --guide
+HOME = CONFIG_HOME
+LEGACY_FOLDER = "../ia-on-prem-vault"
 # One line per model call with its cost; versioned, it is the history of what the upkeep costs.
 JOURNAL = Path(os.environ.get("VAULT_WATCH_JOURNAL", "metrics/usage.jsonl")).resolve()
+
+
+def find_guide(option: str | None) -> Path:
+    """The guide's folder: --guide, VAULT_PATH, the current folder with a manifest, or the folder of before."""
+    from .guide import MANIFEST
+
+    if option or os.environ.get("VAULT_PATH"):
+        return Path(option or os.environ["VAULT_PATH"]).resolve()
+    if (Path.cwd() / MANIFEST).is_file():
+        return Path.cwd().resolve()
+    legacy = Path(LEGACY_FOLDER).resolve()
+    if legacy.is_dir():
+        return legacy
+    sys.exit("vault-watch: which guide? Give --guide <folder> (or VAULT_PATH), or run it from a guide's folder.")
+
+
+def use_guide(option: str | None) -> None:
+    """Sets VAULT and HOME for the commands; a wrong manifest stops here, with what to fix."""
+    global VAULT, HOME
+    from .guide import GuideError, working_folder
+
+    VAULT = find_guide(option)
+    if not VAULT.is_dir():
+        sys.exit(f"vault-watch: {VAULT} is not a folder")
+    try:
+        guide = vault.guide_of(VAULT)
+    except GuideError as e:
+        sys.exit(f"vault-watch: {e}")
+    CONFIG_HOME.mkdir(parents=True, exist_ok=True)
+    HOME = working_folder(CONFIG_HOME, guide)
 
 
 def show(graph, config) -> None:
@@ -86,7 +124,7 @@ def make_deps(thread: str, kind: str) -> Deps:
     if kind == "view":
         return Deps(vault=VAULT, home=HOME, llm=None)
     vault.sync(VAULT)
-    settings = config.load(HOME)  # read for each run: a change in the Settings page applies to the next one
+    settings = config.load(CONFIG_HOME)  # read for each run: a change in the Settings page applies to the next one
     llm, translator = create("reasoning", JOURNAL, settings), create("translator", JOURNAL, settings)
     for model in (llm, translator):
         model.run, model.kind = thread, kind
@@ -104,7 +142,8 @@ def serve(port: int, idle_exit: int = 0, notify_lang: str | None = None) -> None
     from .notify import toast
     from .web import Settings, create_app
 
-    app = create_app(Settings(vault=VAULT, home=HOME, journal=JOURNAL, make_deps=make_deps, idle_exit=idle_exit,
+    app = create_app(Settings(vault=VAULT, home=HOME, config_home=CONFIG_HOME, journal=JOURNAL, make_deps=make_deps,
+                              idle_exit=idle_exit,
                               notifier=toast if notify_lang else None, notify_lang=notify_lang or "en",
                               base_url=f"http://127.0.0.1:{port}/"))
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
@@ -123,6 +162,8 @@ def serve(port: int, idle_exit: int = 0, notify_lang: str | None = None) -> None
 def main(argv: list[str] | None = None) -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(prog="vault-watch")
+    p.add_argument("--guide", metavar="FOLDER", help="the guide's folder (default: VAULT_PATH, or the current folder "
+                   "when it has a vault-watch.toml)")
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
     src = r.add_mutually_exclusive_group(required=True)
@@ -137,7 +178,7 @@ def main(argv: list[str] | None = None) -> None:
     answer.add_argument("--retry", action="store_true", help="a run stopped by an error: run again from its last finished step")
     st = sub.add_parser("status")
     st.add_argument("thread")
-    x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole French vault")
+    x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole guide")
     x.add_argument("thread")
     f = sub.add_parser("fix", help="turn errors reported in the vault into reviewed corrections (same review and PR flow)")
     f.add_argument("thread")
@@ -145,7 +186,7 @@ def main(argv: list[str] | None = None) -> None:
     found.add_argument("--findings", type=Path, help="text file, one reported error per line")
     found.add_argument("--from-threads", help="collect the cross-check findings of these runs, e.g. issue-50e,issue-49")
     f.add_argument("--translation", action="store_true",
-                   help="translation divergences: fix the English pages against the French ones (no web, no cross-check)")
+                   help="translation divergences: fix the mirror pages against the source ones (no web, no cross-check)")
     e = sub.add_parser("eval", help="replay a past watch on the vault as it was, score it against the merged PR")
     e.add_argument("--issue", type=int, required=True)
     e.add_argument("--at", required=True, help="vault commit to replay on (before the human's PR)")
@@ -162,6 +203,8 @@ def main(argv: list[str] | None = None) -> None:
     w.add_argument("--notify", choices=["fr", "en"], help="desktop notification (Windows) when a run waits for you, ends or fails")
     args = p.parse_args(argv)
 
+    if args.cmd != "costs":
+        use_guide(args.guide)
     if args.cmd == "serve":
         serve(args.port, args.idle_exit, args.notify)
         return
@@ -178,7 +221,7 @@ def main(argv: list[str] | None = None) -> None:
         from .llm import create
 
         live = args.cmd != "status"
-        settings = config.load(HOME) if live else None
+        settings = config.load(CONFIG_HOME) if live else None
         deps = Deps(
             vault=VAULT,
             home=HOME,

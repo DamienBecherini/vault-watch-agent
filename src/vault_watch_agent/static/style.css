@@ -72,6 +72,7 @@ nav a.active { color: var(--text); border-color: var(--accent); }
 main { max-width: 980px; margin: 0 auto; padding: 24px 16px 96px; }
 .cfg-row { display: grid; grid-template-columns: minmax(120px, 32%) 1fr; gap: 8px; padding: 4px 0; overflow-wrap: anywhere; }
 .cfg-row .cfg-label { color: var(--muted); }
+.guide-name { font-size: 13px; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 footer { max-width: 980px; margin: -72px auto 0; padding: 0 16px 24px; color: var(--muted); font-size: 12px; }
 h1 { font-size: 22px; margin: 0 0 4px; }
 h2 { font-size: 17px; margin: 32px 0 12px; }

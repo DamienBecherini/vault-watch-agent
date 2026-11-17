@@ -194,3 +194,39 @@ def test_a_guide_without_rules_gets_the_agent_defaults(tmp_path):
     later = time.time() + 5
     os.utime(root / "vault-watch.toml", (later, later))
     assert 'path="rules.md"' in prompts.triage(root) and "Our own brief" in prompts.triage(root)
+
+
+def test_each_guide_has_its_working_folder_and_the_old_runs_stay_where_they_are(tmp_path):
+    from vault_watch_agent.guide import working_folder
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / "checkpoints.sqlite").write_text("", encoding="utf-8")  # runs made before manifests
+    old = legacy(tmp_path / "ia-on-prem-vault")
+    assert working_folder(home, old) == home  # claimed once, recorded in guide.json
+    assert working_folder(home, old) == home and (home / "guide.json").is_file()
+    sample = parse(minimal(guide={"repository": "someone/notes-guide"}), tmp_path / "notes")
+    assert working_folder(home, sample) == home / "guides" / "someone-notes-guide"
+    local = parse(minimal(), tmp_path / "my guide")
+    assert working_folder(home, local) == home / "guides" / "my-guide"
+
+
+def test_the_command_line_finds_the_guide(tmp_path, monkeypatch):
+    from vault_watch_agent import cli
+    guide = tmp_path / "g"
+    guide.mkdir()
+    (guide / "vault-watch.toml").write_text('[guide]\nname = "G"\n[content]\nlanguage = "en"\n', encoding="utf-8")
+    monkeypatch.delenv("VAULT_PATH", raising=False)
+    monkeypatch.chdir(guide)
+    assert cli.find_guide(None) == guide.resolve()  # the current folder, with its manifest
+    monkeypatch.setenv("VAULT_PATH", str(tmp_path))
+    assert cli.find_guide(None) == tmp_path.resolve() and cli.find_guide(str(guide)) == guide.resolve()
+    monkeypatch.setattr(cli, "CONFIG_HOME", tmp_path / "home")
+    cli.use_guide(str(guide))
+    assert cli.VAULT == guide.resolve() and cli.HOME == tmp_path / "home" / "guides" / "g"
+    (guide / "vault-watch.toml").write_text('[guide]\nname = "G"\n', encoding="utf-8")
+    import os
+    import time
+    later = time.time() + 5
+    os.utime(guide / "vault-watch.toml", (later, later))
+    with pytest.raises(SystemExit, match="language is required"):
+        cli.use_guide(str(guide))

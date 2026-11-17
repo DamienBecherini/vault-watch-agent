@@ -193,6 +193,8 @@ fake model; the changelog holds the baseline.
   agent's home, one folder per guide (the name of its repository); the web interface serves one guide per
   process, its name in the header. `VAULT_PATH` and the current `.vault-watch/` keep working (moved once, with a
   message).
+  Done 2026-11-18, with one change: nothing is moved. The runs of before stay in `.vault-watch/` for the guide they
+  belong to (`guide.json`), because their worktrees are registered in the guide's repository with their path.
 - **T1.6 `vault-watch init`.** Looks at a repository (remote, default branch, folders, front matter, scripts) and
   writes a manifest with what it found and comments for what it did not; `vault-watch doctor` lists, step by
   step, what will run and what will be skipped, and what is missing on the machine (`gh`, `node`, `claude`).

@@ -32,6 +32,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - Default rules shipped with the agent (`src/vault_watch_agent/defaults/`): a watch brief (sources by tier, what a
   correction and an addition are, severity) and a translation policy, written from the IA on-prem ones without what
   is specific to that guide. A guide without `[rules]` gets them.
+- `--guide FOLDER` on every command. Without it: `VAULT_PATH`, then the current folder when it has a
+  `vault-watch.toml`, then `../ia-on-prem-vault` as before. Each guide has its working folder (checkpoints,
+  worktrees, verifications) under `.vault-watch/guides/<repository>/`; the runs made before stay in `.vault-watch/`
+  for the guide they belong to (recorded in `.vault-watch/guide.json`, nothing moved); the settings are shared. The
+  page shows the name of its guide in the header and the tab title. A wrong manifest stops the command with the key
+  to fix.
 
 ## 0.2.1 (2026-11-17)
 

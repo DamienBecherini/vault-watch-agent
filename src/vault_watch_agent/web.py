@@ -65,7 +65,7 @@ def _version() -> str:
 @dataclass
 class Settings:
     vault: Path
-    home: Path
+    home: Path  # the guide's working folder: checkpoints, verifications, worktrees
     journal: Path
     make_deps: Callable[[str, str], Deps]  # (thread, kind) -> Deps with its own model clients
     list_issues: Callable[[], list[dict]] | None = None  # watch issues; default: gh
@@ -76,6 +76,7 @@ class Settings:
     notify_lang: str = "en"
     base_url: str = "http://127.0.0.1:4430/"
     idle_exit: int = 0  # seconds of inactivity before `serve --idle-exit` stops the server (0: never)
+    config_home: Path | None = None  # where the user's settings are (shared by the guides); None: `home`
 
 
 @dataclass
@@ -127,6 +128,7 @@ def create_app(settings: Settings) -> FastAPI:
     guide = vault.guide_of(settings.vault)  # the repository and the site shown, unless given
     settings.repo, settings.site = settings.repo or guide.repository, settings.site or guide.site
     settings.home.mkdir(parents=True, exist_ok=True)
+    cfg_home = settings.config_home or settings.home  # the user's settings
     db = settings.home / "checkpoints.sqlite"
     saver = SqliteSaver(sqlite3.connect(db, check_same_thread=False))
     jobs: dict[str, Job] = {}
@@ -313,13 +315,14 @@ def create_app(settings: Settings) -> FastAPI:
     def engine_now() -> str:
         """The engine the next run would use; "" when the settings cannot be read (the Settings page says why)."""
         try:
-            return llm.engine(user_settings.load(settings.home)["engine"])
+            return llm.engine(user_settings.load(cfg_home)["engine"])
         except (user_settings.ConfigError, llm.ModelError):
             return ""
 
     @app.get("/api/info")
     def info():
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
+                "guide": guide.name,
                 "version": _version()}
 
     # -- settings of the user (config.py): engine, reference to the API key, models -----------------
@@ -342,7 +345,7 @@ def create_app(settings: Settings) -> FastAPI:
     def models_view(key: str = ""):
         """The Claude models the API key can use, read from the Models API (`key`: a reference to try before saving
         it, else the one of the settings); without a key that answers, the models known to the agent and why."""
-        reference = key or user_settings.load(settings.home)["key"]
+        reference = key or user_settings.load(cfg_home)["key"]
         try:
             return {"source": "api", "models": llm.list_models(reference), "error": ""}
         except (llm.ModelError, user_settings.ConfigError) as e:
@@ -353,14 +356,14 @@ def create_app(settings: Settings) -> FastAPI:
     @app.get("/api/settings")
     def settings_get():
         try:
-            return settings_view(user_settings.load(settings.home))
+            return settings_view(user_settings.load(cfg_home))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(500, str(e)) from e
 
     @app.post("/api/settings")
     def settings_save(body: UserSettings):
         try:
-            return settings_view(user_settings.save(settings.home, body.model_dump()))
+            return settings_view(user_settings.save(cfg_home, body.model_dump()))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e
 
@@ -588,7 +591,7 @@ def create_app(settings: Settings) -> FastAPI:
                 known["dead"] = len(r["sources"].get("dead", []))
             if "claims" not in known and "freshness" in r:
                 known["claims"] = len(r["freshness"].get("claims", []))
-        models = user_settings.load(settings.home)["models"]  # the models of the user's settings, shown and priced
+        models = user_settings.load(cfg_home)["models"]  # the models of the user's settings, shown and priced
         est = verify.estimates(settings.vault, known, models)
         name = {verify.MODEL: models["reasoning"], verify.TRANSLATOR: models["translator"]}
         return [{"id": c.id, "title": c.title, "what": c.what, "model": name.get(c.model, c.model), "needs": list(c.needs),

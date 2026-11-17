@@ -231,6 +231,27 @@ def matches(path: str, pattern: str) -> bool:
     return re.fullmatch(out, path) is not None
 
 
+def working_folder(home: Path, guide: Guide) -> Path:
+    """Where the agent keeps the runs of `guide` (checkpoints, worktrees, verifications, downloads): a folder of its
+    own under `home`, named after its repository (or its folder). The settings (engine, models) stay in `home`,
+    shared by every guide.
+
+    The runs made before manifests are in `home` itself: they stay there for the guide they belong to, recorded in
+    `home/guide.json` (written the first time, for a guide without manifest, the only kind that existed). Nothing is
+    moved: the worktrees of those runs are registered in the guide's repository with their path."""
+    import json
+
+    marker, root = home / "guide.json", str(guide.root.resolve())
+    if marker.is_file():
+        if json.loads(marker.read_text(encoding="utf-8")).get("root") == root:
+            return home
+    elif (home / "checkpoints.sqlite").is_file() and not guide.from_manifest:
+        marker.write_text(json.dumps({"root": root}), encoding="utf-8")
+        return home
+    name = guide.repository.replace("/", "-") or guide.root.resolve().name
+    return home / "guides" / re.sub(r"[^\w.-]+", "-", name).strip("-")
+
+
 # -- helpers ------------------------------------------------------------------------------------------------
 def _text(table: dict, name: str, key: str, required: bool = False) -> str:
     value = table.get(key, "")
