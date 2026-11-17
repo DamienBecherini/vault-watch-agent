@@ -1,5 +1,7 @@
 """Command line: start a run, answer its pauses, show where it stands.
 
+    vault-watch --guide ../my-guide init       # write the guide's vault-watch.toml from what its folder shows
+    vault-watch --guide ../my-guide doctor     # what is ready for a run, what is missing
     vault-watch --guide ../my-guide run --issue 50   # any command: --guide names the guide
     vault-watch run --issue 50                 # stops at the review, prints the report path
     vault-watch run --watch-json path/watch.json
@@ -66,6 +68,34 @@ def use_guide(option: str | None) -> None:
         sys.exit(f"vault-watch: {e}")
     CONFIG_HOME.mkdir(parents=True, exist_ok=True)
     HOME = working_folder(CONFIG_HOME, guide)
+
+
+def onboarding(args) -> None:
+    """init and doctor: they work on a guide that has no manifest yet, or a wrong one, so they do not go through
+    use_guide(). The guide is --guide, VAULT_PATH or the current folder (never the folder of before)."""
+    from . import onboard
+
+    root = Path(args.guide or os.environ.get("VAULT_PATH") or ".").resolve()
+    if not root.is_dir():
+        sys.exit(f"vault-watch: {root} is not a folder")
+    if args.cmd == "init":
+        if args.print:
+            print(onboard.propose(root), end="")
+            return
+        try:
+            path = onboard.write(root, force=args.force)
+        except (FileExistsError, ValueError) as e:
+            sys.exit(f"vault-watch: {e}")
+        print(f"vault-watch: wrote {path}. Check each line, then run `vault-watch --guide {root} doctor`.")
+        return
+    lines = onboard.diagnose(root, CONFIG_HOME)
+    print(f"vault-watch doctor: {root}")
+    for line in lines:
+        print(line)
+    failed = sum(line.status == "fail" for line in lines)
+    print("Ready for a run." if not failed else f"{failed} problem(s) to fix before a run.")
+    if failed:
+        sys.exit(1)
 
 
 def show(graph, config) -> None:
@@ -165,6 +195,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--guide", metavar="FOLDER", help="the guide's folder (default: VAULT_PATH, or the current folder "
                    "when it has a vault-watch.toml)")
     sub = p.add_subparsers(dest="cmd", required=True)
+    i = sub.add_parser("init", help="write vault-watch.toml in the guide's folder (--guide, or the current folder)")
+    i.add_argument("--force", action="store_true", help="replace an existing vault-watch.toml")
+    i.add_argument("--print", action="store_true", help="print the manifest instead of writing it")
+    sub.add_parser("doctor", help="check the guide, its manifest and the engine before a first run")
     r = sub.add_parser("run")
     src = r.add_mutually_exclusive_group(required=True)
     src.add_argument("--issue", type=int)
@@ -203,6 +237,9 @@ def main(argv: list[str] | None = None) -> None:
     w.add_argument("--notify", choices=["fr", "en"], help="desktop notification (Windows) when a run waits for you, ends or fails")
     args = p.parse_args(argv)
 
+    if args.cmd in ("init", "doctor"):
+        onboarding(args)
+        return
     if args.cmd != "costs":
         use_guide(args.guide)
     if args.cmd == "serve":

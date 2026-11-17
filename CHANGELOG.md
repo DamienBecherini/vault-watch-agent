@@ -29,6 +29,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   a missing one switches off. Without a manifest it says the guide is read as the IA on-prem guide.
 - A check the guide does not declare reads « not checked » on the publish screen and in the pull request (audits
   and source audit), instead of « passed » or « all answer ».
+- `vault-watch init` writes the manifest of a guide from what its folder shows: the GitHub repository of its
+  remote, its branch, the language of its pages, the folders that mirror them, the date field of their front
+  matter, the tooling and the `_` folders (private notes, templates) left out, its npm scripts as hints for
+  `[checks]`; each guess is commented, and what it writes is loaded before it is written. `vault-watch doctor` lists
+  what is ready and what is missing before a run: the manifest, the pages, each mirror, git (the guide must be the
+  root of its repository), `gh` and the repository, the watch, each check and its program, the engine (Claude Code
+  signed in with a subscription, or the API key found). Exit code 1 when something stops a run.
 - Default rules shipped with the agent (`src/vault_watch_agent/defaults/`): a watch brief (sources by tier, what a
   correction and an addition are, severity) and a translation policy, written from the IA on-prem ones without what
   is specific to that guide. A guide without `[rules]` gets them.

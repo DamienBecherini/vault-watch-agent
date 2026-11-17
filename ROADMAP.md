@@ -198,6 +198,8 @@ fake model; the changelog holds the baseline.
 - **T1.6 `vault-watch init`.** Looks at a repository (remote, default branch, folders, front matter, scripts) and
   writes a manifest with what it found and comments for what it did not; `vault-watch doctor` lists, step by
   step, what will run and what will be skipped, and what is missing on the machine (`gh`, `node`, `claude`).
+  Done 2026-11-18 (`onboard.py`). Run on the IA on-prem guide, `init` finds its 129 pages, `en/`, `last_modified`
+  and its repository; its watch, rules and checks are left for the editor to fill (T1.7 does it for that guide).
 - **T1.7 The manifest of the IA on-prem guide.** A pull request of the guide adding `vault-watch.toml`; in the
   same one, the lines of its `CLAUDE.md` and of the `vault-watch` skill that still say a run is billed.
 - **T1.8 Docs.** "Connect your guide": the manifest key by key, what each optional part unlocks, the sample
