@@ -187,6 +187,8 @@ fake model; the changelog holds the baseline.
 - **T1.4 Default rules.** A brief and a translation policy shipped with the agent (`src/…/defaults/`), written
   from the IA on-prem ones without what is specific to it; the prompts no longer assume French (the language of
   the manifest is named in them).
+  Done 2026-11-18 (`defaults/brief.md`, `defaults/translation-policy.md`; the prompts name the guide's language
+  since T1.2).
 - **T1.5 Several guides.** `--guide <path>` on every command; the home of a guide is `.vault-watch/` under the
   agent's home, one folder per guide (the name of its repository); the web interface serves one guide per
   process, its name in the header. `VAULT_PATH` and the current `.vault-watch/` keep working (moved once, with a

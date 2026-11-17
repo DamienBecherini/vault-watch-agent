@@ -11,6 +11,10 @@ from pathlib import Path
 from .guide import Guide, language_name
 from .vault import guide_of
 
+DEFAULTS = Path(__file__).resolve().parent / "defaults"  # the rules of a guide that gives none ([rules] in its manifest)
+DEFAULT_BRIEF = DEFAULTS / "brief.md"
+DEFAULT_TRANSLATION_POLICY = DEFAULTS / "translation-policy.md"
+
 
 def describe(g: Guide) -> str:
     """The guide in two sentences: what and in which language, and its mirrors."""
@@ -34,10 +38,11 @@ def fill(text: str, vault: Path, mirror: str | None = None) -> str:
     return text
 
 
-def _contract(g: Guide, path: Path | None) -> str:
+def _contract(g: Guide, path: Path | None, default: Path) -> str:
+    """The guide's own rule file, or the agent's default when the guide gives none."""
     if path is None or not path.is_file():
-        return ""
-    rel = path.relative_to(g.root).as_posix() if path.is_relative_to(g.root) else path.name
+        path = default
+    rel = path.relative_to(g.root).as_posix() if path.is_relative_to(g.root) else f"vault-watch default: {path.name}"
     return f"\n\n<vault_contract path=\"{rel}\">\n{path.read_text(encoding='utf-8')}\n</vault_contract>"
 
 
@@ -45,7 +50,7 @@ def triage(vault: Path) -> str:
     g = guide_of(vault)
     return f"""{describe(g)}
 
-You triage the items of the biweekly ecosystem watch, following the vault's watch contract below.
+You triage the items of the ecosystem watch, following the guide's watch contract below.
 A deterministic script has already applied the pre-triage it describes.
 
 For each item, decide:
@@ -57,7 +62,7 @@ For each item, decide:
 
 For correct and addition, give search terms: the exact tool, model or product names as the vault would
 write them (e.g. "vLLM", "DGX Spark", "LiteLLM"), not generic words. Answer for every item id.
-The contract's steps about issues, reports and agents are run by the surrounding program, not by you.{_contract(g, g.brief)}"""
+The contract's steps about issues, reports and agents are run by the surrounding program, not by you.{_contract(g, g.brief, DEFAULT_BRIEF)}"""
 
 
 def propose(vault: Path) -> str:
@@ -65,7 +70,7 @@ def propose(vault: Path) -> str:
     return f"""{describe(g)}
 
 You verify a group of watch items against the vault and propose corrections, following the vault's watch
-contract below ("Per kept item"). The items are grouped because they touch the same pages (often several
+contract below (what to do with each kept item). The items are grouped because they touch the same pages (often several
 advisories or releases of one tool): decide for the group as a whole.
 
 Rules:
@@ -83,7 +88,7 @@ Rules:
   changes a decision (version, price, availability, support); Minor = wording or a detail.
 - Corrections that only make sense together (a sentence that cites a new footnote, and that footnote)
   share a `group` label, so the reviewer accepts or refuses them as one.
-- Zero, one or a few corrections. Do not rewrite paragraphs.{_contract(g, g.brief)}"""
+- Zero, one or a few corrections. Do not rewrite paragraphs.{_contract(g, g.brief, DEFAULT_BRIEF)}"""
 
 
 def mirror(vault: Path, language: str) -> str:
@@ -97,4 +102,4 @@ For each {source} edit (old text → new text), find the passage of the {target}
 {source} text, copy it verbatim as `current`, and give in `proposed` the faithful {target} translation of the
 new {source} text, in the same Markdown, with the same links, footnote markers and URLs.
 Translate only what changed; keep the rest of the {target} passage as it is. If the {target} page has no
-passage matching an edit, say so in `problem` instead of inventing one.{_contract(g, g.translation_policy)}"""
+passage matching an edit, say so in `problem` instead of inventing one.{_contract(g, g.translation_policy, DEFAULT_TRANSLATION_POLICY)}"""

@@ -179,3 +179,18 @@ def test_no_string_of_the_ia_on_prem_guide_left_in_the_code():
         for needle in ("ia-on-prem-vault", "ia-on-prem.damien", "French-language guide", "on-premise for SMEs",
                        '"en/', "scripts/run-audits", "scripts/audit-"):
             assert needle not in text, f"{path.name}: {needle}"
+
+
+def test_a_guide_without_rules_gets_the_agent_defaults(tmp_path):
+    from vault_watch_agent import prompts
+    root = _guide(tmp_path, 'mirrors = { es = "es/" }\n')
+    assert 'path="vault-watch default: brief.md"' in prompts.triage(root) and "Tier A" in prompts.propose(root)
+    assert 'path="vault-watch default: translation-policy.md"' in prompts.mirror(root, "es")
+    (root / "rules.md").write_text("# Our own brief\n", encoding="utf-8")
+    (root / "vault-watch.toml").write_text('[guide]\nname = "G"\n[content]\nlanguage = "de"\n[rules]\nbrief = "rules.md"\n',
+                                          encoding="utf-8")
+    import os
+    import time
+    later = time.time() + 5
+    os.utime(root / "vault-watch.toml", (later, later))
+    assert 'path="rules.md"' in prompts.triage(root) and "Our own brief" in prompts.triage(root)

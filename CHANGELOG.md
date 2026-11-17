@@ -29,6 +29,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   a missing one switches off. Without a manifest it says the guide is read as the IA on-prem guide.
 - A check the guide does not declare reads « not checked » on the publish screen and in the pull request (audits
   and source audit), instead of « passed » or « all answer ».
+- Default rules shipped with the agent (`src/vault_watch_agent/defaults/`): a watch brief (sources by tier, what a
+  correction and an addition are, severity) and a translation policy, written from the IA on-prem ones without what
+  is specific to that guide. A guide without `[rules]` gets them.
 
 ## 0.2.1 (2026-11-17)
 
