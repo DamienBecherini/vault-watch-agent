@@ -23,7 +23,7 @@ const TEXTS = {
       needs: ids => `lance aussi : ${ids}`,
       start: c => `Lancer la vérification · ${c}`, history: "Vérifications précédentes",
       none: "Aucune vérification pour l'instant.", running: "En cours…", leads: n => `${n} piste(s)`,
-      waiting: "en attente", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
+      waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       claims: "Affirmations à revérifier", pagesDue: "Pages à revoir", log: "Journal",
@@ -122,7 +122,7 @@ const TEXTS = {
       needs: ids => `also runs: ${ids}`,
       start: c => `Run the check · ${c}`, history: "Previous checks",
       none: "No check yet.", running: "Running…", leads: n => `${n} lead(s)`,
-      waiting: "waiting", ok: "all clear", problems: "to look at", failed: "could not run",
+      waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
@@ -567,7 +567,7 @@ async function viewCheck(id) {
   const list = (title, items) => items && items.length ? `<details><summary>${title} (${items.length})</summary><ul>${items.map(x => `<li>${x}</li>`).join("")}</ul></details>` : "";
   page.innerHTML = `
     <h1>${V.title} · ${new Date(v.started * 1000).toLocaleString(lang)} ${checkBadge(v)}</h1>
-    <p class="subtitle">${V.cost(dollars(v.cost))} · ${V.counts(v.counts)}</p>
+    <p class="subtitle">${V.cost(dollars(v.cost))} · ${V.counts(v.counts)}${v.commit ? ` · main @ <code>${esc(v.commit)}</code>` : ""}</p>
     ${v.error ? `<p class="error-text">${esc(v.error)}</p>` : ""}
     ${Object.keys(v.runs).length ? `<h2>${V.fixRuns}</h2>${Object.entries(v.runs).map(([t, run]) => `
       <div class="card row${FINISHED.includes(run.status) ? " finished" : ""}"><div class="grow"><b>${esc(t)}</b>
@@ -579,7 +579,8 @@ async function viewCheck(id) {
     ${v.checks.map(c => {
       const r = v.results[c];
       // A check whose findings are all handled (sent or dismissed) is done, even if it found problems
-      const stateBadge = !r ? `<span class="badge neutral">${v.running ? V.waiting : "—"}</span>`
+      const stateBadge = !r && v.running && v.current === c ? `<span class="badge attention">${V.checking}</span>`
+        : !r ? `<span class="badge neutral">${v.running ? V.waiting : "—"}</span>`
         : r.summary?.startsWith("could not run") ? `<span class="badge error">${V.failed}</span>`
         : r.findings?.length && !r.open ? `<span class="badge ok">${V.handled}</span>`
         : `<span class="badge ${r.ok ? "ok" : "attention"}">${r.ok ? V.ok : r.open ? V.toHandle(r.open) : V.problems}</span>`;

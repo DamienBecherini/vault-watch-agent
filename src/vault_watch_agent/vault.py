@@ -218,6 +218,23 @@ def sync(vault: Path, base: str = "main") -> None:
         inputs.run(["git", "fetch", "-q", "origin", f"{base}:{base}"], cwd=vault)  # fast-forward only
 
 
+def reading_copy(vault: Path, home: Path, base: str = "main") -> Path:
+    """The guide as it is on `base`, up to date with origin, for what reads the pages without changing them (a
+    verification, the proposals for reported errors). The folder of the guide may be on another branch, or hold work
+    in progress: reading it gave findings on text already corrected on `base` (17/11/2026, after the merge of #78).
+    A worktree of the agent, detached at `base`, reset at each call."""
+    sync(vault, base)
+    copy = home / "worktrees" / f"read-{base}"
+    if not (copy / ".git").exists():
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        inputs.run(["git", "worktree", "prune"], cwd=vault)  # a copy deleted by hand is still registered
+        inputs.run(["git", "worktree", "add", "-q", "--detach", str(copy), base], cwd=vault)
+    else:
+        inputs.run(["git", "checkout", "-q", "--detach", "--force", base], cwd=copy)
+        inputs.run(["git", "clean", "-q", "-fd"], cwd=copy)
+    return copy
+
+
 def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> None:
     """Replace the single occurrence and bump `last_modified` in the frontmatter."""
     path = vault / page

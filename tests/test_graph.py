@@ -347,6 +347,35 @@ def test_pr_closes_the_watch_issue():
     assert "Closes" not in pr_body({**state, "issue": None})  # fix runs have no issue
 
 
+def test_the_reading_copy_is_main_up_to_date_whatever_the_folder_holds(setup):
+    deps, _, _ = setup
+    origin = deps.vault.parent / "origin.git"
+    sh("git", "clone", "-q", "--bare", str(deps.vault), str(origin), cwd=deps.vault.parent)
+    sh("git", "remote", "add", "origin", str(origin), cwd=deps.vault)
+    # The folder of the guide on a branch of its own, with a change not committed
+    sh("git", "checkout", "-q", "-b", "elsewhere", cwd=deps.vault)
+    (deps.vault / "03-stack" / "engines.md").write_text("work in progress\n", encoding="utf-8")
+    # A pull request merged on origin meanwhile
+    other = deps.vault.parent / "other"
+    sh("git", "clone", "-q", str(origin), str(other), cwd=deps.vault.parent)
+    (other / "merged.md").write_text("merged elsewhere\n", encoding="utf-8")
+    sh("git", "add", ".", cwd=other)
+    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "merged PR", cwd=other)
+    sh("git", "push", "-q", "origin", "main", cwd=other)
+
+    copy = vault.reading_copy(deps.vault, deps.home)
+    assert (copy / "merged.md").is_file()  # what origin merged
+    assert "vLLM 0.31" in (copy / "03-stack" / "engines.md").read_text(encoding="utf-8")  # not the folder's work
+    assert (deps.vault / "03-stack" / "engines.md").read_text(encoding="utf-8") == "work in progress\n"  # untouched
+
+    (copy / "stray.md").write_text("left by a script\n", encoding="utf-8")  # a later call starts clean again
+    (other / "merged.md").write_text("merged again\n", encoding="utf-8")
+    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "second PR", cwd=other)
+    sh("git", "push", "-q", "origin", "main", cwd=other)
+    assert vault.reading_copy(deps.vault, deps.home) == copy
+    assert (copy / "merged.md").read_text(encoding="utf-8") == "merged again\n" and not (copy / "stray.md").exists()
+
+
 def test_sync_fast_forwards_main_before_a_run(setup):
     deps, _, _ = setup
     origin = deps.vault.parent / "origin.git"

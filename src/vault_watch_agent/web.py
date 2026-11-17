@@ -38,7 +38,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, inputs, llm, verify
+from . import costs, fix, inputs, llm, vault, verify
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -487,12 +487,13 @@ def create_app(settings: Settings) -> FastAPI:
 
         def work(graph, job: Job):
             deps = settings.make_deps(thread, "fix")
+            guide = vault.reading_copy(settings.vault, settings.home)  # main up to date, whatever the folder holds
             if body.mode == "translation":
-                items, proposal, usage = fix.propose_translation(settings.vault, findings, deps.translator or deps.llm,
+                items, proposal, usage = fix.propose_translation(guide, findings, deps.translator or deps.llm,
                                                                  excerpts)
                 label = "translation divergences reported in the interface"
             else:
-                items, proposal, usage = fix.propose(settings.vault, findings, deps.llm, excerpts=excerpts)
+                items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
                 label = "errors reported in the interface"
             job.events.append({"t": time.time(), "node": "propose", "cost": round(usage.get("cost_usd", 0.0), 2)})
             graph.update_state(config(thread), fix.initial_state(label, items, proposal, usage, thread, body.mode),
@@ -520,6 +521,9 @@ def create_app(settings: Settings) -> FastAPI:
         data = json.loads(path.read_text(encoding="utf-8"))
         job = jobs.get(data["id"])
         data["running"] = bool(job and not job.done)
+        # The check being run: the last one started (the page marks it « running » instead of « waiting »)
+        started = [e["node"][6:] for e in (job.events if data["running"] else []) if e.get("node", "").startswith("start:")]
+        data["current"] = started[-1] if started else ""
         data["error"] = (job.error if job else "") or data.get("error", "")
         handled = data.setdefault("handled", {})
         every = [f for r in data["results"].values() for f in r.get("findings", [])]
@@ -606,13 +610,16 @@ def create_app(settings: Settings) -> FastAPI:
         def work(graph, job: Job):
             deps = settings.make_deps(vid, "verify")
             work_dir.mkdir(exist_ok=True)
+            # The guide as merged (main, up to date with origin), not the folder: it may be on another branch
+            guide = vault.reading_copy(settings.vault, settings.home)
+            data["commit"] = inputs.run(["git", "rev-parse", "--short", "HEAD"], cwd=guide).strip()
             try:
                 for step in steps:
                     check = verify.BY_ID[step]
                     model = None if not check.model else (deps.translator or deps.llm) if check.model == verify.TRANSLATOR else deps.llm
                     job.events.append({"t": time.time(), "node": f"start:{step}"})
                     try:
-                        result = verify.RUNNERS[step](settings.vault, work_dir, data["results"], model)
+                        result = verify.RUNNERS[step](guide, work_dir, data["results"], model)
                     except Exception as e:  # one check failing does not stop the others
                         result = {"ok": False, "summary": f"could not run: {type(e).__name__}: {e}"[:500], "findings": []}
                     result["fixable"] = check.fixable

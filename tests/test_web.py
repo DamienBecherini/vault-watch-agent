@@ -100,6 +100,7 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
             break
         time.sleep(0.05)
     assert v["checks"] == ["freshness", "coherence", "claims"]  # claims needs the freshness script first
+    assert v["current"] == "" and len(v["commit"]) >= 7  # nothing running any more; the commit of main it read
     assert v["results"]["coherence"]["findings"] == ["[Major] 03-stack/engines.md: floor differs from another page"]
     exact, invented = v["results"]["coherence"]["excerpts"][v["results"]["coherence"]["findings"][0]]
     assert exact["match"] == "exact" and exact["line"] == 6 and invented["match"] == "missing"

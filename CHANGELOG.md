@@ -7,6 +7,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 - One version, read from `vault_watch_agent.__version__` by `pyproject.toml`, `/api/health`, `/api/info` and the page
   footer (an install left in `site-packages` no longer shows its own version when the source runs).
+- A verification and the proposals for reported errors read the guide as merged: `main` brought up to date with
+  origin, in a copy of the agent (`.vault-watch/worktrees/read-main`), whatever branch or work in progress the folder
+  of the guide holds. They read that folder before: on 17/11, still on an old branch, it lacked the corrections just
+  merged (#78). The page of a verification shows the commit it read, and which check is running.
+- Header: a link « Claude API » to the billing page of the Claude Platform.
 - CI: the tests on Linux and Windows, Python 3.11 and 3.12 (`.github/workflows/tests.yml`).
 - Sample guide (`examples/sample-guide/`): twelve pages about a made-up notes server, planted errors, a watch of eight
   items; a run with a fake model goes through it (`tests/test_sample_guide.py`).
@@ -18,7 +23,7 @@ What every later milestone is compared with (2026-11-17).
 | What | Value |
 | :-- | :-- |
 | Tests | 75 passing (Windows, Python 3.12) |
-| First full run on Claude Code (subscription) | not run yet (watch #77) |
+| First full run after the two engines (watch #77, API engine) | 11 corrections, all applied; $3.44; merged as #78 |
 
 Published `eval` scores (`metrics/eval/`, model engine: API):
 
