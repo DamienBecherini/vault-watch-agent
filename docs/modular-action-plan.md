@@ -45,6 +45,11 @@ Nothing visible changes; everything after depends on it.
   planted error per check (a stale version, a contradiction between two pages, a dead link), a `watch.json` of
   eight items, no script, no mirror. A fixture copies it into a temporary git repository; `test_graph.py` and
   `test_web.py` use it instead of building their own.
+  Done 17/11 (`tests/conftest.py`, `tests/test_sample_guide.py`): a whole run with a fake model finds the planted
+  version and port. The fixture still adds a stub `audit-freshness.mjs`, and the test pins what a guide without a
+  mirror or scripts gets today (problems reported at the publish step). Moved to M1 (T1.2): `test_graph.py` and
+  `test_web.py` on the sample guide, since they test the French source, the mirror and the scripts, which become
+  optional there; the prompts also still say the guide is French.
 - **T0.5 Contributor entry.** `CONTRIBUTING.md` (set up, tests, the sample guide, commit style, how a change is
   proposed); issue templates (bug, guide not supported, engine request).
 

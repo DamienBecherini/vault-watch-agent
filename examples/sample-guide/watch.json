@@ -1,0 +1,57 @@
+{
+  "until": "2026-11-02",
+  "items": [
+    {
+      "title": "Quillnote 5.0 released: Python 3.11 required",
+      "url": "https://example.org/quillnote/releases/5.0",
+      "triage": "keep",
+      "date": "2026-10-28",
+      "notes": "New major version; the minimum Python version moves to 3.11."
+    },
+    {
+      "title": "Larkdb 2.1: default port unchanged (7300)",
+      "url": "https://example.org/larkdb/releases/2.1",
+      "triage": "keep",
+      "date": "2026-10-20",
+      "notes": "Bug fixes; the configuration reference still gives 7300."
+    },
+    {
+      "title": "Larkdb security advisory: dump files readable by all users",
+      "url": "https://example.org/larkdb/advisories/7",
+      "triage": "keep",
+      "date": "2026-10-30",
+      "urgent": true,
+      "severity": "High",
+      "notes": "larkdb dump before 2.1 writes world-readable files."
+    },
+    {
+      "title": "Quillnote mobile app announced",
+      "url": "https://example.org/quillnote/blog/mobile",
+      "triage": "keep",
+      "date": "2026-10-25",
+      "notes": "No release date."
+    },
+    {
+      "title": "A blog post comparing note servers",
+      "url": "https://example.org/blog/comparison",
+      "triage": "keep",
+      "date": "2026-10-22"
+    },
+    {
+      "title": "Quillnote 4.2.3 (bug fixes)",
+      "url": "https://example.org/quillnote/releases/4.2.3",
+      "triage": "drop",
+      "date": "2026-10-10"
+    },
+    {
+      "title": "Larkdb website redesign",
+      "url": "https://example.org/larkdb/blog/redesign",
+      "triage": "drop"
+    },
+    {
+      "title": "Conference talk about Markdown editors",
+      "url": "https://example.org/talks/markdown",
+      "triage": "drop"
+    }
+  ]
+}
