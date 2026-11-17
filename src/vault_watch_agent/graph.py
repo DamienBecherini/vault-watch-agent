@@ -548,7 +548,9 @@ def usage_line(usage: list[dict]) -> str:
     tokens_out = sum(u["output"] for u in usage)
     cache = sum(u.get("cache_read", 0) for u in usage)
     cost = sum(u.get("cost_usd", 0.0) for u in usage)
-    return f"{len(usage)} calls, {tokens_in:,} in ({cache:,} from cache) / {tokens_out:,} out, ≈ {cost:.2f} $"
+    subscription = sum(1 for u in usage if u.get("engine") == "claude-code")  # Claude Code on a subscription: not billed
+    spared = f" ({subscription} on the subscription, not billed)" if subscription else ""
+    return f"{len(usage)} calls, {tokens_in:,} in ({cache:,} from cache) / {tokens_out:,} out, ≈ {cost:.2f} ${spared}"
 
 
 BROKEN = {"dead", "server-error", "network-error", "timeout"}

@@ -91,13 +91,35 @@ flowchart TD
 ## Usage
 
 Requirements: Python 3.11+, git, Node.js (the guide's audit scripts), the GitHub CLI `gh` authenticated (watch
-issues and artifacts, push, pull requests), an Anthropic API key, and a local clone of the guide.
+issues and artifacts, push, pull requests), a local clone of the guide, and one of the two model engines below.
 
 ```bash
 python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]"   # Windows; bin/ on Linux
 export VAULT_PATH=../ia-on-prem-vault                                    # local clone of the guide (default)
-export ANTHROPIC_API_KEY=...                                             # read by the Anthropic SDK
+export ANTHROPIC_API_KEY=...                                             # API engine only: read by the Anthropic SDK
 ```
+
+### Model engine: Claude Code on a subscription, or the API
+
+| Engine | What runs | What it costs |
+| :-- | :-- | :-- |
+| `claude-code` | [Claude Code](https://claude.com/claude-code) installed on this machine and signed in with a Claude subscription, run once per call without a terminal (`claude -p`) | Nothing billed: the usage counts in the limits of the subscription |
+| `api` | The Claude API through the official SDK (`ANTHROPIC_API_KEY`) | Per token, at list price |
+
+Without a choice, the agent uses Claude Code when it finds it signed in with a subscription, otherwise the API.
+`VAULT_WATCH_ENGINE=api` (or `claude-code`) forces one. The agent never falls back to the API on its own: when a
+limit of the subscription is reached, the run stops with the message of Claude Code and can be retried later
+(`resume --retry`) or with the other engine.
+
+Claude Code runs bare: none of the user's instructions, hooks, skills or MCP servers (`--safe-mode`), no
+conversation kept, the API keys removed from its environment, and no tool but its web search and fetch on the
+steps that check sources. It is refused when it is signed in otherwise than with a subscription (a Console
+account, a key), because its calls would then be billed without a question.
+
+Two differences with the API are worth knowing. Claude Code's web fetch has a small model read the page and
+report on it, where the API hands the page itself to the model: a check of an exact version or date can be
+less sure. And a cross-check reads the whole guide (about 430 k tokens), which weighs on the limits of a
+subscription; calls that share the guide read it from the prompt cache.
 
 ### Web interface
 
@@ -185,7 +207,9 @@ could get none (each item now has its own share).
 
 Every model call is logged in [`metrics/usage.jsonl`](metrics/usage.jsonl) (run, step, model, tokens, cost at
 list price computed from the usage the API returns). The file is versioned: it is the history of what keeping
-the guide up to date costs. The Console's billing page stays the reference.
+the guide up to date costs. The Console's billing page stays the reference. A call made through Claude Code on
+a subscription is logged with a cost of 0 and, apart, what it would have cost on the API (`list_usd`);
+`vault-watch costs` shows both.
 
 Measured in November 2026, on the Claude API at list price, with Claude Opus 5.5 for the triage (medium effort),
 the proposals and the cross-check (high effort), and Claude Sonnet 5.5 for the English mirror (medium effort).
@@ -238,7 +262,7 @@ for one check. That day is a start-up cost, not a monthly rate.
 src/vault_watch_agent/
   graph.py       the graph: nodes, edges, the two pauses, report and PR text
   state.py       graph state and the structured outputs the model must answer with (Pydantic)
-  llm.py         Claude calls: structured output, prompt caching, web search and fetch, cost journal
+  llm.py         Claude calls (API or Claude Code on a subscription): structured output, prompt caching, web search and fetch, cost journal
   prompts.py     system prompts, built from the guide's own brief and translation policy
   vault.py       deterministic side: search, exact-quote check, apply, whole-guide corpus
   inputs.py      watch issue and workflow artifact (gh), freshness claims

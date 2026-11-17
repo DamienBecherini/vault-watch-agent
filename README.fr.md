@@ -93,13 +93,35 @@ flowchart TD
 ## Utilisation
 
 Prérequis : Python 3.11+, git, Node.js (scripts de contrôle du guide), la CLI GitHub `gh` authentifiée (tickets
-et artefacts de veille, push, pull requests), une clé d'API Anthropic et un clone local du guide.
+et artefacts de veille, push, pull requests), un clone local du guide et l'un des deux moteurs ci-dessous.
 
 ```bash
 python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]"   # Windows ; bin/ sous Linux
 export VAULT_PATH=../ia-on-prem-vault                                    # clone local du guide (par défaut)
-export ANTHROPIC_API_KEY=...                                             # lue par le SDK Anthropic
+export ANTHROPIC_API_KEY=...                                             # moteur API seulement : lue par le SDK Anthropic
 ```
+
+### Moteur du modèle : Claude Code sur un abonnement, ou l'API
+
+| Moteur | Ce qui tourne | Ce que ça coûte |
+| :-- | :-- | :-- |
+| `claude-code` | [Claude Code](https://claude.com/claude-code) installé sur cette machine et connecté à un abonnement Claude, lancé une fois par appel sans terminal (`claude -p`) | Rien de facturé : l'usage compte dans les limites de l'abonnement |
+| `api` | L'API Claude par le SDK officiel (`ANTHROPIC_API_KEY`) | Au token, au prix catalogue |
+
+Sans choix, l'agent utilise Claude Code quand il le trouve connecté à un abonnement, sinon l'API.
+`VAULT_WATCH_ENGINE=api` (ou `claude-code`) force l'un des deux. L'agent ne se replie jamais de lui-même sur
+l'API : quand une limite de l'abonnement est atteinte, le run s'arrête avec le message de Claude Code et peut
+être relancé plus tard (`resume --retry`) ou avec l'autre moteur.
+
+Claude Code tourne nu : sans les instructions, hooks, skills ni serveurs MCP de l'utilisateur (`--safe-mode`),
+sans conversation gardée, les clés d'API retirées de son environnement, et sans autre outil que sa recherche et
+sa lecture web aux étapes qui vérifient des sources. Il est refusé s'il est connecté autrement qu'à un
+abonnement (compte Console, clé) : ses appels seraient alors facturés sans question.
+
+Deux différences avec l'API sont à connaître. La lecture web de Claude Code fait lire la page par un petit
+modèle qui en rend compte, là où l'API donne la page elle-même au modèle : la vérification d'une version ou
+d'une date exacte peut être moins sûre. Et une relecture croisée lit tout le guide (environ 430 k tokens), ce
+qui pèse sur les limites d'un abonnement ; les appels qui partagent le guide le lisent dans le cache de prompt.
 
 ### Interface web
 
@@ -195,7 +217,8 @@ maintenant sa part).
 Chaque appel au modèle est consigné dans [`metrics/usage.jsonl`](metrics/usage.jsonl) (run, étape, modèle,
 tokens, coût au prix catalogue calculé d'après la consommation renvoyée par l'API). Le fichier est versionné :
 c'est l'historique de ce que coûte la mise à jour du guide. La page de facturation de la Console reste la
-référence.
+référence. Un appel passé par Claude Code sur un abonnement est consigné avec un coût de 0 et, à part, ce qu'il
+aurait coûté sur l'API (`list_usd`) ; `vault-watch costs` montre les deux.
 
 Mesures de novembre 2026, sur l'API Claude au prix catalogue, avec Claude Opus 5.5 pour le tri (effort moyen),
 les propositions et la relecture croisée (effort élevé), et Claude Sonnet 5.5 pour le miroir anglais (effort
@@ -254,7 +277,7 @@ d'évaluation et 7,25 $ pour une vérification. Cette journée est un coût de d
 src/vault_watch_agent/
   graph.py       le graphe : nœuds, arêtes, les deux pauses, texte du rapport et de la PR
   state.py       état du graphe et sorties structurées imposées au modèle (Pydantic)
-  llm.py         appels à Claude : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts
+  llm.py         appels à Claude (API ou Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts
   prompts.py     prompts système, construits d'après la ligne éditoriale et la politique de traduction du guide
   vault.py       partie déterministe : recherche, contrôle des citations exactes, application, corpus du guide entier
   inputs.py      ticket de veille et artefact du workflow (gh), affirmations datées
