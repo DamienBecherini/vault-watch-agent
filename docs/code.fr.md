@@ -67,16 +67,16 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
 | `graph.py` | 608 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
-| `web.py` | 627 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
+| `web.py` | 660 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
 | `verify.py` | 317 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
-| `llm.py` | 310 | Les deux moteurs (API, Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts |
+| `llm.py` | 374 | Les deux moteurs (API, Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts |
 | `cli.py` | 251 | `vault-watch run / resume / fix / eval / costs / serve` ; branche le checkpointer et les dépendances |
 | `vault.py` | 234 | Pages françaises, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
 | `crosscheck.py` | 211 | Seconde lecture des corrections avec tout le guide en cache dans le contexte, puis le balayage |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
 | `fix.py` | 135 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
 | `evaluate.py` | 126 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
-| `config.py` | 121 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
+| `config.py` | 138 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
 | `state.py` | 116 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
 | `prompts.py` | 79 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
 | `inputs.py` | 65 | Issue et artefact de la veille (`gh`), éléments, affirmations à revérifier |

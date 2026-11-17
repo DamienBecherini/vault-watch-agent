@@ -120,7 +120,9 @@ conversation kept, the API keys removed from its environment, and no tool but it
 steps that check sources. It is refused when it is signed in otherwise than with a subscription (a Console
 account, a key), because its calls would then be billed without a question.
 
-The settings also hold the model of each role (reasoning, translation) and where the API key is. The key itself
+The settings also hold the model and the effort of each role (reasoning, translation) and where the API key
+is. The models offered are read from the API with the key (Models API); the effort moves every step of a role
+one level down or up from the one the code gives it. The key itself
 is never stored: the field takes a reference, `env:NAME` (an environment variable, the default being
 `env:ANTHROPIC_API_KEY`), `sops:file#NAME` (a field of a file encrypted with [sops](https://github.com/getsops/sops),
 decrypted when a call is made) or `file:path` (a file that holds the key alone). A key in plain text is refused

@@ -9,7 +9,7 @@ const SETTINGS_TEXTS = {
   fr: {
     title: "Réglages", open: "Réglages", save: "Enregistrer", cancel: "Annuler",
     saved: "Enregistré. S'applique au prochain passage.", modified: "modifié, pas encore enregistré",
-    categories: "Catégories", cat: { engine: "Moteur", models: "Modèles" },
+    categories: "Catégories", cat: { engine: "Moteur", models: "Modèles et effort" },
     engineHelp: "Qui appelle le modèle. Un changement s'applique au prochain passage ; un passage en cours garde son moteur.",
     found: plan => `Claude Code trouvé sur cette machine (abonnement ${plan})`,
     foundHelp: "Les appels passent par ton abonnement Claude : pas de clé d'API, rien de facturé. L'usage compte dans les limites de l'abonnement.",
@@ -32,7 +32,17 @@ const SETTINGS_TEXTS = {
     keyFound: "clé trouvée", keyAbsent: "aucune clé à cette référence", keyEmpty: "aucune référence",
     keyUnchecked: "vérifiée à l'enregistrement",
     keyPlain: "Ceci n'est pas une référence. Ne colle jamais la clé ici : donne env:NOM, sops:fichier#NOM ou file:chemin.",
-    modelsHelp: "Le modèle de chaque rôle, quel que soit le moteur. Les mesures de coût et de qualité de la documentation ont été faites avec les modèles par défaut.",
+    modelsHelp: "Le modèle et l'effort de chaque rôle, quel que soit le moteur. Les mesures de coût et de qualité de la documentation ont été faites avec les modèles par défaut et l'effort normal.",
+    modelsFromApi: "Liste des modèles lue sur l'API avec ta clé.",
+    modelsKnown: e => `Liste de l'API illisible (${e}) : modèles connus de l'agent seulement.`,
+    modelsLoading: "Lecture de la liste des modèles…",
+    unpriced: "prix inconnu de l'agent : coûts comptés à 0",
+    unpricedHelp: "Ce modèle n'a pas de prix dans l'agent : le journal et les estimations le compteront à 0 $. Rien ne change sur l'abonnement.",
+    effortLabel: "Effort", efforts: { lower: "Plus bas", normal: "Normal", higher: "Plus haut" },
+    effortHelp: "L'effort est fixé étape par étape dans le code ; ce réglage décale chaque étape d'un cran. Plus haut : plus de réflexion, plus de tokens (et de limites d'abonnement ou de coût), plus lent.",
+    stepsOf: "Ce que donne chaque étape :",
+    stepNames: { triage: "tri", proposals: "propositions", crosscheck: "relecture croisée", checks: "vérifications", deadlinks: "liens morts", mirror: "miroir anglais", translation: "contrôle des traductions" },
+    levels: { low: "bas", medium: "moyen", high: "élevé", xhigh: "très élevé", max: "maximal" },
     roles: { reasoning: "Raisonnement", translator: "Traduction" },
     roleHelp: { reasoning: "Tri de la veille, propositions, relecture croisée, vérifications du guide.",
       translator: "Miroir anglais et contrôle des traductions." },
@@ -41,7 +51,7 @@ const SETTINGS_TEXTS = {
   en: {
     title: "Settings", open: "Settings", save: "Save", cancel: "Cancel",
     saved: "Saved. Applies to the next run.", modified: "changed, not saved yet",
-    categories: "Categories", cat: { engine: "Engine", models: "Models" },
+    categories: "Categories", cat: { engine: "Engine", models: "Models and effort" },
     engineHelp: "What calls the model. A change applies to the next run; a run in progress keeps its engine.",
     found: plan => `Claude Code found on this machine (${plan} subscription)`,
     foundHelp: "The calls go through your Claude subscription: no API key, nothing billed. The usage counts in the limits of the subscription.",
@@ -64,7 +74,17 @@ const SETTINGS_TEXTS = {
     keyFound: "key found", keyAbsent: "no key at this reference", keyEmpty: "no reference",
     keyUnchecked: "checked when saved",
     keyPlain: "This is not a reference. Never paste the key here: give env:NAME, sops:file#NAME or file:path.",
-    modelsHelp: "The model of each role, whatever the engine. The cost and quality figures of the documentation were measured with the default models.",
+    modelsHelp: "The model and the effort of each role, whatever the engine. The cost and quality figures of the documentation were measured with the default models at the normal effort.",
+    modelsFromApi: "List of the models read from the API with your key.",
+    modelsKnown: e => `The list of the API could not be read (${e}): the models the agent knows only.`,
+    modelsLoading: "Reading the list of the models…",
+    unpriced: "price unknown to the agent: counted at 0",
+    unpricedHelp: "The agent has no price for this model: the journal and the estimates will count it at 0 $. Nothing changes on the subscription.",
+    effortLabel: "Effort", efforts: { lower: "Lower", normal: "Normal", higher: "Higher" },
+    effortHelp: "The effort is set step by step in the code; this setting moves every step one level. Higher: more thinking, more tokens (and more of the subscription's limits or of the cost), slower.",
+    stepsOf: "What each step then runs at:",
+    stepNames: { triage: "triage", proposals: "proposals", crosscheck: "cross-check", checks: "checks", deadlinks: "dead links", mirror: "English mirror", translation: "translation checks" },
+    levels: { low: "low", medium: "medium", high: "high", xhigh: "extra high", max: "max" },
     roles: { reasoning: "Reasoning", translator: "Translation" },
     roleHelp: { reasoning: "Triage of the watch, proposals, cross-check, checks of the guide.",
       translator: "English mirror and translation checks." },
@@ -89,8 +109,8 @@ async function viewSettings() {
 /* `s`: the settings as the server holds them, with what it found (Claude Code, the key); the page edits a copy. */
 function drawSettings(s, message = "") {
   const S = T.settings, cc = s.claude_code;
-  const draft = { engine: s.engine, key: s.key, models: { ...s.models } };
-  const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator]);
+  const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort } };
+  const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator]);
   const engineNow = d => s.engine_forced || d.engine || (cc.subscription ? "claude-code" : "api");
   const claudeCodeNote = !cc.installed ? S.missing : !cc.signed_in ? S.signedOut : !cc.subscription ? S.noPlan : "";
   const category = (id, body) => `<section class="cfg-page" data-cat="${id}"${id === settingsCategory ? "" : " hidden"}>
@@ -138,9 +158,19 @@ function drawSettings(s, message = "") {
             <p class="small" id="key-status" role="status"></p>`)}
           ${category("models", `
             <p class="muted small">${S.modelsHelp}</p>
-            ${Object.entries(s.choices.models).map(([role, names]) => `<label class="cfg-field"><span class="cfg-label">${S.roles[role]}</span>
-              <select data-role="${role}">${names.map((m, i) => `<option value="${m}"${m === s.models[role] ? " selected" : ""}>${modelName(m)}${i ? "" : ` (${S.byDefault})`}</option>`).join("")}</select>
-              <span class="muted small">${S.roleHelp[role]}</span></label>`).join("")}`)}
+            <p class="muted small" id="models-source">${S.modelsLoading}</p>
+            ${Object.keys(s.choices.models).map(role => `<fieldset class="cfg-role">
+              <legend>${S.roles[role]}</legend>
+              <span class="muted small">${S.roleHelp[role]}</span>
+              <select data-role="${role}" aria-label="${S.roles[role]}"></select>
+              <span class="small attention-text" data-unpriced="${role}" hidden>${S.unpricedHelp}</span>
+              <div class="cfg-field"><span class="cfg-label" id="effort-${role}">${S.effortLabel}</span>
+                <div class="cfg-seg" role="radiogroup" aria-labelledby="effort-${role}">
+                  ${s.choices.effort.map(e => `<label><input type="radio" name="effort-${role}" value="${e}"${e === s.effort[role] ? " checked" : ""}>${S.efforts[e]}</label>`).join("")}
+                </div>
+                <span class="muted small" data-steps="${role}"></span></div>
+            </fieldset>`).join("")}
+            <p class="muted small">${S.effortHelp}</p>`)}
         </div>
       </div>
     </form>`;
@@ -165,9 +195,15 @@ function drawSettings(s, message = "") {
     $("#key-status").innerHTML = text + (now === "claude-code" && !plainKey() ? ` · ${S.keyOnlyApi}` : "");
     key.setAttribute("aria-invalid", plainKey());
     page.querySelector('[data-sum="engine"]').textContent = S.engines[draft.engine];
-    page.querySelector('[data-sum="models"]').textContent = Object.values(draft.models).map(modelName).join(" · ");
+    page.querySelector('[data-sum="models"]').textContent = Object.keys(draft.models)
+      .map(r => `${modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ");
     page.querySelector('[data-dot="engine"]').hidden = draft.engine === s.engine && draft.key === s.key;
-    page.querySelector('[data-dot="models"]').hidden = JSON.stringify(draft.models) === JSON.stringify(s.models);
+    page.querySelector('[data-dot="models"]').hidden = JSON.stringify([draft.models, draft.effort]) === JSON.stringify([s.models, s.effort]);
+    for (const role of Object.keys(draft.models)) {   // each step of the role at the effort chosen
+      page.querySelector(`[data-steps="${role}"]`).textContent = `${S.stepsOf} ${s.choices.steps[role]
+        .map(x => `${S.stepNames[x.step] || x.step} ${S.levels[x.levels[draft.effort[role]]]}`).join(" · ")}`;
+      page.querySelector(`[data-unpriced="${role}"]`).hidden = models === null || models.find(m => m.id === draft.models[role])?.priced !== false;
+    }
     $("#settings-save").disabled = !changed || plainKey();
     $("#settings-cancel").disabled = !changed;
     if (changed) $("#settings-message").textContent = "";
@@ -187,6 +223,31 @@ function drawSettings(s, message = "") {
   };
   key.oninput = () => { draft.key = key.value.trim(); refresh(); };
   page.querySelectorAll("[data-role]").forEach(sel => sel.onchange = () => { draft.models[sel.dataset.role] = sel.value; refresh(); });
+  for (const role of Object.keys(draft.effort))
+    page.querySelectorAll(`[name=effort-${role}]`).forEach(r => r.onchange = () => { draft.effort[role] = r.value; refresh(); });
+  /* The models of each role: the list of the API (with the key of the settings), else the ones the agent knows; the
+     model chosen stays in the list even when the API does not offer it any more. */
+  let models = null;
+  const fill = list => {
+    models = list;
+    for (const [role, defaults] of Object.entries(s.choices.models)) {
+      const sel = page.querySelector(`[data-role="${role}"]`);
+      const ids = [...new Set([draft.models[role], ...list.map(m => m.id)])];
+      sel.innerHTML = ids.map(id => {
+        const m = list.find(x => x.id === id) || { id, name: modelName(id), priced: true };
+        const notes = [id === defaults[0] ? S.byDefault : "", m.priced === false ? S.unpriced : ""].filter(Boolean).join(", ");
+        return `<option value="${esc(id)}"${id === draft.models[role] ? " selected" : ""}>${esc(m.name)}${notes ? ` (${notes})` : ""}</option>`;
+      }).join("");
+    }
+    refresh();
+  };
+  fill([]);
+  models = null;
+  api("/api/models").then(r => {
+    if (!$("#models-source")) return;   // left the page meanwhile
+    $("#models-source").textContent = r.source === "api" ? S.modelsFromApi : S.modelsKnown(r.error);
+    fill(r.models);
+  }).catch(e => { if ($("#models-source")) $("#models-source").textContent = S.modelsKnown(e.message); });
   $("#settings-cancel").onclick = () => drawSettings(s);
   $("#settings").onsubmit = async e => {
     e.preventDefault();

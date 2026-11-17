@@ -5,7 +5,11 @@ web interface or by hand. A missing file or a missing field means the default.
 
     {"engine": "",                               "" (automatic), "claude-code" or "api" (llm.engine)
      "key": "env:ANTHROPIC_API_KEY",             where the API key is: a reference, never the key itself
-     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"}}
+     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},
+     "effort": {"reasoning": "normal", "translator": "normal"}}   lower, normal or higher: one level for every step
+
+The effort of each call is set per step in the code (the triage at medium, the proposals and the cross-check at
+high…); the effort of a role moves every step of that role one level down or up (llm.shift_effort).
 
 The key is never stored here. The field takes a reference to where it lives:
     env:NAME            an environment variable (injected by sops, for instance)
@@ -18,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -26,12 +31,16 @@ FILE = "settings.json"
 ENGINES = ("", "claude-code", "api")  # "": Claude Code when it is signed in with a subscription, otherwise the API
 REFERENCES = ("env:", "file:", "sops:")
 KEY_FORMS = "env:NAME, sops:file#NAME or file:path"
-# The models offered for each role, the ones `llm.PRICES` knows the price of; the first of a role is its default.
+# The models offered for each role when the list of the API cannot be read; the first of a role is its default.
+# Any Claude model id is accepted (the Settings page offers the list of the API, llm.list_models).
 MODELS = {
-    "reasoning": ("claude-opus-5-5", "claude-sonnet-5-5"),  # triage, proposals, cross-check, checks of the guide
+    "reasoning": ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-2"),  # triage, proposals, cross-check, checks
     "translator": ("claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"),  # English mirror, translation checks
 }
-DEFAULTS = {"engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()}}
+MODEL_ID = re.compile(r"claude-[a-z0-9][a-z0-9.-]{1,60}")
+EFFORTS = ("lower", "normal", "higher")  # relative to the effort the code gives each step
+DEFAULTS = {"engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()},
+            "effort": {role: "normal" for role in MODELS}}
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # Windows: no console window when the server has none
 
 
@@ -55,9 +64,17 @@ def check(cfg: dict) -> dict:
     models = {}
     for role, names in MODELS.items():
         models[role] = str(given.get(role) or names[0]).strip()
-        if models[role] not in names:
-            raise ConfigError(f"models.{role}: {models[role]!r} is not one of {', '.join(names)}")
-    return {"engine": engine, "key": key, "models": models}
+        if not MODEL_ID.fullmatch(models[role]):
+            raise ConfigError(f"models.{role}: {models[role]!r} is not a Claude model id (claude-…)")
+    given = cfg.get("effort") or {}
+    if not isinstance(given, dict):
+        raise ConfigError("effort must be an object")
+    effort = {}
+    for role in MODELS:
+        effort[role] = str(given.get(role) or "normal").strip().lower()
+        if effort[role] not in EFFORTS:
+            raise ConfigError(f"effort.{role}: {effort[role]!r} is not one of {', '.join(EFFORTS)}")
+    return {"engine": engine, "key": key, "models": models, "effort": effort}
 
 
 def load(home: Path) -> dict:

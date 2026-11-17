@@ -193,3 +193,27 @@ def test_the_page_names_its_files_with_a_version(client):
     assert 'src="/static/app.js?v=' in page and 'href="/static/style.css?v=' in page and 'href="/static/icon.svg?v=' in page
     version = page.split("app.js?v=")[1].split('"')[0]
     assert c.get(f"/static/app.js?v={version}").status_code == 200
+
+
+def test_settings_carry_the_effort_of_each_role_and_its_steps(client, monkeypatch):
+    c, _ = client
+    s = c.get("/api/settings").json()
+    assert s["effort"] == {"reasoning": "normal", "translator": "normal"} and s["choices"]["effort"] == ["lower", "normal", "higher"]
+    triage = s["choices"]["steps"]["reasoning"][0]
+    assert triage == {"step": "triage", "effort": "medium", "levels": {"lower": "low", "normal": "medium", "higher": "high"}}
+    saved = c.post("/api/settings", json={"effort": {"translator": "higher"}}, headers=ACT).json()
+    assert saved["effort"] == {"reasoning": "normal", "translator": "higher"}
+
+
+def test_models_come_from_the_api_or_from_what_the_agent_knows(client, monkeypatch):
+    from vault_watch_agent import llm as engines
+
+    c, _ = client
+    monkeypatch.setattr(engines, "list_models", lambda ref: [{"id": "claude-mythos-6", "name": "Claude Mythos 6", "context": 1, "priced": False}])
+    assert c.get("/api/models").json()["source"] == "api"
+
+    def refuse(ref):
+        raise engines.ModelError("no key")
+    monkeypatch.setattr(engines, "list_models", refuse)
+    r = c.get("/api/models").json()
+    assert r["source"] == "known" and r["error"] == "no key" and "claude-fable-5-2" in [m["id"] for m in r["models"]]

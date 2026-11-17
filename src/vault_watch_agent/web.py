@@ -47,6 +47,13 @@ AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
          "apply", "mirror", "audits", "links", "publish"]
 # What a running job is doing, in the health response.
+# The effort each step of a role asks for in the code (graph.py, crosscheck.py, fix.py, verify.py), for the Settings
+# page: what "lower" and "higher" make of them. To keep in step with the code when an effort changes there.
+STEP_EFFORTS = {
+    "reasoning": [("triage", "medium"), ("proposals", "high"), ("crosscheck", "high"),
+                  ("checks", "high"), ("deadlinks", "medium")],
+    "translator": [("mirror", "medium"), ("translation", "medium")],
+}
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming"}
 
 
@@ -115,6 +122,7 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
     engine: str = ""
     key: str = ""
     models: dict[str, str] = {}
+    effort: dict[str, str] = {}
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -316,11 +324,29 @@ def create_app(settings: Settings) -> FastAPI:
     # -- settings of the user (config.py): engine, reference to the API key, models -----------------
     def settings_view(cfg: dict) -> dict:
         """The settings with what the page shows beside them: the engine in use, Claude Code on this machine,
-        whether the reference gives a key (never the key), the models offered."""
+        whether the reference gives a key (never the key), the models offered when the API cannot list them, the
+        efforts of a role and the level each step of that role then runs at."""
         return {**cfg, "engine_now": llm.engine(cfg["engine"]),
                 "engine_forced": os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower(),
                 "claude_code": llm.claude_code_status(fresh=True), "key_status": user_settings.key_status(cfg["key"]),
-                "key_forms": user_settings.KEY_FORMS, "choices": {"models": user_settings.MODELS}}
+                "key_forms": user_settings.KEY_FORMS,
+                "choices": {"models": user_settings.MODELS, "effort": user_settings.EFFORTS,
+                            "steps": {role: [{"step": step, "effort": effort,
+                                              "levels": {e: llm.shift_effort(effort, llm.EFFORT_STEPS[e]) for e in user_settings.EFFORTS}}
+                                             for step, effort in steps]
+                                      for role, steps in STEP_EFFORTS.items()}}}
+
+    @app.get("/api/models")
+    def models_view(key: str = ""):
+        """The Claude models the API key can use, read from the Models API (`key`: a reference to try before saving
+        it, else the one of the settings); without a key that answers, the models known to the agent and why."""
+        reference = key or user_settings.load(settings.home)["key"]
+        try:
+            return {"source": "api", "models": llm.list_models(reference), "error": ""}
+        except (llm.ModelError, user_settings.ConfigError) as e:
+            known = dict.fromkeys(m for names in user_settings.MODELS.values() for m in names)
+            return {"source": "known", "error": str(e),
+                    "models": [{"id": m, "name": m, "context": None, "priced": llm.price_of(m) is not None} for m in known]}
 
     @app.get("/api/settings")
     def settings_get():

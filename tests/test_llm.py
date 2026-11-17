@@ -73,7 +73,8 @@ def test_a_call_runs_claude_bare_and_reads_the_structured_answer(claude, tmp_pat
     assert call["command"][call["command"].index("--model") + 1] == "claude-opus-5-5"
     assert call["command"][call["command"].index("--effort") + 1] == "high"
     assert "ANTHROPIC_API_KEY" not in call["env"] and "CLAUDECODE" not in call["env"]  # nothing that would bill an API
-    assert usage == {"node": "crosscheck", "model": "claude-opus-5-5", "engine": "claude-code", "input": 10, "output": 20,
+    assert usage == {"node": "crosscheck", "model": "claude-opus-5-5", "engine": "claude-code", "effort": "high",
+                     "input": 10, "output": 20,
                      "cache_read": 300, "cache_write": 4000, "web_searches": 2, "cost_usd": 0.0, "list_usd": 0.25}
     line = json.loads((tmp_path / "usage.jsonl").read_text(encoding="utf-8"))
     assert line["run"] == "issue-70" and line["kind"] == "watch" and line["cost_usd"] == 0.0 and line["engine"] == "claude-code"
@@ -130,3 +131,49 @@ def test_without_a_subscription_the_engine_is_the_api(claude, monkeypatch):
     assert llm.engine() == "api"
     monkeypatch.setenv("VAULT_WATCH_ENGINE", "claude-code")  # asked for anyway: the call itself refuses
     assert llm.engine() == "claude-code"
+
+
+@pytest.mark.parametrize("effort, step, expected", [
+    ("medium", 0, "medium"), ("medium", 1, "high"), ("high", 1, "xhigh"), ("high", -1, "medium"),
+    ("low", -1, "low"), ("max", 1, "max"),  # never beyond the ends
+])
+def test_the_effort_of_a_role_moves_each_step_one_level(effort, step, expected):
+    assert llm.shift_effort(effort, step) == expected
+
+
+def test_claude_code_runs_at_the_effort_of_its_role(claude):
+    model = llm.ClaudeCode()
+    model.effort_step = 1
+    _, usage = ask(model)  # the step asks for high
+    assert claude.calls[0]["command"][claude.calls[0]["command"].index("--effort") + 1] == "xhigh" and usage["effort"] == "xhigh"
+
+
+class FakeModels:
+    """Stands for `anthropic.Anthropic().models`: the Models API."""
+
+    def __init__(self, error=None):
+        self.error = error
+
+    def list(self, limit=100):
+        if self.error:
+            raise self.error
+        M = lambda id, name, day, deprecated=None: type("M", (), {"id": id, "display_name": name, "max_input_tokens": 1_000_000,
+                                                                    "created_at": day, "deprecated_at": deprecated})()
+        return [M("claude-haiku-5-5", "Claude Haiku 5.5", "2026-09-01"), M("claude-fable-5-2", "Claude Fable 5.2", "2026-10-20"),
+                M("claude-sonnet-4-5", "Claude Sonnet 4.5", "2025-09-29", deprecated="2026-10-01"),
+                M("claude-mythos-6", "Claude Mythos 6", "2026-11-10")]
+
+
+def test_the_models_come_from_the_api_newest_first_with_their_price_known_or_not():
+    client = type("C", (), {"models": FakeModels()})()
+    models = llm.list_models("env:X", client)
+    assert [m["id"] for m in models] == ["claude-mythos-6", "claude-fable-5-2", "claude-haiku-5-5"]  # the deprecated one left out
+    assert [m["priced"] for m in models] == [False, True, True] and models[1]["name"] == "Claude Fable 5.2"
+
+
+def test_a_list_that_cannot_be_read_is_an_error():
+    import anthropic
+
+    client = type("C", (), {"models": FakeModels(anthropic.AnthropicError("no key"))})()
+    with pytest.raises(llm.ModelError, match="could not be read"):
+        llm.list_models("env:X", client)

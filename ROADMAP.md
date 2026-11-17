@@ -72,6 +72,19 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 ## Phase F — publication and interface
 
 - [ ] Tools exposed through MCP (LangChain MCP adapters), so the same graph can be driven from Claude Code.
+- [ ] **OpenAI-compatible engine** (OpenAI, Mistral, a local model behind vLLM, llama.cpp or Ollama): a third class
+  with the same `parse`, structured output by `response_format`, models listed by `GET /v1/models`, the key as a
+  reference like the others. Two limits to solve before it can run every step: the web (the cross-check and the
+  checks need a search and a page reader: the provider's own web tool where it has one, else tools the agent runs
+  itself, a search API such as SearXNG, Brave or Tavily plus a fetch of the page) and the context (the
+  cross-check holds the whole guide, about 430 k tokens: few models take it, almost no local one; it would need
+  excerpts instead, as the proposals already use). The triage, the proposals and the English mirror need neither.
+- [ ] **Another guide than this one.** The agent is written for the IA on-prem guide: its path (`VAULT_PATH`) can
+  change, but the GitHub repository and the site are fixed in the code, and it relies on what the guide provides:
+  the watch issues (label `veille`) and their `weekly-watch` artifact, the brief `.agents/skills/vault-watch/brief.md`
+  and the translation policy, `scripts/run-audits.mjs`, the version floors, the freshness watchlist, French pages
+  mirrored in English under `en/`. Making it a setting (a guide = a path, a repository, a site) is short; another
+  guide would also have to provide that contract, or the agent would have to make each part optional.
 - [x] README with the measures of B1 and C1, MIT licence.
 - [x] Public GitHub repository (source on Gitea, pushed to GitHub by a Gitea push mirror).
 - [x] Web interface: `vault-watch serve` (FastAPI, server-sent events), one screen per pause of the graph.
@@ -95,8 +108,11 @@ Left open when the Claude Code engine, the Settings and the header buttons came 
   page and report on it, where the API hands the page itself to the model: checking an exact version or date can
   be less sure. Compare with `vault-watch eval` (same past watches, both engines) before trusting the cross-check
   on the subscription.
-- [ ] **No effort setting per role.** The effort of each call is fixed per step in the code (triage medium,
-  proposals and cross-check high, mirror medium); the Settings only choose the engine and the models.
+- [x] **Effort per role** (2026-11-17): lower, normal or higher in the Settings moves every step of the role one
+  level (the effort of each step stays set in the code); the cost estimates still assume the normal effort.
+- [x] **Models read from the API** (2026-11-17): the Settings list the Claude models the key can use (Models API),
+  those with a 1M-token context only; without a key that answers, the models the agent knows. A model without a
+  price in `llm.PRICES` is counted at 0 $ and the page says so.
 - [ ] **The guide's instructions still say a run is billed.** `CLAUDE.md` and the `vault-watch` skill of the guide
   ask before launching a run because it costs money; with the Claude Code engine it no longer does. Change them
   through a pull request of the guide (its `main` is protected).

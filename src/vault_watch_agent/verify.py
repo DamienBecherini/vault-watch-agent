@@ -20,7 +20,7 @@ from typing import Callable, Literal
 from pydantic import BaseModel, Field
 
 from . import inputs, quotes, vault
-from .llm import LLM, MODEL, PRICES, TRANSLATOR
+from .llm import LLM, MODEL, TRANSLATOR, price_of
 
 BYTES_PER_TOKEN = 2.1
 # Measured on the first full check (2026-11-08, 7.26 $): the whole-guide read wrote 27 k tokens; checking a
@@ -72,7 +72,7 @@ def _tokens(paths: list[Path]) -> int:
 
 
 def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0) -> float:
-    p_in, p_out, _, p_write = PRICES[model]
+    p_in, p_out, _, p_write = price_of(model) or (0.0, 0.0, 0.0, 0.0)  # a model without a known price: 0, said in the Settings
     return (tokens_in * p_in + tokens_out * p_out + cache_write * p_write) / 1e6
 
 

@@ -122,8 +122,9 @@ sans conversation gardée, les clés d'API retirées de son environnement, et sa
 sa lecture web aux étapes qui vérifient des sources. Il est refusé s'il est connecté autrement qu'à un
 abonnement (compte Console, clé) : ses appels seraient alors facturés sans question.
 
-Les réglages contiennent aussi le modèle de chaque rôle (raisonnement, traduction) et l'endroit où se trouve la
-clé d'API. La clé elle-même n'est jamais enregistrée : le champ prend une référence, `env:NOM` (une variable
+Les réglages contiennent aussi le modèle et l'effort de chaque rôle (raisonnement, traduction) et l'endroit où
+se trouve la clé d'API. Les modèles proposés sont lus sur l'API avec la clé (Models API) ; l'effort décale d'un
+cran, vers le bas ou vers le haut, chaque étape du rôle par rapport à celui que lui donne le code. La clé elle-même n'est jamais enregistrée : le champ prend une référence, `env:NOM` (une variable
 d'environnement, par défaut `env:ANTHROPIC_API_KEY`), `sops:fichier#NOM` (un champ d'un fichier chiffré par
 [sops](https://github.com/getsops/sops), déchiffré au moment de l'appel) ou `file:chemin` (un fichier qui ne
 contient que la clé). Une clé en clair est refusée à l'enregistrement des réglages et à leur lecture.

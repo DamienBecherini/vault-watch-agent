@@ -47,14 +47,25 @@ class LLM(Protocol):
               context: str | None = None) -> tuple[T, dict]: ...
 
 
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")  # accepted by the API and by Claude Code (--effort)
+EFFORT_STEPS = {"lower": -1, "normal": 0, "higher": 1}  # the effort of a role in the settings (config.EFFORTS)
+
+
+def shift_effort(effort: str, step: int) -> str:
+    """The effort a step asks for, moved `step` levels, within low…max (medium + 1 = high, high + 1 = xhigh)."""
+    i = EFFORT_LEVELS.index(effort) + step
+    return EFFORT_LEVELS[max(0, min(len(EFFORT_LEVELS) - 1, i))]
+
+
 class _Journal:
-    """What both engines share: the model, the labels of the run and the call journal."""
+    """What both engines share: the model, the effort of its role, the labels of the run and the call journal."""
 
     def __init__(self, model: str, journal: Path | None):
         self.model = model
         self.journal = journal  # one JSON line per call with its cost, for spend tracking
         self.run = ""  # run label written with each call (thread id), set by the caller
         self.kind = ""  # what the run does: watch, crosscheck…
+        self.effort_step = 0  # -1, 0 or +1: the effort of the role in the settings, applied to every call
 
     def record(self, usage: dict) -> None:
         if not self.journal:
@@ -79,6 +90,7 @@ class Claude(_Journal):
         """`context` (the whole vault, for instance) goes first and is cached, so the next calls
         within five minutes read it at the cache price instead of the full input price.
         `web` lets the model search the web and open sources (server-side tools run by the API)."""
+        effort = shift_effort(effort, self.effort_step)
         blocks = system
         if context:
             blocks = [{"type": "text", "text": context, "cache_control": {"type": "ephemeral"}},
@@ -124,7 +136,7 @@ class Claude(_Journal):
         parsed = message.parsed_output
         if parsed is None:
             raise ModelError(f"{node}: no structured output")
-        usage = {"node": node, "model": message.model, "engine": "api", **totals}
+        usage = {"node": node, "model": message.model, "engine": "api", "effort": effort, **totals}
         usage["cost_usd"] = round(cost(usage), 6)
         self.record(usage)
         return parsed, usage
@@ -210,6 +222,7 @@ class ClaudeCode(_Journal):
         the cache whatever their instructions (measured 17/11/2026: instructions after the context in the system
         prompt, even with --append-system-prompt, wrote the whole context to the cache again)."""
         self.prepare()
+        effort = shift_effort(effort, self.effort_step)
         if context:
             system, prompt = context, f"<instructions>\n{system}\n</instructions>\n\n{prompt}"
         with tempfile.TemporaryDirectory(prefix="vault-watch-claude-") as folder:
@@ -251,7 +264,7 @@ class ClaudeCode(_Journal):
             raise ModelError(f"{node}: answer not in the expected shape ({e.error_count()} errors)") from e
         u, models = d.get("usage") or {}, d.get("modelUsage") or {}
         usage = {
-            "node": node, "model": self.model, "engine": "claude-code",
+            "node": node, "model": self.model, "engine": "claude-code", "effort": effort,
             "input": int(u.get("input_tokens") or 0), "output": int(u.get("output_tokens") or 0),
             "cache_read": int(u.get("cache_read_input_tokens") or 0),
             "cache_write": int(u.get("cache_creation_input_tokens") or 0),
@@ -279,32 +292,83 @@ def engine(choice: str = "") -> str:
 
 def create(role: str = "reasoning", journal: Path | None = None, settings: dict | None = None) -> Claude | ClaudeCode:
     """The model client of a role (`reasoning` or `translator`) under the settings of the user (`config.load`):
-    their engine, their model for that role and, for the API, the key their reference gives."""
+    their engine, their model and effort for that role and, for the API, the key their reference gives."""
     settings = settings or config.check({})
     model = settings["models"][role]
     if engine(settings["engine"]) == "claude-code":
-        return ClaudeCode(model, journal)
+        client: Claude | ClaudeCode = ClaudeCode(model, journal)
+    else:
+        client = Claude(model, api_client(settings["key"]), journal)
+    client.effort_step = EFFORT_STEPS[settings["effort"][role]]
+    return client
+
+
+def api_client(reference: str) -> anthropic.Anthropic:
     try:
-        key = config.resolve_key(settings["key"])
+        key = config.resolve_key(reference)
     except config.ConfigError as e:
         raise ModelError(f"API key: {e}") from e
     # No key from the reference: the SDK reads ANTHROPIC_API_KEY itself, and says so when there is none.
-    return Claude(model, anthropic.Anthropic(api_key=key) if key else None, journal)
+    return anthropic.Anthropic(api_key=key) if key else anthropic.Anthropic()
+
+
+MIN_CONTEXT = 1_000_000
+_models: dict[str, tuple[float, list[dict]]] = {}  # reference of the key -> (time, models), asked again after 10 min
+
+
+def list_models(reference: str, client: anthropic.Anthropic | None = None) -> list[dict]:
+    """The Claude models the API key of `reference` can use (Models API, GET /v1/models), newest first:
+    {id, name, context, priced}; `priced`: `PRICES` knows its price, so the cost journal and the estimates count it.
+    Only the models with a context of 1M tokens: the cross-check holds the whole guide (about 430 k tokens), and the
+    older models with a smaller one also lack what the calls use (the effort levels up to max, the current web tools).
+    ModelError when the API cannot be asked (no key, network, refused)."""
+    cached = _models.get(reference)
+    if cached and time.monotonic() - cached[0] < 600 and client is None:
+        return cached[1]
+    try:
+        found = list((client or api_client(reference)).models.list(limit=100))
+    except anthropic.APIError as e:
+        raise ModelError(f"the list of the models could not be read: {e.message if hasattr(e, 'message') else e}") from e
+    except anthropic.AnthropicError as e:  # no key at all
+        raise ModelError(f"the list of the models could not be read: {e}") from e
+    models = [{"id": m.id, "name": m.display_name or m.id, "context": m.max_input_tokens,
+               "priced": price_of(m.id) is not None}
+              for m in sorted(found, key=lambda m: m.created_at, reverse=True)
+              if m.id.startswith("claude-") and not getattr(m, "deprecated_at", None)
+              and (m.max_input_tokens or 0) >= MIN_CONTEXT]
+    _models[reference] = (time.monotonic(), models)
+    return models
 
 
 # List prices, USD per million tokens: input, output, cache read, cache write (5-minute TTL = 1.25 × input).
+# November 2026; a model missing here is counted at 0 (the Settings page says so). Longest ids first: a prefix
+# match must not take claude-opus-5 for claude-opus-5-5.
 PRICES = {
+    "claude-fable-5-2": (8.0, 40.0, 0.20, 10.0),
+    "claude-fable-5-1": (10.0, 50.0, 1.0, 12.5),
+    "claude-fable-5": (10.0, 50.0, 1.0, 12.5),
     "claude-opus-5-5": (4.0, 20.0, 0.20, 5.0),
-    "claude-sonnet-5-5": (2.0, 10.0, 0.20, 2.5),
+    "claude-opus-5": (5.0, 25.0, 0.50, 6.25),
+    "claude-opus-4-8": (5.0, 25.0, 0.50, 6.25),
+    "claude-opus-4-7": (5.0, 25.0, 0.50, 6.25),
+    "claude-opus-4-6": (5.0, 25.0, 0.50, 6.25),
+    "claude-sonnet-5-5": (2.0, 10.0, 0.10, 2.5),
+    "claude-sonnet-5": (2.0, 10.0, 0.20, 2.5),
+    "claude-sonnet-4-6": (3.0, 15.0, 0.30, 3.75),
     "claude-haiku-5-5": (0.10, 0.50, 0.01, 0.125),
 }
 
 
+def price_of(model: str) -> tuple | None:
+    """The prices of a model id (exact, else the longest known prefix: a dated id), None when unknown."""
+    return PRICES.get(model) or next((PRICES[k] for k in sorted(PRICES, key=len, reverse=True) if model.startswith(k + "-")), None)
+
+
 def cost(usage: dict) -> float:
-    model = next((m for m in PRICES if usage["model"].startswith(m)), None)
-    if model is None:
+    prices = price_of(usage["model"])
+    if prices is None:
         return 0.0
-    p_in, p_out, p_read, p_write = PRICES[model]
+    p_in, p_out, p_read, p_write = prices
     tokens = (usage["input"] * p_in + usage["output"] * p_out
               + usage.get("cache_read", 0) * p_read + usage.get("cache_write", 0) * p_write) / 1e6
     return tokens + usage.get("web_searches", 0) * WEB_SEARCH_USD  # web fetch is not billed beyond tokens

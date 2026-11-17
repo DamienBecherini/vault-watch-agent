@@ -9,14 +9,17 @@ from vault_watch_agent import config, llm
 
 def test_defaults_when_there_is_no_file(tmp_path):
     assert config.load(tmp_path) == {"engine": "", "key": "env:ANTHROPIC_API_KEY",
-                                     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"}}
+                                     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},
+                                     "effort": {"reasoning": "normal", "translator": "normal"}}
 
 
 def test_saved_settings_are_read_back_and_unknown_fields_dropped(tmp_path):
     saved = config.save(tmp_path, {"engine": "API", "key": " sops:secrets.env#ANTHROPIC_API_KEY ",
-                                   "models": {"translator": "claude-haiku-5-5"}, "theme": "dark"})
+                                   "models": {"translator": "claude-haiku-5-5", "reasoning": "claude-fable-5-2"},
+                                   "effort": {"reasoning": "Higher"}, "theme": "dark"})
     assert saved == {"engine": "api", "key": "sops:secrets.env#ANTHROPIC_API_KEY",
-                     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-haiku-5-5"}}
+                     "models": {"reasoning": "claude-fable-5-2", "translator": "claude-haiku-5-5"},
+                     "effort": {"reasoning": "higher", "translator": "normal"}}
     assert config.load(tmp_path) == saved
     assert not (tmp_path / "settings.json.partial").exists()
 
@@ -24,7 +27,8 @@ def test_saved_settings_are_read_back_and_unknown_fields_dropped(tmp_path):
 @pytest.mark.parametrize("settings, word", [
     ({"key": "sk-ant-api03-not-a-reference"}, "never the key itself"),
     ({"engine": "gpt"}, "engine"),
-    ({"models": {"reasoning": "claude-haiku-5-5"}}, "models.reasoning"),
+    ({"models": {"reasoning": "gpt-5"}}, "not a Claude model id"),
+    ({"effort": {"translator": "max"}}, "effort.translator"),
     ({"models": "opus"}, "models must be an object"),
 ])
 def test_settings_that_are_refused(tmp_path, settings, word):
@@ -65,10 +69,12 @@ def test_the_status_of_a_key_never_holds_the_key(tmp_path, monkeypatch):
 def test_the_clients_follow_the_settings(monkeypatch):
     monkeypatch.delenv("VAULT_WATCH_ENGINE", raising=False)
     monkeypatch.setenv("WATCH_KEY", "from-env")
-    settings = config.check({"engine": "api", "key": "env:WATCH_KEY", "models": {"translator": "claude-haiku-5-5"}})
+    settings = config.check({"engine": "api", "key": "env:WATCH_KEY", "models": {"translator": "claude-haiku-5-5"},
+                             "effort": {"reasoning": "lower"}})
     reasoning, translator = llm.create("reasoning", None, settings), llm.create("translator", None, settings)
     assert isinstance(reasoning, llm.Claude) and reasoning.model == "claude-opus-5-5" and reasoning.client.api_key == "from-env"
     assert translator.model == "claude-haiku-5-5"
+    assert (reasoning.effort_step, translator.effort_step) == (-1, 0)
     code = llm.create("translator", None, {**settings, "engine": "claude-code"})
     assert isinstance(code, llm.ClaudeCode) and code.model == "claude-haiku-5-5"
     monkeypatch.setenv("VAULT_WATCH_ENGINE", "claude-code")  # one command: the variable wins over the settings

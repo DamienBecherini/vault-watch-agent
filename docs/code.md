@@ -67,16 +67,16 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | Module | Lines | Role |
 | :-- | --: | :-- |
 | `graph.py` | 608 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
-| `web.py` | 627 | `create_app(settings)`: REST routes, server-sent events, background jobs, the user's settings, the notices of the page, the static page |
+| `web.py` | 660 | `create_app(settings)`: REST routes, server-sent events, background jobs, the user's settings, the notices of the page, the static page |
 | `verify.py` | 317 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
-| `llm.py` | 310 | The two engines (API, Claude Code on a subscription): structured output, prompt caching, web search and fetch, cost journal |
+| `llm.py` | 374 | The two engines (API, Claude Code on a subscription): structured output, prompt caching, web search and fetch, cost journal |
 | `cli.py` | 251 | `vault-watch run / resume / fix / eval / costs / serve`; wires the checkpointer and the dependencies |
 | `vault.py` | 234 | French pages, keyword search with excerpts, exact-quote check, apply an edit, leftovers sweep |
 | `crosscheck.py` | 211 | Second reading of the corrections with the whole guide cached in context, then the sweep |
 | `quotes.py` | 158 | Locates the passage a finding talks about: exact match, else the closest window of lines on normalised text |
 | `fix.py` | 135 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
 | `evaluate.py` | 126 | Hunks of the human's merged diff vs. the agent's proposals, matched by a judge model |
-| `config.py` | 121 | The user's settings (`settings.json`): engine, models, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
+| `config.py` | 138 | The user's settings (`settings.json`): engine, models, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
 | `state.py` | 116 | `WatchState` and the Pydantic schemas the model must answer with |
 | `prompts.py` | 79 | System prompts built from the guide's own editorial brief and translation policy |
 | `inputs.py` | 65 | Watch issue and artifact (`gh`), items, freshness claims due |

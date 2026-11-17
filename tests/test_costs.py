@@ -36,3 +36,13 @@ def test_subscription_calls_cost_nothing_and_are_counted_apart():
                         "subscription": 1, "spared": 0.5}
     last = costs.table(entries, "month").splitlines()[-1]
     assert "not billed $" in costs.table(entries, "month").splitlines()[0] and last.endswith("0.50") and "0.10" in last
+
+
+def test_prices_are_found_by_exact_id_then_by_dated_id_never_by_a_shorter_model():
+    from vault_watch_agent.llm import price_of
+
+    assert price_of("claude-opus-5-5") == (4.0, 20.0, 0.20, 5.0)
+    assert price_of("claude-opus-5")[0] == 5.0  # not Opus 5.5's
+    assert price_of("claude-sonnet-4-6-20260101")[0] == 3.0
+    assert price_of("claude-mythos-6") is None
+    assert cost({"model": "claude-mythos-6", "input": 1_000_000, "output": 0}) == 0.0

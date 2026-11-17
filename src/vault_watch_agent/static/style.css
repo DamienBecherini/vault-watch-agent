@@ -185,6 +185,9 @@ ul.leads .excerpts { margin-left: calc(2.2em + 30px); }
 .cfg-sub { margin: 14px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .cfg-list { padding-left: 20px; }
 .cfg-field { display: grid; gap: 6px; }
+.cfg-role { display: grid; gap: 8px; margin: 0; padding: 12px 14px 14px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.cfg-role legend { font-weight: 600; font-size: 15px; padding: 0 6px; }
+.cfg-role select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }
 .cfg-label { font-weight: 600; font-size: 14px; }
 .cfg-field input[type=text], .cfg-field select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border);
   background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }
