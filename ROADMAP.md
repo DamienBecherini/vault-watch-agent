@@ -100,7 +100,8 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 ## Phase G — a modular agent
 
 Running on any guide, with any model that can do the work, with prices that say where they come from: the plan is
-in [docs/modular-plan.md](docs/modular-plan.md) (proposal, nothing built yet). It covers the two items of phase F
+in [docs/modular-plan.md](docs/modular-plan.md) (proposal, nothing built yet) and the work, in six milestones
+from 0.2.0 to 1.0.0, in [docs/modular-action-plan.md](docs/modular-action-plan.md). It covers the two items of phase F
 above (an OpenAI-compatible engine, another guide than this one).
 
 ## Known issues and checks to do
@@ -127,6 +128,6 @@ Left open when the Claude Code engine, the Settings and the header buttons came 
 - [ ] **Running servers after an update.** A `vault-watch serve` started before an update keeps its old Python
   code: start it again. The page now names its files with a version (`?v=`), so a browser no longer mixes an old
   cached script with a new page, but a copy cached before that change needs one forced reload (Ctrl+Shift+R).
-- [ ] **Publication.** Every push to `main` on Gitea reaches the public GitHub repository through the push mirror,
-  at once. To publish only stable versions, see the options in the project notes (work on a branch kept off the
-  mirror, or sync the mirror by hand).
+- [x] **Publication** (2026-11-17). `main` is what is published: every push to it reaches the public GitHub
+  repository at once. Work happens on a `dev` branch kept in a separate, private repository, and `main` receives
+  finished versions only.
