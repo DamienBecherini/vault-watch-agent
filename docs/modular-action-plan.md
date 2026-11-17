@@ -36,7 +36,7 @@ Nothing visible changes; everything after depends on it.
 - **T0.1 Baseline.** Run the suite and keep its count; copy the published `eval` scores of `metrics/eval/` in a
   table of the changelog: the figures every later milestone is compared with. Run watch #77 for real on the Claude
   Code engine once (first full run on the subscription, open since 2026-11-17) and note the usage it took.
-  Done 17/11, on the API engine instead (the subscription was near its limit): 11 corrections, all applied, $3.44,
+  Done 17/11, on the API engine instead: 11 corrections, all applied, $3.44,
   merged as #78. The first full run on Claude Code is still to do; it moves to M2, where the costs of both engines
   are compared.
 - **T0.2 Version and changelog.** `CHANGELOG.md` (0.1.0 = the state of 2026-11-17: the two engines, the Settings,
