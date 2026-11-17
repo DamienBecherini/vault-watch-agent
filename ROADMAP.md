@@ -214,6 +214,12 @@ fake model; the changelog holds the baseline.
 Done when: the IA on-prem guide runs a real watch with its manifest and gives the same corrections as the
 baseline run within the usual variation; the sample guide runs end to end; `init` on a repository it never saw
 gives a manifest `doctor` accepts.
+Done 2026-11-18. Watch #77 replayed on the guide as it was before its pull request, with its manifest: recall 1.0
+(the 11 corrections of PR #78 found), one valid extra, none wrong, 3.36 $ (`metrics/eval/issue77-full-m1.json`).
+The sample guide ran end to end on the Claude Code engine (7 corrections, the two planted errors to fix found, the
+other two noticed by the cross-check, nothing billed); it showed that publishing a guide without repository still
+pushed, fixed. `init` on the IA on-prem guide gives its 129 pages, and on a new folder a manifest `doctor` accepts
+(tests).
 
 ### M2. Prices and capabilities (0.4.0)
 
