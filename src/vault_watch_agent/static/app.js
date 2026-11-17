@@ -244,7 +244,7 @@ const cost = usd => onSubscription() ? T.subscription : usd;
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
-  const links = info ? [info.site, `https://github.com/${info.repo}`, info.agent, CLAUDE_BILLING]
+  const links = info ? [info.site, info.repo && `https://github.com/${info.repo}`, info.agent, CLAUDE_BILLING]
     .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
   $("#external").innerHTML = links;
   $("#footer").textContent = info?.version ? `vault-watch ${info.version}` : "";

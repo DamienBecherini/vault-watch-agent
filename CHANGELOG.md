@@ -18,6 +18,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - The guide's own checks are the commands of `[checks]` (audits, claims due, source audit, version floors), run in
   a copy of the guide, `{out}` replaced by the JSON file the agent reads. A check the guide does not declare is
   « not checked » in the verification and on the publish screen, not a failure.
+- The repository, the site, the base branch, the label of the watch issues and the name of the watch artifact come
+  from the manifest. A guide without repository is local: no issue listed, no link to GitHub in the header.
 
 ## 0.2.1 (2026-11-17)
 

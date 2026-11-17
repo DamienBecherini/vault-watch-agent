@@ -25,7 +25,7 @@ def run(cmd: list[str], cwd: Path | None = None) -> str:
     return done.stdout
 
 
-def download_watch(issue: int, repo: str, cache: Path) -> Path:
+def download_watch(issue: int, repo: str, cache: Path, artifact: str = "weekly-watch") -> Path:
     """Find the workflow run linked at the bottom of the issue and download its artifact."""
     body = run(["gh", "issue", "view", str(issue), "--repo", repo, "--json", "body", "--jq", ".body"])
     match = re.search(r"/actions/runs/(\d+)", body)
@@ -34,7 +34,7 @@ def download_watch(issue: int, repo: str, cache: Path) -> Path:
     target = cache / f"run-{match.group(1)}"
     if not (target / "watch.json").is_file():
         target.mkdir(parents=True, exist_ok=True)
-        run(["gh", "run", "download", match.group(1), "--repo", repo, "-n", "weekly-watch", "-D", str(target)])
+        run(["gh", "run", "download", match.group(1), "--repo", repo, "-n", artifact, "-D", str(target)])
     return target / "watch.json"
 
 

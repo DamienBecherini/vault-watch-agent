@@ -32,10 +32,15 @@ class Deps:
     home: Path  # working folder: downloads, reports, worktrees
     llm: LLM
     translator: LLM | None = None  # cheaper model for the English mirror; defaults to llm
-    crosscheck: bool = True  # re-read the corrections against the whole French vault before the review
-    repo: str = "DamienBecherini/ia-on-prem-vault"
-    base: str = "main"
+    crosscheck: bool = True  # re-read the corrections against the whole guide before the review
+    repo: str = ""  # owner/name on GitHub; "" = the manifest's ([guide] repository), "" there too = local only
+    base: str = ""  # "" = the manifest's base branch
     today: str = field(default_factory=lambda: date.today().isoformat())
+
+    def __post_init__(self):
+        guide = vault.guide_of(self.vault)
+        self.repo = self.repo or guide.repository
+        self.base = self.base or guide.base_branch
 
 
 def git(*args: str, cwd: Path) -> str:
@@ -51,7 +56,8 @@ def build(deps: Deps, checkpointer=None):
     # -- collect ------------------------------------------------------------
     def collect(state: WatchState) -> dict:
         if state.get("issue"):
-            watch_json = inputs.download_watch(state["issue"], deps.repo, deps.home / "downloads")
+            watch_json = inputs.download_watch(state["issue"], deps.repo, deps.home / "downloads",
+                                               vault.guide_of(deps.vault).watch.artifact or "weekly-watch")
         else:
             watch_json = Path(state["source"])
         items, until = inputs.load_items(watch_json)

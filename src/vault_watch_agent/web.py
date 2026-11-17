@@ -70,8 +70,8 @@ class Settings:
     make_deps: Callable[[str, str], Deps]  # (thread, kind) -> Deps with its own model clients
     list_issues: Callable[[], list[dict]] | None = None  # watch issues; default: gh
     pr_state: Callable[[str], str] | None = None  # "open", "merged" or "closed" for a PR url; default: gh
-    repo: str = "DamienBecherini/ia-on-prem-vault"
-    site: str = "https://ia-on-prem.damien.becherini.fr/"
+    repo: str = ""  # "" = the manifest's [guide] repository (and "" there: a local guide, no issue to list)
+    site: str = ""  # "" = the manifest's [guide] site
     notifier: Callable[[str, str, str], object] | None = None  # (title, body, url to open): notify.toast with --notify
     notify_lang: str = "en"
     base_url: str = "http://127.0.0.1:4430/"
@@ -124,6 +124,8 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
 
 
 def create_app(settings: Settings) -> FastAPI:
+    guide = vault.guide_of(settings.vault)  # the repository and the site shown, unless given
+    settings.repo, settings.site = settings.repo or guide.repository, settings.site or guide.site
     settings.home.mkdir(parents=True, exist_ok=True)
     db = settings.home / "checkpoints.sqlite"
     saver = SqliteSaver(sqlite3.connect(db, check_same_thread=False))
@@ -373,7 +375,8 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/watches")
     def watches():
-        issues, known = (settings.list_issues or list_issues(settings.repo))(), threads()
+        watch = vault.guide_of(settings.vault).watch
+        issues, known = (settings.list_issues or list_issues(settings.repo, watch.label or "veille"))(), threads()
         return [{**i, "run": run_of(i, known)} for i in issues]
 
     @app.get("/api/runs")
@@ -658,10 +661,12 @@ def gh_pr_state(url: str) -> str:
     return inputs.run(["gh", "pr", "view", url, "--json", "state", "--jq", ".state"]).strip().lower()
 
 
-def list_issues(repo: str) -> Callable[[], list[dict]]:
-    """Watch issues of the vault (label « veille »), newest first, from gh."""
+def list_issues(repo: str, label: str = "veille") -> Callable[[], list[dict]]:
+    """Watch issues of the guide (the manifest's [watch] label), newest first, from gh; none for a local guide."""
     def fetch() -> list[dict]:
-        out = inputs.run(["gh", "issue", "list", "--repo", repo, "--label", "veille", "--state", "all",
+        if not repo:
+            return []
+        out = inputs.run(["gh", "issue", "list", "--repo", repo, "--label", label, "--state", "all",
                           "--limit", "12", "--json", "number,title,state,createdAt,labels"])
         return [{"number": i["number"], "title": i["title"], "state": i["state"].lower(), "date": i["createdAt"][:10],
                  "urgent": any(l["name"] == "urgent" for l in i["labels"]),
