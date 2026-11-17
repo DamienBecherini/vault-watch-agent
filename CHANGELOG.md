@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased (0.3.0, M1: any guide)
+## 0.3.0 (2026-11-18), M1: any guide
 
 - `guide.py`: the manifest of a guide (`vault-watch.toml`): name, repository, site, base branch, language, pages
   (include and exclude globs), mirrors, modified field, watch, rules, checks, budget. An unknown key or a wrong value
