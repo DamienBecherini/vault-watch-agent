@@ -26,7 +26,6 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date
-from importlib import metadata
 from pathlib import Path
 from typing import Callable, Literal
 
@@ -37,6 +36,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from pydantic import BaseModel
 
+from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import costs, fix, inputs, llm, verify
 from .graph import Deps, build, usage_line
@@ -58,10 +58,8 @@ ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "p
 
 
 def _version() -> str:
-    try:
-        return metadata.version("vault-watch-agent")
-    except metadata.PackageNotFoundError:
-        return "0"
+    """The version of the code that runs (the source, not the copy an install may have left in site-packages)."""
+    return __version__
 
 
 @dataclass
@@ -319,7 +317,8 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/info")
     def info():
-        return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now()}
+        return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
+                "version": _version()}
 
     # -- settings of the user (config.py): engine, reference to the API key, models -----------------
     def settings_view(cfg: dict) -> dict:

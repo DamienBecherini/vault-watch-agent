@@ -1,6 +1,6 @@
 [project]
 name = "vault-watch-agent"
-version = "0.1.0"
+dynamic = ["version"]
 description = "LangGraph agent that turns the weekly ecosystem watch of the IA on-prem vault into reviewed, sourced edits and a pull request."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,6 +26,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "vault_watch_agent.__version__" }
 
 [tool.setuptools.package-data]
 vault_watch_agent = ["static/*"]

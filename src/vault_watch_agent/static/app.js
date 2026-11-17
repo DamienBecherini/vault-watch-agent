@@ -246,6 +246,7 @@ function header() {
   const links = info ? [info.site, `https://github.com/${info.repo}`, info.agent]
     .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
   $("#external").innerHTML = links;
+  $("#footer").textContent = info?.version ? `vault-watch ${info.version}` : "";
   // The size of the text, light or dark, the palettes (themes.js), the bell (notify.js), the language, the Settings
   const tools = $("#tools");
   tools.innerHTML = `${themeButtons()}${notifyButton()}<span class="langs">${["fr", "en"].map(l =>

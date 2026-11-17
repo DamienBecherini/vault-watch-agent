@@ -145,6 +145,8 @@ def test_settings_keep_a_reference_to_the_key_never_the_key(client, monkeypatch)
     assert (s["engine"], s["engine_now"], s["key"]) == ("", "claude-code", "env:ANTHROPIC_API_KEY")  # a subscription: preferred
     assert s["claude_code"] == signed and s["choices"]["models"]["reasoning"][0] == s["models"]["reasoning"]
     assert c.get("/api/info").json()["engine"] == "claude-code"
+    from vault_watch_agent import __version__
+    assert c.get("/api/info").json()["version"] == c.get("/api/health").json()["version"] == __version__
 
     plain = c.post("/api/settings", json={"engine": "api", "key": "sk-ant-api03-plain"}, headers=ACT)
     assert plain.status_code == 400 and "never the key itself" in plain.json()["detail"]
