@@ -17,6 +17,7 @@ and the Host header must be local (no DNS rebinding).
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -30,7 +31,7 @@ from pathlib import Path
 from typing import Callable, Literal
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
@@ -606,7 +607,13 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/")
     def index():
-        return FileResponse(STATIC / "index.html")
+        """The page, its scripts, style and icon named with a version (?v=…) that changes with any of them: a
+        browser that kept an older copy (served before Cache-Control: no-cache) cannot mix it with the new page."""
+        files = sorted(p for p in STATIC.iterdir() if p.is_file())
+        version = hashlib.sha1("".join(f"{p.name}{p.stat().st_mtime_ns}{p.stat().st_size}" for p in files).encode()).hexdigest()[:10]
+        page = (STATIC / "index.html").read_text(encoding="utf-8")
+        page = re.sub(r'((?:src|href)="/static/[^"?]+)"', rf'\1?v={version}"', page)
+        return HTMLResponse(page)
 
     return app
 

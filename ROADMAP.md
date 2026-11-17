@@ -80,3 +80,31 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   The model quotes it, the code finds it in the page (exact, else the closest passage, flagged; else « not
   found »), so a quote the model got wrong is never shown as the guide's text.
 - [ ] Blog article.
+- [x] Claude Code as a model engine (2026-11-17): `claude -p` on a Claude subscription, nothing billed, chosen by
+  default when a subscription is found; Settings page (engine, models, the API key as a reference only); header
+  buttons after dl-sub-dub (size of the text, light or dark, palettes, browser notifications); icon.
+
+## Known issues and checks to do
+
+Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
+
+- [ ] **First real run on the subscription.** No full run has used the Claude Code engine yet. Watch #77 of the
+  guide (urgent, one advisory) is a small first one: look at `/usage` in Claude Code after the cross-check, which
+  reads the whole guide (about 430 k tokens) on Opus, against the limits of a Pro plan.
+- [ ] **Web reading of Claude Code is less exact than the API's.** Its WebFetch has a small model (Haiku) read the
+  page and report on it, where the API hands the page itself to the model: checking an exact version or date can
+  be less sure. Compare with `vault-watch eval` (same past watches, both engines) before trusting the cross-check
+  on the subscription.
+- [ ] **No effort setting per role.** The effort of each call is fixed per step in the code (triage medium,
+  proposals and cross-check high, mirror medium); the Settings only choose the engine and the models.
+- [ ] **The guide's instructions still say a run is billed.** `CLAUDE.md` and the `vault-watch` skill of the guide
+  ask before launching a run because it costs money; with the Claude Code engine it no longer does. Change them
+  through a pull request of the guide (its `main` is protected).
+- [ ] **Not checked yet in the interface:** the header and the Settings on a narrow window (phone); the browser
+  notifications with the real permission of a browser (checked with a fake `Notification` only).
+- [ ] **Running servers after an update.** A `vault-watch serve` started before an update keeps its old Python
+  code: start it again. The page now names its files with a version (`?v=`), so a browser no longer mixes an old
+  cached script with a new page, but a copy cached before that change needs one forced reload (Ctrl+Shift+R).
+- [ ] **Publication.** Every push to `main` on Gitea reaches the public GitHub repository through the push mirror,
+  at once. To publish only stable versions, see the options in the project notes (work on a branch kept off the
+  mirror, or sync the mirror by hand).

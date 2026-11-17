@@ -185,3 +185,11 @@ def test_notices_tell_a_page_what_stopped_without_counting_as_activity(client):
     c.app.state.last_activity -= 7200
     c.get("/api/notices?since=1")  # a page left open with its bell on is not someone using it
     assert c.app.state.idle_seconds() > 7000
+
+
+def test_the_page_names_its_files_with_a_version(client):
+    c, _ = client
+    page = c.get("/").text
+    assert 'src="/static/app.js?v=' in page and 'href="/static/style.css?v=' in page and 'href="/static/icon.svg?v=' in page
+    version = page.split("app.js?v=")[1].split('"')[0]
+    assert c.get(f"/static/app.js?v={version}").status_code == 200
