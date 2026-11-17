@@ -518,3 +518,27 @@ def test_apply_commits_the_floors_the_guide_script_aligns(setup):
 def test_a_date_bump_alone_is_left_to_apply():
     assert vault.date_bump_only('last_modified: "2026-10-10"', 'last_modified: "2026-11-08"')
     assert not vault.date_bump_only("vLLM 0.31", "vLLM 0.33")
+
+
+def test_two_runs_reading_the_guide_together_do_not_collide_on_git(setup):
+    """A fix pass and a translation pass started together (18/11/2026): the second failed on index.lock."""
+    import threading
+    deps, _, _ = setup
+    origin = deps.vault.parent / "origin.git"
+    sh("git", "clone", "-q", "--bare", str(deps.vault), str(origin), cwd=deps.vault.parent)
+    sh("git", "remote", "add", "origin", str(origin), cwd=deps.vault)
+    vault.reading_copy(deps.vault, deps.home)  # the copy exists: the next calls reset it
+    errors = []
+
+    def read():
+        try:
+            vault.reading_copy(deps.vault, deps.home)
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    threads = [threading.Thread(target=read) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == []

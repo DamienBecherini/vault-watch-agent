@@ -7,6 +7,7 @@ check that the quoted text exists exactly once and apply it.
 from __future__ import annotations
 
 import re
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -206,9 +207,19 @@ def date_bump_only(current: str, proposed: str) -> bool:
     return all(LAST_MODIFIED.fullmatch(t.strip()) for t in (current, proposed))
 
 
+# One git operation at a time on the guide's repository: two runs started together (a fix pass and a translation
+# pass, 18/11/2026) both fetched and reset the reading copy, and the second one failed on git's index.lock.
+_GIT = threading.RLock()
+
+
 def sync(vault: Path, base: str = "main") -> None:
     """Fast-forward the local `base` to origin before a run: proposals quote the pages as they are
     on `base`, and the run's branch starts from it (a stale base gave PR #59 merge conflicts)."""
+    with _GIT:
+        _sync(vault, base)
+
+
+def _sync(vault: Path, base: str) -> None:
     if "origin" not in inputs.run(["git", "remote"], cwd=vault).split():
         return
     inputs.run(["git", "fetch", "-q", "origin", base], cwd=vault)
@@ -223,6 +234,11 @@ def reading_copy(vault: Path, home: Path, base: str = "main") -> Path:
     verification, the proposals for reported errors). The folder of the guide may be on another branch, or hold work
     in progress: reading it gave findings on text already corrected on `base` (17/11/2026, after the merge of #78).
     A worktree of the agent, detached at `base`, reset at each call."""
+    with _GIT:
+        return _reading_copy(vault, home, base)
+
+
+def _reading_copy(vault: Path, home: Path, base: str) -> Path:
     sync(vault, base)
     copy = home / "worktrees" / f"read-{base}"
     if not (copy / ".git").exists():

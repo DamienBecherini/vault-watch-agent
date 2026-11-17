@@ -228,7 +228,8 @@ def build(deps: Deps, checkpointer=None):
         branch = state.get("branch_name") or f"chore/watch-{state['as_of']}"
         worktree = deps.home / "worktrees" / branch.replace("/", "-")
         if not worktree.exists():
-            git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
+            with vault._GIT:  # not while another run syncs main or resets the reading copy
+                git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
         chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
         for c in chosen:
             if not vault.date_bump_only(c["current"], c["proposed"]):  # apply bumps the date itself
