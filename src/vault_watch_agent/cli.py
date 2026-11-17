@@ -80,12 +80,14 @@ def run_eval(args, deps: Deps, saver) -> None:
 def make_deps(thread: str, kind: str) -> Deps:
     """Model clients labelled with the run, so the cost journal says which run paid for what.
     `view` builds a graph that only reads checkpoints: no client, no API key needed."""
-    from .llm import TRANSLATOR, create
+    from . import config
+    from .llm import create
 
     if kind == "view":
         return Deps(vault=VAULT, home=HOME, llm=None)
     vault.sync(VAULT)
-    llm, translator = create(journal=JOURNAL), create(model=TRANSLATOR, journal=JOURNAL)
+    settings = config.load(HOME)  # read for each run: a change in the Settings page applies to the next one
+    llm, translator = create("reasoning", JOURNAL, settings), create("translator", JOURNAL, settings)
     for model in (llm, translator):
         model.run, model.kind = thread, kind
     return Deps(vault=VAULT, home=HOME, llm=llm, translator=translator)
@@ -172,14 +174,16 @@ def main(argv: list[str] | None = None) -> None:
     HOME.mkdir(parents=True, exist_ok=True)
     with SqliteSaver.from_conn_string(str(HOME / "checkpoints.sqlite")) as saver:
         # The model client is created lazily so `status` works without an API key.
-        from .llm import TRANSLATOR, create
+        from . import config
+        from .llm import create
 
         live = args.cmd != "status"
+        settings = config.load(HOME) if live else None
         deps = Deps(
             vault=VAULT,
             home=HOME,
-            llm=create(journal=JOURNAL) if live else None,
-            translator=create(model=TRANSLATOR, journal=JOURNAL) if live else None,
+            llm=create("reasoning", JOURNAL, settings) if live else None,
+            translator=create("translator", JOURNAL, settings) if live else None,
         )
         thread = getattr(args, "thread", None) or (
             (f"issue-{args.issue}" if args.issue else args.watch_json.stem) if args.cmd == "run" else None

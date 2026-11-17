@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import sqlite3
 import threading
@@ -35,7 +36,8 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from . import costs, fix, inputs, verify
+from . import config as user_settings  # `config` is a helper of create_app
+from . import costs, fix, inputs, llm, verify
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -106,6 +108,12 @@ class Handle(BaseModel):
 
 class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
+
+
+class UserSettings(BaseModel):  # config.py: the key is a reference to where it is, never the key
+    engine: str = ""
+    key: str = ""
+    models: dict[str, str] = {}
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -276,9 +284,39 @@ def create_app(settings: Settings) -> FastAPI:
                 "busy": bool(running), "activity": ACTIVITIES.get(running[0].action, running[0].action) if running else "",
                 "remaining_work_s": None, "idle": {"timeout_s": settings.idle_exit, "remaining_s": remaining}}
 
+    def engine_now() -> str:
+        """The engine the next run would use; "" when the settings cannot be read (the Settings page says why)."""
+        try:
+            return llm.engine(user_settings.load(settings.home)["engine"])
+        except (user_settings.ConfigError, llm.ModelError):
+            return ""
+
     @app.get("/api/info")
     def info():
-        return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO}
+        return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now()}
+
+    # -- settings of the user (config.py): engine, reference to the API key, models -----------------
+    def settings_view(cfg: dict) -> dict:
+        """The settings with what the page shows beside them: the engine in use, Claude Code on this machine,
+        whether the reference gives a key (never the key), the models offered."""
+        return {**cfg, "engine_now": llm.engine(cfg["engine"]),
+                "engine_forced": os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower(),
+                "claude_code": llm.claude_code_status(fresh=True), "key_status": user_settings.key_status(cfg["key"]),
+                "key_forms": user_settings.KEY_FORMS, "choices": {"models": user_settings.MODELS}}
+
+    @app.get("/api/settings")
+    def settings_get():
+        try:
+            return settings_view(user_settings.load(settings.home))
+        except (user_settings.ConfigError, llm.ModelError) as e:
+            raise HTTPException(500, str(e)) from e
+
+    @app.post("/api/settings")
+    def settings_save(body: UserSettings):
+        try:
+            return settings_view(user_settings.save(settings.home, body.model_dump()))
+        except (user_settings.ConfigError, llm.ModelError) as e:
+            raise HTTPException(400, str(e)) from e
 
     def run_of(issue: dict, known: list[str]) -> dict:
         """The run that counts for a watch: the published one, else the latest (re-runs are named issue-50b…)."""
@@ -495,8 +533,10 @@ def create_app(settings: Settings) -> FastAPI:
                 known["dead"] = len(r["sources"].get("dead", []))
             if "claims" not in known and "freshness" in r:
                 known["claims"] = len(r["freshness"].get("claims", []))
-        est = verify.estimates(settings.vault, known)
-        return [{"id": c.id, "title": c.title, "what": c.what, "model": c.model, "needs": list(c.needs),
+        models = user_settings.load(settings.home)["models"]  # the models of the user's settings, shown and priced
+        est = verify.estimates(settings.vault, known, models)
+        name = {verify.MODEL: models["reasoning"], verify.TRANSLATOR: models["translator"]}
+        return [{"id": c.id, "title": c.title, "what": c.what, "model": name.get(c.model, c.model), "needs": list(c.needs),
                  "fixable": c.fixable, **est[c.id]} for c in verify.CHECKS]
 
     @app.get("/api/verifications")

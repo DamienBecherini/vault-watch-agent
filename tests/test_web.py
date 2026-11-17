@@ -131,3 +131,30 @@ def test_a_notification_says_what_waits_for_the_human(setup, tmp_path):  # noqa:
         time.sleep(0.05)
     title, body, url = sent[0]
     assert "Relecture à faire" in title and "5 correction(s)" in body and url.endswith(f"#/run/{thread}")
+
+
+def test_settings_keep_a_reference_to_the_key_never_the_key(client, monkeypatch):
+    from vault_watch_agent import llm as engines
+
+    c, _ = client
+    monkeypatch.delenv("VAULT_WATCH_ENGINE", raising=False)
+    monkeypatch.setenv("WATCH_KEY", "secret-value")
+    signed = {"installed": True, "signed_in": True, "subscription": "pro"}
+    monkeypatch.setattr(engines, "claude_code_status", lambda fresh=False: signed)
+    s = c.get("/api/settings").json()
+    assert (s["engine"], s["engine_now"], s["key"]) == ("", "claude-code", "env:ANTHROPIC_API_KEY")  # a subscription: preferred
+    assert s["claude_code"] == signed and s["choices"]["models"]["reasoning"][0] == s["models"]["reasoning"]
+    assert c.get("/api/info").json()["engine"] == "claude-code"
+
+    plain = c.post("/api/settings", json={"engine": "api", "key": "sk-ant-api03-plain"}, headers=ACT)
+    assert plain.status_code == 400 and "never the key itself" in plain.json()["detail"]
+    assert c.post("/api/settings", json={"engine": "api", "key": "env:WATCH_KEY"}).status_code == 403  # no header, no change
+
+    saved = c.post("/api/settings", json={"engine": "api", "key": "env:WATCH_KEY",
+                                          "models": {"translator": "claude-haiku-5-5"}}, headers=ACT)
+    assert saved.status_code == 200 and "secret-value" not in saved.text
+    s = saved.json()
+    assert (s["engine"], s["engine_now"], s["key_status"]) == ("api", "api", {"found": True, "error": ""})
+    assert c.get("/api/settings").json()["models"]["translator"] == "claude-haiku-5-5"
+    options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
+    assert options["translation"]["model"] == "claude-haiku-5-5"  # the check names and prices the model of the settings

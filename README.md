@@ -107,7 +107,9 @@ export ANTHROPIC_API_KEY=...                                             # API e
 | `api` | The Claude API through the official SDK (`ANTHROPIC_API_KEY`) | Per token, at list price |
 
 Without a choice, the agent uses Claude Code when it finds it signed in with a subscription, otherwise the API.
-`VAULT_WATCH_ENGINE=api` (or `claude-code`) forces one. The agent never falls back to the API on its own: when a
+The choice is made in the Settings page of the web interface (the gear in the header), which writes
+`.vault-watch/settings.json`; `VAULT_WATCH_ENGINE=api` (or `claude-code`) forces one for a command and comes
+before the settings. The agent never falls back to the API on its own: when a
 limit of the subscription is reached, the run stops with the message of Claude Code and can be retried later
 (`resume --retry`) or with the other engine.
 
@@ -115,6 +117,17 @@ Claude Code runs bare: none of the user's instructions, hooks, skills or MCP ser
 conversation kept, the API keys removed from its environment, and no tool but its web search and fetch on the
 steps that check sources. It is refused when it is signed in otherwise than with a subscription (a Console
 account, a key), because its calls would then be billed without a question.
+
+The settings also hold the model of each role (reasoning, translation) and where the API key is. The key itself
+is never stored: the field takes a reference, `env:NAME` (an environment variable, the default being
+`env:ANTHROPIC_API_KEY`), `sops:file#NAME` (a field of a file encrypted with [sops](https://github.com/getsops/sops),
+decrypted when a call is made) or `file:path` (a file that holds the key alone). A key in plain text is refused
+when the settings are saved and when they are read.
+
+```json
+{"engine": "", "key": "sops:../secrets/api.env#ANTHROPIC_API_KEY",
+ "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"}}
+```
 
 Two differences with the API are worth knowing. Claude Code's web fetch has a small model read the page and
 report on it, where the API hands the page itself to the model: a check of an exact version or date can be
@@ -262,6 +275,7 @@ for one check. That day is a start-up cost, not a monthly rate.
 src/vault_watch_agent/
   graph.py       the graph: nodes, edges, the two pauses, report and PR text
   state.py       graph state and the structured outputs the model must answer with (Pydantic)
+  config.py      settings of the user: engine, reference to the API key, models
   llm.py         Claude calls (API or Claude Code on a subscription): structured output, prompt caching, web search and fetch, cost journal
   prompts.py     system prompts, built from the guide's own brief and translation policy
   vault.py       deterministic side: search, exact-quote check, apply, whole-guide corpus

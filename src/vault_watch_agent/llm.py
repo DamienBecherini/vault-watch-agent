@@ -27,9 +27,11 @@ from typing import Protocol, TypeVar
 import anthropic
 from pydantic import BaseModel, ValidationError
 
+from . import config
+
 T = TypeVar("T", bound=BaseModel)
 
-# Verification needs judgement: Opus. Mechanical work (translation, day 2): Sonnet.
+# Verification needs judgement: Opus. Mechanical work (translation, day 2): Sonnet. Defaults of the settings (config.MODELS).
 MODEL = "claude-opus-5-5"
 TRANSLATOR = "claude-sonnet-5-5"
 MAX_CONTINUATIONS = 5  # server-side tool loops resumed after pause_turn
@@ -262,19 +264,32 @@ class ClaudeCode(_Journal):
         return parsed, usage
 
 
-def engine() -> str:
-    """The engine of the model calls: VAULT_WATCH_ENGINE (`claude-code` or `api`). Without a choice, Claude Code when
-    it is signed in with a subscription (nothing billed), otherwise the API."""
-    wanted = os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower()
+def engine(choice: str = "") -> str:
+    """The engine of the model calls: VAULT_WATCH_ENGINE (`claude-code` or `api`, for one command), otherwise `choice`
+    (the settings of the user). Without a choice, Claude Code when it is signed in with a subscription (nothing
+    billed), otherwise the API."""
+    forced = os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower()
+    if forced and forced not in ENGINES:
+        raise ModelError(f"VAULT_WATCH_ENGINE={forced}: expected one of {', '.join(ENGINES)}")
+    wanted = forced or choice
     if wanted in ENGINES:
         return wanted
-    if wanted:
-        raise ModelError(f"VAULT_WATCH_ENGINE={wanted}: expected one of {', '.join(ENGINES)}")
     return "claude-code" if claude_code_status()["subscription"] else "api"
 
 
-def create(model: str = MODEL, journal: Path | None = None) -> Claude | ClaudeCode:
-    return ClaudeCode(model, journal) if engine() == "claude-code" else Claude(model, journal=journal)
+def create(role: str = "reasoning", journal: Path | None = None, settings: dict | None = None) -> Claude | ClaudeCode:
+    """The model client of a role (`reasoning` or `translator`) under the settings of the user (`config.load`):
+    their engine, their model for that role and, for the API, the key their reference gives."""
+    settings = settings or config.check({})
+    model = settings["models"][role]
+    if engine(settings["engine"]) == "claude-code":
+        return ClaudeCode(model, journal)
+    try:
+        key = config.resolve_key(settings["key"])
+    except config.ConfigError as e:
+        raise ModelError(f"API key: {e}") from e
+    # No key from the reference: the SDK reads ANTHROPIC_API_KEY itself, and says so when there is none.
+    return Claude(model, anthropic.Anthropic(api_key=key) if key else None, journal)
 
 
 # List prices, USD per million tokens: input, output, cache read, cache write (5-minute TTL = 1.25 × input).

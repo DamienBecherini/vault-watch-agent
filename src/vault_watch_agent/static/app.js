@@ -1,4 +1,5 @@
-/* vault-watch: one screen per pause of the graph. Routes: #/ (watches), #/run/<thread>, #/check, #/check/<id>, #/report, #/costs.
+/* vault-watch: one screen per pause of the graph. Routes: #/ (watches), #/run/<thread>, #/check, #/check/<id>, #/report, #/costs,
+   #/settings (settings.js, loaded before this file).
    The server holds every state (checkpoints); this page only shows it and sends the human's answers.
    Interface in French or English (toggle in the header, remembered); the guide's own text stays in French. */
 
@@ -19,15 +20,15 @@ const TEXTS = {
       intro: "Un bilan de santé du guide entier, à la demande. Les contrôles gratuits utilisent les scripts du guide ; les autres font lire le guide par Claude. Les résultats sont des pistes : celles que tu gardes partent dans une passe fix, qui les vérifie sur les sources et passe par ta relecture.",
       free: "gratuit", tokens: n => `≈ ${n.toLocaleString("fr")} tokens`, unknown: "selon le résultat",
       needs: ids => `lance aussi : ${ids}`,
-      start: usd => `Lancer la vérification · ≈ ${usd}`, history: "Vérifications précédentes",
+      start: c => `Lancer la vérification · ${c}`, history: "Vérifications précédentes",
       none: "Aucune vérification pour l'instant.", running: "En cours…", leads: n => `${n} piste(s)`,
       waiting: "en attente", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       claims: "Affirmations à revérifier", pagesDue: "Pages à revoir", log: "Journal",
-      createFix: (n, t) => t === n && n ? `Créer une passe traduction avec ${n} piste(s) · < 1 $`
-        : t ? `Créer 2 passes : ${n - t} piste(s) en fix (≈ 6-8 $), ${t} en traduction (< 1 $)`
-        : `Créer une passe fix avec ${n} piste(s) · ≈ 6-8 $`, tickAll: "Tout cocher", untickAll: "Tout décocher",
+      createFix: (n, t, c) => t === n && n ? `Créer une passe traduction avec ${n} piste(s) · ${c("< 1 $")}`
+        : t ? `Créer 2 passes : ${n - t} piste(s) en fix (${c("≈ 6-8 $")}), ${t} en traduction (${c("< 1 $")})`
+        : `Créer une passe fix avec ${n} piste(s) · ${c("≈ 6-8 $")}`, tickAll: "Tout cocher", untickAll: "Tout décocher",
       cost: c => `Coût : ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
@@ -54,7 +55,7 @@ const TEXTS = {
     },
     watches: "Veilles",
     watchesIntro: "Une veille est publiée par GitHub tous les 15 jours. L'agent l'analyse, tu relis ses propositions, puis il ouvre la pull request.",
-    analyse: "Analyser · ≈ 4 $", merge: "Fusionner sur GitHub",
+    analyse: c => `Analyser · ${c}`, merge: "Fusionner sur GitHub",
     buttons: { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
     issue: open => `issue ${open ? "ouverte" : "fermée"}`,
@@ -99,12 +100,16 @@ const TEXTS = {
     },
     resume: "Reprendre", applied: "Appliquées",
     reportTitle: "Signaler une erreur",
-    reportIntro: "Une erreur par ligne : la page, ce qui est faux, et si possible la bonne information. L'agent vérifie chaque point sur des sources primaires, avec tout le guide en contexte, puis propose des corrections que tu relis comme pour une veille. Compte 5 à 7 $.",
+    reportIntro: "Une erreur par ligne : la page, ce qui est faux, et si possible la bonne information. L'agent vérifie chaque point sur des sources primaires, avec tout le guide en contexte, puis propose des corrections que tu relis comme pour une veille.",
+    reportCost: "Compte 5 à 7 $.", reportSubscription: "Les appels passent par Claude Code sur ton abonnement : rien n'est facturé.",
     reportExample: "03-stack/engines.md : vLLM 0.31 n'est plus la version minimale, la 0.33 corrige un avis de sécurité.",
     reportButton: "Vérifier et proposer des corrections",
     costsTitle: "Coûts",
     costsIntro: total => `Calculés à partir de l'usage que renvoie l'API, au prix catalogue (journal <code>metrics/usage.jsonl</code>). La page de facturation de la Console reste la référence. Total : ${total}.`,
-    columns: ["Appels", "Tokens lus", "Écrits", "Coût"], byMonth: "Par mois", month: "Mois", byRun: "Par passage", run: "Passage",
+    costsSubscription: (calls, spared) => `${calls} appel(s) sont passés par Claude Code sur l'abonnement : non facturés, ils auraient coûté environ ${spared} sur l'API.`,
+    columns: ["Appels", "Tokens lus", "Écrits", "Coût"], subscriptionColumns: ["Sur l'abonnement", "Non facturé"],
+    byMonth: "Par mois", month: "Mois", byRun: "Par passage", run: "Passage",
+    subscription: "abonnement, non facturé",
   },
   en: {
     nav: { watches: "Watches", check: "Check the guide", report: "Report an error", costs: "Costs" },
@@ -114,15 +119,15 @@ const TEXTS = {
       intro: "A health check of the whole guide, on demand. The free checks run the guide's own scripts; the others have Claude read the guide. Results are leads: the ones you keep go to a fix run, which checks them on sources and goes through your review.",
       free: "free", tokens: n => `≈ ${n.toLocaleString("en")} tokens`, unknown: "depends on the result",
       needs: ids => `also runs: ${ids}`,
-      start: usd => `Run the check · ≈ ${usd}`, history: "Previous checks",
+      start: c => `Run the check · ${c}`, history: "Previous checks",
       none: "No check yet.", running: "Running…", leads: n => `${n} lead(s)`,
       waiting: "waiting", ok: "all clear", problems: "to look at", failed: "could not run",
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
-      createFix: (n, t) => t === n && n ? `Create a translation run with ${n} point(s) · < 1 $`
-        : t ? `Create 2 runs: ${n - t} point(s) as a fix (≈ 6-8 $), ${t} as a translation run (< 1 $)`
-        : `Create a fix run with ${n} point(s) · ≈ 6-8 $`, tickAll: "Tick all", untickAll: "Untick all",
+      createFix: (n, t, c) => t === n && n ? `Create a translation run with ${n} point(s) · ${c("< 1 $")}`
+        : t ? `Create 2 runs: ${n - t} point(s) as a fix (${c("≈ 6-8 $")}), ${t} as a translation run (${c("< 1 $")})`
+        : `Create a fix run with ${n} point(s) · ${c("≈ 6-8 $")}`, tickAll: "Tick all", untickAll: "Untick all",
       cost: c => `Cost: ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
@@ -149,7 +154,7 @@ const TEXTS = {
     },
     watches: "Watches",
     watchesIntro: "GitHub publishes a watch every two weeks. The agent analyses it, you review its proposals, then it opens the pull request.",
-    analyse: "Analyse · ≈ 4 $", merge: "Merge on GitHub",
+    analyse: c => `Analyse · ${c}`, merge: "Merge on GitHub",
     buttons: { review: "Review", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
     issue: open => `issue ${open ? "open" : "closed"}`,
@@ -194,14 +199,20 @@ const TEXTS = {
     },
     resume: "Resume", applied: "Applied",
     reportTitle: "Report an error",
-    reportIntro: "One error per line: the page, what is wrong, and the right information if you have it. The agent checks each point on primary sources, with the whole guide in context, then proposes corrections you review as for a watch. About 5 to 7 $.",
+    reportIntro: "One error per line: the page, what is wrong, and the right information if you have it. The agent checks each point on primary sources, with the whole guide in context, then proposes corrections you review as for a watch.",
+    reportCost: "About 5 to 7 $.", reportSubscription: "The calls go through Claude Code on your subscription: nothing is billed.",
     reportExample: "03-stack/engines.md: vLLM 0.31 is no longer the minimum version, 0.33 fixes a security advisory.",
     reportButton: "Check and propose corrections",
     costsTitle: "Costs",
     costsIntro: total => `Computed from the usage the API returns, at list price (journal <code>metrics/usage.jsonl</code>). The Console's billing page stays the reference. Total: ${total}.`,
-    columns: ["Calls", "Tokens in", "Out", "Cost"], byMonth: "By month", month: "Month", byRun: "By run", run: "Run",
+    costsSubscription: (calls, spared) => `${calls} call(s) went through Claude Code on the subscription: not billed, they would have cost about ${spared} on the API.`,
+    columns: ["Calls", "Tokens in", "Out", "Cost"], subscriptionColumns: ["On the subscription", "Not billed"],
+    byMonth: "By month", month: "Month", byRun: "By run", run: "Run",
+    subscription: "subscription, not billed",
   },
 };
+TEXTS.fr.settings = SETTINGS_TEXTS.fr;  // settings.js
+TEXTS.en.settings = SETTINGS_TEXTS.en;
 const savedLang = () => { try { return localStorage.getItem("vault-watch-lang"); } catch { return null; } };
 let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").startsWith("fr") ? "fr" : "en";
 let T = TEXTS[lang];
@@ -226,13 +237,17 @@ async function api(path, body) {
 
 // --- Header -------------------------------------------------------------------------------------------
 let info = null;
+// What a paid action costs: its estimate on the API, nothing on Claude Code with a subscription (info.engine)
+const onSubscription = () => info?.engine === "claude-code";
+const cost = usd => onSubscription() ? T.subscription : usd;
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
   const links = info ? [info.site, `https://github.com/${info.repo}`, info.agent]
     .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
   $("#external").innerHTML = `${links}<span class="langs">${["fr", "en"].map(l =>
-    `<button data-lang="${l}" class="${l === lang ? "active" : ""}" aria-pressed="${l === lang}">${l.toUpperCase()}</button>`).join("")}</span>`;
+    `<button data-lang="${l}" class="${l === lang ? "active" : ""}" aria-pressed="${l === lang}">${l.toUpperCase()}</button>`).join("")}</span>
+    <a class="icon-link${location.hash.startsWith("#/settings") ? " active" : ""}" href="#/settings" title="${T.settings.open}" aria-label="${T.settings.open}">${SETTINGS_ICONS.gear}</a>`;
   $("#external").querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
     lang = b.dataset.lang;
     T = TEXTS[lang];
@@ -249,6 +264,7 @@ async function route() {
   const h = location.hash.slice(1) || "/";
   document.querySelectorAll("nav [data-nav]").forEach(a =>
     a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : h.startsWith(`/${a.dataset.nav}`)));
+  document.querySelector(".icon-link")?.classList.toggle("active", h === "/settings");
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
@@ -256,6 +272,7 @@ async function route() {
     else if (h === "/check") await viewChecks();
     else if (h === "/report") viewReport();
     else if (h === "/costs") await viewCosts();
+    else if (h === "/settings") await viewSettings();
     else await viewWatches();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
@@ -272,7 +289,7 @@ async function viewWatches() {
     ${watches.map(v => {
       const r = v.run, link = `#/run/${encodeURIComponent(r.thread)}`;
       const action = r.status === "closed" ? ""
-        : r.status === "new" ? `<button class="primary" data-analyse="${v.number}">${T.analyse}</button>`
+        : r.status === "new" ? `<button class="primary" data-analyse="${v.number}">${T.analyse(cost("≈ 4 $"))}</button>`
         : r.status === "pr-open" ? extLink(r.pr_url, `<button class="primary">${T.merge}</button>`)
         : `<a href="${link}"><button${["review", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
             T.buttons[r.status] || T.details}</button></a>`;
@@ -485,7 +502,7 @@ const checkBadge = p => {
 async function viewChecks() {
   const [options, verifs] = await Promise.all([api("/api/verifications/options"), api("/api/verifications")]);
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
-  const price = o => o.model ? (o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
+  const price = o => o.model ? cost(o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
   // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
   const pending = verifs.filter(p => ["to-handle", "running"].includes(p.status));
   const remaining = pending.reduce((s, p) => s + p.counts.open, 0);
@@ -518,8 +535,8 @@ async function viewChecks() {
   const total = () => {
     const ids = new Set(boxes.filter(c => c.checked).map(c => c.dataset.check));
     options.filter(o => ids.has(o.id)).forEach(o => o.needs.forEach(n => ids.add(n)));
-    const usd = options.filter(o => ids.has(o.id)).reduce((s, o) => s + (o.usd || 0), 0);
-    $("#start").textContent = V.start(dollars(usd));
+    const chosen = options.filter(o => ids.has(o.id)), usd = chosen.reduce((s, o) => s + (o.usd || 0), 0);
+    $("#start").textContent = V.start(chosen.some(o => o.model) ? cost(`≈ ${dollars(usd)}`) : V.free);  // scripts only: free
     $("#start").disabled = ids.size === 0;
   };
   boxes.forEach(c => c.onchange = total);
@@ -589,7 +606,7 @@ async function viewCheck(id) {
   const ticked = () => boxes.filter(c => c.checked);
   const count = () => {
     const ok = ticked().filter(c => c.dataset.fixable === "true"), n = ok.length, e = ticked().length;
-    $("#fix").textContent = V.createFix(n, ok.filter(c => c.dataset.mode === "translation").length); $("#fix").disabled = n === 0 || v.running;
+    $("#fix").textContent = V.createFix(n, ok.filter(c => c.dataset.mode === "translation").length, cost); $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };
   boxes.forEach(c => c.onchange = count);
@@ -629,7 +646,7 @@ const FOLDS = {};  // check cards folded or opened by the reader, by verificatio
 function viewReport() {
   page.innerHTML = `
     <h1>${T.reportTitle}</h1>
-    <p class="subtitle">${T.reportIntro}</p>
+    <p class="subtitle">${T.reportIntro} ${onSubscription() ? T.reportSubscription : T.reportCost}</p>
     <textarea id="text" placeholder="${esc(T.reportExample)}"></textarea>
     <p><button class="primary" id="send">${T.reportButton}</button></p>`;
   $("#send").onclick = async () => {
@@ -645,16 +662,21 @@ function viewReport() {
 async function viewCosts() {
   const c = await api("/api/costs");
   const number = n => n.toLocaleString(lang);
-  const table = (rows, title) => `<table><thead><tr><th>${title}</th>${T.columns.map(x => `<th class="number">${x}</th>`).join("")}</tr></thead>
-    <tbody>${rows.map(r => `<tr><td>${esc(r.key)}</td><td class="number">${r.calls}</td><td class="number">${number(r.in)}</td><td class="number">${number(r.out)}</td><td class="number">${dollars(r.cost)}</td></tr>`).join("")}</tbody></table>`;
+  // Calls made through Claude Code on a subscription cost nothing: their columns show up with the first of them
+  const calls = c.month.reduce((s, r) => s + (r.subscription || 0), 0), spared = c.month.reduce((s, r) => s + (r.spared || 0), 0);
+  const columns = [...T.columns, ...(calls ? T.subscriptionColumns : [])];
+  const table = (rows, title) => `<table><thead><tr><th>${title}</th>${columns.map(x => `<th class="number">${x}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.key)}</td><td class="number">${r.calls}</td><td class="number">${number(r.in)}</td><td class="number">${number(r.out)}</td><td class="number">${dollars(r.cost)}</td>${
+      calls ? `<td class="number">${r.subscription || ""}</td><td class="number">${r.subscription ? dollars(r.spared) : ""}</td>` : ""}</tr>`).join("")}</tbody></table>`;
   const total = c.month.reduce((s, r) => s + r.cost, 0);
   page.innerHTML = `
     <h1>${T.costsTitle}</h1>
-    <p class="subtitle">${T.costsIntro(dollars(total))}</p>
+    <p class="subtitle">${T.costsIntro(dollars(total))}${calls ? ` ${T.costsSubscription(calls, dollars(spared))}` : ""}</p>
     <h2>${T.byMonth}</h2><div class="card">${table(c.month, T.month)}</div>
     <h2>${T.byRun}</h2><div class="card">${table([...c.run].reverse(), T.run)}</div>`;
 }
 
 header();
-api("/api/info").then(i => { info = i; header(); }).catch(() => {});
 route();
+// The engine in use arrives a moment later (the server asks Claude Code): on a subscription, the costs shown change
+api("/api/info").then(i => { info = i; header(); if (onSubscription() && location.hash !== "#/settings") route(); }).catch(() => {});

@@ -81,8 +81,10 @@ def english_pages(vault_dir: Path) -> list[Path]:
             if (vault_dir / "en" / p.relative_to(vault_dir)).is_file()]
 
 
-def estimates(vault_dir: Path, known: dict) -> dict[str, dict]:
-    """{check id: {tokens, usd, note}}; `known` holds counts from the last run (dead links, claims due)."""
+def estimates(vault_dir: Path, known: dict, models: dict | None = None) -> dict[str, dict]:
+    """{check id: {tokens, usd, note}}; `known` holds counts from the last run (dead links, claims due).
+    `models`: the models of the user's settings ({reasoning, translator}), priced instead of the defaults."""
+    reasoning, translator = (models or {}).get("reasoning", MODEL), (models or {}).get("translator", TRANSLATOR)
     fr = _tokens(vault.french_pages(vault_dir))
     en = _tokens(english_pages(vault_dir))
     chapters = len(by_chapter(vault_dir))
@@ -92,11 +94,11 @@ def estimates(vault_dir: Path, known: dict) -> dict[str, dict]:
         "audits": {"tokens": 0, "usd": 0.0, "note": note("≈ 10 s", "≈ 10 s")},
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
         "freshness": {"tokens": 0, "usd": 0.0, "note": note("≈ 5 s", "≈ 5 s")},
-        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(MODEL, tokens_out=COHERENCE_OUT, cache_write=fr),
+        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(reasoning, tokens_out=COHERENCE_OUT, cache_write=fr),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
         "translation": {"tokens": fr + en + chapters * OUTPUT_PER_CHAPTER,
-                        "usd": _usd(TRANSLATOR, tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER),
+                        "usd": _usd(translator, tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER),
                         "note": note(f"FR + EN, {chapters} appels (un par chapitre)", f"FR + EN, {chapters} calls (one per chapter)")},
         "claims": {"tokens": None, "usd": CLAIM_USD * claims if claims is not None else None,
                    "note": note(f"{claims} affirmations dues au dernier contrôle de fraîcheur", f"{claims} claims due at the last freshness check")

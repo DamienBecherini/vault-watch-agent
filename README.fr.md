@@ -109,7 +109,9 @@ export ANTHROPIC_API_KEY=...                                             # moteu
 | `api` | L'API Claude par le SDK officiel (`ANTHROPIC_API_KEY`) | Au token, au prix catalogue |
 
 Sans choix, l'agent utilise Claude Code quand il le trouve connecté à un abonnement, sinon l'API.
-`VAULT_WATCH_ENGINE=api` (ou `claude-code`) force l'un des deux. L'agent ne se replie jamais de lui-même sur
+Le choix se fait dans la page Réglages de l'interface web (la roue dentée de l'en-tête), qui écrit
+`.vault-watch/settings.json` ; `VAULT_WATCH_ENGINE=api` (ou `claude-code`) force l'un des deux pour une commande
+et passe avant les réglages. L'agent ne se replie jamais de lui-même sur
 l'API : quand une limite de l'abonnement est atteinte, le run s'arrête avec le message de Claude Code et peut
 être relancé plus tard (`resume --retry`) ou avec l'autre moteur.
 
@@ -117,6 +119,17 @@ Claude Code tourne nu : sans les instructions, hooks, skills ni serveurs MCP de 
 sans conversation gardée, les clés d'API retirées de son environnement, et sans autre outil que sa recherche et
 sa lecture web aux étapes qui vérifient des sources. Il est refusé s'il est connecté autrement qu'à un
 abonnement (compte Console, clé) : ses appels seraient alors facturés sans question.
+
+Les réglages contiennent aussi le modèle de chaque rôle (raisonnement, traduction) et l'endroit où se trouve la
+clé d'API. La clé elle-même n'est jamais enregistrée : le champ prend une référence, `env:NOM` (une variable
+d'environnement, par défaut `env:ANTHROPIC_API_KEY`), `sops:fichier#NOM` (un champ d'un fichier chiffré par
+[sops](https://github.com/getsops/sops), déchiffré au moment de l'appel) ou `file:chemin` (un fichier qui ne
+contient que la clé). Une clé en clair est refusée à l'enregistrement des réglages et à leur lecture.
+
+```json
+{"engine": "", "key": "sops:../secrets/api.env#ANTHROPIC_API_KEY",
+ "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"}}
+```
 
 Deux différences avec l'API sont à connaître. La lecture web de Claude Code fait lire la page par un petit
 modèle qui en rend compte, là où l'API donne la page elle-même au modèle : la vérification d'une version ou
@@ -277,6 +290,7 @@ d'évaluation et 7,25 $ pour une vérification. Cette journée est un coût de d
 src/vault_watch_agent/
   graph.py       le graphe : nœuds, arêtes, les deux pauses, texte du rapport et de la PR
   state.py       état du graphe et sorties structurées imposées au modèle (Pydantic)
+  config.py      réglages de l'utilisateur : moteur, référence de la clé d'API, modèles
   llm.py         appels à Claude (API ou Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts
   prompts.py     prompts système, construits d'après la ligne éditoriale et la politique de traduction du guide
   vault.py       partie déterministe : recherche, contrôle des citations exactes, application, corpus du guide entier
