@@ -174,6 +174,10 @@ fake model; the changelog holds the baseline.
   manifest's field (no bump when absent); `en/` by the mirrors (`graph.mirror`, `verify`, `evaluate`); the
   repository and the site in `graph.py` and `web.py`; `prompts.py` by the manifest's rules. Test: no string of
   the IA on-prem guide left in `src/` (a test greps for it).
+  Done 2026-11-18, one module per commit: pages, mirrors and the modified date (`vault.guide_of`), prompts and
+  mirrors, the checks of `[checks]`, repository and site, the remaining prompts, translation and evaluation. `Deps`
+  keeps a path and reads the guide from it (`vault.guide_of`, cached, read again when the manifest changes): the
+  worktree of a run and the reading copy carry their own manifest. Left for T1.5: the default folder in `cli.py`.
 - **T1.3 Optional parts.** A step whose part is missing is skipped and says so in the run view and the report:
   no `[checks].audits` → no audit step and "not checked" in the publish screen; no mirror → no translation; no
   floors → no floor alignment; no `claims_due` → none listed. The interface shows what the guide provides
