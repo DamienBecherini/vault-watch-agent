@@ -23,6 +23,13 @@ MANIFEST = "vault-watch.toml"
 SCHEMA = 1  # version of the manifest format this code reads
 WATCH_SOURCES = ("none", "github-issue", "file")
 CHECK_COMMANDS = ("audits", "claims_due", "sources")  # shell commands; {out} = a JSON file the agent reads after
+LANGUAGES = {"fr": "French", "en": "English", "de": "German", "es": "Spanish", "it": "Italian", "pt": "Portuguese",
+             "nl": "Dutch", "pl": "Polish", "ja": "Japanese", "zh": "Chinese", "ko": "Korean", "ru": "Russian"}
+
+
+def language_name(code: str) -> str:
+    """The name of a language for the prompts ("fr" -> "French"); an unknown code is given as it is."""
+    return LANGUAGES.get(code.split("-")[0].lower(), code)
 
 
 class GuideError(ValueError):
@@ -49,6 +56,7 @@ class Guide:
     name: str
     language: str
     repository: str = ""            # owner/name on GitHub: issues and pull requests; "" = local only
+    description: str = ""           # what the guide is about, one sentence, for the prompts
     site: str = ""
     base_branch: str = "main"
     include: tuple[str, ...] = ("**/*.md", "**/*.mdx")
@@ -89,7 +97,7 @@ class Guide:
 
 _KEYS = {
     "": {"schema", "guide", "content", "watch", "rules", "checks", "budget"},
-    "guide": {"name", "repository", "site", "base_branch"},
+    "guide": {"name", "description", "repository", "site", "base_branch"},
     "content": {"language", "include", "exclude", "mirrors", "modified_field"},
     "watch": {"source", "label", "artifact", "path"},
     "rules": {"brief", "translation_policy"},
@@ -157,6 +165,7 @@ def parse(data: dict, root: Path) -> Guide:
 
     return Guide(
         root=root, name=name, language=language, repository=repository, site=_text(g, "guide", "site"),
+        description=_text(g, "guide", "description"),
         base_branch=_text(g, "guide", "base_branch") or "main",
         include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()),
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
@@ -171,6 +180,7 @@ def legacy(root: Path) -> Guide:
     rel = lambda p: (root / p) if (root / p).is_file() else None  # noqa: E731
     return Guide(
         root=root, name="Zero to Hero: On-Premise AI", language="fr", repository="DamienBecherini/ia-on-prem-vault",
+        description="running AI on-premise for SMEs (hardware sizing, inference engines, models, agents, security)",
         site="https://ia-on-prem.damien.becherini.fr/", base_branch="main",
         exclude=("en/**", "assets/**", "docs/**", "scripts/**", "_private/**", "_templates/**", "build/**",
                  "public/**", "node_modules/**", "README.md", "CLAUDE.md", "AGENTS.md"),

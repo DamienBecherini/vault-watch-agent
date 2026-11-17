@@ -12,6 +12,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - The pages, the mirrors and the date an edit bumps come from the manifest (`vault.guide_of`): a guide without
   mirror has all its pages read, one without `modified_field` keeps its dates. A guide without a manifest is read as
   the IA on-prem guide (French, `en/`, `last_modified`), as before.
+- The prompts describe the guide from its manifest (name, language, `[guide] description`, mirrors) and read its
+  rules from `[rules]`; the mirror step keeps every declared mirror in step, in its language (it assumed French to
+  English under `en/`). A guide without a mirror no longer reports « no English mirror ».
 
 ## 0.2.1 (2026-11-17)
 

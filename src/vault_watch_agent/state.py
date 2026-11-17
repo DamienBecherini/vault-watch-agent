@@ -67,13 +67,13 @@ class ClusterProposal(BaseModel):
 
 
 class MirrorEdit(BaseModel):
-    current: str = Field(description="The exact text of the English page that corresponds to the French text being replaced, copied verbatim.")
-    proposed: str = Field(description="Its faithful English translation of the new French text.")
+    current: str = Field(description="The exact text of the mirror page that corresponds to the source text being replaced, copied verbatim.")
+    proposed: str = Field(description="Its faithful translation of the new source text, in the mirror's language.")
 
 
 class MirrorResult(BaseModel):
     edits: list[MirrorEdit]
-    problem: str = Field(description="Empty, or why the English page cannot be updated faithfully (passage missing, page diverged).")
+    problem: str = Field(description="Empty, or why the mirror page cannot be updated faithfully (passage missing, page diverged).")
 
 
 # ---------------------------------------------------------------------------

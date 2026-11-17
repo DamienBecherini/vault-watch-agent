@@ -4,6 +4,7 @@ schema = 1
 
 [guide]
 name = "Zero to Hero: On-Premise AI"
+description = "running AI on-premise for SMEs (hardware sizing, inference engines, models, agents, security)"
 repository = "DamienBecherini/ia-on-prem-vault"   # where issues and pull requests go
 site = "https://ia-on-prem.damien.becherini.fr/"
 base_branch = "main"

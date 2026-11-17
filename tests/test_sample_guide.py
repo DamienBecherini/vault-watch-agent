@@ -83,8 +83,8 @@ def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_pa
     wt = Path(graph.get_state(config).values["worktree"])
     edited = (wt / "02-install" / "requirements.md").read_text(encoding="utf-8")
     assert "Python 3.11" in edited and 'last_modified: "2026-11-17"' in edited
-    # Until M1: a guide without an English mirror or audit scripts is reported as having problems
-    assert all("no English mirror" in p for p in publish["mirror_problems"]) and publish["mirror_problems"]
+    assert publish["mirror_problems"] == [] and graph.get_state(config).values["mirrored"] == []  # no mirror declared
+    # Until T1.3: a guide without audit scripts is reported as having problems
     assert not publish["audit_ok"]
     assert publish["link_problems"] and "could not run" in publish["link_problems"][0]
 

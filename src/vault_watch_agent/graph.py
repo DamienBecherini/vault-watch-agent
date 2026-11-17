@@ -18,6 +18,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
 from . import crosscheck, inputs, prompts, quotes, vault
+from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
@@ -247,25 +248,27 @@ def build(deps: Deps, checkpointer=None):
             "-m", summary, cwd=worktree)
         return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen]}
 
-    # -- mirror (English pages follow the French edits) --------------------------
+    # -- mirror (the pages of each mirror of the manifest follow the edits of the source) ---------------
     def mirror(state: WatchState) -> dict:
         wt = Path(state["worktree"])
         translator = deps.translator or deps.llm
-        # English pages edited directly (translation fixes) have nothing to follow
-        chosen = [c for c in state["corrections"] if c["id"] in state["applied"] and not c["page"].startswith("en/")]
+        guide = vault.guide_of(wt)
+        # Mirror pages edited directly (translation fixes) have nothing to follow
+        chosen = [c for c in state["corrections"] if c["id"] in state["applied"] and not vault.in_mirror(wt, c["page"])]
         mirrored, problems, usage = [], [], []
-        for page in sorted({c["page"] for c in chosen}):
-            en = f"en/{page}"
+        for (code, folder), page in ((m, p) for m in sorted(guide.mirrors.items()) for p in sorted({c["page"] for c in chosen})):
+            en = f"{folder}{page}"
             if not (wt / en).is_file():
-                problems.append(f"{en}: no English mirror")
+                problems.append(f"{en}: no mirror in {language_name(code)}")
                 continue
             edits = "\n\n".join(
-                f"<edit>\n<old_french>\n{c['current']}\n</old_french>\n<new_french>\n{c['proposed']}\n</new_french>\n</edit>"
+                f"<edit>\n<old_source>\n{c['current']}\n</old_source>\n<new_source>\n{c['proposed']}\n</new_source>\n</edit>"
                 for c in chosen if c["page"] == page
             )
-            prompt = f"English page `{en}`:\n\n<english_page>\n{vault.read(wt / en)}\n</english_page>\n\nFrench edits:\n\n{edits}"
+            prompt = (f"Page `{en}` of the {language_name(code)} mirror:\n\n<mirror_page>\n{vault.read(wt / en)}\n"
+                      f"</mirror_page>\n\nEdits of the {language_name(guide.language)} page:\n\n{edits}")
             result, u = translator.parse(
-                system=prompts.mirror(deps.vault), prompt=prompt, schema=MirrorResult, effort="medium",
+                system=prompts.mirror(wt, code), prompt=prompt, schema=MirrorResult, effort="medium",
                 node=f"mirror {en}",
             )
             usage.append(u)
@@ -284,7 +287,7 @@ def build(deps: Deps, checkpointer=None):
                 mirrored.append(en)
         if mirrored:
             git("add", *mirrored, cwd=wt)
-            git("commit", "-m", "chore(i18n): sync the English mirrors of the reviewed corrections", cwd=wt)
+            git("commit", "-m", "chore(i18n): sync the mirrors of the reviewed corrections", cwd=wt)
         return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage}
 
     # -- audits (the vault's own checks, no model) ------------------------------

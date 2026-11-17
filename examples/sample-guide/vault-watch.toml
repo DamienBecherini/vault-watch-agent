@@ -3,6 +3,7 @@ schema = 1
 
 [guide]
 name = "Self-hosted notes server"
+description = "running Quillnote, a notes server, and Larkdb, its database, on a machine of your own"
 # no repository: local only (no issue, no pull request)
 
 [content]
