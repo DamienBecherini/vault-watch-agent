@@ -1,4 +1,7 @@
-"""Deterministic access to the vault: French pages, search, excerpts, edits.
+"""Deterministic access to the guide: its pages, search, excerpts, edits.
+
+What the pages are (folders, language, mirrors, the date an edit bumps) comes from the guide's manifest, read by
+`guide_of`: `vault-watch.toml`, or the IA on-prem layout for a guide without one (guide.legacy).
 
 The model never touches files. It proposes a replacement; these functions
 check that the quoted text exists exactly once and apply it.
@@ -12,16 +15,32 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import inputs
-
-# Folders that are not French content pages (en/ is the mirror, kept in sync later).
-SKIPPED_DIRS = {
-    ".git", ".github", ".agents", ".obsidian", "node_modules", "build", "public",
-    "assets", "docs", "scripts", "en", "_private", "_templates",
-}
-SKIPPED_ROOT_FILES = {"README.md", "CLAUDE.md", "AGENTS.md", "LICENSE", "LICENSE-CODE"}
+from .guide import MANIFEST, Guide, legacy, load
 
 FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.S)
-LAST_MODIFIED = re.compile(r'^(last_modified:\s*)"?\d{4}-\d{2}-\d{2}"?\s*$', re.M)
+_guides: dict[Path, tuple[float, Guide]] = {}
+
+
+def guide_of(root: Path) -> Guide:
+    """The guide at `root` (the guide's folder, a run's worktree or the reading copy): its manifest, read again
+    when it changes, or the IA on-prem layout when it has none. A wrong manifest raises GuideError."""
+    manifest = root / MANIFEST
+    stamp = manifest.stat().st_mtime if manifest.is_file() else 0.0
+    known = _guides.get(root)
+    if known and known[0] == stamp:
+        return known[1]
+    guide = load(root) if stamp else legacy(root)
+    _guides[root] = (stamp, guide)
+    return guide
+
+
+def _date_line(field: str) -> re.Pattern:
+    return re.compile(rf'^({re.escape(field)}:\s*)"?\d{{4}}-\d{{2}}-\d{{2}}"?\s*$', re.M)
+
+
+def in_mirror(root: Path, page: str) -> bool:
+    """Whether `page` (relative to the guide) is in one of its mirrors, not a page of the source language."""
+    return any(page.startswith(folder) for folder in guide_of(root).mirrors.values())
 
 
 @dataclass(frozen=True)
@@ -41,17 +60,12 @@ def write(path: Path, text: str) -> None:
         f.write(text)
 
 
-def french_pages(vault: Path) -> list[Path]:
-    pages = []
-    for path in vault.rglob("*.md*"):
-        rel = path.relative_to(vault)
-        # Dot folders are tooling, never content (.claude/skills, .cursor/plans were read as pages)
-        if path.suffix not in (".md", ".mdx") or rel.parts[0] in SKIPPED_DIRS or rel.parts[0].startswith("."):
-            continue
-        if len(rel.parts) == 1 and rel.name in SKIPPED_ROOT_FILES:
-            continue
-        pages.append(path)
-    return sorted(pages)
+def pages(vault: Path) -> list[Path]:
+    """The pages of the guide in its own language (not its mirrors, not its tooling), sorted."""
+    return guide_of(vault).pages()
+
+
+french_pages = pages  # its name before manifests (the source language of the IA on-prem guide)
 
 
 def corpus(vault: Path) -> str:
@@ -131,8 +145,8 @@ def _needle(token: str) -> re.Pattern:
     return re.compile(rf"(?<!\w){re.escape(token)}(?!\w)")
 
 
-def _valid_french(corrections: list[dict]) -> list[dict]:
-    return [c for c in corrections if c["check"] == "ok" and not c["page"].startswith("en/")]
+def _valid_source(vault: Path, corrections: list[dict]) -> list[dict]:
+    return [c for c in corrections if c["check"] == "ok" and not in_mirror(vault, c["page"])]
 
 
 def leftovers(vault: Path, corrections: list[dict], limit: int = MAX_LEFTOVERS) -> list[dict]:
@@ -141,7 +155,7 @@ def leftovers(vault: Path, corrections: list[dict], limit: int = MAX_LEFTOVERS) 
     Text the corrections replace is skipped, and so are footnote definitions, which
     record what a past source said. A hit is not an error: "fixed in 0.31.0" stays true.
     """
-    valid = _valid_french(corrections)
+    valid = _valid_source(vault, corrections)
     needles = {t: _needle(t) for c in valid for t in sorted(_tokens(c["current"]) - _tokens(c["proposed"]))}
     if not needles:
         return []
@@ -171,7 +185,7 @@ def unsourced_versions(vault: Path, corrections: list[dict]) -> dict[str, str]:
     A passage citing no footnote is left alone: there is nothing that could contradict it.
     """
     out: dict[str, str] = {}
-    valid = _valid_french(corrections)
+    valid = _valid_source(vault, corrections)
     for page in sorted({c["page"] for c in valid}):
         on_page = [c for c in valid if c["page"] == page]
         before = read(vault / page).replace("\r\n", "\n")
@@ -201,10 +215,10 @@ def unsourced_versions(vault: Path, corrections: list[dict]) -> dict[str, str]:
     return out
 
 
-def date_bump_only(current: str, proposed: str) -> bool:
-    """An edit of the `last_modified` line alone: `apply` already bumps it, so the edit is redundant
-    (and its quote is gone once another edit of the same page has been applied)."""
-    return all(LAST_MODIFIED.fullmatch(t.strip()) for t in (current, proposed))
+def date_bump_only(current: str, proposed: str, field: str | None = "last_modified") -> bool:
+    """An edit of the modified-date line alone (`field` of the manifest): `apply` already bumps it, so the edit is
+    redundant (and its quote is gone once another edit of the same page has been applied)."""
+    return bool(field) and all(_date_line(field).fullmatch(t.strip()) for t in (current, proposed))
 
 
 # One git operation at a time on the guide's repository: two runs started together (a fix pass and a translation
@@ -252,7 +266,8 @@ def _reading_copy(vault: Path, home: Path, base: str) -> Path:
 
 
 def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> None:
-    """Replace the single occurrence and bump `last_modified` in the frontmatter."""
+    """Replace the single occurrence and bump the modified date of the front matter (the manifest's
+    `modified_field`; none when the guide has no such field)."""
     path = vault / page
     text = read(path)
     crlf = "\r\n" in text
@@ -261,7 +276,8 @@ def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> No
         raise ValueError(f"{page}: the quoted text is no longer unique or present")
     text = text.replace(current, proposed)
     fm = FRONTMATTER.match(text)
-    if fm and LAST_MODIFIED.search(fm.group(0)):
-        head = LAST_MODIFIED.sub(lambda m: f'{m.group(1)}"{today}"', fm.group(0), count=1)
+    field = guide_of(vault).modified_field
+    if fm and field and _date_line(field).search(fm.group(0)):
+        head = _date_line(field).sub(lambda m: f'{m.group(1)}"{today}"', fm.group(0), count=1)
         text = head + text[fm.end():]
     write(path, text.replace("\n", "\r\n") if crlf else text)

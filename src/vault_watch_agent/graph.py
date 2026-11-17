@@ -232,7 +232,7 @@ def build(deps: Deps, checkpointer=None):
                 git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
         chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
         for c in chosen:
-            if not vault.date_bump_only(c["current"], c["proposed"]):  # apply bumps the date itself
+            if not vault.date_bump_only(c["current"], c["proposed"], vault.guide_of(worktree).modified_field):  # apply bumps it
                 vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
         pages = sorted({c["page"] for c in chosen})
         if (worktree / FLOORS_SCRIPT).is_file():
@@ -273,7 +273,7 @@ def build(deps: Deps, checkpointer=None):
                 problems.append(f"{en}: {result.problem}")
             done = 0
             for e in result.edits:
-                if vault.date_bump_only(e.current, e.proposed):
+                if vault.date_bump_only(e.current, e.proposed, vault.guide_of(wt).modified_field):
                     continue  # apply bumps the date itself
                 if vault.check(wt, en, e.current) == "ok":
                     vault.apply(wt, en, e.current, e.proposed, deps.today)

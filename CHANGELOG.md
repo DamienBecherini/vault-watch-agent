@@ -8,7 +8,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - `guide.py`: the manifest of a guide (`vault-watch.toml`): name, repository, site, base branch, language, pages
   (include and exclude globs), mirrors, modified field, watch, rules, checks, budget. An unknown key or a wrong value
   is an error that names the key. Two manifests in `examples/`: the sample guide's, and the IA on-prem guide's,
-  which finds the same 129 pages as the agent does today. Not used by the rest of the code yet (T1.2).
+  which finds the same 129 pages as the agent does today.
+- The pages, the mirrors and the date an edit bumps come from the manifest (`vault.guide_of`): a guide without
+  mirror has all its pages read, one without `modified_field` keeps its dates. A guide without a manifest is read as
+  the IA on-prem guide (French, `en/`, `last_modified`), as before.
 
 ## 0.2.1 (2026-11-17)
 

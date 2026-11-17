@@ -101,3 +101,41 @@ def test_the_ia_on_prem_manifest(tmp_path):
 def test_the_ia_on_prem_manifest_finds_the_same_pages_as_before():
     g = parse(tomllib.loads((EXAMPLES / "manifests" / "ia-on-prem-vault.toml").read_text(encoding="utf-8")), IA_ON_PREM)
     assert g.pages() == vault.french_pages(IA_ON_PREM)
+
+
+def _guide(root: Path, content: str) -> Path:
+    (root / "vault-watch.toml").write_text('[guide]\nname = "G"\n[content]\nlanguage = "de"\n' + content, encoding="utf-8")
+    for rel in ("a.md", "es/a.md", "notes/b.md"):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text("---\nupdated: \"2026-01-01\"\nlast_modified: \"2026-01-01\"\n---\n\nAlt 1.0.\n",
+                                encoding="utf-8")
+    return root
+
+
+def test_the_edits_follow_the_manifest(tmp_path):
+    root = _guide(tmp_path, 'mirrors = { es = "es/" }\nmodified_field = "updated"\nexclude = ["notes/**"]\n')
+    assert vault.pages(root) == [root / "a.md"] and vault.in_mirror(root, "es/a.md") and not vault.in_mirror(root, "a.md")
+    vault.apply(root, "a.md", "Alt 1.0.", "Neu 2.0.", "2026-11-18")
+    text = (root / "a.md").read_text(encoding="utf-8")
+    assert 'updated: "2026-11-18"' in text and 'last_modified: "2026-01-01"' in text  # only the manifest's field
+    assert vault.date_bump_only('updated: "2026-01-01"', 'updated: "2026-11-18"', "updated")
+    assert not vault.date_bump_only('updated: "2026-01-01"', 'updated: "2026-11-18"', None)
+
+
+def test_a_guide_without_a_modified_field_keeps_its_dates(tmp_path):
+    root = _guide(tmp_path, "")
+    vault.apply(root, "a.md", "Alt 1.0.", "Neu 2.0.", "2026-11-18")
+    assert "2026-11-18" not in (root / "a.md").read_text(encoding="utf-8")
+    assert vault.pages(root) == [root / "a.md", root / "es" / "a.md", root / "notes" / "b.md"]  # no mirror declared
+
+
+def test_a_changed_manifest_is_read_again(tmp_path):
+    root = _guide(tmp_path, "")
+    assert len(vault.pages(root)) == 3
+    import os
+    import time
+    (root / "vault-watch.toml").write_text('[guide]\nname = "G"\n[content]\nlanguage = "de"\nexclude = ["es/**"]\n',
+                                          encoding="utf-8")
+    later = time.time() + 5
+    os.utime(root / "vault-watch.toml", (later, later))
+    assert len(vault.pages(root)) == 2
