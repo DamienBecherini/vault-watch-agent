@@ -97,6 +97,12 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   default when a subscription is found; Settings page (engine, models, the API key as a reference only); header
   buttons after dl-sub-dub (size of the text, light or dark, palettes, browser notifications); icon.
 
+## Phase G — a modular agent
+
+Running on any guide, with any model that can do the work, with prices that say where they come from: the plan is
+in [docs/modular-plan.md](docs/modular-plan.md) (proposal, nothing built yet). It covers the two items of phase F
+above (an OpenAI-compatible engine, another guide than this one).
+
 ## Known issues and checks to do
 
 Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
