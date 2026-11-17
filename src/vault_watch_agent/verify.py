@@ -124,9 +124,14 @@ def by_chapter(vault_dir: Path) -> dict[str, list[Path]]:
 # ---------------------------------------------------------------------------
 
 
+NOT_DECLARED = "not checked: the guide declares no [checks] {}"
+
+
 def run_audits(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
     try:
-        log = inputs.run(["node", "scripts/run-audits.mjs"], cwd=vault_dir)
+        log = inputs.check("audits", vault_dir)
+        if log is None:
+            return {"ok": True, "summary": NOT_DECLARED.format("audits"), "findings": []}
         return {"ok": True, "summary": "all audits pass", "log": log[-3000:], "findings": []}
     except RuntimeError as e:
         return {"ok": False, "summary": "audits fail (see the log)", "log": str(e)[-3000:], "findings": []}
@@ -137,13 +142,13 @@ BROKEN = {"dead", "server-error", "network-error", "timeout"}
 
 def run_sources(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
     out = work / "sources.json"
-    inputs.run(["node", "scripts/audit-sources.mjs", "--concurrency=8", "--timeout=15000", f"--json={out}"],
-               cwd=vault_dir)
+    if inputs.check("sources", vault_dir, out) is None:
+        return {"ok": True, "summary": NOT_DECLARED.format("sources"), "dead": [], "blocked": [], "findings": []}
     report = json.loads(out.read_text(encoding="utf-8"))
     rows = []
     for s in report.get("sources", []):
         probe = s.get("probe") or {}
-        pages = sorted({c["page"] for c in s.get("citations", []) if not c["page"].startswith("en/")})
+        pages = sorted({c["page"] for c in s.get("citations", []) if not vault.in_mirror(vault_dir, c["page"])})
         if pages and probe.get("status") in BROKEN | {"blocked"}:
             rows.append({"url": s["url"], "status": probe.get("status"), "code": probe.get("code"), "pages": pages})
     dead = [r for r in rows if r["status"] in BROKEN]
@@ -163,7 +168,9 @@ def _dead(r: dict) -> str:
 
 def run_freshness(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
     out = work / "freshness.json"
-    inputs.run(["node", "scripts/audit-freshness.mjs", "--due-only", f"--json={out}"], cwd=vault_dir)
+    if inputs.check("claims_due", vault_dir, out) is None:
+        return {"ok": True, "summary": NOT_DECLARED.format("claims_due"), "claims": [], "pages_due": [],
+                "findings": []}
     data = json.loads(out.read_text(encoding="utf-8"))
     claims = data.get("claimsDue", [])
     pages = [p for p in data.get("pages", []) if p.get("status") in ("overdue", "due-soon", "never-verified")]

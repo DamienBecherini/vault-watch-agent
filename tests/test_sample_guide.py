@@ -1,7 +1,6 @@
 """A whole run on the sample guide (examples/sample-guide/) with a fake model.
 
-It also pins what the agent still needs of a guide before M1 (the English mirror, the guide's own audit scripts):
-those assertions are marked "until M1" and change when the parts become optional.
+The sample guide has a manifest with no mirror and no check of its own: the run reports them as not checked.
 """
 
 import re
@@ -60,7 +59,7 @@ class SampleLLM:
 
 def test_the_sample_guide_has_twelve_pages(sample_guide):
     guide, _ = sample_guide
-    assert len(vault.french_pages(guide)) == 12  # README.md and scripts/ are not pages
+    assert len(vault.french_pages(guide)) == 12  # README.md is excluded by the manifest
 
 
 def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_path):
@@ -84,9 +83,8 @@ def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_pa
     edited = (wt / "02-install" / "requirements.md").read_text(encoding="utf-8")
     assert "Python 3.11" in edited and 'last_modified: "2026-11-17"' in edited
     assert publish["mirror_problems"] == [] and graph.get_state(config).values["mirrored"] == []  # no mirror declared
-    # Until T1.3: a guide without audit scripts is reported as having problems
-    assert not publish["audit_ok"]
-    assert publish["link_problems"] and "could not run" in publish["link_problems"][0]
+    # No [checks] in its manifest: not checked, which is not a failure
+    assert publish["audit_ok"] is None and publish["link_problems"] == []
 
     graph.invoke(Command(resume=False), config)  # no push
     assert not graph.get_state(config).next

@@ -24,8 +24,6 @@ from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
 TRIAGE_BATCH = 40  # items per triage call
 TRIAGE_NOTES = 1200  # characters of cached notes shown at triage
-FLOORS_SCRIPT = "scripts/audit-version-floors.mjs"
-FLOORS_FILE = ".agents/vault-maintenance/version-floors.json"
 
 
 @dataclass
@@ -236,10 +234,11 @@ def build(deps: Deps, checkpointer=None):
             if not vault.date_bump_only(c["current"], c["proposed"], vault.guide_of(worktree).modified_field):  # apply bumps it
                 vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
         pages = sorted({c["page"] for c in chosen})
-        if (worktree / FLOORS_SCRIPT).is_file():
+        floors = vault.guide_of(worktree).version_floors
+        if floors and (worktree / floors.script).is_file():
             try:  # the guide's own script follows the minimum versions its pages now state
-                inputs.run(["node", FLOORS_SCRIPT, "--write"], cwd=worktree)
-                pages.append(FLOORS_FILE)
+                inputs.run(["node", floors.script, "--write"], cwd=worktree)
+                pages.append(floors.file)
             except RuntimeError:
                 pass  # the audits step runs the same check and reports it before the PR
         git("add", *pages, cwd=worktree)
@@ -290,10 +289,12 @@ def build(deps: Deps, checkpointer=None):
             git("commit", "-m", "chore(i18n): sync the mirrors of the reviewed corrections", cwd=wt)
         return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage}
 
-    # -- audits (the vault's own checks, no model) ------------------------------
+    # -- audits (the guide's own checks, [checks] audits, no model) ---------------
     def audits(state: WatchState) -> dict:
         try:
-            log = inputs.run(["node", "scripts/run-audits.mjs"], cwd=Path(state["worktree"]))  # = npm test
+            log = inputs.check("audits", Path(state["worktree"]))
+            if log is None:  # None: not checked (the publish screen says so)
+                return {"audit_ok": None, "audit_log": "not checked: the guide declares no [checks] audits"}
             return {"audit_ok": True, "audit_log": log[-3000:]}
         except RuntimeError as e:
             return {"audit_ok": False, "audit_log": str(e)[-3000:]}
@@ -304,7 +305,8 @@ def build(deps: Deps, checkpointer=None):
         out = deps.home / "downloads" / f"sources-{state['branch'].replace('/', '-')}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         try:
-            inputs.run(["node", "scripts/audit-sources.mjs", "--concurrency=8", "--timeout=15000", f"--json={out}"], cwd=wt)
+            if inputs.check("sources", wt, out) is None:
+                return {"link_problems": []}  # the guide declares no [checks] sources: nothing to probe
         except RuntimeError as e:
             return {"link_problems": [f"source audit could not run: {str(e)[:200]}"]}
         added = git("diff", "-U0", f"{deps.base}...HEAD", cwd=wt)
@@ -598,7 +600,7 @@ def pr_body(state: WatchState) -> str:
         + f"Vault audits (`npm test`): {'passed' if state.get('audit_ok') else 'FAILED, see the log below'}.\n\n"
         f"English mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
         + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
-        + "\nExternal sources of the changed pages (`scripts/audit-sources.mjs`): "
+        + "\nExternal sources of the changed pages (the guide's source audit): "
         + ("all answer.\n" if not state.get("link_problems") else
            "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
         +("" if state.get("audit_ok") else f"\n```\n{state.get('audit_log', '')}\n```\n")

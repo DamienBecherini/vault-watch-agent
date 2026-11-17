@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -58,8 +60,25 @@ def load_items(watch_json: Path) -> tuple[list[dict], str]:
     return items, data.get("until", "")
 
 
+def check(key: str, cwd: Path, out: Path | None = None) -> str | None:
+    """Run the guide's own command `key` of [checks] (audits, claims_due, sources) in `cwd`, a copy of the guide;
+    `{out}` in it becomes `out`. None when the guide declares no such command: the step is not checked.
+    RuntimeError when the command fails."""
+    from .vault import guide_of  # vault imports this module
+
+    command = getattr(guide_of(cwd), key)
+    if not command:
+        return None
+    args = [a.replace("{out}", str(out)) for a in shlex.split(command)]
+    args[0] = shutil.which(args[0]) or args[0]  # npm, npx are .cmd files on Windows
+    if out is not None:
+        out.parent.mkdir(parents=True, exist_ok=True)
+    return run(args, cwd=cwd)
+
+
 def claims_due(vault: Path, out: Path) -> list[dict]:
-    """Watchlist claims whose "Recheck by" date has passed (vault script, no network)."""
-    out.parent.mkdir(parents=True, exist_ok=True)
-    run(["node", "scripts/audit-freshness.mjs", "--due-only", f"--json={out}"], cwd=vault)
+    """Watchlist claims whose "Recheck by" date has passed (the guide's `claims_due`, no network); none when the
+    guide has no such check."""
+    if check("claims_due", vault, out) is None:
+        return []
     return json.loads(out.read_text(encoding="utf-8")).get("claimsDue", [])

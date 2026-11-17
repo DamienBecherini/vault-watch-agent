@@ -14,6 +14,6 @@ Planted errors, one per check, so a run has something to find:
 
 `watch.json` holds eight items: five kept by the collector (one urgent), three dropped.
 
-The tests copy this folder into a temporary git repository (`tests/conftest.py`, fixture `sample_guide`). Until the
-optional parts of milestone M1 land, the fixture adds what the agent still requires of a guide (a stub
-`scripts/audit-freshness.mjs`); see [phase G of ROADMAP.md](../../ROADMAP.md#phase-g--a-modular-agent).
+Its manifest, `vault-watch.toml`, is the smallest useful one: no repository (local only), no mirror, no check of its
+own (the run says « not checked »), the watch read from `watch.json`. The tests copy this folder into a temporary git
+repository (`tests/conftest.py`, fixture `sample_guide`).

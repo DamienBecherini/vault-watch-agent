@@ -15,6 +15,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - The prompts describe the guide from its manifest (name, language, `[guide] description`, mirrors) and read its
   rules from `[rules]`; the mirror step keeps every declared mirror in step, in its language (it assumed French to
   English under `en/`). A guide without a mirror no longer reports « no English mirror ».
+- The guide's own checks are the commands of `[checks]` (audits, claims due, source audit, version floors), run in
+  a copy of the guide, `{out}` replaced by the JSON file the agent reads. A check the guide does not declare is
+  « not checked » in the verification and on the publish screen, not a failure.
 
 ## 0.2.1 (2026-11-17)
 

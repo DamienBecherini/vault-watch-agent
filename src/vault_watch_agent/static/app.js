@@ -82,7 +82,7 @@ const TEXTS = {
     applyNothing: "Ne rien appliquer", applyN: n => `Appliquer ${n} correction${n > 1 ? "s" : ""}`,
     confirmNothing: "Ne rien appliquer et clore ce passage ?",
     publishFigures: ["corrections appliquées", "pages anglaises mises à jour", "contrôles du guide", "lien(s) à vérifier"],
-    failed: "Échec",
+    failed: "Échec", notChecked: "non vérifié",
     branchReady: b => `Branche <code>${b}</code>, prête localement. Rien n'a encore quitté la machine.`,
     auditsRed: "Les contrôles du guide échouent : la PR serait rouge.",
     translation: "Traduction", linksTitle: "Liens", linksNew: "(« NEW » : ajouté par ce passage)",
@@ -181,7 +181,7 @@ const TEXTS = {
     applyNothing: "Apply nothing", applyN: n => `Apply ${n} correction${n > 1 ? "s" : ""}`,
     confirmNothing: "Apply nothing and close this run?",
     publishFigures: ["corrections applied", "English pages updated", "guide audits", "link(s) to check"],
-    failed: "Failed",
+    failed: "Failed", notChecked: "not checked",
     branchReady: b => `Branch <code>${b}</code>, ready locally. Nothing has left the machine yet.`,
     auditsRed: "The guide audits fail: the PR would be red.",
     translation: "Translation", linksTitle: "Links", linksNew: "(« NEW »: added by this run)",
@@ -463,12 +463,12 @@ async function viewPublish(r, title) {
   const p = { mirror_problems: [], link_problems: [], ...r.pause };
   const diff = await api(`/api/runs/${encodeURIComponent(r.thread)}/diff`).catch(() => "");
   const color = l => l.startsWith("+") && !l.startsWith("+++") ? "plus" : l.startsWith("-") && !l.startsWith("---") ? "minus" : "";
-  const figures = [r.applied.length, r.mirrored.length, p.audit_ok ? "OK" : T.failed, p.link_problems.length];
+  const figures = [r.applied.length, r.mirrored.length, p.audit_ok === null ? T.notChecked : p.audit_ok ? "OK" : T.failed, p.link_problems.length];
   page.innerHTML = `${title}
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.publishFigures[i]}</div>`).join("")}</div>
     <div class="card">
       <p>${T.branchReady(esc(p.branch))}</p>
-      ${p.audit_ok ? "" : `<p class="error-text">${T.auditsRed}</p><pre>${esc(r.audit_log)}</pre>`}
+      ${p.audit_ok !== false ? "" : `<p class="error-text">${T.auditsRed}</p><pre>${esc(r.audit_log)}</pre>`}
       ${p.mirror_problems.length ? `<p><b>${T.translation}</b></p><ul>${p.mirror_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${p.link_problems.length ? `<p><b>${T.linksTitle}</b> ${T.linksNew}</p><ul>${p.link_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">${T.linksOk}</p>`}
     </div>

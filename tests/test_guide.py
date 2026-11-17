@@ -139,3 +139,15 @@ def test_a_changed_manifest_is_read_again(tmp_path):
     later = time.time() + 5
     os.utime(root / "vault-watch.toml", (later, later))
     assert len(vault.pages(root)) == 2
+
+
+def test_the_checks_of_the_manifest_run_with_their_output_file(tmp_path):
+    from vault_watch_agent import inputs
+    root = _guide(tmp_path, '[checks]\nclaims_due = "node due.mjs --json={out} --due-only"\n')
+    (root / "due.mjs").write_text(
+        "import { writeFileSync } from 'node:fs';\n"
+        "const out = process.argv.find(a => a.startsWith('--json=')).slice(7);\n"
+        "writeFileSync(out, JSON.stringify({claimsDue: [{page: 'a.md', claim: 'x'}]}));\n", encoding="utf-8")
+    out = tmp_path / "work dir" / "due.json"  # a space in the path: one argument all the same
+    assert inputs.claims_due(root, out) == [{"page": "a.md", "claim": "x"}]
+    assert inputs.check("audits", root) is None  # not declared: not checked
