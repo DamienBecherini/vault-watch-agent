@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased (0.5.0, M3: any watch)
+## 0.5.0 (2026-11-18), M3: any watch
 
 - The watch format is a contract: `docs/watch-format.md` (and in French) describes `watch.json` key by key, with a
   `schema` number. The loader checks it: a newer schema is refused with « update vault-watch-agent », an item

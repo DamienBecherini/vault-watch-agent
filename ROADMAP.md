@@ -275,7 +275,7 @@ Two independent halves; the first is small and can ship alone.
 Done when: every price on screen says where it comes from; the IA on-prem guide runs unchanged; the sample guide
 runs "by chapter" when the window is forced small in a test, and the report says so.
 
-### M3. Any watch (0.5.0)
+### M3. Any watch (0.5.0, done 2026-11-18)
 
 - **T3.1 The contract.** `docs/watch-format.md`: `watch.json` field by field (items, triage, urgent, notes,
   window), versioned with a `schema` number; the loader refuses a newer major and says which.
