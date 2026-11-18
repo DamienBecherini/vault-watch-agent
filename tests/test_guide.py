@@ -92,7 +92,7 @@ def test_the_ia_on_prem_manifest(tmp_path):
     assert (g.language, g.mirrors, g.modified_field, g.watch.label) == ("fr", {"en": "en/"}, "last_modified", "veille")
     assert g.pages() == [tmp_path / "03-stack" / "engines.md"]  # not its mirror, not the README
     assert g.mirror_of("03-stack/engines.md", "en") == "en/03-stack/engines.md" and g.mirror_of("a.md", "de") is None
-    assert g.brief == tmp_path / ".agents/skills/vault-watch/brief.md" and g.max_context_tokens == 450000
+    assert g.brief == tmp_path / ".agents/skills/vault-watch/brief.md" and g.max_context_tokens is None
     assert "{out}" in g.claims_due and g.version_floors.file.endswith("version-floors.json")
     assert legacy(tmp_path).pages() == g.pages()  # the manifest says what the agent assumed
 

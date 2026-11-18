@@ -32,5 +32,5 @@ claims_due = "node scripts/audit-freshness.mjs --due-only --json={out}"
 sources = "node scripts/audit-sources.mjs --concurrency=8 --timeout=15000 --json={out}"
 version_floors = { script = "scripts/audit-version-floors.mjs", file = ".agents/vault-maintenance/version-floors.json" }
 
-[budget]
-max_context_tokens = 450000
+# [budget] max_context_tokens: not set, the model's window decides (the guide is about 430 k tokens; a 1M
+# window reads it whole). A ceiling below the guide's size would make the cross-check read it chapter by chapter.

@@ -33,6 +33,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   folder per call, with the pages the corrections change; a correction keeps the verdict of its own chapter), and
   the report, the review screen and the verification say « by chapter: a contradiction between two chapters can be
   missed ».
+- The example manifest of the IA on-prem guide no longer sets `[budget] max_context_tokens` (it was 450 000, below
+  the estimate of the guide with its margin, about 500 000 tokens: the cross-check would have gone by chapter).
 - The estimates of the checks say where their price comes from when it is the default or none; the Costs page
   counts the API calls by the origin of their price (the lines before 0.4.0: « list prices of the time »).
 
