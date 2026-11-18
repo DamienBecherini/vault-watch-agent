@@ -311,7 +311,7 @@ GitHub (`sample-watch.yml`, 18 s: 12 items, 11 kept, no feed in error, read by t
 the same items with either collector; its manifest names its feeds since
 [pull request #84 of the guide](https://github.com/DamienBecherini/ia-on-prem-vault/pull/84).
 
-### M4. Any model (0.6.0)
+### M4. Any model (0.6.0, done 2026-11-18)
 
 - **T4.1 The engine protocol, written down.** `Engine`: `parse(...)`, `capabilities`, `models()`, `count_tokens`
   (optional). A registry (`engines = {"api": …, "claude-code": …}`) fed by entry points, so an engine can live in
@@ -373,6 +373,7 @@ Done when: the sample guide and the IA on-prem guide run end to end on the OpenA
 hosted model; the triage, the proposals and the mirror run on a local model; the scores are published.
 Revised on 2026-11-18: the engine runs on a hosted model (the sample guide) and on a local one (the sample guide,
 watch #77 by excerpts); the docs say which models the project uses and commit to nothing else.
+Done 2026-11-18, published as 0.6.0.
 
 ### M5. Stable (1.0.0)
 
