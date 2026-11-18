@@ -12,6 +12,7 @@ dependencies = [
   "pydantic>=2.14",
   "fastapi>=0.162",
   "uvicorn>=0.54",
+  "httpx>=0.28",  # the OpenAI-compatible engine and the web tools (already a dependency of anthropic)
 ]
 
 [project.optional-dependencies]

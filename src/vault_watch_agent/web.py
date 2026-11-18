@@ -137,6 +137,7 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
     models: dict[str, str] = {}
     effort: dict[str, str] = {}
     prices: dict[str, dict] | None = None  # None: keep the prices already set (a page that does not show them)
+    engines: dict[str, dict] | None = None  # the other engines' options; None: keep those already set
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -334,9 +335,23 @@ def create_app(settings: Settings) -> FastAPI:
         except (user_settings.ConfigError, llm.ModelError):
             return ""
 
+    def billing_now() -> str:
+        """How the next run is paid, without making a client: token, subscription, or none (a local model)."""
+        try:
+            cfg = user_settings.load(cfg_home)
+            name = llm.engine(cfg["engine"])
+        except (user_settings.ConfigError, llm.ModelError):
+            return "token"
+        if name == "claude-code":
+            return "subscription"
+        if name == "openai":
+            return "none" if (cfg["engines"].get("openai") or {}).get("billing") == "local" else "token"
+        return "token"
+
     @app.get("/api/info")
     def info():
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
+                "billing": billing_now(),
                 "guide": guide.name, "watch_source": guide.watch.source,
                 "version": _version()}
 
@@ -346,7 +361,11 @@ def create_app(settings: Settings) -> FastAPI:
 
     def prices_view(cfg: dict) -> dict:
         """Each priced model (the ones in use first) with its rates and where they come from, and the fetched list."""
-        table, in_use = price_table(cfg), list(dict.fromkeys(cfg["models"].values()))
+        try:
+            current = [llm.model_of(cfg, role) for role in user_settings.MODELS]
+        except llm.ModelError:
+            current = []
+        table, in_use = price_table(cfg), [m for m in dict.fromkeys(current + list(cfg["models"].values())) if m]
         without = price_table({**cfg, "prices": {}})  # what a model costs when the user sets no price of their own
         rows = []
         for model in list(dict.fromkeys(in_use + list(cfg["prices"]) + table.known())):
@@ -366,6 +385,9 @@ def create_app(settings: Settings) -> FastAPI:
                 "engine_forced": os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower(),
                 "claude_code": llm.claude_code_status(), "key_status": user_settings.key_status(cfg["key"]),
                 "key_forms": user_settings.KEY_FORMS,
+                "engines_installed": [{"name": k.name, "label": k.label} for k in llm.engines().values()],
+                "engine_options": {k.name: k.options for k in llm.engines().values() if k.options},
+                "engine_errors": llm.ENGINE_ERRORS,
                 "guide": vault.guide_of(settings.vault).summary(),  # read-only: from its manifest
                 "price_table": prices_view(cfg),
                 "choices": {"models": user_settings.MODELS, "effort": user_settings.EFFORTS,
@@ -375,9 +397,21 @@ def create_app(settings: Settings) -> FastAPI:
                                       for role, steps in STEP_EFFORTS.items()}}}
 
     @app.get("/api/models")
-    def models_view(key: str = ""):
+    def models_view(key: str = "", engine: str = "", base_url: str = ""):
         """The Claude models the API key can use, read from the Models API (`key`: a reference to try before saving
-        it, else the one of the settings); without a key that answers, the models known to the agent and why."""
+        it, else the one of the settings); without a key that answers, the models known to the agent and why.
+        `engine`: another engine's models (the OpenAI-compatible server's: `base_url` and `key` tried before saving)."""
+        if engine and engine not in ("api", "claude-code"):
+            cfg, kind = user_settings.load(cfg_home), llm.engines().get(engine)
+            if not kind or not kind.models:
+                return {"source": "none", "models": [], "error": f"{engine}: no list of models"}
+            options = {**(cfg["engines"].get(engine) or {}), **({"base_url": base_url} if base_url else {}),
+                       **({"key": key} if key else {})}
+            try:
+                return {"source": engine, "models": kind.models({**cfg, "engines": {**cfg["engines"], engine: options}}),
+                        "error": ""}
+            except (llm.ModelError, user_settings.ConfigError) as e:
+                return {"source": engine, "models": [], "error": str(e)}
         reference = key or user_settings.load(cfg_home)["key"]
         try:
             return {"source": "api", "models": llm.list_models(reference, prices=price_table()), "error": ""}
@@ -423,6 +457,8 @@ def create_app(settings: Settings) -> FastAPI:
             given = body.model_dump()
             if given["prices"] is None:
                 given["prices"] = user_settings.load(cfg_home)["prices"]
+            if given["engines"] is None:
+                given["engines"] = user_settings.load(cfg_home)["engines"]
             return settings_view(user_settings.save(cfg_home, given))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e

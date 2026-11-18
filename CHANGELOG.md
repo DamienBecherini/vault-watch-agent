@@ -3,6 +3,32 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased (0.6.0, M4: any model)
+
+- Engines are a protocol (`llm.Engine`: `parse`, `capabilities`, optional `count_tokens`) and a registry
+  (`llm.engines()`): the Claude API, Claude Code, the OpenAI-compatible server, and any engine another package
+  declares (entry point group `vault_watch_agent.engines`, an `EngineKind`). The Settings list the engines installed.
+  `USAGE_KEYS`: what every usage returned holds.
+- Contract tests (`tests/engine_contract.py`): what any engine must do, against recorded answers (a valid answer and
+  its usage in the journal, an answer out of the schema, a refusal, a cut answer, a call with the web). The three
+  engines pass it.
+- The OpenAI-compatible engine (`openai_compat.py`): any server of `/v1/chat/completions`, hosted or local (llama.cpp,
+  vLLM, Ollama, LM Studio). Its address, a key by reference, a model per role (the server's list offered), its
+  window, structured output by `response_format` with the JSON schema or, when the server refuses it, the schema in
+  the instructions and a tolerant reading of the answer; billed per token through the price table, or local and not
+  billed. The context opens the system message, so that a server that caches a prompt's prefix reads the guide from
+  its cache.
+- Web tools for a model without web of its own (`webtools.py`): search through SearXNG and page reading, run by the
+  agent within the API engine's limits (20 searches, 30 pages per call). Only public addresses are read (never the
+  machine itself or the local network, checked again after each redirection), the readable text of a page is cut at
+  30,000 characters, a PDF is not read. Without a SearXNG address the model reads pages but cannot search, and the
+  steps that check on the web say so (`steps.lacks`: « search »).
+- Settings: the engine « OpenAI-compatible server » and its options; the cost shown before an action says « local
+  model, not billed » or « billed by your provider » instead of a Claude estimate. Model ids of any form can be priced.
+- The list of Claude models no longer fails with an HTTP 500 when no API key is set (the SDK raises a TypeError
+  there): the Settings say why and offer the models the agent knows. The « Guide » category names the `feeds` watch
+  source (missing since 0.5.0).
+
 ## 0.5.0 (2026-11-18), M3: any watch
 
 - The watch format is a contract: `docs/watch-format.md` (and in French) describes `watch.json` key by key, with a

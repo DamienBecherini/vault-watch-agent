@@ -118,7 +118,7 @@ const TEXTS = {
       : o === "set in the Settings" ? "prix fixé dans les réglages" : o.replace(/^default of /, "prix par défaut de ").replace(/^fetched of /, "liste du "),
     columns: ["Appels", "Tokens lus", "Écrits", "Coût"], subscriptionColumns: ["Sur l'abonnement", "Non facturé"],
     byMonth: "Par mois", month: "Mois", byRun: "Par passage", run: "Passage",
-    subscription: "abonnement, non facturé",
+    subscription: "abonnement, non facturé", local: "modèle local, non facturé", provider: "facturé par ton fournisseur",
   },
   en: {
     nav: { watches: "Watches", check: "Check the guide", report: "Report an error", costs: "Costs" },
@@ -225,7 +225,7 @@ const TEXTS = {
       : o === "set in the Settings" ? "price set in the Settings" : o.replace(/^default of /, "default price of ").replace(/^fetched of /, "list of "),
     columns: ["Calls", "Tokens in", "Out", "Cost"], subscriptionColumns: ["On the subscription", "Not billed"],
     byMonth: "By month", month: "Month", byRun: "By run", run: "Run",
-    subscription: "subscription, not billed",
+    subscription: "subscription, not billed", local: "local model, not billed", provider: "billed by your provider",
   },
 };
 for (const l of ["fr", "en"]) Object.assign(TEXTS[l], { settings: SETTINGS_TEXTS[l], theme: THEME_TEXTS[l], notify: NOTIFY_TEXTS[l] });
@@ -256,7 +256,10 @@ let info = null;
 const CLAUDE_BILLING = "https://platform.claude.com/settings/billing";  // API credits left (the API engine spends them)
 // What a paid action costs: its estimate on the API, nothing on Claude Code with a subscription (info.engine)
 const onSubscription = () => info?.engine === "claude-code";
-const cost = usd => onSubscription() ? T.subscription : usd;
+// What an action costs: the estimate (Claude API prices) on the API only; nothing on a subscription or a local model;
+// another provider's prices are its own.
+const cost = usd => onSubscription() ? T.subscription : info?.billing === "none" ? T.local
+  : info?.engine && info.engine !== "api" ? T.provider : usd;
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);

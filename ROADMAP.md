@@ -316,16 +316,24 @@ the same items with either collector; its manifest names its feeds since
 - **T4.1 The engine protocol, written down.** `Engine`: `parse(...)`, `capabilities`, `models()`, `count_tokens`
   (optional). A registry (`engines = {"api": …, "claude-code": …}`) fed by entry points, so an engine can live in
   its own package. The Settings list the engines installed.
+  Done 2026-11-18 (`llm.Engine`, `llm.EngineKind`, `llm.engines()`; each engine's options checked by its own `check`).
 - **T4.2 Contract tests.** `tests/engine_contract.py`: what any engine must do, run against recorded answers
   (structured output valid and invalid, a refusal, a truncated answer, a web call, the usage and the cost
   reported). The two existing engines pass it first.
+  Done 2026-11-18 (`tests/engine_contract.py`, `tests/test_engine_contract.py`): the three engines pass it.
 - **T4.3 Web tools.** `WebTools`: `search(query)` and `fetch(url)` returning plain text with its source, with a
   size cap and the redirections followed by the code, not the model. Implementations: SearXNG, and a plain HTTP
   fetch with extraction of the readable text. A tool loop in the engine base class runs them for the engines
   whose model has no web of its own, with the same limits as today (20 searches, 30 pages).
+  Done 2026-11-18 (`webtools.py`), the loop in the OpenAI-compatible engine (the only one without web); public
+  addresses only. Tested against a fake SearXNG: no instance to try it on yet.
 - **T4.4 The OpenAI-compatible engine.** Base URL, key by reference, models from `GET /v1/models`, structured
   output by `response_format` with a JSON schema (by instruction and a tolerant reading when the server has
   none), tools by function calling, the context window from the Settings when the server does not say it.
+  output by `response_format` with a JSON schema (by instruction and a tolerant reading when the server has
+  none), tools by function calling, the context window from the Settings when the server does not say it.
+  Written 2026-11-18 (`openai_compat.py`, its Settings checked in the browser against a fake server); its first
+  run on a real server comes with T4.5.
 - **T4.5 Scores.** `vault-watch eval` on the published watches for: the baseline, one hosted model, one local
   model, each whole-guide and by chapter where it applies; the table in the README, the method next to it. An
   engine or a model is listed as "supported" only with a line in that table.

@@ -194,7 +194,8 @@ button.icon[data-tool="settings"] svg { width: 18px; height: 18px; }
 .cfg-role legend { font-weight: 600; font-size: 15px; padding: 0 6px; }
 .cfg-role select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }
 .cfg-label { font-weight: 600; font-size: 14px; }
-.cfg-field input[type=text], .cfg-field select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border);
+.cfg-field input[type=text], .cfg-field input[type=url], .cfg-field input[type=number], .cfg-field select,
+.cfg-role input[type=text] { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border);
   background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }
 .cfg-field input[aria-invalid=true] { border-color: var(--error); }
 .cfg-seg { display: inline-flex; flex-wrap: wrap; width: max-content; max-width: 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }

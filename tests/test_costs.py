@@ -88,8 +88,10 @@ def test_the_settings_refuse_a_wrong_price():
         config.check({"prices": {"claude-opus-5-5": {"input": 4, "output": -1, "cache_read": 0.2, "cache_write": 5}}})
     with pytest.raises(config.ConfigError, match="prices.claude-opus-5-5"):
         config.check({"prices": {"claude-opus-5-5": {"input": 4}}})
-    with pytest.raises(config.ConfigError, match="not a Claude model id"):
-        config.check({"prices": {"gpt-9": {"input": 1, "output": 1, "cache_read": 1, "cache_write": 1}}})
+    # any engine's model can be priced (an OpenAI-compatible server's), not a malformed id
+    assert config.check({"prices": {"org/gpt-9": {"input": 1, "output": 1, "cache_read": 1, "cache_write": 1}}})["prices"]
+    with pytest.raises(config.ConfigError, match="not a model id"):
+        config.check({"prices": {"no spaces": {"input": 1, "output": 1, "cache_read": 1, "cache_write": 1}}})
 
 
 def test_an_api_call_keeps_the_price_it_was_counted_at(tmp_path):

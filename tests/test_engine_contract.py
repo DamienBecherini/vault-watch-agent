@@ -1,0 +1,156 @@
+"""The three engines of the agent against the contract (engine_contract.py), each with its recorded answers."""
+
+import json
+import subprocess
+from types import SimpleNamespace
+
+import httpx
+
+from engine_contract import FACTS, Answer, check_engine
+from vault_watch_agent import llm
+from vault_watch_agent.openai_compat import OpenAICompatible
+
+# -- the Claude API: a fake SDK client replaying a final message per scenario ------------------------------------
+
+
+def _message(scenario: str):
+    usage = SimpleNamespace(input_tokens=1200, output_tokens=300, cache_read_input_tokens=0, cache_creation_input_tokens=0,
+                            server_tool_use=SimpleNamespace(web_search_requests=3 if scenario == "web" else 0))
+    stop = {"refusal": "refusal", "truncated": "max_tokens"}.get(scenario, "end_turn")
+    parsed = None if scenario == "invalid" else Answer(facts=FACTS)
+    return SimpleNamespace(stop_reason=stop, stop_details=SimpleNamespace(category="cyber"), parsed_output=parsed,
+                           model="claude-opus-5-5", content=[], usage=usage)
+
+
+class ApiAdapter:
+    def __init__(self):
+        self.request: dict = {}
+
+    def make(self, scenario, journal):
+        adapter = self
+
+        class Stream:
+            def __init__(self, **kw):
+                adapter.request = kw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def get_final_message(self):
+                return _message(scenario)
+
+        client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(stream=lambda **kw: Stream(**kw))))
+        return llm.Claude("claude-opus-5-5", client, journal)
+
+    def saw_web(self):
+        return bool(self.request.get("tools"))
+
+
+def test_the_api_engine_keeps_the_contract(tmp_path):
+    check_engine(ApiAdapter(), tmp_path)
+
+
+# -- Claude Code: `claude -p` replaced by a fake replaying its JSON result per scenario ---------------------------
+
+SUBSCRIPTION = {"loggedIn": True, "authMethod": "claude.ai", "subscriptionType": "max"}
+
+
+def _result(scenario: str) -> dict:
+    out = {"type": "result", "subtype": "success", "is_error": False, "stop_reason": "end_turn", "total_cost_usd": 0.4,
+           "structured_output": {"facts": FACTS}, "result": "",
+           "usage": {"input_tokens": 1200, "output_tokens": 300, "cache_read_input_tokens": 0,
+                     "cache_creation_input_tokens": 0},
+           "modelUsage": {"claude-opus-5-5": {"webSearchRequests": 2 if scenario == "web" else 0}}}
+    if scenario == "invalid":
+        out.update(structured_output={"facts": "not a list"})
+    elif scenario == "refusal":
+        out.update(stop_reason="refusal")
+    elif scenario == "truncated":
+        out.update(is_error=True, subtype="error_during_execution",
+                   result="Claude's response exceeded the 32000 output token maximum")
+    return out
+
+
+class ClaudeCodeAdapter:
+    def __init__(self, monkeypatch):
+        self.monkeypatch, self.tools = monkeypatch, ""
+        monkeypatch.setattr(llm, "claude_code_program", lambda: "claude")
+        monkeypatch.setattr(llm, "_status", None)
+
+    def make(self, scenario, journal):
+        def run(command, **kw):
+            if command[1:3] == ["auth", "status"]:
+                return subprocess.CompletedProcess(command, 0, json.dumps(SUBSCRIPTION).encode(), b"")
+            self.tools = command[command.index("--tools") + 1]
+            return subprocess.CompletedProcess(command, 0, json.dumps(_result(scenario)).encode(), b"")
+
+        self.monkeypatch.setattr(llm.subprocess, "run", run)
+        return llm.ClaudeCode("claude-opus-5-5", journal)
+
+    def saw_web(self):
+        return "WebSearch" in self.tools
+
+
+def test_the_claude_code_engine_keeps_the_contract(tmp_path, monkeypatch):
+    check_engine(ClaudeCodeAdapter(monkeypatch), tmp_path)
+
+
+# -- an OpenAI-compatible server: an HTTP transport replaying /chat/completions per scenario ----------------------
+
+def _completion(content="", finish="stop", tool_calls=None, refusal=None, prompt=1200, cached=0):
+    message = {"role": "assistant", "content": content, "refusal": refusal}
+    if tool_calls:
+        message["tool_calls"] = tool_calls
+    return {"id": "x", "model": "qwen3.6", "choices": [{"index": 0, "message": message, "finish_reason": finish}],
+            "usage": {"prompt_tokens": prompt, "completion_tokens": 300, "prompt_tokens_details": {"cached_tokens": cached}}}
+
+
+class FakeWeb:
+    can_search = True
+
+    def __init__(self):
+        self.searches = []
+
+    def search(self, query):
+        self.searches.append(query)
+        return "1. vLLM v0.33.1\n   https://github.com/vllm-project/vllm/releases/tag/v0.33.1\n   Fixes CVE-2026-1234"
+
+    def fetch(self, url):
+        return f"Source: {url}\n\nRelease notes"
+
+
+class OpenAIAdapter:
+    def __init__(self):
+        self.requests: list[dict] = []
+
+    def make(self, scenario, journal):
+        answer = json.dumps({"facts": FACTS})
+
+        def handle(request: httpx.Request) -> httpx.Response:
+            body = json.loads(request.content)
+            self.requests.append(body)
+            if scenario == "web" and not any(m["role"] == "tool" for m in body["messages"]):
+                call = {"id": "c1", "type": "function",
+                        "function": {"name": "web_search", "arguments": json.dumps({"query": "vLLM 0.33.1"})}}
+                return httpx.Response(200, json=_completion(finish="tool_calls", tool_calls=[call]))
+            return httpx.Response(200, json={
+                "valid": _completion(answer), "web": _completion(f"Here it is:\n```json\n{answer}\n```"),
+                "invalid": _completion('{"facts": "not a list"}'),
+                "refusal": _completion(refusal="I can't help with that."),
+                "truncated": _completion('{"facts": ["vLLM', finish="length"),
+            }[scenario])
+
+        self.requests = []
+        http = httpx.Client(transport=httpx.MockTransport(handle), base_url="http://server.test/v1")
+        return OpenAICompatible("qwen3.6", {"base_url": "http://server.test/v1", "models": {"reasoning": "qwen3.6"},
+                                            "billing": "local"}, journal, http=http, web=FakeWeb())
+
+    def saw_web(self):
+        return any(r.get("tools") for r in self.requests)
+
+
+def test_the_openai_compatible_engine_keeps_the_contract(tmp_path):
+    check_engine(OpenAIAdapter(), tmp_path)

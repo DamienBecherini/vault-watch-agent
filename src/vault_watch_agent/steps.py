@@ -48,6 +48,9 @@ def of_role(role: str) -> list[Step]:
 
 
 def lacks(step: Step, caps) -> list[str]:
-    """What `step` needs that an engine with `caps` (llm.Capabilities) does not give: "web" when it has none.
-    The whole guide is never lacking: a window too small reads it by chapter (reading.py), said in the report."""
-    return ["web"] if "web" in step.needs and caps.web == "none" else []
+    """What `step` needs that an engine with `caps` (llm.Capabilities) does not give: "web" when it has none, "search"
+    when it only reads pages (an OpenAI-compatible engine without a search engine set). The whole guide is never
+    lacking: a window too small reads it by chapter (reading.py), said in the report."""
+    if "web" not in step.needs:
+        return []
+    return {"none": ["web"], "fetch": ["search"]}.get(caps.web, [])

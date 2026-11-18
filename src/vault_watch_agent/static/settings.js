@@ -21,11 +21,24 @@ const SETTINGS_TEXTS = {
     missing: "Claude Code n'est pas installé sur cette machine (ou pas dans le PATH).",
     signedOut: "Claude Code est installé mais pas connecté : lance <code>claude</code> une fois pour te connecter.",
     noPlan: "Claude Code est connecté sans abonnement (compte Console ou clé) : ses appels seraient facturés, il n'est donc pas proposé.",
-    engines: { "": "Automatique", "claude-code": "Claude Code (abonnement)", api: "API (clé, facturée au token)" },
+    engines: { "": "Automatique", "claude-code": "Claude Code (abonnement)", api: "API (clé, facturée au token)", openai: "Serveur compatible OpenAI" },
     engineLabel: "Moteur",
     autoHelp: "Automatique : Claude Code s'il est connecté à un abonnement, sinon l'API.",
     next: name => `Moteur du prochain passage : <b>${name}</b>`,
-    names: { "claude-code": "Claude Code, sur l'abonnement", api: "API Claude, facturée au token" },
+    names: { "claude-code": "Claude Code, sur l'abonnement", api: "API Claude, facturée au token", openai: "un serveur compatible OpenAI" },
+    server: {
+      title: "Serveur compatible OpenAI",
+      help: "Un serveur qui répond à <code>/v1/chat/completions</code> : un fournisseur hébergé, ou un modèle sur ta machine (llama.cpp, vLLM, Ollama, LM Studio).",
+      url: "Adresse", urlHint: "http://127.0.0.1:8080/v1",
+      key: "Référence de la clé du serveur", keyHint: "vide si le serveur n'en demande pas",
+      context: "Fenêtre du modèle (tokens)", contextHelp: "Quand le serveur ne la donne pas. Un guide plus grand est relu chapitre par chapitre.",
+      structured: "Réponse en JSON", structuredOptions: { auto: "automatique", native: "schéma imposé par le serveur", instruction: "schéma dans les consignes" },
+      billing: "Facturation", billingOptions: { token: "au token (fixe le prix du modèle dans Prix)", local: "modèle local, rien de facturé" },
+      effort: "Envoyer l'effort (reasoning_effort), pour les modèles qui le prennent",
+      searxng: "Adresse SearXNG (recherche web)", searxngHelp: "Sans elle, le modèle lit les pages dont il a l'adresse mais ne cherche pas : les étapes qui vérifient sur le web le diront.",
+      list: "Lire la liste des modèles", listing: "Lecture…", listed: n => `${n} modèle(s) sur le serveur.`,
+      modelHint: "identifiant du modèle sur le serveur",
+    },
     forced: v => `Imposé par la variable d'environnement <code>VAULT_WATCH_ENGINE=${v}</code>, qui passe avant ce réglage.`,
     noFallback: "L'agent ne bascule jamais de lui-même sur l'API : si une limite de l'abonnement est atteinte, le passage s'arrête et se reprend plus tard.",
     keyTitle: "Clé de l'API",
@@ -78,7 +91,7 @@ const SETTINGS_TEXTS = {
       modified: "Date de modification", modifiedOn: f => `champ <code>${f}</code> mis à jour par une correction`,
       modifiedOff: "les dates des pages ne changent pas",
       watch: "Veille", watchSources: { none: "vérifications et erreurs signalées seulement",
-        "github-issue": w => `issues GitHub d'étiquette « ${w.label || "veille"} »`, file: w => `fichier <code>${w.path}</code>` },
+        "github-issue": w => `issues GitHub d'étiquette « ${w.label || "veille"} »`, file: w => `fichier <code>${w.path}</code>`, feeds: w => `collectée par l'agent depuis <code>${w.feeds}</code>` },
       brief: "Consignes de veille", policy: "Politique de traduction", rulesOff: "celles de l'agent s'appliquent",
       audits: "Contrôles du guide", claims: "Affirmations datées", sources: "Audit des sources", floors: "Versions minimales",
       checkOff: "« non vérifié » à chaque passage, jamais un échec",
@@ -97,11 +110,24 @@ const SETTINGS_TEXTS = {
     missing: "Claude Code is not installed on this machine (or not in the PATH).",
     signedOut: "Claude Code is installed but not signed in: run <code>claude</code> once and sign in.",
     noPlan: "Claude Code is signed in without a subscription (a Console account or a key): its calls would be billed, so it is not proposed.",
-    engines: { "": "Automatic", "claude-code": "Claude Code (subscription)", api: "API (key, billed per token)" },
+    engines: { "": "Automatic", "claude-code": "Claude Code (subscription)", api: "API (key, billed per token)", openai: "OpenAI-compatible server" },
     engineLabel: "Engine",
     autoHelp: "Automatic: Claude Code when it is signed in with a subscription, otherwise the API.",
     next: name => `Engine of the next run: <b>${name}</b>`,
     names: { "claude-code": "Claude Code, on the subscription", api: "Claude API, billed per token" },
+    server: {
+      title: "OpenAI-compatible server",
+      help: "A server that answers <code>/v1/chat/completions</code>: a hosted provider, or a model on your machine (llama.cpp, vLLM, Ollama, LM Studio).",
+      url: "Address", urlHint: "http://127.0.0.1:8080/v1",
+      key: "Reference of the server's key", keyHint: "empty if the server asks for none",
+      context: "Model window (tokens)", contextHelp: "When the server does not give it. A bigger guide is cross-checked chapter by chapter.",
+      structured: "JSON answer", structuredOptions: { auto: "automatic", native: "schema enforced by the server", instruction: "schema in the instructions" },
+      billing: "Billing", billingOptions: { token: "per token (set the model's price in Prices)", local: "local model, nothing billed" },
+      effort: "Send the effort (reasoning_effort), for the models that take it",
+      searxng: "SearXNG address (web search)", searxngHelp: "Without it the model reads the pages it has the address of but cannot search: the steps that check on the web will say so.",
+      list: "Read the list of models", listing: "Reading…", listed: n => `${n} model(s) on the server.`,
+      modelHint: "the model's id on the server",
+    },
     forced: v => `Set by the environment variable <code>VAULT_WATCH_ENGINE=${v}</code>, which comes before this setting.`,
     noFallback: "The agent never falls back to the API on its own: when a limit of the subscription is reached, the run stops and is resumed later.",
     keyTitle: "API key",
@@ -154,7 +180,7 @@ const SETTINGS_TEXTS = {
       modified: "Modified date", modifiedOn: f => `field <code>${f}</code> updated by a correction`,
       modifiedOff: "the dates of the pages do not change",
       watch: "Watch", watchSources: { none: "checks and reported errors only",
-        "github-issue": w => `GitHub issues labelled « ${w.label || "veille"} »`, file: w => `file <code>${w.path}</code>` },
+        "github-issue": w => `GitHub issues labelled « ${w.label || "veille"} »`, file: w => `file <code>${w.path}</code>`, feeds: w => `collected by the agent from <code>${w.feeds}</code>` },
       brief: "Watch brief", policy: "Translation policy", rulesOff: "the agent's own apply",
       audits: "Guide audits", claims: "Dated claims", sources: "Source audit", floors: "Version floors",
       checkOff: "« not checked » in every run, never a failure",
@@ -231,7 +257,7 @@ function guidePage(g) {
     <ul class="small cfg-list">
       ${g.mirrors.length ? g.mirrors.map(m => part(G.mirror, true, G.mirrorOn({ ...m, folder: esc(m.folder) }))).join("") : part(G.mirror, false, "", G.mirrorOff)}
       ${part(G.modified, !!g.modified_field, G.modifiedOn(esc(g.modified_field)), G.modifiedOff)}
-      ${part(G.watch, w.source !== "none", typeof src === "function" ? src({ label: esc(w.label), path: esc(w.path) }) : "", G.watchSources.none)}
+      ${part(G.watch, w.source !== "none", typeof src === "function" ? src({ label: esc(w.label), path: esc(w.path), feeds: esc(w.feeds || "") }) : "", G.watchSources.none)}
       ${part(G.brief, !!g.rules.brief, code(g.rules.brief), G.rulesOff)}
       ${part(G.policy, !!g.rules.translation_policy, code(g.rules.translation_policy), G.rulesOff)}
       ${part(G.audits, !!g.checks.audits, code(g.checks.audits), G.checkOff)}
@@ -245,8 +271,17 @@ function guidePage(g) {
 /* `s`: the settings as the server holds them, with what it found (Claude Code, the key); the window edits a copy. */
 function drawSettings(s, message = "") {
   const S = T.settings, cc = s.claude_code, page = $("#settings-dialog");   // `page`: the window, not the page under it
-  const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort }, prices: JSON.parse(JSON.stringify(s.prices || {})) };
-  const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator, d.prices]);
+  // The OpenAI-compatible server's options: its defaults, then what is saved (`base` is what the draft starts from).
+  const serverDefaults = (s.engine_options || {}).openai || {};
+  const base = { ...serverDefaults, ...((s.engines || {}).openai || {}) };
+  base.models = { reasoning: "", translator: "", ...(base.models || {}) };
+  const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort }, prices: JSON.parse(JSON.stringify(s.prices || {})),
+                  server: JSON.parse(JSON.stringify(base)) };
+  const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator, d.prices,
+                                     d === draft ? d.server : base]);
+  const installed = ["", ...(s.engines_installed || []).map(e => e.name)];
+  const labelOf = name => S.engines[name] || esc(((s.engines_installed || []).find(e => e.name === name) || {}).label || name);
+  const SV = S.server;
   const engineNow = d => s.engine_forced || d.engine || (cc.subscription ? "claude-code" : "api");
   const claudeCodeNote = !cc.installed ? S.missing : !cc.signed_in ? S.signedOut : !cc.subscription ? S.noPlan : "";
   const category = (id, body) => `<section class="cfg-page" data-cat="${id}"${id === settingsCategory ? "" : " hidden"}>
@@ -278,14 +313,34 @@ function drawSettings(s, message = "") {
             <div class="cfg-field">
               <span class="cfg-label" id="engine-label">${S.engineLabel}</span>
               <div class="cfg-seg" role="radiogroup" aria-labelledby="engine-label">
-                ${["", "claude-code", "api"].map(e => `<label><input type="radio" name="engine" value="${e}"${e === s.engine ? " checked" : ""}${
-                  e === "claude-code" && !cc.subscription && s.engine !== e ? " disabled" : ""}>${S.engines[e]}</label>`).join("")}
+                ${installed.map(e => `<label><input type="radio" name="engine" value="${esc(e)}"${e === s.engine ? " checked" : ""}${
+                  e === "claude-code" && !cc.subscription && s.engine !== e ? " disabled" : ""}>${labelOf(e)}</label>`).join("")}
               </div>
               <span class="muted small">${S.autoHelp}</span>
             </div>
             <p id="engine-next"></p>
             ${s.engine_forced ? `<p class="attention-text small">${S.forced(esc(s.engine_forced))}</p>` : ""}
             <p class="muted small">${S.noFallback}</p>
+            <div id="server-options" hidden>
+              <h3 class="cfg-sub">${SV.title}</h3>
+              <p class="muted small">${SV.help}</p>
+              <label class="cfg-field"><span class="cfg-label">${SV.url}</span>
+                <input type="url" data-server="base_url" value="${esc(draft.server.base_url || "")}" placeholder="${SV.urlHint}" spellcheck="false"></label>
+              <label class="cfg-field"><span class="cfg-label">${SV.key}</span>
+                <input type="text" data-server="key" value="${esc(draft.server.key || "")}" placeholder="${SV.keyHint}" spellcheck="false" autocapitalize="off"></label>
+              <p><button type="button" id="server-list">${SV.list}</button> <span class="small" id="server-listed" role="status"></span></p>
+              <label class="cfg-field"><span class="cfg-label">${SV.context}</span>
+                <input type="number" min="4096" step="1024" data-server="context" value="${draft.server.context || 131072}">
+                <span class="muted small">${SV.contextHelp}</span></label>
+              <label class="cfg-field"><span class="cfg-label">${SV.structured}</span>
+                <select data-server="structured">${Object.entries(SV.structuredOptions).map(([v, t]) => `<option value="${v}"${v === draft.server.structured ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+              <label class="cfg-field"><span class="cfg-label">${SV.billing}</span>
+                <select data-server="billing">${Object.entries(SV.billingOptions).map(([v, t]) => `<option value="${v}"${v === draft.server.billing ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+              <label class="small"><input type="checkbox" data-server="effort"${draft.server.effort ? " checked" : ""}> ${SV.effort}</label>
+              <label class="cfg-field"><span class="cfg-label">${SV.searxng}</span>
+                <input type="url" data-server="searxng" value="${esc(draft.server.searxng || "")}" placeholder="http://searxng.lan:8080" spellcheck="false">
+                <span class="muted small">${SV.searxngHelp}</span></label>
+            </div>
             <h3 class="cfg-sub">${S.keyTitle}</h3>
             <p class="muted small">${S.keyHelp}</p>
             <ul class="muted small cfg-list">${S.keyForms.map(f => `<li>${f}</li>`).join("")}</ul>
@@ -299,6 +354,8 @@ function drawSettings(s, message = "") {
               <legend>${S.roles[role]}</legend>
               <span class="muted small">${S.roleHelp[role]}</span>
               <select data-role="${role}" aria-label="${S.roles[role]}"></select>
+              <input type="text" data-server-role="${role}" list="server-models" value="${esc(draft.server.models[role] || "")}"
+                placeholder="${SV.modelHint}" aria-label="${S.roles[role]}" spellcheck="false" hidden>
               <span class="small attention-text" data-unpriced="${role}" hidden>${S.unpricedHelp}</span>
               <div class="cfg-field"><span class="cfg-label" id="effort-${role}">${S.effortLabel}</span>
                 <div class="cfg-seg" role="radiogroup" aria-labelledby="effort-${role}">
@@ -306,7 +363,8 @@ function drawSettings(s, message = "") {
                 </div>
                 <span class="muted small" data-steps="${role}"></span></div>
             </fieldset>`).join("")}
-            <p class="muted small">${S.effortHelp}</p>`)}
+            <p class="muted small">${S.effortHelp}</p>
+            <datalist id="server-models"></datalist>`)}
           ${category("prices", `
             <p class="muted small">${S.prices.help}</p>
             <div class="table-scroll"><table class="price-table small">
@@ -328,7 +386,12 @@ function drawSettings(s, message = "") {
   /* Everything that follows the fields: the engine of the next run, the state of the key, what is changed. */
   const refresh = () => {
     const changed = state(draft) !== state(s), now = engineNow(draft);
-    $("#engine-next").innerHTML = S.next(S.names[now] || esc(now));
+    $("#engine-next").innerHTML = S.next(S.names[now] || labelOf(now));
+    const onServer = now === "openai";
+    $("#server-options").hidden = !onServer;
+    page.querySelectorAll("[data-role]").forEach(x => x.hidden = onServer);
+    page.querySelectorAll("[data-server-role]").forEach(x => x.hidden = !onServer);
+    $("#models-source").hidden = onServer;   // the Claude list: not the server's (its list is under Engine)
     if (cc.subscription) {
       $("#use-claude-code").hidden = now === "claude-code";
       $("#claude-code-used").hidden = now !== "claude-code";
@@ -342,20 +405,21 @@ function drawSettings(s, message = "") {
     $("#key-status").className = `small ${cls}`;
     $("#key-status").innerHTML = text + (now === "claude-code" && !plainKey() ? ` · ${S.keyOnlyApi}` : "");
     key.setAttribute("aria-invalid", plainKey());
-    page.querySelector('[data-sum="engine"]').textContent = S.engines[draft.engine];
+    page.querySelector('[data-sum="engine"]').textContent = labelOf(draft.engine).replace(/<[^>]+>/g, "");
     page.querySelector('[data-sum="guide"]').textContent = s.guide.name;
     page.querySelector('[data-sum="prices"]').textContent = s.price_table.fetched ? S.prices.listOf(s.price_table.fetched.date, s.price_table.fetched.models).replace(/\.$/, "")
       : Object.keys(draft.prices).length ? `${Object.keys(draft.prices).length} ${S.prices.origin.set}` : S.prices.origin.default(s.price_table.models.find(m => m.origin === "default")?.date || "");
     page.querySelector('[data-dot="prices"]').hidden = JSON.stringify(draft.prices) === JSON.stringify(s.prices || {});
     drawPrices();
     page.querySelector('[data-sum="models"]').textContent = Object.keys(draft.models)
-      .map(r => `${modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ");
-    page.querySelector('[data-dot="engine"]').hidden = draft.engine === s.engine && draft.key === s.key;
+      .map(r => `${onServer ? (draft.server.models[r] || "?") : modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ");
+    const serverChanged = JSON.stringify(draft.server) !== JSON.stringify(base);
+    page.querySelector('[data-dot="engine"]').hidden = draft.engine === s.engine && draft.key === s.key && !serverChanged;
     page.querySelector('[data-dot="models"]').hidden = JSON.stringify([draft.models, draft.effort]) === JSON.stringify([s.models, s.effort]);
     for (const role of Object.keys(draft.models)) {   // each step of the role at the effort chosen
       page.querySelector(`[data-steps="${role}"]`).textContent = `${S.stepsOf} ${s.choices.steps[role]
         .map(x => `${S.stepNames[x.step] || x.step} ${S.levels[x.levels[draft.effort[role]]]}`).join(" · ")}`;
-      page.querySelector(`[data-unpriced="${role}"]`).hidden = models === null || models.find(m => m.id === draft.models[role])?.priced !== false;
+      page.querySelector(`[data-unpriced="${role}"]`).hidden = onServer || models === null || models.find(m => m.id === draft.models[role])?.priced !== false;
     }
     $("#settings-save").disabled = !changed || plainKey();
     $("#settings-cancel").textContent = changed ? S.cancel : S.close;   // always there: it closes, dropping the changes if any
@@ -446,6 +510,31 @@ function drawSettings(s, message = "") {
     refresh();
   };
   key.oninput = () => { draft.key = key.value.trim(); refresh(); };
+  page.querySelectorAll("[data-server]").forEach(f => f.oninput = f.onchange = () => {
+    const k = f.dataset.server;
+    draft.server[k] = f.type === "checkbox" ? f.checked : f.type === "number" ? Number(f.value) : f.value.trim();
+    refresh();
+  });
+  page.querySelectorAll("[data-server-role]").forEach(f => f.oninput = () => { draft.server.models[f.dataset.serverRole] = f.value.trim(); refresh(); });
+  /* The models of the OpenAI-compatible server, as suggestions for the two fields (an id can always be typed). */
+  const listServer = async () => {
+    const out = $("#server-listed"), b = $("#server-list");
+    b.disabled = true;
+    out.className = "small muted";
+    out.textContent = SV.listing;
+    try {
+      const q = new URLSearchParams({ engine: "openai", base_url: draft.server.base_url || "", key: draft.server.key || "" });
+      const r = await api(`/api/models?${q}`);
+      $("#server-models").innerHTML = r.models.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
+      out.className = r.error ? "small error-text" : "small ok-text";
+      out.textContent = r.error || SV.listed(r.models.length);
+    } catch (e) {
+      out.className = "small error-text";
+      out.textContent = e.message;
+    } finally { b.disabled = false; }
+  };
+  $("#server-list").onclick = listServer;
+  if (engineNow(draft) === "openai" && draft.server.base_url) listServer();
   page.querySelectorAll("[data-role]").forEach(sel => sel.onchange = () => { draft.models[sel.dataset.role] = sel.value; refresh(); });
   for (const role of Object.keys(draft.effort))
     page.querySelectorAll(`[name=effort-${role}]`).forEach(r => r.onchange = () => { draft.effort[role] = r.value; refresh(); });
@@ -478,7 +567,8 @@ function drawSettings(s, message = "") {
     if (plainKey()) return;
     $("#settings-save").disabled = true;
     try {
-      const saved = await api("/api/settings", draft);
+      const { server, ...rest } = draft;
+      const saved = await api("/api/settings", { ...rest, engines: { ...(s.engines || {}), openai: server } });
       if (info) info.engine = saved.engine_now;  // the cost of the paid actions follows, on every page
       drawSettings(saved, S.saved);
     } catch (err) {

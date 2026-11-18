@@ -4,12 +4,14 @@ Every call returns a validated Pydantic object (structured outputs), so the
 graph never parses free text. Tests swap these classes for a fake with the same
 `parse` method.
 
-Two engines share that method:
+Engines share that method (`Engine`, docs/write-an-engine.md):
 - `Claude`: the Claude API through the official SDK, billed per token (API key);
 - `ClaudeCode`: Claude Code of this machine, signed in with a Claude subscription
   and run once per call without a terminal (`claude -p`). No API key, nothing
-  billed: the usage counts in the limits of the subscription.
-`create` picks one (see `engine`).
+  billed: the usage counts in the limits of the subscription;
+- `OpenAICompatible` (openai_compat.py): any OpenAI-compatible server, hosted or local;
+- any engine another package installs (entry point group `vault_watch_agent.engines`).
+`create` picks one (see `engine` and `engines`).
 """
 
 from __future__ import annotations
@@ -20,10 +22,11 @@ import shutil
 import subprocess
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Protocol, TypeVar
+from typing import Callable, Protocol, TypeVar
 
 import anthropic
 from pydantic import BaseModel, ValidationError
@@ -46,6 +49,28 @@ class ModelError(RuntimeError):
 class LLM(Protocol):
     def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
               context: str | None = None) -> tuple[T, dict]: ...
+
+
+class Engine(Protocol):
+    """What the graph needs from a model client (docs/write-an-engine.md; tests/engine_contract.py checks it).
+
+    `parse` returns the answer validated against `schema` and the usage of the call, and writes that usage to the
+    journal (`_Journal.record`). It raises ModelError for a refusal, a cut answer, an answer not in the shape, a
+    server that cannot be reached. `context` is a long text shared by several calls (the guide): the engine caches it
+    when it can. `web`: the model may search the web and read pages. `count_tokens` is optional."""
+    model: str
+    run: str
+    kind: str
+    effort_step: int
+
+    def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
+              context: str | None = None, web: bool = False) -> tuple[T, dict]: ...
+
+    def capabilities(self) -> "Capabilities": ...
+
+
+USAGE_KEYS = ("node", "model", "engine", "effort", "input", "output", "cache_read", "cache_write", "web_searches",
+              "cost_usd")  # every usage an engine returns has them (the journal and costs.py read them)
 
 
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")  # accepted by the API and by Claude Code (--effort)
@@ -74,11 +99,11 @@ class Capabilities:
     capability changes how a step runs or turns it off, never silently."""
     context: int  # tokens a call can read (the model's input window)
     structured: str = "native"  # native: the engine checks the JSON shape; instruction: the prompt asks for it
-    web: str = "native"  # native: search and fetch run by the engine; none
+    web: str = "native"  # native: by the model's provider; tools: search and fetch run by the agent; fetch: pages only; none
     web_reading: str = "page"  # page: the model reads the fetched page itself; summary: a smaller model reports on it
     efforts: tuple = EFFORT_LEVELS
     caching: bool = True  # a context shared by several calls is read from a cache at a lower price
-    billing: str = "token"  # token: each call is billed; subscription: within the limits of a plan
+    billing: str = "token"  # token: each call is billed; subscription: within the limits of a plan; none: local
     exact_count: bool = False  # the engine counts the tokens of a text before sending it (else an estimate)
 
     def summary(self) -> dict:
@@ -194,7 +219,6 @@ class Claude(_Journal):
         return parsed, usage
 
 
-ENGINES = ("claude-code", "api")
 CLAUDE_CODE_TIMEOUT = 3600  # seconds for one call; a cross-check of the whole guide with the web takes minutes
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # Windows: no console window when the server has none
 _status: tuple[float, dict] | None = None  # (time, claude_code_status()), asked again after a minute
@@ -333,33 +357,100 @@ class ClaudeCode(_Journal):
         return parsed, usage
 
 
+@dataclass(frozen=True)
+class EngineKind:
+    """An engine the agent can use. `make(role, journal, settings)` gives the client of a role; `models(settings)`
+    the models it offers ([{id, name, context, priced}], ModelError when it cannot say); `check(options)` validates
+    its options in the settings (`engines.<name>`, None: it has none); `model_of(settings, role)` the model of a role."""
+    name: str
+    label: str
+    make: Callable[[str, Path | None, dict], Engine]
+    models: Callable[[dict], list[dict]] | None = None
+    check: Callable[[dict], dict] | None = None
+    model_of: Callable[[dict, str], str] = lambda settings, role: settings["models"][role]
+    options: dict = field(default_factory=dict)  # the defaults of its options, for the Settings page
+
+
+def _make_api(role: str, journal: Path | None, settings: dict) -> Engine:
+    return Claude(settings["models"][role], api_client(settings["key"]), journal)
+
+
+def _make_claude_code(role: str, journal: Path | None, settings: dict) -> Engine:
+    return ClaudeCode(settings["models"][role], journal)
+
+
+def _make_openai(role: str, journal: Path | None, settings: dict) -> Engine:
+    from .openai_compat import OpenAICompatible
+
+    options = (settings.get("engines") or {}).get("openai") or {}
+    return OpenAICompatible((options.get("models") or {}).get(role, ""), options, journal)
+
+
+def _openai_kind() -> EngineKind:
+    from . import openai_compat as oc
+
+    return EngineKind(
+        "openai", "OpenAI-compatible server", _make_openai,
+        models=lambda settings: oc.list_models((settings.get("engines") or {}).get("openai") or {}),
+        check=oc.check_options,
+        model_of=lambda settings, role: ((settings.get("engines") or {}).get("openai") or {}).get("models", {}).get(role, ""),
+        options=oc.OPTIONS)
+
+
+ENGINE_ERRORS: dict[str, str] = {}  # entry point -> why it could not be loaded (shown in the Settings)
+_engines: dict[str, EngineKind] | None = None
+
+
+def engines() -> dict[str, EngineKind]:
+    """The engines installed: the three of the agent, then those of other packages (entry point group
+    `vault_watch_agent.engines`, each pointing to an EngineKind). Read once per process."""
+    global _engines
+    if _engines is None:
+        found = {k.name: k for k in (
+            EngineKind("claude-code", "Claude Code (subscription)", _make_claude_code),
+            EngineKind("api", "Claude API", _make_api, models=lambda settings: list_models(settings["key"])),
+            _openai_kind(),
+        )}
+        for point in entry_points(group="vault_watch_agent.engines"):
+            try:
+                kind = point.load()
+                if not isinstance(kind, EngineKind):
+                    raise TypeError("not an EngineKind")
+                found.setdefault(kind.name, kind)
+            except Exception as e:  # noqa: BLE001 - a broken plug-in is reported, the agent goes on
+                ENGINE_ERRORS[point.name] = f"{type(e).__name__}: {e}"
+        _engines = found
+    return _engines
+
+
 def engine(choice: str = "") -> str:
-    """The engine of the model calls: VAULT_WATCH_ENGINE (`claude-code` or `api`, for one command), otherwise `choice`
+    """The engine of the model calls: VAULT_WATCH_ENGINE (an engine's name, for one command), otherwise `choice`
     (the settings of the user). Without a choice, Claude Code when it is signed in with a subscription (nothing
     billed), otherwise the API."""
     forced = os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower()
-    if forced and forced not in ENGINES:
-        raise ModelError(f"VAULT_WATCH_ENGINE={forced}: expected one of {', '.join(ENGINES)}")
+    if forced and forced not in engines():
+        raise ModelError(f"VAULT_WATCH_ENGINE={forced}: expected one of {', '.join(engines())}")
     wanted = forced or choice
-    if wanted in ENGINES:
+    if wanted in engines():
         return wanted
     return "claude-code" if claude_code_status()["subscription"] else "api"
 
 
 def create(role: str = "reasoning", journal: Path | None = None, settings: dict | None = None,
-           prices: Prices | None = None) -> Claude | ClaudeCode:
+           prices: Prices | None = None) -> Engine:
     """The model client of a role (`reasoning` or `translator`) under the settings of the user (`config.load`):
     their engine, their model and effort for that role and, for the API, the key their reference gives. `prices`:
     the user's price table (`Prices.of_home`), the defaults shipped when omitted."""
     settings = settings or config.check({})
-    model = settings["models"][role]
-    if engine(settings["engine"]) == "claude-code":
-        client: Claude | ClaudeCode = ClaudeCode(model, journal)
-    else:
-        client = Claude(model, api_client(settings["key"]), journal)
+    client = engines()[engine(settings["engine"])].make(role, journal, settings)
     client.effort_step = EFFORT_STEPS[settings["effort"][role]]
     client.prices = prices or Prices(settings.get("prices"))
     return client
+
+
+def model_of(settings: dict, role: str) -> str:
+    """The model that runs `role` with the engine the settings give."""
+    return engines()[engine(settings["engine"])].model_of(settings, role)
 
 
 def api_client(reference: str) -> anthropic.Anthropic:
@@ -388,7 +479,7 @@ def list_models(reference: str, client: anthropic.Anthropic | None = None, price
         found = list((client or api_client(reference)).models.list(limit=100))
     except anthropic.APIError as e:
         raise ModelError(f"the list of the models could not be read: {e.message if hasattr(e, 'message') else e}") from e
-    except anthropic.AnthropicError as e:  # no key at all
+    except (anthropic.AnthropicError, TypeError) as e:  # no key at all (the SDK raises TypeError when it sends)
         raise ModelError(f"the list of the models could not be read: {e}") from e
     models = [{"id": m.id, "name": m.display_name or m.id, "context": m.max_input_tokens,
                "priced": price_of(m.id, prices) is not None}

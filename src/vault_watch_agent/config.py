@@ -3,10 +3,13 @@
 One JSON file, `settings.json` in the home of the agent (`.vault-watch/`), written by the Settings page of the
 web interface or by hand. A missing file or a missing field means the default.
 
-    {"engine": "",                               "" (automatic), "claude-code" or "api" (llm.engine)
+    {"engine": "",                               "" (automatic), "claude-code", "api", "openai" or an installed
+                                                 engine (llm.engines)
      "key": "env:ANTHROPIC_API_KEY",             where the API key is: a reference, never the key itself
-     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},
-     "effort": {"reasoning": "normal", "translator": "normal"}}   lower, normal or higher: one level for every step
+     "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},   the Claude engines' models
+     "effort": {"reasoning": "normal", "translator": "normal"},   lower, normal or higher: one level for every step
+     "engines": {"openai": {"base_url": "http://127.0.0.1:8080/v1", "models": {...}, ...}}}   the options of the
+                                                 other engines, each checked by its engine (openai_compat.OPTIONS)
 
 The effort of each call is set per step in the code (the triage at medium, the proposals and the cross-check at
 high…); the effort of a role moves every step of that role one level down or up (llm.shift_effort).
@@ -30,7 +33,7 @@ from pathlib import Path
 from .prices import check_rates
 
 FILE = "settings.json"
-ENGINES = ("", "claude-code", "api")  # "": Claude Code when it is signed in with a subscription, otherwise the API
+ENGINE_NAME = re.compile(r"[a-z][a-z0-9-]{1,40}")  # "": Claude Code on a subscription, otherwise the API
 REFERENCES = ("env:", "file:", "sops:")
 KEY_FORMS = "env:NAME, sops:file#NAME or file:path"
 # The models offered for each role when the list of the API cannot be read; the first of a role is its default.
@@ -39,10 +42,11 @@ MODELS = {
     "reasoning": ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-2"),  # triage, proposals, cross-check, checks
     "translator": ("claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"),  # English mirror, translation checks
 }
-MODEL_ID = re.compile(r"claude-[a-z0-9][a-z0-9.-]{1,60}")
+MODEL_ID = re.compile(r"claude-[a-z0-9][a-z0-9.-]{1,60}")  # the Claude engines' models
+ANY_MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,159}")  # another engine's: qwen3.6, org/model:tag…
 EFFORTS = ("lower", "normal", "higher")  # relative to the effort the code gives each step
 DEFAULTS = {"engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()},
-            "effort": {role: "normal" for role in MODELS}, "prices": {}}
+            "effort": {role: "normal" for role in MODELS}, "prices": {}, "engines": {}}
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # Windows: no console window when the server has none
 
 
@@ -54,9 +58,11 @@ def check(cfg: dict) -> dict:
     """The settings with every field present and valid, or ConfigError; unknown fields are dropped."""
     if not isinstance(cfg, dict):
         raise ConfigError("the settings must be a JSON object")
+    from . import llm  # the installed engines (llm imports this module)
+
     engine = str(cfg.get("engine", DEFAULTS["engine"]) or "").strip().lower()
-    if engine not in ENGINES:
-        raise ConfigError(f"engine: {engine!r} is not one of automatic (empty), claude-code, api")
+    if engine and engine not in llm.engines():
+        raise ConfigError(f"engine: {engine!r} is not one of automatic (empty), {', '.join(llm.engines())}")
     key = str(cfg.get("key", DEFAULTS["key"]) or "").strip()
     if key and not key.startswith(REFERENCES):
         raise ConfigError(f"key: give a reference to where the key is ({KEY_FORMS}), never the key itself")
@@ -81,13 +87,20 @@ def check(cfg: dict) -> dict:
         raise ConfigError("prices must be an object: model id -> its rates")
     prices = {}
     for model, rates in given.items():
-        if not MODEL_ID.fullmatch(str(model)):
-            raise ConfigError(f"prices: {model!r} is not a Claude model id (claude-…)")
+        if not ANY_MODEL_ID.fullmatch(str(model)):
+            raise ConfigError(f"prices: {model!r} is not a model id")
         try:
             prices[model] = check_rates(rates, f"prices.{model}")
         except ValueError as e:
             raise ConfigError(str(e)) from e
-    return {"engine": engine, "key": key, "models": models, "effort": effort, "prices": prices}
+    given = cfg.get("engines") or {}
+    if not isinstance(given, dict) or not all(isinstance(v, dict) for v in given.values()):
+        raise ConfigError("engines must be an object: engine name -> its options")
+    engines = {}
+    for name, options in given.items():
+        kind = llm.engines().get(name)
+        engines[name] = kind.check(options) if kind and kind.check else dict(options)  # an engine not installed: kept
+    return {"engine": engine, "key": key, "models": models, "effort": effort, "prices": prices, "engines": engines}
 
 
 def load(home: Path) -> dict:
