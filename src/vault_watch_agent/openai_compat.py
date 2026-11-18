@@ -251,7 +251,8 @@ class OpenAICompatible(_Journal):
         if self.options["billing"] == "local":
             usage.update(cost_usd=0.0, price=None, price_origin="local")
         else:
-            usd, price = self.prices.cost({**usage, "model": self.model})
+            # The tokens only: the searches went through the agent's own search engine (SearXNG), not billed.
+            usd, price = self.prices.cost({**usage, "model": self.model, "web_searches": 0})
             usage.update(cost_usd=round(usd, 6), price=price.rates() if price else None,
                          price_origin=price.label if price else "no price")
         self.record(usage)

@@ -339,6 +339,12 @@ the same items with either collector; its manifest names its feeds since
   sops reference): every model step answered in the schema, 1 min 19 s, nothing billed. It showed that the fixed
   reserve of 100k left a 64k window a negative budget (the guide read by chapter): the reserve is now a third of a
   window under 300k. Read whole, the cross-check found the port contradiction between two chapters.
+  Hosted, the same day: the sample guide on Claude Haiku 5.5 through Anthropic's OpenAI-compatible layer (the API
+  key by sops reference; the layer refuses non-strict schemas, so the schema went into the instructions), search by
+  the homelab's SearXNG. 30 s, 0.006 $: the triage, the proposals and the cross-check answered; the cross-check
+  searched three times and read the advisory's address (a 404: the guide is made up) and rejected the correction
+  for lack of a source. Haiku missed the stale Python version the Claude Code run had found: a matter for T4.5.
+  The run showed that the agent's own searches were priced as the Claude API's web search; they are not billed now.
 - **T4.5 Scores.** `vault-watch eval` on the published watches for: the baseline, one hosted model, one local
   model, each whole-guide and by chapter where it applies; the table in the README, the method next to it. An
   engine or a model is listed as "supported" only with a line in that table.

@@ -159,3 +159,31 @@ def test_the_claude_list_without_a_key_is_an_error_not_a_crash():
 
     with pytest.raises(llm.ModelError, match="could not be read"):
         llm.list_models("env:NOTHING", client=SimpleNamespace(models=SimpleNamespace(list=no_key)))
+
+
+def test_a_hosted_model_is_billed_its_tokens_not_the_searches_of_the_agent(tmp_path):
+    """The searches go through SearXNG: counted in the journal, not priced as the Claude API's web search."""
+    from vault_watch_agent.prices import Prices
+
+    calls = []
+
+    def handle(request):
+        body = json.loads(request.content)
+        calls.append(body)
+        if len(calls) == 1:
+            call = {"id": "c1", "type": "function", "function": {"name": "web_search", "arguments": '{"query": "x"}'}}
+            return httpx.Response(200, json={"model": "m", "usage": {"prompt_tokens": 1_000_000, "completion_tokens": 0},
+                                             "choices": [{"message": {"role": "assistant", "content": "",
+                                                                      "tool_calls": [call]}, "finish_reason": "tool_calls"}]})
+        return httpx.Response(200, json=completion('{"facts": ["a"]}', prompt=0))
+
+    class Web:
+        can_search = True
+
+        def search(self, q):
+            return "1. result"
+
+    engine = OpenAICompatible("m", {"base_url": "http://server.test/v1"}, None, http=server(handle), web=Web())
+    engine.prices = Prices({"m": {"input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5}})
+    _, usage = engine.parse(system="S", prompt="P", schema=Answer, effort="high", node="crosscheck", web=True)
+    assert usage["web_searches"] == 1 and usage["cost_usd"] == pytest.approx(2.0 + 10 * 10 / 1e6)
