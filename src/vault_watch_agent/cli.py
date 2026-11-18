@@ -156,7 +156,9 @@ def show(graph, config) -> None:
         print("\nRun finished." if not snapshot.next else f"\nNext: {snapshot.next}")
 
 
-def run_eval(args, deps: Deps, saver) -> None:
+def run_eval(args, deps: Deps, saver, judge) -> None:
+    """`judge`: the model that scores the proposals, a Claude one whatever model ran the watch (`evaluate.judge_engine`),
+    so that the scores of two models are comparable."""
     import dataclasses
 
     from . import evaluate
@@ -166,7 +168,7 @@ def run_eval(args, deps: Deps, saver) -> None:
     if not wt.exists():
         run(["git", "worktree", "add", "--detach", str(wt), args.at], cwd=VAULT)
     thread = f"eval-{args.issue}-{args.variant}{args.tag}"
-    for model in (deps.llm, deps.translator):
+    for model in (deps.llm, deps.translator, judge):
         model.run = thread
     graph = build(dataclasses.replace(deps, vault=wt, crosscheck=args.variant == "full"), saver)
     config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
@@ -176,9 +178,11 @@ def run_eval(args, deps: Deps, saver) -> None:
     values = graph.get_state(config).values
     hunks = evaluate.truth_hunks(VAULT, *args.truth.split("..")) if args.truth else []
     reviewed = evaluate.reviewable(values.get("corrections", []))
-    judgement, usage = evaluate.judge(hunks, reviewed, deps.llm, VAULT)
+    judgement, usage = evaluate.judge(hunks, reviewed, judge, VAULT)
+    ran = sorted({(u.get("engine", ""), u.get("model", "")) for u in values.get("usage", []) if u.get("model")})
     result = {
         "issue": args.issue, "variant": args.variant, "vault_commit": args.at, "truth": args.truth,
+        "run_models": [f"{e}:{m}" for e, m in ran], "judge": f"{usage.get('engine', '')}:{usage.get('model', '')}",
         "scores": evaluate.scores(hunks, reviewed, judgement),
         "run_cost_usd": round(sum(u.get("cost_usd", 0) for u in values.get("usage", [])), 2),
         "judge_cost_usd": round(usage["cost_usd"], 2),
@@ -189,7 +193,8 @@ def run_eval(args, deps: Deps, saver) -> None:
     out = JOURNAL.parent / "eval" / f"issue{args.issue}-{args.variant}{args.tag}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({k: result[k] for k in ("issue", "variant", "scores", "run_cost_usd", "judge_cost_usd")}, indent=2))
+    print(json.dumps({k: result[k] for k in ("issue", "variant", "run_models", "judge", "scores", "run_cost_usd",
+                                             "judge_cost_usd")}, indent=2))
 
 
 def collect_command(args) -> None:
@@ -301,6 +306,9 @@ def main(argv: list[str] | None = None) -> None:
     e.add_argument("--variant", choices=["keyword", "full"], required=True,
                    help="keyword: excerpts only; full: plus the cross-check on the whole vault")
     e.add_argument("--tag", default="", help="suffix of the run label, to replay again after a change (e.g. -v2)")
+    e.add_argument("--judge", choices=["api", "claude-code"],
+                   help="the engine of the judge (its reasoning model, a Claude one): by default the watch's engine when it "
+                        "is a Claude one, otherwise Claude Code when signed in with a subscription, otherwise the API")
     pr = sub.add_parser("prices", help="the prices of the models and where each comes from; update fetches the public list")
     pr.add_argument("action", choices=["show", "update"])
     pr.add_argument("--yes", action="store_true", help="update: replace the fetched list without asking")
@@ -361,7 +369,12 @@ def main(argv: list[str] | None = None) -> None:
             if model:
                 model.run, model.kind = thread, {"crosscheck": "crosscheck", "fix": "fix", "eval": "eval"}.get(args.cmd, "watch")
         if args.cmd == "eval":
-            run_eval(args, deps, saver)
+            from . import evaluate, llm
+
+            judge = create("reasoning", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings),
+                           name=evaluate.judge_engine(args.judge, llm.engine(settings["engine"])))
+            judge.kind = "eval"
+            run_eval(args, deps, saver, judge)
             return
         graph = build(deps, saver)
         if args.cmd == "fix":

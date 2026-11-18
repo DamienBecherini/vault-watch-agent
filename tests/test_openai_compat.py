@@ -187,3 +187,18 @@ def test_a_hosted_model_is_billed_its_tokens_not_the_searches_of_the_agent(tmp_p
     engine.prices = Prices({"m": {"input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5}})
     _, usage = engine.parse(system="S", prompt="P", schema=Answer, effort="high", node="crosscheck", web=True)
     assert usage["web_searches"] == 1 and usage["cost_usd"] == pytest.approx(2.0 + 10 * 10 / 1e6)
+
+
+def test_the_judge_of_an_eval_is_a_claude_model_whatever_model_ran_the_watch(monkeypatch, tmp_path):
+    """Qwen scoring its own proposals: the scores of two models would not compare."""
+    from vault_watch_agent import evaluate
+
+    monkeypatch.setattr(llm, "claude_code_status", lambda fresh=False: {"subscription": "max"})
+    assert evaluate.judge_engine(None, "openai") == "claude-code"
+    assert evaluate.judge_engine(None, "api") == "api" and evaluate.judge_engine("api", "openai") == "api"
+    monkeypatch.setattr(llm, "claude_code_status", lambda fresh=False: {"subscription": None})
+    assert evaluate.judge_engine(None, "openai") == "api"
+    monkeypatch.setenv("VAULT_WATCH_ENGINE", "openai")  # forces the watch's engine, not the judge's
+    settings = config.check({"engine": "openai", "engines": {"openai": {"base_url": "http://h/v1"}}})
+    judge = llm.create("reasoning", None, settings, name="api")
+    assert type(judge).__name__ != "OpenAICompatible" and judge.model == settings["models"]["reasoning"]

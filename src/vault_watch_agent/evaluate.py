@@ -93,6 +93,22 @@ For each hunk, list the proposals that match it (often none). For each proposal,
 Content changes count; a footnote that only supports a matched change matches too."""
 
 
+CLAUDE_ENGINES = ("api", "claude-code")
+
+
+def judge_engine(chosen: str | None, watch_engine: str) -> str:
+    """The engine of the judge: the one chosen, otherwise the watch's when it runs a Claude model, otherwise Claude
+    Code when signed in with a subscription (nothing billed), otherwise the API. Never the watch's model when it is
+    another one: a model scoring its own proposals, the scores of two models would not compare."""
+    if chosen:
+        return chosen
+    if watch_engine in CLAUDE_ENGINES:
+        return watch_engine
+    from .llm import claude_code_status
+
+    return "claude-code" if claude_code_status()["subscription"] else "api"
+
+
 def judge(hunks: list[dict], corrections: list[dict], llm: LLM, vault: Path) -> tuple[Judgement, dict]:
     truth = "\n\n".join(
         f"<hunk id=\"{h['id']}\" page=\"{h['page']}\">\n<removed>\n" + "\n".join(h["removed"])

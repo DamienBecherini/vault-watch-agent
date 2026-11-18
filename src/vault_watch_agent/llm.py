@@ -437,12 +437,14 @@ def engine(choice: str = "") -> str:
 
 
 def create(role: str = "reasoning", journal: Path | None = None, settings: dict | None = None,
-           prices: Prices | None = None) -> Engine:
+           prices: Prices | None = None, name: str = "") -> Engine:
     """The model client of a role (`reasoning` or `translator`) under the settings of the user (`config.load`):
     their engine, their model and effort for that role and, for the API, the key their reference gives. `prices`:
-    the user's price table (`Prices.of_home`), the defaults shipped when omitted."""
+    the user's price table (`Prices.of_home`), the defaults shipped when omitted. `name`: this engine, whatever the
+    settings and VAULT_WATCH_ENGINE say (the judge of `eval`, always the same one)."""
     settings = settings or config.check({})
-    client = engines()[engine(settings["engine"])].make(role, journal, settings)
+    name = name or engine(settings["engine"])
+    client = engines()[name].make(role, journal, {**settings, "engine": name})
     client.effort_step = EFFORT_STEPS[settings["effort"][role]]
     client.prices = prices or Prices(settings.get("prices"))
     return client

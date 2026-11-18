@@ -39,6 +39,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - The list of Claude models no longer fails with an HTTP 500 when no API key is set (the SDK raises a TypeError
   there): the Settings say why and offer the models the agent knows. The « Guide » category names the `feeds` watch
   source (missing since 0.5.0).
+- `vault-watch eval`: the judge is a Claude model whatever model ran the watch (`--judge api|claude-code`; by default
+  the watch's engine when it is a Claude one, otherwise Claude Code with a subscription, otherwise the API), so that
+  a local model does not score its own proposals. The result names the models of the run and the judge.
 
 ## 0.5.0 (2026-11-18), M3: any watch
 
