@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import prompts, quotes, reading, vault
+from . import prompts, quotes, reading, steps, vault
 from .llm import LLM
 from .quotes import Quote
 
@@ -118,7 +118,7 @@ def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: "reading.Plan 
         for c in corrections
     )
     result, usage = llm.parse(
-        system=prompts.fill(SYSTEM, vault_dir), prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort="high",
+        system=prompts.fill(SYSTEM, vault_dir), prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort=steps.effort("crosscheck"),
         node="crosscheck", context=_guide(vault_dir), web=True,
     )
     checks = [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
@@ -150,7 +150,7 @@ def _run_by_chapter(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple
         own = {p.relative_to(vault_dir).as_posix() for p in pages}
         result, usage = llm.parse(
             system=_by_chapter(prompts.fill(SYSTEM, vault_dir), chapter),
-            prompt=f"Proposed corrections:\n\n{_listing(corrections)}", schema=CrossCheck, effort="high",
+            prompt=f"Proposed corrections:\n\n{_listing(corrections)}", schema=CrossCheck, effort=steps.effort("crosscheck"),
             node=f"crosscheck {chapter}", context=_guide(vault_dir, sorted(set(pages) | set(touched))), web=True)
         usages.append(usage)
         page_of = {c["id"]: c["page"] for c in corrections}
@@ -188,7 +188,7 @@ def sweep(vault_dir: Path, corrections: list[dict], llm: LLM,
                                 "The pages of the corrections and of the remaining occurrences are above, one <page> per file.", 1)
     result, usage = llm.parse(
         system=system, prompt=f"Corrections:\n\n{listing}\n\nRemaining occurrences:\n\n{occurrences}",
-        schema=CrossCheck, effort="high", node="sweep", context=_guide(vault_dir, pages), web=True,
+        schema=CrossCheck, effort=steps.effort("crosscheck"), node="sweep", context=_guide(vault_dir, pages), web=True,
     )
     return result, usage, [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
 

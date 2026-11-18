@@ -17,7 +17,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import crosscheck, inputs, prompts, quotes, reading, vault
+from . import crosscheck, inputs, prompts, quotes, reading, steps, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -76,7 +76,7 @@ def build(deps: Deps, checkpointer=None):
                 for i in batch
             )
             result, u = deps.llm.parse(
-                system=prompts.triage(deps.vault), prompt=listing, schema=TriageResult, effort="medium", node="triage"
+                system=prompts.triage(deps.vault), prompt=listing, schema=TriageResult, effort=steps.effort("triage"), node="triage"
             )
             decisions.update({d.item_id: d.model_dump() for d in result.decisions})
             usage.append(u)
@@ -125,7 +125,7 @@ def build(deps: Deps, checkpointer=None):
         )
         ids = [i["id"] for i in items]
         result, u = deps.llm.parse(
-            system=prompts.propose(deps.vault), prompt=prompt, schema=ClusterProposal, effort="high",
+            system=prompts.propose(deps.vault), prompt=prompt, schema=ClusterProposal, effort=steps.effort("proposals"),
             node=f"propose {'+'.join(ids)}",
         )
         corrections = [
@@ -274,7 +274,7 @@ def build(deps: Deps, checkpointer=None):
             prompt = (f"Page `{en}` of the {language_name(code)} mirror:\n\n<mirror_page>\n{vault.read(wt / en)}\n"
                       f"</mirror_page>\n\nEdits of the {language_name(guide.language)} page:\n\n{edits}")
             result, u = translator.parse(
-                system=prompts.mirror(wt, code), prompt=prompt, schema=MirrorResult, effort="medium",
+                system=prompts.mirror(wt, code), prompt=prompt, schema=MirrorResult, effort=steps.effort("mirror"),
                 node=f"mirror {en}",
             )
             usage.append(u)

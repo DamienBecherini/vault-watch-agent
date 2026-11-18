@@ -38,7 +38,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, inputs, llm, prices, vault, verify
+from . import costs, fix, inputs, llm, prices, steps, vault, verify
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -49,11 +49,8 @@ STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "repo
 # What a running job is doing, in the health response.
 # The effort each step of a role asks for in the code (graph.py, crosscheck.py, fix.py, verify.py), for the Settings
 # page: what "lower" and "higher" make of them. To keep in step with the code when an effort changes there.
-STEP_EFFORTS = {
-    "reasoning": [("triage", "medium"), ("proposals", "high"), ("crosscheck", "high"),
-                  ("checks", "high"), ("deadlinks", "medium")],
-    "translator": [("mirror", "medium"), ("translation", "medium")],
-}
+# What each step of a role runs at, shown in the Settings: read from the one table of the steps (steps.py)
+STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role in ("reasoning", "translator")}
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming"}
 
 

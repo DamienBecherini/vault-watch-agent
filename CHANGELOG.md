@@ -35,6 +35,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   missed ».
 - The example manifest of the IA on-prem guide no longer sets `[budget] max_context_tokens` (it was 450 000, below
   the estimate of the guide with its margin, about 500 000 tokens: the cross-check would have gone by chapter).
+- One table of the steps that call the model (`steps.py`): for each, the role whose model runs it, the effort it
+  asks for and what it needs (the web, the whole guide). The call sites read their effort from it, and the Settings
+  list each step of a role from it (`STEP_EFFORTS` of `web.py` is derived from it).
 - The estimates of the checks say where their price comes from when it is the default or none; the Costs page
   counts the API calls by the origin of their price (the lines before 0.4.0: « list prices of the time »).
 

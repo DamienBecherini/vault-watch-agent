@@ -20,7 +20,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs, prompts, quotes, reading, vault
+from . import inputs, prompts, quotes, reading, steps, vault
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -236,14 +236,14 @@ def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     plan = reading.plan(vault_dir, llm)
     system = prompts.fill(COHERENCE, vault_dir) + EXCERPTS
     if plan.mode == "whole":
-        result, usage = llm.parse(system=system, prompt="List the findings.", schema=Findings, effort="high",
+        result, usage = llm.parse(system=system, prompt="List the findings.", schema=Findings, effort=steps.effort("coherence"),
                                   node="verify coherence", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
         usages = [usage]
     else:  # one call per chapter: contradictions within a chapter only, said in the summary
         found, usages = [], []
         for chapter, pages in reading.chapters(vault_dir).items():
             part, usage = llm.parse(system=system.replace("The whole guide is above", f"One chapter of the guide ({chapter}) is above", 1),
-                                    prompt="List the findings.", schema=Findings, effort="high",
+                                    prompt="List the findings.", schema=Findings, effort=steps.effort("coherence"),
                                     node=f"verify coherence {chapter}",
                                     context=f"<guide>\n{reading.corpus_of(vault_dir, pages)}\n</guide>")
             found += part.findings
@@ -273,7 +273,7 @@ def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dic
         if not pairs:
             continue
         result, usage = llm.parse(system=prompts.fill(TRANSLATION, vault_dir, code) + EXCERPTS,
-                                  prompt="\n\n".join(pairs), schema=TranslationFindings, effort="medium",
+                                  prompt="\n\n".join(pairs), schema=TranslationFindings, effort=steps.effort("translation"),
                                   node=f"verify translation {chapter}" + (f" {code}" if len(guide.mirrors) > 1 else ""))
         # The first run reported « no divergence found » as findings: they are filtered out here
         kept = _findings(vault_dir, Findings(findings=[f for f in result.findings if f.meaning_differs]))
@@ -290,7 +290,7 @@ def run_claims(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
         return {"ok": True, "summary": "no claim due", "findings": []}
     listing = "\n".join(f"- {c.get('page', '')} (recheck by {c.get('recheckBy', '')}): {c.get('claim', '')}" for c in claims)
     result, usage = llm.parse(system=prompts.fill(CLAIMS, vault_dir) + EXCERPTS, prompt=f"Claims to check:\n{listing}", schema=Findings,
-                              effort="high", node="verify claims", web=True)
+                              effort=steps.effort("claims"), node="verify claims", web=True)
     return {"ok": not result.findings, "summary": f"{len(claims)} claims checked, {len(result.findings)} outdated",
             **_findings(vault_dir, result), "usage": [usage]}
 
@@ -319,7 +319,7 @@ def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     listing = "\n".join(f"- {', '.join(d['pages'])}: {d['url']} ({d['status']} {d['code'] or ''})"
                         + "".join(f"\n{citing(vault_dir, p, d['url'])}" for p in d["pages"]) for d in dead)
     result, usage = llm.parse(system=prompts.fill(DEAD_LINKS, vault_dir) + EXCERPTS, prompt=f"Dead sources:\n{listing}", schema=Findings,
-                              effort="medium", node="verify deadlinks", web=True)
+                              effort=steps.effort("deadlinks"), node="verify deadlinks", web=True)
     return {"ok": not result.findings, "summary": f"{len(dead)} dead sources, {len(result.findings)} replacements",
             **_findings(vault_dir, result), "usage": [usage]}
 

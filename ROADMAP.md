@@ -257,6 +257,7 @@ Two independent halves; the first is small and can ship alone.
   window changes.
 - **T2.6 What a step needs.** Each call site names its needs (`needs=("web", "whole_guide")`) next to its effort;
   `STEP_EFFORTS` of `web.py` disappears into that one table, read by the Settings.
+  Done 2026-11-18 (`steps.py`: role, effort, needs per step; `steps.lacks` says what an engine lacks for a step).
 - **T2.7 The context decides the strategy.** The agent counts the guide once per run (exact count when the
   engine can count tokens, else an estimate with a margin) and compares it with the window minus the reserve for
   the answer and the web. Fits: the whole guide. Does not: the cross-check and the coherence check run chapter by

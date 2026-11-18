@@ -14,7 +14,7 @@ import re
 from datetime import date
 from pathlib import Path
 
-from . import prompts, vault
+from . import prompts, steps, vault
 from .llm import LLM
 from .state import ClusterProposal
 
@@ -43,7 +43,7 @@ def _passages(item: dict) -> str:
 
 
 def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM, context: str | None = None,
-            effort: str = "high", web: bool = True, node: str = "fix",
+            effort: str = "", web: bool = True, node: str = "fix",
             excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
     """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request."""
     if "<<" in system:  # written with the markers of prompts.fill
@@ -55,7 +55,7 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
     ]
     listing = "\n".join(f"<error id=\"{i['id']}\">{i['title']}{_passages(i)}</error>" for i in items)
     result, usage = llm.parse(
-        system=system, prompt=f"Reported errors:\n\n{listing}", schema=ClusterProposal, effort=effort,
+        system=system, prompt=f"Reported errors:\n\n{listing}", schema=ClusterProposal, effort=effort or steps.effort("fix"),
         node=node, context=context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=web,
     )
     ids = [i["id"] for i in items]
@@ -124,7 +124,7 @@ def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,
     pages = sorted({p for paths, _ in found for p in paths if (vault_dir / p).is_file()})
     context = "\n\n".join(f'<page path="{p}">\n{vault.read(vault_dir / p)}\n</page>' for p in pages)
     system = prompts.fill(TRANSLATION_SYSTEM, vault_dir, mirror) if mirror else prompts.fill(SYSTEM, vault_dir)
-    return propose(vault_dir, findings, llm, system=system, context=context, effort="medium",
+    return propose(vault_dir, findings, llm, system=system, context=context, effort=steps.effort("fix-translation"),
                    web=False, node="fix translation", excerpts=excerpts)
 
 

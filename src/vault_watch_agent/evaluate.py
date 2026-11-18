@@ -22,7 +22,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs, prompts
+from . import inputs, prompts, steps
 from . import vault as vault_mod  # `vault` is the name of a parameter here
 from .guide import matches
 from .llm import LLM
@@ -105,7 +105,7 @@ def judge(hunks: list[dict], corrections: list[dict], llm: LLM, vault: Path) -> 
         for c in corrections
     ) or "(none)"
     return llm.parse(system=prompts.fill(JUDGE, vault), prompt=f"Ground truth:\n\n{truth}\n\nAgent proposals:\n\n{proposals}",
-                     schema=Judgement, effort="high", node="judge")
+                     schema=Judgement, effort=steps.effort("judge"), node="judge")
 
 
 def reviewable(corrections: list[dict]) -> list[dict]:
