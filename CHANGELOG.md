@@ -3,6 +3,12 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 0.6.1 (2026-11-18)
+
+- Python 3.11 works again: 0.6.0 stopped at its start on 3.11 (a backslash in an f-string's expression in
+  `webtools.py`, which only 3.12 accepts; the engines' registry loads that module). A test now finds the f-strings
+  3.11 refuses, whatever Python runs the tests.
+
 ## 0.6.0 (2026-11-18), M4: any model
 
 - Engines are a protocol (`llm.Engine`: `parse`, `capabilities`, optional `count_tokens`) and a registry

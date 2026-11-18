@@ -158,8 +158,8 @@ class WebTools:
         lines = []
         for n, item in enumerate(results[:RESULTS], start=1):
             date = f" ({str(item['publishedDate'])[:10]})" if item.get("publishedDate") else ""
-            lines.append(f"{n}. {item.get('title') or '(no title)'}{date}\n   {item.get('url')}\n   "
-                         f"{re.sub(r'\s+', ' ', str(item.get('content') or ''))[:400]}")
+            snippet = re.sub(r"\s+", " ", str(item.get("content") or ""))[:400]  # not in the f-string: Python 3.11
+            lines.append(f"{n}. {item.get('title') or '(no title)'}{date}\n   {item.get('url')}\n   {snippet}")
         return "\n".join(lines)
 
     def fetch(self, url: str) -> str:

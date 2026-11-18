@@ -117,7 +117,7 @@ permissions:
   issues: write
 jobs:
   watch:
-    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v0.6.0
+    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v0.6.1
     with:
       days: 8
 ```
