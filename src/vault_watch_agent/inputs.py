@@ -26,14 +26,16 @@ def run(cmd: list[str], cwd: Path | None = None) -> str:
 
 def download_watch(issue: int, repo: str, cache: Path, artifact: str = "weekly-watch") -> Path:
     """Find the workflow run linked at the bottom of the issue and download its artifact."""
-    body = run(["gh", "issue", "view", str(issue), "--repo", repo, "--json", "body", "--jq", ".body"])
+    from .forge import get as forge  # forge imports this module
+
+    body = forge().issue_body(repo, issue)
     match = re.search(r"/actions/runs/(\d+)", body)
     if not match:
         raise RuntimeError(f"issue #{issue}: no workflow run link in the body")
     target = cache / f"run-{match.group(1)}"
     if not (target / "watch.json").is_file():
         target.mkdir(parents=True, exist_ok=True)
-        run(["gh", "run", "download", match.group(1), "--repo", repo, "-n", artifact, "-D", str(target)])
+        forge().download_artifact(repo, match.group(1), artifact, target)
     return target / "watch.json"
 
 

@@ -10,6 +10,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   without `title` or `triage`, a `triage` other than keep or drop, a watch without `until` or a file that is not
   JSON are refused with what is wrong and where. Every watch of the IA on-prem guide since October follows it; the
   sample guide's watch now dates its two dropped items and declares `schema = 1`.
+- The forge (`forge.py`): the calls to `gh` (watch issues, their body, closing one, the workflow artifact, opening a
+  pull request, its state, whether the repository can be read) are the methods of `GitHub`, behind a `Forge`
+  interface a Gitea or GitLab forge can fill. The number of items is read from an issue title in French or
+  English (« 73 éléments », « 73 items »).
 
 ## 0.4.1 (2026-11-18)
 

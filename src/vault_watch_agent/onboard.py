@@ -251,9 +251,10 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
         if not shutil.which("gh"):
             out.append(Line("fail", "GitHub", "gh is not installed: it opens the pull requests and reads the issues"))
         elif gh_check:
-            r = _run(["gh", "repo", "view", guide.repository, "--json", "name"], root)
-            out.append(Line("ok" if r == 0 else "fail", "GitHub", guide.repository if r == 0 else
-                            f"gh cannot read {guide.repository} (`gh auth login`, or check [guide] repository)"))
+            from . import forge
+
+            ok, detail = forge.get().can_read(guide.repository)
+            out.append(Line("ok" if ok else "fail", forge.get().name, detail))
     else:
         out.append(Line("off", "GitHub", "no repository: a local guide, no pull request"))
 
@@ -306,10 +307,3 @@ def _engine(home: Path) -> list[Line]:
                  f"API, no key: {k['error'] or settings['key'] + ' gives nothing'}"
                  + (" (the variable must be set where vault-watch runs)" if settings["key"].startswith("env:") and not k["error"] else ""))]
 
-
-def _run(args: list[str], cwd: Path) -> int:
-    try:
-        return subprocess.run([shutil.which(args[0]) or args[0], *args[1:]], cwd=cwd, capture_output=True,
-                              timeout=60, stdin=subprocess.DEVNULL).returncode
-    except (OSError, subprocess.SubprocessError):
-        return 1

@@ -17,7 +17,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import crosscheck, inputs, prompts, quotes, reading, steps, vault
+from . import crosscheck, forge, inputs, prompts, quotes, reading, steps, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -224,8 +224,8 @@ def build(deps: Deps, checkpointer=None):
         accepted = [c["id"] for c in corrections if c["group"] in groups - broken]
         if not accepted and state.get("issue") and deps.repo:
             # The watch is handled: its issue closes (a PR closes it on merge otherwise, see pr_body)
-            inputs.run(["gh", "issue", "close", str(state["issue"]), "--repo", deps.repo, "--comment",
-                        f"Reviewed with vault-watch-agent: no correction applied ({len(corrections)} proposed)."])
+            forge.get().close_issue(deps.repo, state["issue"],
+                                    f"Reviewed with vault-watch-agent: no correction applied ({len(corrections)} proposed).")
         return {"accepted": accepted}
 
     # -- apply ----------------------------------------------------------------
@@ -343,11 +343,8 @@ def build(deps: Deps, checkpointer=None):
         wt = Path(state["worktree"])
         git("push", "-u", "origin", state["branch"], cwd=wt)
         body = pr_body(state)
-        url = inputs.run(
-            ["gh", "pr", "create", "--repo", deps.repo, "--base", deps.base, "--head", state["branch"],
-             "--title", pr_title(state), "--body", body],
-            cwd=wt,
-        ).strip()
+        url = forge.get().open_pull_request(deps.repo, base=deps.base, head=state["branch"], title=pr_title(state),
+                                            body=body, cwd=wt)
         return {"pr_url": url}
 
     g = StateGraph(WatchState)

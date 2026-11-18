@@ -38,7 +38,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, inputs, llm, prices, steps, vault, verify
+from . import costs, fix, forge, inputs, llm, prices, steps, vault, verify
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -727,18 +727,17 @@ def create_app(settings: Settings) -> FastAPI:
 
 
 def gh_pr_state(url: str) -> str:
-    return inputs.run(["gh", "pr", "view", url, "--json", "state", "--jq", ".state"]).strip().lower()
+    return forge.get().pull_request_state(url)
 
 
 def list_issues(repo: str, label: str = "veille") -> Callable[[], list[dict]]:
-    """Watch issues of the guide (the manifest's [watch] label), newest first, from gh; none for a local guide."""
+    """Watch issues of the guide (the manifest's [watch] label), newest first, from the forge; none for a local
+    guide. `items`: the number of items the title gives (« 73 éléments », « 73 items »), when it gives one."""
     def fetch() -> list[dict]:
         if not repo:
             return []
-        out = inputs.run(["gh", "issue", "list", "--repo", repo, "--label", label, "--state", "all",
-                          "--limit", "12", "--json", "number,title,state,createdAt,labels"])
-        return [{"number": i["number"], "title": i["title"], "state": i["state"].lower(), "date": i["createdAt"][:10],
-                 "urgent": any(l["name"] == "urgent" for l in i["labels"]),
-                 "items": int(m.group(1)) if (m := re.search(r"(\d+) éléments", i["title"])) else None}
-                for i in json.loads(out)]
+        return [{"number": i["number"], "title": i["title"], "state": i["state"], "date": i["date"],
+                 "urgent": "urgent" in i["labels"],
+                 "items": int(m.group(1)) if (m := re.search(r"(\d+) (?:éléments|items)\b", i["title"])) else None}
+                for i in forge.get().issues(repo, label)]
     return fetch

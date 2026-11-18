@@ -292,6 +292,7 @@ runs "by chapter" when the window is forced small in a test, and the report says
   own collector as long as it wants; both give the same format.
 - **T3.5 The forge.** `gh` calls gathered behind `Forge` (issues, artifacts, pull requests, their state). Only
   GitHub is implemented; the port is what a Gitea or GitLab contribution fills.
+  Done 2026-11-18 (`forge.py`: `Forge`, `GitHub`, `get`, `use`); no call to `gh` is left outside it.
 
 Done when: the sample guide gets a watch from `collect` and from the workflow; the IA on-prem guide runs on
 either collector with the same items kept.

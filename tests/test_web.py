@@ -261,3 +261,28 @@ def test_prices_are_read_on_request_applied_on_a_second_click_and_their_origin_s
     assert options["coherence"]["price_origin"] == ""  # a fetched price is not flagged
     assert options["translation"]["price_origin"] == "default of 2026-11"  # Sonnet 5.5: still the default
     assert "origins" in c.get("/api/costs").json()
+
+
+def test_the_watch_issues_and_the_pull_requests_go_through_the_forge(monkeypatch):
+    from vault_watch_agent import forge, web
+
+    class Fake:
+        name = "Fake"
+
+        def issues(self, repo, label, limit=12):
+            assert (repo, label) == ("owner/guide", "watch")
+            return [{"number": 9, "title": "Watch — 2026-11-16 (73 items)", "state": "open", "date": "2026-11-16",
+                     "labels": ["watch", "urgent"], "body": ""}]
+
+        def pull_request_state(self, url):
+            return "merged"
+
+    before = forge.get()
+    forge.use(Fake())
+    try:
+        [issue] = web.list_issues("owner/guide", "watch")()
+        assert (issue["number"], issue["urgent"], issue["items"]) == (9, True, 73)
+        assert web.gh_pr_state("https://example/pr/1") == "merged"
+        assert web.list_issues("", "watch")() == []  # a local guide has no issue
+    finally:
+        forge.use(before)
