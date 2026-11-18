@@ -348,6 +348,10 @@ the same items with either collector; its manifest names its feeds since
 - **T4.5 Scores.** `vault-watch eval` on the published watches for: the baseline, one hosted model, one local
   model, each whole-guide and by chapter where it applies; the table in the README, the method next to it. An
   engine or a model is listed as "supported" only with a line in that table.
+  Replaced on 2026-11-18 by an honest statement (decision of the maintainer): no score table. Opus scored by an
+  Opus judge against a PR that was itself an Opus run says little; a local model good enough for the proposals needs
+  a 32 GB card the project does not have. The docs name the models the IA guide uses, what was tried, and how to
+  measure one's own model with the limits of `eval`; nothing is promised for other models.
   2026-11-18: the judge is now a Claude model whatever model ran the watch (`--judge`). Reference by excerpts
   (`keyword`, no cross-check) on Claude Code, Opus 5.5, watch #77: 3 of 9 hunks, 3 proposals all right, 70 s, nothing
   billed (`metrics/eval/issue77-keyword-m4ref.json`). Of the 11 corrections of the whole-guide run (M1), 4 came from
@@ -361,10 +365,14 @@ the same items with either collector; its manifest names its feeds since
 - **T4.6 Docs.** "Write an engine" (the protocol, the capabilities, the contract tests, a 100-line example);
   "Choose a model" (what each step needs, what by-chapter loses, the scores).
   "Write an engine" done 2026-11-18 (`docs/write-an-engine.md` and in French; the example, an engine for Ollama's own
-  API in `examples/engines/`, passes the contract tests); "Choose a model" waits for the scores.
+  API in `examples/engines/`, passes the contract tests); "Choose a model" done the same day
+  (`docs/choose-a-model.md` and in French): the models of the IA guide, what each step asks, what was tried, `eval`
+  and its limits.
 
 Done when: the sample guide and the IA on-prem guide run end to end on the OpenAI-compatible engine with a
 hosted model; the triage, the proposals and the mirror run on a local model; the scores are published.
+Revised on 2026-11-18: the engine runs on a hosted model (the sample guide) and on a local one (the sample guide,
+watch #77 by excerpts); the docs say which models the project uses and commit to nothing else.
 
 ### M5. Stable (1.0.0)
 

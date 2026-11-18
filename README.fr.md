@@ -16,7 +16,7 @@
 
 **Français** · [English](README.md)
 
-[Présentation avec schémas](docs/presentation.fr.md) · [Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Structure du code](docs/code.fr.md)
+[Présentation avec schémas](docs/presentation.fr.md) · [Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Structure du code](docs/code.fr.md)
 
 </div>
 

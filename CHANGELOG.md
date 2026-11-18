@@ -42,6 +42,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - `vault-watch eval`: the judge is a Claude model whatever model ran the watch (`--judge api|claude-code`; by default
   the watch's engine when it is a Claude one, otherwise Claude Code with a subscription, otherwise the API), so that
   a local model does not score its own proposals. The result names the models of the run and the judge.
+- `docs/choose-a-model.md` (and in French): the models the IA on-prem guide uses (Claude Opus 5.5 for reasoning,
+  Sonnet 5.5 for the mirror), what each step asks of a model, what was tried beyond them (Qwen3.6-35B-A3B on an
+  8 GB laptop GPU: no proposal on watch #77, where Opus made three), and `vault-watch eval` with its limits. No
+  other model is promised.
 
 ## 0.5.0 (2026-11-18), M3: any watch
 

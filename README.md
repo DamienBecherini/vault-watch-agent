@@ -16,7 +16,7 @@
 
 **English** · [Français](README.fr.md)
 
-[Overview with diagrams](docs/presentation.md) · [Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [How the code fits together](docs/code.md)
+[Overview with diagrams](docs/presentation.md) · [Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Choose a model](docs/choose-a-model.md) · [How the code fits together](docs/code.md)
 
 </div>
 
