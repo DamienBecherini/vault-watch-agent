@@ -27,6 +27,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .prices import check_rates
+
 FILE = "settings.json"
 ENGINES = ("", "claude-code", "api")  # "": Claude Code when it is signed in with a subscription, otherwise the API
 REFERENCES = ("env:", "file:", "sops:")
@@ -40,7 +42,7 @@ MODELS = {
 MODEL_ID = re.compile(r"claude-[a-z0-9][a-z0-9.-]{1,60}")
 EFFORTS = ("lower", "normal", "higher")  # relative to the effort the code gives each step
 DEFAULTS = {"engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()},
-            "effort": {role: "normal" for role in MODELS}}
+            "effort": {role: "normal" for role in MODELS}, "prices": {}}
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # Windows: no console window when the server has none
 
 
@@ -74,7 +76,18 @@ def check(cfg: dict) -> dict:
         effort[role] = str(given.get(role) or "normal").strip().lower()
         if effort[role] not in EFFORTS:
             raise ConfigError(f"effort.{role}: {effort[role]!r} is not one of {', '.join(EFFORTS)}")
-    return {"engine": engine, "key": key, "models": models, "effort": effort}
+    given = cfg.get("prices") or {}
+    if not isinstance(given, dict):
+        raise ConfigError("prices must be an object: model id -> its rates")
+    prices = {}
+    for model, rates in given.items():
+        if not MODEL_ID.fullmatch(str(model)):
+            raise ConfigError(f"prices: {model!r} is not a Claude model id (claude-…)")
+        try:
+            prices[model] = check_rates(rates, f"prices.{model}")
+        except ValueError as e:
+            raise ConfigError(str(e)) from e
+    return {"engine": engine, "key": key, "models": models, "effort": effort, "prices": prices}
 
 
 def load(home: Path) -> dict:

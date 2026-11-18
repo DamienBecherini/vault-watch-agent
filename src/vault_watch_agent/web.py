@@ -122,6 +122,7 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
     key: str = ""
     models: dict[str, str] = {}
     effort: dict[str, str] = {}
+    prices: dict[str, dict] | None = None  # None: keep the prices already set (a page that does not show them)
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -363,7 +364,10 @@ def create_app(settings: Settings) -> FastAPI:
     @app.post("/api/settings")
     def settings_save(body: UserSettings):
         try:
-            return settings_view(user_settings.save(cfg_home, body.model_dump()))
+            given = body.model_dump()
+            if given["prices"] is None:
+                given["prices"] = user_settings.load(cfg_home)["prices"]
+            return settings_view(user_settings.save(cfg_home, given))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e
 

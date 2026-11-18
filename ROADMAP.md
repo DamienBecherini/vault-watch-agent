@@ -230,6 +230,7 @@ Two independent halves; the first is small and can ship alone.
 - **T2.1 `prices.py`.** A price = (input, output, cache read, cache write, source, date). Sources in order: the
   Settings (`prices` in `settings.json`), the fetched list (cached in the home, with its date), the defaults
   shipped (moved out of `llm.PRICES` into a dated data file). `price_of(model)` returns the price and its origin.
+  Done 2026-11-18 (`prices.py`, `defaults/prices.json`; `Prices.of(model)` gives a `Price` with `origin` and `label`).
 - **T2.2 Fetching.** `vault-watch prices update` and a button in the Settings read LiteLLM's public list, keep
   the entries of the providers in use, and show a diff before replacing the cache. Never fetched without an
   action of the user; a list that cannot be read changes nothing.
@@ -238,6 +239,7 @@ Two independent halves; the first is small and can ship alone.
   set price ("default of 2026-11"); a model without a price is flagged as today.
 - **T2.4 The journal.** Each line records the price used and its origin; `costs.py` never recomputes a past cost.
   The cache-read price of Sonnet 5.5 fixed on 2026-11-17 is noted in the changelog, the past lines left as they are.
+  Done 2026-11-18 with T2.1 (`price`, `price_origin` on each API line).
 
 **Capabilities**
 

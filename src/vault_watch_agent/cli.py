@@ -30,6 +30,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
 from . import vault
+from .prices import Prices
 from .graph import Deps, build, describe
 
 CONFIG_HOME = Path(os.environ.get("VAULT_WATCH_HOME", ".vault-watch")).resolve()  # settings, shared by the guides
@@ -155,7 +156,8 @@ def make_deps(thread: str, kind: str) -> Deps:
         return Deps(vault=VAULT, home=HOME, llm=None)
     vault.sync(VAULT)
     settings = config.load(CONFIG_HOME)  # read for each run: a change in the Settings page applies to the next one
-    llm, translator = create("reasoning", JOURNAL, settings), create("translator", JOURNAL, settings)
+    table = Prices.of_home(CONFIG_HOME, settings)  # the user's prices, the fetched list, the defaults
+    llm, translator = create("reasoning", JOURNAL, settings, table), create("translator", JOURNAL, settings, table)
     for model in (llm, translator):
         model.run, model.kind = thread, kind
     return Deps(vault=VAULT, home=HOME, llm=llm, translator=translator)
@@ -262,8 +264,8 @@ def main(argv: list[str] | None = None) -> None:
         deps = Deps(
             vault=VAULT,
             home=HOME,
-            llm=create("reasoning", JOURNAL, settings) if live else None,
-            translator=create("translator", JOURNAL, settings) if live else None,
+            llm=create("reasoning", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings)) if live else None,
+            translator=create("translator", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings)) if live else None,
         )
         thread = getattr(args, "thread", None) or (
             (f"issue-{args.issue}" if args.issue else args.watch_json.stem) if args.cmd == "run" else None

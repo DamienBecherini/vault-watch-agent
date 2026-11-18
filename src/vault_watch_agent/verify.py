@@ -6,7 +6,7 @@ correction: the ones the human keeps go to a fix run (`fix.py`), which verifies 
 goes through the usual review and pull request.
 
 Estimates use the size of the pages (2.1 bytes per token, measured on this guide: 853 KB of French pages
-= 408 k tokens) and the list prices of `llm.PRICES`; web searches and the model's own reading of sources
+= 408 k tokens) and the list prices of the agent's price table (prices.py); web searches and the model's own reading of sources
 make the real cost vary, hence « ≈ ».
 """
 

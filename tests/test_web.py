@@ -208,6 +208,11 @@ def test_settings_carry_the_effort_of_each_role_and_its_steps(client, monkeypatc
     assert triage == {"step": "triage", "effort": "medium", "levels": {"lower": "low", "normal": "medium", "higher": "high"}}
     saved = c.post("/api/settings", json={"effort": {"translator": "higher"}}, headers=ACT).json()
     assert saved["effort"] == {"reasoning": "normal", "translator": "higher"}
+    # Prices: set when given, kept when a page saves without them
+    rates = {"input": 1.0, "output": 2.0, "cache_read": 0.1, "cache_write": 1.25}
+    saved = c.post("/api/settings", json={"prices": {"claude-opus-5-5": rates}}, headers=ACT).json()
+    assert saved["prices"] == {"claude-opus-5-5": rates}
+    assert c.post("/api/settings", json={"effort": {}}, headers=ACT).json()["prices"] == {"claude-opus-5-5": rates}
 
 
 def test_models_come_from_the_api_or_from_what_the_agent_knows(client, monkeypatch):

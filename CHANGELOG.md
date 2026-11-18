@@ -3,6 +3,18 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased (0.4.0, M2: prices and capabilities)
+
+- `prices.py`: a price is four rates (input, output, cache read, cache write) with its origin. Sources in order:
+  the user's prices (`prices` in the Settings), a list fetched on request (`prices.json` of the home, with its
+  date), the defaults shipped (`defaults/prices.json`, checked in November 2026; they were `llm.PRICES`). A dated
+  model id takes the price of its model; a damaged fetched list is ignored, never read as a price.
+- The journal records with each API call the price it was counted at and its origin (`price`, `price_origin`);
+  `costs.py` adds up `cost_usd` as written and never recomputes a past cost. Since 0.2.0 (17 November 2026) the
+  cache reads of Sonnet 5.5 count at 0.10 $ per million tokens (0.20 before); the lines written before stay as
+  they are.
+- Settings: `prices` (model id -> its four rates), checked when saved; a page that saves without them keeps them.
+
 ## 0.3.2 (2026-11-18)
 
 - READMEs: the review screen right after the introduction (a new capture, English and French, from the replay of

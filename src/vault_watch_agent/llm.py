@@ -28,6 +28,7 @@ import anthropic
 from pydantic import BaseModel, ValidationError
 
 from . import config
+from .prices import Prices
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -35,7 +36,6 @@ T = TypeVar("T", bound=BaseModel)
 MODEL = "claude-opus-5-5"
 TRANSLATOR = "claude-sonnet-5-5"
 MAX_CONTINUATIONS = 5  # server-side tool loops resumed after pause_turn
-WEB_SEARCH_USD = 0.01  # 10 $ per 1,000 searches
 
 
 class ModelError(RuntimeError):
@@ -66,6 +66,7 @@ class _Journal:
         self.run = ""  # run label written with each call (thread id), set by the caller
         self.kind = ""  # what the run does: watch, crosscheck…
         self.effort_step = 0  # -1, 0 or +1: the effort of the role in the settings, applied to every call
+        self.prices = Prices()  # the user's price table (create() gives it); the defaults shipped otherwise
 
     def record(self, usage: dict) -> None:
         if not self.journal:
@@ -137,7 +138,10 @@ class Claude(_Journal):
         if parsed is None:
             raise ModelError(f"{node}: no structured output")
         usage = {"node": node, "model": message.model, "engine": "api", "effort": effort, **totals}
-        usage["cost_usd"] = round(cost(usage), 6)
+        usd, price = self.prices.cost(usage)
+        # The price the call was counted at, kept with it: a past cost is never recomputed with today's prices.
+        usage.update(cost_usd=round(usd, 6), price=price.rates() if price else None,
+                     price_origin=price.label if price else "no price")
         self.record(usage)
         return parsed, usage
 
@@ -290,9 +294,11 @@ def engine(choice: str = "") -> str:
     return "claude-code" if claude_code_status()["subscription"] else "api"
 
 
-def create(role: str = "reasoning", journal: Path | None = None, settings: dict | None = None) -> Claude | ClaudeCode:
+def create(role: str = "reasoning", journal: Path | None = None, settings: dict | None = None,
+           prices: Prices | None = None) -> Claude | ClaudeCode:
     """The model client of a role (`reasoning` or `translator`) under the settings of the user (`config.load`):
-    their engine, their model and effort for that role and, for the API, the key their reference gives."""
+    their engine, their model and effort for that role and, for the API, the key their reference gives. `prices`:
+    the user's price table (`Prices.of_home`), the defaults shipped when omitted."""
     settings = settings or config.check({})
     model = settings["models"][role]
     if engine(settings["engine"]) == "claude-code":
@@ -300,6 +306,7 @@ def create(role: str = "reasoning", journal: Path | None = None, settings: dict 
     else:
         client = Claude(model, api_client(settings["key"]), journal)
     client.effort_step = EFFORT_STEPS[settings["effort"][role]]
+    client.prices = prices or Prices(settings.get("prices"))
     return client
 
 
@@ -316,9 +323,9 @@ MIN_CONTEXT = 1_000_000
 _models: dict[str, tuple[float, list[dict]]] = {}  # reference of the key -> (time, models), asked again after 10 min
 
 
-def list_models(reference: str, client: anthropic.Anthropic | None = None) -> list[dict]:
+def list_models(reference: str, client: anthropic.Anthropic | None = None, prices: Prices | None = None) -> list[dict]:
     """The Claude models the API key of `reference` can use (Models API, GET /v1/models), newest first:
-    {id, name, context, priced}; `priced`: `PRICES` knows its price, so the cost journal and the estimates count it.
+    {id, name, context, priced}; `priced`: the price table knows its price, so the journal and the estimates count it.
     Only the models with a context of 1M tokens: the cross-check holds the whole guide (about 430 k tokens), and the
     older models with a smaller one also lack what the calls use (the effort levels up to max, the current web tools).
     ModelError when the API cannot be asked (no key, network, refused)."""
@@ -332,7 +339,7 @@ def list_models(reference: str, client: anthropic.Anthropic | None = None) -> li
     except anthropic.AnthropicError as e:  # no key at all
         raise ModelError(f"the list of the models could not be read: {e}") from e
     models = [{"id": m.id, "name": m.display_name or m.id, "context": m.max_input_tokens,
-               "priced": price_of(m.id) is not None}
+               "priced": price_of(m.id, prices) is not None}
               for m in sorted(found, key=lambda m: m.created_at, reverse=True)
               if m.id.startswith("claude-") and not getattr(m, "deprecated_at", None)
               and (m.max_input_tokens or 0) >= MIN_CONTEXT]
@@ -340,35 +347,8 @@ def list_models(reference: str, client: anthropic.Anthropic | None = None) -> li
     return models
 
 
-# List prices, USD per million tokens: input, output, cache read, cache write (5-minute TTL = 1.25 × input).
-# November 2026; a model missing here is counted at 0 (the Settings page says so). Longest ids first: a prefix
-# match must not take claude-opus-5 for claude-opus-5-5.
-PRICES = {
-    "claude-fable-5-2": (8.0, 40.0, 0.20, 10.0),
-    "claude-fable-5-1": (10.0, 50.0, 1.0, 12.5),
-    "claude-fable-5": (10.0, 50.0, 1.0, 12.5),
-    "claude-opus-5-5": (4.0, 20.0, 0.20, 5.0),
-    "claude-opus-5": (5.0, 25.0, 0.50, 6.25),
-    "claude-opus-4-8": (5.0, 25.0, 0.50, 6.25),
-    "claude-opus-4-7": (5.0, 25.0, 0.50, 6.25),
-    "claude-opus-4-6": (5.0, 25.0, 0.50, 6.25),
-    "claude-sonnet-5-5": (2.0, 10.0, 0.10, 2.5),
-    "claude-sonnet-5": (2.0, 10.0, 0.20, 2.5),
-    "claude-sonnet-4-6": (3.0, 15.0, 0.30, 3.75),
-    "claude-haiku-5-5": (0.10, 0.50, 0.01, 0.125),
-}
-
-
-def price_of(model: str) -> tuple | None:
-    """The prices of a model id (exact, else the longest known prefix: a dated id), None when unknown."""
-    return PRICES.get(model) or next((PRICES[k] for k in sorted(PRICES, key=len, reverse=True) if model.startswith(k + "-")), None)
-
-
-def cost(usage: dict) -> float:
-    prices = price_of(usage["model"])
-    if prices is None:
-        return 0.0
-    p_in, p_out, p_read, p_write = prices
-    tokens = (usage["input"] * p_in + usage["output"] * p_out
-              + usage.get("cache_read", 0) * p_read + usage.get("cache_write", 0) * p_write) / 1e6
-    return tokens + usage.get("web_searches", 0) * WEB_SEARCH_USD  # web fetch is not billed beyond tokens
+def price_of(model: str, prices: Prices | None = None) -> tuple | None:
+    """The four rates of a model (input, output, cache read, cache write; USD per million tokens) in `prices`
+    (the defaults shipped when omitted), None when no source knows it. Where it comes from: `prices.of(model)`."""
+    price = (prices or Prices()).of(model)
+    return (price.input, price.output, price.cache_read, price.cache_write) if price else None

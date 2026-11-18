@@ -10,7 +10,7 @@ from vault_watch_agent import config, llm
 def test_defaults_when_there_is_no_file(tmp_path):
     assert config.load(tmp_path) == {"engine": "", "key": "env:ANTHROPIC_API_KEY",
                                      "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},
-                                     "effort": {"reasoning": "normal", "translator": "normal"}}
+                                     "effort": {"reasoning": "normal", "translator": "normal"}, "prices": {}}
 
 
 def test_saved_settings_are_read_back_and_unknown_fields_dropped(tmp_path):
@@ -19,7 +19,7 @@ def test_saved_settings_are_read_back_and_unknown_fields_dropped(tmp_path):
                                    "effort": {"reasoning": "Higher"}, "theme": "dark"})
     assert saved == {"engine": "api", "key": "sops:secrets.env#ANTHROPIC_API_KEY",
                      "models": {"reasoning": "claude-fable-5-2", "translator": "claude-haiku-5-5"},
-                     "effort": {"reasoning": "higher", "translator": "normal"}}
+                     "effort": {"reasoning": "higher", "translator": "normal"}, "prices": {}}
     assert config.load(tmp_path) == saved
     assert not (tmp_path / "settings.json.partial").exists()
 
