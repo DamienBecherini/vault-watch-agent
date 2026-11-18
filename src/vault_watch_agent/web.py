@@ -38,7 +38,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, inputs, llm, vault, verify
+from . import costs, fix, inputs, llm, prices, vault, verify
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -327,6 +327,23 @@ def create_app(settings: Settings) -> FastAPI:
                 "version": _version()}
 
     # -- settings of the user (config.py): engine, reference to the API key, models -----------------
+    def price_table(cfg: dict | None = None) -> prices.Prices:
+        return prices.Prices.of_home(cfg_home, cfg if cfg is not None else user_settings.load(cfg_home))
+
+    def prices_view(cfg: dict) -> dict:
+        """Each priced model (the ones in use first) with its rates and where they come from, and the fetched list."""
+        table, in_use = price_table(cfg), list(dict.fromkeys(cfg["models"].values()))
+        without = price_table({**cfg, "prices": {}})  # what a model costs when the user sets no price of their own
+        rows = []
+        for model in list(dict.fromkeys(in_use + list(cfg["prices"]) + table.known())):
+            p, b = table.of(model), without.of(model)
+            rows.append({"id": model, "in_use": model in in_use, "rates": p.rates() if p else None, "date": p.date if p else "",
+                         "origin": p.origin if p else "", "label": p.label if p else "no price",
+                         "base": {"rates": b.rates(), "origin": b.origin, "date": b.date} if b else None})
+        fetched = next(((date, len(t)) for o, date, t in table.sources if o == "fetched" and t), None)
+        return {"models": rows, "fetched": {"date": fetched[0], "models": fetched[1]} if fetched else None,
+                "source": prices.LITELLM, "web_search_usd": table.web_search_usd}
+
     def settings_view(cfg: dict) -> dict:
         """The settings with what the page shows beside them: the engine in use, Claude Code on this machine,
         whether the reference gives a key (never the key), the models offered when the API cannot list them, the
@@ -336,6 +353,7 @@ def create_app(settings: Settings) -> FastAPI:
                 "claude_code": llm.claude_code_status(), "key_status": user_settings.key_status(cfg["key"]),
                 "key_forms": user_settings.KEY_FORMS,
                 "guide": vault.guide_of(settings.vault).summary(),  # read-only: from its manifest
+                "price_table": prices_view(cfg),
                 "choices": {"models": user_settings.MODELS, "effort": user_settings.EFFORTS,
                             "steps": {role: [{"step": step, "effort": effort,
                                               "levels": {e: llm.shift_effort(effort, llm.EFFORT_STEPS[e]) for e in user_settings.EFFORTS}}
@@ -348,11 +366,11 @@ def create_app(settings: Settings) -> FastAPI:
         it, else the one of the settings); without a key that answers, the models known to the agent and why."""
         reference = key or user_settings.load(cfg_home)["key"]
         try:
-            return {"source": "api", "models": llm.list_models(reference), "error": ""}
+            return {"source": "api", "models": llm.list_models(reference, prices=price_table()), "error": ""}
         except (llm.ModelError, user_settings.ConfigError) as e:
             known = dict.fromkeys(m for names in user_settings.MODELS.values() for m in names)
             return {"source": "known", "error": str(e),
-                    "models": [{"id": m, "name": m, "context": None, "priced": llm.price_of(m) is not None} for m in known]}
+                    "models": [{"id": m, "name": m, "context": None, "priced": price_table().of(m) is not None} for m in known]}
 
     @app.get("/api/settings")
     def settings_get():
@@ -360,6 +378,30 @@ def create_app(settings: Settings) -> FastAPI:
             return settings_view(user_settings.load(cfg_home))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(500, str(e)) from e
+
+    pending: dict = {}  # the list fetched last, until the user applies it or fetches again
+
+    @app.post("/api/prices/fetch")
+    def prices_fetch():
+        """Reads LiteLLM's public list and says what it would change; nothing is replaced before /apply."""
+        from datetime import date
+
+        try:
+            fetched = prices.fetch(date.today().isoformat())
+        except ValueError as e:
+            raise HTTPException(502, str(e)) from e
+        pending.clear()
+        pending.update(fetched)
+        return {"date": fetched["date"], "models": len(fetched["models"]), "estimated": fetched["estimated"],
+                "changes": prices.diff(price_table(), fetched)}
+
+    @app.post("/api/prices/apply")
+    def prices_apply():
+        if not pending:
+            raise HTTPException(409, "fetch the list first")
+        prices.save(cfg_home, dict(pending))
+        pending.clear()
+        return settings_view(user_settings.load(cfg_home))
 
     @app.post("/api/settings")
     def settings_save(body: UserSettings):
@@ -523,7 +565,7 @@ def create_app(settings: Settings) -> FastAPI:
     @app.get("/api/costs")
     def costs_view():
         entries = costs.load(settings.journal)
-        return {by: costs.rows(entries, by) for by in ("month", "run")}
+        return {**{by: costs.rows(entries, by) for by in ("month", "run")}, "origins": costs.origins(entries)}
 
     # -- health check of the guide (verify.py): one JSON file per verification ---------------------
     verifs = settings.home / "verifications"
@@ -596,10 +638,16 @@ def create_app(settings: Settings) -> FastAPI:
             if "claims" not in known and "freshness" in r:
                 known["claims"] = len(r["freshness"].get("claims", []))
         models = user_settings.load(cfg_home)["models"]  # the models of the user's settings, shown and priced
-        est = verify.estimates(settings.vault, known, models)
+        table = price_table()
+        est = verify.estimates(settings.vault, known, models, table)
         name = {verify.MODEL: models["reasoning"], verify.TRANSLATOR: models["translator"]}
+        def origin(model):  # where the price of the estimate comes from, said when it is not set or fetched
+            p = table.of(model) if model else None
+            return "" if not model else "no price" if p is None else "" if p.origin in ("set", "fetched") else p.label
+
         return [{"id": c.id, "title": c.title, "what": c.what, "model": name.get(c.model, c.model), "needs": list(c.needs),
-                 "fixable": c.fixable, **est[c.id]} for c in verify.CHECKS]
+                 "fixable": c.fixable, "price_origin": origin(name.get(c.model, c.model)), **est[c.id]}
+                for c in verify.CHECKS]
 
     @app.get("/api/verifications")
     def verif_list():

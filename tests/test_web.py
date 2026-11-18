@@ -219,10 +219,10 @@ def test_models_come_from_the_api_or_from_what_the_agent_knows(client, monkeypat
     from vault_watch_agent import llm as engines
 
     c, _ = client
-    monkeypatch.setattr(engines, "list_models", lambda ref: [{"id": "claude-mythos-6", "name": "Claude Mythos 6", "context": 1, "priced": False}])
+    monkeypatch.setattr(engines, "list_models", lambda ref, prices=None: [{"id": "claude-mythos-6", "name": "Claude Mythos 6", "context": 1, "priced": False}])
     assert c.get("/api/models").json()["source"] == "api"
 
-    def refuse(ref):
+    def refuse(ref, prices=None):
         raise engines.ModelError("no key")
     monkeypatch.setattr(engines, "list_models", refuse)
     r = c.get("/api/models").json()
@@ -238,3 +238,26 @@ def test_the_search_for_a_dead_link_gets_what_the_page_says_with_it(tmp_path):
     assert "3: Le MI350X a 288 Go de HBM3E[^2]." in shown and "8: [^2]: AMD, fiche" in shown
     assert "Intro" not in shown and "example.org/a" not in shown
     assert "(not found)" in citing(tmp_path, "absent.md", "https://example.org/dead")
+
+
+def test_prices_are_read_on_request_applied_on_a_second_click_and_their_origin_shown(client, monkeypatch):
+    from vault_watch_agent import prices
+
+    c, _ = client
+    rates = {"input": 1.0, "output": 2.0, "cache_read": 0.1, "cache_write": 1.25}
+    monkeypatch.setattr(prices, "fetch", lambda today: {"date": "2026-11-18", "source": "x", "estimated": [],
+                                                        "models": {"claude-opus-5-5": rates}})
+    table = c.get("/api/settings").json()["price_table"]
+    opus = next(m for m in table["models"] if m["id"] == "claude-opus-5-5")
+    assert (opus["in_use"], opus["origin"], opus["date"], table["fetched"]) == (True, "default", "2026-11", None)
+    assert c.post("/api/prices/apply", headers=ACT).status_code == 409  # nothing read yet
+    read = c.post("/api/prices/fetch", headers=ACT).json()
+    assert read["changes"] == ["~ claude-opus-5-5: 4 / 20 / 0.2 / 5 (default of 2026-11) -> 1 / 2 / 0.1 / 1.25"]
+    assert c.get("/api/settings").json()["price_table"]["fetched"] is None  # not applied by reading it
+    applied = c.post("/api/prices/apply", headers=ACT).json()["price_table"]
+    opus = next(m for m in applied["models"] if m["id"] == "claude-opus-5-5")
+    assert (opus["origin"], opus["rates"], applied["fetched"]["date"]) == ("fetched", rates, "2026-11-18")
+    options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
+    assert options["coherence"]["price_origin"] == ""  # a fetched price is not flagged
+    assert options["translation"]["price_origin"] == "default of 2026-11"  # Sonnet 5.5: still the default
+    assert "origins" in c.get("/api/costs").json()

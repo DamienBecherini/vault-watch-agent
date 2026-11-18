@@ -52,6 +52,16 @@ def totals(entries: list[dict], by: str) -> dict[str, dict]:
     return rows
 
 
+def origins(entries: list[dict]) -> dict[str, int]:
+    """How many API calls of the journal were counted at each kind of price ("default of 2026-11", "set in the
+    Settings", "fetched of …"); the lines written before 0.4.0 carry no origin: "list prices of the time"."""
+    out: dict[str, int] = defaultdict(int)
+    for e in entries:
+        if e.get("engine") != "claude-code":
+            out[e.get("price_origin") or "list prices of the time"] += 1
+    return dict(sorted(out.items(), key=lambda kv: -kv[1]))
+
+
 def rows(entries: list[dict], by: str) -> list[dict]:
     """The same totals as `table`, as JSON rows for the web interface."""
     return [{"key": k, "runs": len(r["runs"]), "calls": r["calls"], "in": r["in"], "out": r["out"],

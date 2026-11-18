@@ -110,6 +110,9 @@ const TEXTS = {
     costsTitle: "Coûts",
     costsIntro: total => `Calculés à partir de l'usage que renvoie l'API, au prix catalogue (journal <code>metrics/usage.jsonl</code>). La page de facturation de la Console reste la référence. Total : ${total}.`,
     costsSubscription: (calls, spared) => `${calls} appel(s) sont passés par Claude Code sur l'abonnement : non facturés, ils auraient coûté environ ${spared} sur l'API.`,
+    costsOrigins: "Prix utilisés pour les appels à l'API :",
+    priceOrigin: o => o === "no price" ? "aucun prix connu : compté 0 $" : o === "list prices of the time" ? "prix catalogue de l'époque (avant la 0.4.0)"
+      : o === "set in the Settings" ? "prix fixé dans les réglages" : o.replace(/^default of /, "prix par défaut de ").replace(/^fetched of /, "liste du "),
     columns: ["Appels", "Tokens lus", "Écrits", "Coût"], subscriptionColumns: ["Sur l'abonnement", "Non facturé"],
     byMonth: "Par mois", month: "Mois", byRun: "Par passage", run: "Passage",
     subscription: "abonnement, non facturé",
@@ -211,6 +214,9 @@ const TEXTS = {
     costsTitle: "Costs",
     costsIntro: total => `Computed from the usage the API returns, at list price (journal <code>metrics/usage.jsonl</code>). The Console's billing page stays the reference. Total: ${total}.`,
     costsSubscription: (calls, spared) => `${calls} call(s) went through Claude Code on the subscription: not billed, they would have cost about ${spared} on the API.`,
+    costsOrigins: "Prices used for the API calls:",
+    priceOrigin: o => o === "no price" ? "no known price: counted 0 $" : o === "list prices of the time" ? "list prices of the time (before 0.4.0)"
+      : o === "set in the Settings" ? "price set in the Settings" : o.replace(/^default of /, "default price of ").replace(/^fetched of /, "list of "),
     columns: ["Calls", "Tokens in", "Out", "Cost"], subscriptionColumns: ["On the subscription", "Not billed"],
     byMonth: "By month", month: "Month", byRun: "By run", run: "Run",
     subscription: "subscription, not billed",
@@ -521,7 +527,10 @@ const checkBadge = p => {
 async function viewChecks() {
   const [options, verifs] = await Promise.all([api("/api/verifications/options"), api("/api/verifications")]);
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
+  // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
   const price = o => o.model ? cost(o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
+  const origin = o => o.model && o.price_origin && o.usd != null && !onSubscription()
+    ? ` <span class="muted small">${esc(T.priceOrigin(o.price_origin))}</span>` : "";
   // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
   const pending = verifs.filter(p => ["to-handle", "running"].includes(p.status));
   const remaining = pending.reduce((s, p) => s + p.counts.open, 0);
@@ -541,7 +550,7 @@ async function viewChecks() {
       <input type="checkbox" data-check="${o.id}" ${o.model ? "" : "checked"}>
       <div>
         <div class="header"><b>${esc(o.title[lang])}</b>
-          <span class="badge ${o.model ? "attention" : "ok"}">${price(o)}</span>
+          <span class="badge ${o.model ? "attention" : "ok"}">${price(o)}</span>${origin(o)}
           ${o.tokens ? `<span class="muted small">${V.tokens(o.tokens)}</span>` : ""}</div>
         <p class="muted small">${esc(o.what[lang])}</p>
         <p class="muted small">${esc(o.note[lang])}${o.model ? ` · ${esc(o.model)}` : ""}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
@@ -692,6 +701,8 @@ async function viewCosts() {
   page.innerHTML = `
     <h1>${T.costsTitle}</h1>
     <p class="subtitle">${T.costsIntro(dollars(total))}${calls ? ` ${T.costsSubscription(calls, dollars(spared))}` : ""}</p>
+    ${Object.keys(c.origins || {}).length ? `<p class="muted small">${T.costsOrigins} ${Object.entries(c.origins)
+      .map(([o, n]) => `${esc(T.priceOrigin(o))} (${n})`).join(" · ")}</p>` : ""}
     <h2>${T.byMonth}</h2><div class="card">${table(c.month, T.month)}</div>
     <h2>${T.byRun}</h2><div class="card">${table([...c.run].reverse(), T.run)}</div>`;
 }

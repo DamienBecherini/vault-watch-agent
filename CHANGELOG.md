@@ -18,6 +18,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   LiteLLM's public list (the Claude models of Anthropic, USD per token turned into USD per million), shows what
   changes, and replaces the fetched list only on `--yes` or a yes typed at the prompt. A list that cannot be read,
   or holds no Claude model, changes nothing. Nothing is fetched without this command.
+- Settings, a « Prices » category: each model's four rates and where they come from (set here, the list of a
+  date, the default of 2026-11, no price), the models in use first; a price set here (checked: four numbers, 0 or
+  more) and « back to the default price ». « Read the list » fetches LiteLLM's list and shows what it would change;
+  « Replace with this list » puts it in place. Nothing is fetched without that click.
+- The estimates of the checks say where their price comes from when it is the default or none; the Costs page
+  counts the API calls by the origin of their price (the lines before 0.4.0: « list prices of the time »).
 
 ## 0.3.2 (2026-11-18)
 

@@ -73,8 +73,8 @@ def _tokens(paths: list[Path]) -> int:
     return int(sum(p.stat().st_size for p in paths) / BYTES_PER_TOKEN)
 
 
-def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0) -> float:
-    p_in, p_out, _, p_write = price_of(model) or (0.0, 0.0, 0.0, 0.0)  # a model without a known price: 0, said in the Settings
+def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0, table=None) -> float:
+    p_in, p_out, _, p_write = price_of(model, table) or (0.0, 0.0, 0.0, 0.0)  # a model without a known price: 0, said in the Settings
     return (tokens_in * p_in + tokens_out * p_out + cache_write * p_write) / 1e6
 
 
@@ -88,7 +88,7 @@ def mirror_pages(vault_dir: Path) -> list[Path]:
 english_pages = mirror_pages  # its name before manifests
 
 
-def estimates(vault_dir: Path, known: dict, models: dict | None = None) -> dict[str, dict]:
+def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=None) -> dict[str, dict]:
     """{check id: {tokens, usd, note}}; `known` holds counts from the last run (dead links, claims due).
     `models`: the models of the user's settings ({reasoning, translator}), priced instead of the defaults."""
     reasoning, translator = (models or {}).get("reasoning", MODEL), (models or {}).get("translator", TRANSLATOR)
@@ -101,11 +101,11 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None) -> dict[
         "audits": {"tokens": 0, "usd": 0.0, "note": note("≈ 10 s", "≈ 10 s")},
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
         "freshness": {"tokens": 0, "usd": 0.0, "note": note("≈ 5 s", "≈ 5 s")},
-        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(reasoning, tokens_out=COHERENCE_OUT, cache_write=fr),
+        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(reasoning, tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
         "translation": {"tokens": fr + en + chapters * OUTPUT_PER_CHAPTER,
-                        "usd": _usd(translator, tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER),
+                        "usd": _usd(translator, tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER, table=table),
                         "note": note(f"FR + EN, {chapters} appels (un par chapitre)", f"FR + EN, {chapters} calls (one per chapter)")},
         "claims": {"tokens": None, "usd": CLAIM_USD * claims if claims is not None else None,
                    "note": note(f"{claims} affirmations dues au dernier contrôle de fraîcheur", f"{claims} claims due at the last freshness check")

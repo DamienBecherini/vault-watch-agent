@@ -240,6 +240,8 @@ Two independent halves; the first is small and can ship alone.
 - **T2.3 Shown everywhere.** The Settings get a "Prices" category (per model: the price, its origin, a field to
   set one, "back to default"); the Costs page and every estimate carry the origin when it is not a fetched or a
   set price ("default of 2026-11"); a model without a price is flagged as today.
+  Done 2026-11-18 (with the « Read the list » button of T2.2), checked in the browser: a price set, back to the
+  default, the list read and its changes shown without being applied.
 - **T2.4 The journal.** Each line records the price used and its origin; `costs.py` never recomputes a past cost.
   The cache-read price of Sonnet 5.5 fixed on 2026-11-17 is noted in the changelog, the past lines left as they are.
   Done 2026-11-18 with T2.1 (`price`, `price_origin` on each API line).

@@ -13,7 +13,7 @@ const SETTINGS_TEXTS = {
     title: "Réglages", open: "Réglages", save: "Enregistrer", cancel: "Annuler", close: "Fermer",
     unsaved: "Modifications non enregistrées : Enregistrer, ou Annuler pour les abandonner.", loading: "Chargement…",
     saved: "Enregistré. S'applique au prochain passage.", modified: "modifié, pas encore enregistré",
-    categories: "Catégories", cat: { engine: "Moteur", models: "Modèles et effort", guide: "Guide" },
+    categories: "Catégories", cat: { engine: "Moteur", models: "Modèles et effort", prices: "Prix", guide: "Guide" },
     engineHelp: "Qui appelle le modèle. Un changement s'applique au prochain passage ; un passage en cours garde son moteur.",
     found: plan => `Claude Code trouvé sur cette machine (abonnement ${plan})`,
     foundHelp: "Les appels passent par ton abonnement Claude : pas de clé d'API, rien de facturé. L'usage compte dans les limites de l'abonnement.",
@@ -51,6 +51,20 @@ const SETTINGS_TEXTS = {
     roleHelp: { reasoning: "Tri de la veille, propositions, relecture croisée, vérifications du guide.",
       translator: "Miroir anglais et contrôle des traductions." },
     byDefault: "par défaut",
+    prices: {
+      help: "Le prix de chaque modèle, en dollars par million de tokens, et d'où il vient. Il sert au journal des coûts et aux estimations ; sur l'abonnement, rien n'est facturé.",
+      cols: ["Modèle", "Entrée", "Sortie", "Lecture cache", "Écriture cache", "Origine", ""],
+      origin: { set: "fixé ici", fetched: d => `liste du ${d}`, default: d => `par défaut (${d})`, none: "aucun prix : compté 0 $" },
+      unsaved: "à enregistrer", inUse: "utilisé",
+      set: "Fixer", reset: "Revenir au prix par défaut", ok: "OK", cancel: "Annuler", invalid: "Quatre nombres positifs ou nuls.",
+      listTitle: "Liste publique des prix",
+      listHelp: src => `La liste de LiteLLM (<a href="${src}" target="_blank" rel="noopener">fichier public</a>), lue seulement quand tu la demandes. Tes prix fixés ici passent toujours avant.`,
+      listNone: "Aucune liste lue pour l'instant : les prix par défaut de l'agent s'appliquent.",
+      listOf: (d, n) => `Liste du ${d} en place (${n} modèles).`,
+      fetch: "Lire la liste", fetching: "Lecture…", apply: "Remplacer par cette liste", applied: "Liste en place.",
+      changes: (d, n) => `Liste du ${d} (${n} modèles Claude). Ce qui changerait :`, noChange: "Elle ne change aucun prix.",
+      newModels: n => `${n} modèle(s) sans prix aujourd'hui`, estimated: "prix du cache estimés (0,1 × et 1,25 × l'entrée) pour : ",
+    },
     guide: {
       help: "Ce que le guide déclare dans son manifeste. En lecture seule : se modifie dans le fichier du guide, puis s'applique au prochain passage.",
       noManifest: m => `Pas de <code>${m}</code> dans le dossier du guide : il est lu comme le guide IA on-prem (pages en français, miroir <code>en/</code>, ses scripts). <code>vault-watch init</code> en écrira un.`,
@@ -74,7 +88,7 @@ const SETTINGS_TEXTS = {
     title: "Settings", open: "Settings", save: "Save", cancel: "Cancel", close: "Close",
     unsaved: "Changes not saved: Save, or Cancel to drop them.", loading: "Loading…",
     saved: "Saved. Applies to the next run.", modified: "changed, not saved yet",
-    categories: "Categories", cat: { engine: "Engine", models: "Models and effort", guide: "Guide" },
+    categories: "Categories", cat: { engine: "Engine", models: "Models and effort", prices: "Prices", guide: "Guide" },
     engineHelp: "What calls the model. A change applies to the next run; a run in progress keeps its engine.",
     found: plan => `Claude Code found on this machine (${plan} subscription)`,
     foundHelp: "The calls go through your Claude subscription: no API key, nothing billed. The usage counts in the limits of the subscription.",
@@ -112,6 +126,20 @@ const SETTINGS_TEXTS = {
     roleHelp: { reasoning: "Triage of the watch, proposals, cross-check, checks of the guide.",
       translator: "English mirror and translation checks." },
     byDefault: "default",
+    prices: {
+      help: "The price of each model, in dollars per million tokens, and where it comes from. The cost journal and the estimates use it; on the subscription, nothing is billed.",
+      cols: ["Model", "Input", "Output", "Cache read", "Cache write", "Origin", ""],
+      origin: { set: "set here", fetched: d => `list of ${d}`, default: d => `default (${d})`, none: "no price: counted 0 $" },
+      unsaved: "to save", inUse: "in use",
+      set: "Set", reset: "Back to the default price", ok: "OK", cancel: "Cancel", invalid: "Four numbers, 0 or more.",
+      listTitle: "Public price list",
+      listHelp: src => `LiteLLM's list (<a href="${src}" target="_blank" rel="noopener">public file</a>), read only when you ask. Your prices set here always come first.`,
+      listNone: "No list read yet: the agent's default prices apply.",
+      listOf: (d, n) => `List of ${d} in place (${n} models).`,
+      fetch: "Read the list", fetching: "Reading…", apply: "Replace with this list", applied: "List in place.",
+      changes: (d, n) => `List of ${d} (${n} Claude models). What would change:`, noChange: "It changes no price.",
+      newModels: n => `${n} model(s) without a price today`, estimated: "cache prices estimated (0.1 × and 1.25 × input) for: ",
+    },
     guide: {
       help: "What the guide declares in its manifest. Read-only: it changes in the guide's file, and applies to the next run.",
       noManifest: m => `No <code>${m}</code> in the guide's folder: it is read as the IA on-prem guide (French pages, an <code>en/</code> mirror, its scripts). <code>vault-watch init</code> will write one.`,
@@ -137,6 +165,7 @@ const SETTINGS_ICONS = {
   gear: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>`,
   engine: `<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>`,
   models: `<svg viewBox="0 0 24 24"><path d="M12 3l8 4.5-8 4.5-8-4.5z"/><path d="M4 12l8 4.5 8-4.5M4 16.5L12 21l8-4.5"/></svg>`,
+  prices: `<svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`,
   guide: `<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h6"/></svg>`,
 };
 
@@ -214,8 +243,8 @@ function guidePage(g) {
 /* `s`: the settings as the server holds them, with what it found (Claude Code, the key); the window edits a copy. */
 function drawSettings(s, message = "") {
   const S = T.settings, cc = s.claude_code, page = $("#settings-dialog");   // `page`: the window, not the page under it
-  const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort } };
-  const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator]);
+  const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort }, prices: JSON.parse(JSON.stringify(s.prices || {})) };
+  const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator, d.prices]);
   const engineNow = d => s.engine_forced || d.engine || (cc.subscription ? "claude-code" : "api");
   const claudeCodeNote = !cc.installed ? S.missing : !cc.signed_in ? S.signedOut : !cc.subscription ? S.noPlan : "";
   const category = (id, body) => `<section class="cfg-page" data-cat="${id}"${id === settingsCategory ? "" : " hidden"}>
@@ -231,7 +260,7 @@ function drawSettings(s, message = "") {
       </div>
       <div class="cfg-layout">
         <nav class="cfg-nav" aria-label="${S.categories}">
-          ${["engine", "models", "guide"].map(id => `<button type="button" class="cfg-cat" data-cat="${id}"${id === settingsCategory ? ' aria-current="page"' : ""}>
+          ${["engine", "models", "prices", "guide"].map(id => `<button type="button" class="cfg-cat" data-cat="${id}"${id === settingsCategory ? ' aria-current="page"' : ""}>
             <span class="cfg-ic" aria-hidden="true">${SETTINGS_ICONS[id]}</span>
             <span class="cfg-t"><b>${S.cat[id]}</b><span class="cfg-sum" data-sum="${id}"></span></span>
             <span class="cfg-dot" data-dot="${id}" title="${S.modified}" hidden></span></button>`).join("")}
@@ -276,6 +305,17 @@ function drawSettings(s, message = "") {
                 <span class="muted small" data-steps="${role}"></span></div>
             </fieldset>`).join("")}
             <p class="muted small">${S.effortHelp}</p>`)}
+          ${category("prices", `
+            <p class="muted small">${S.prices.help}</p>
+            <div class="table-scroll"><table class="price-table small">
+              <thead><tr>${S.prices.cols.map((c, i) => `<th${i >= 1 && i <= 4 ? ' class="number"' : ""}>${c}</th>`).join("")}</tr></thead>
+              <tbody id="price-rows"></tbody></table></div>
+            <p class="error-text small" id="price-error" role="alert"></p>
+            <h3 class="cfg-sub">${S.prices.listTitle}</h3>
+            <p class="muted small">${S.prices.listHelp(esc(s.price_table.source))}</p>
+            <p class="small" id="price-list">${s.price_table.fetched ? S.prices.listOf(esc(s.price_table.fetched.date), s.price_table.fetched.models) : S.prices.listNone}</p>
+            <p><button type="button" id="price-fetch">${S.prices.fetch}</button></p>
+            <div id="price-changes" class="small"></div>`)}
           ${category("guide", guidePage(s.guide))}
         </div>
       </div>
@@ -302,6 +342,10 @@ function drawSettings(s, message = "") {
     key.setAttribute("aria-invalid", plainKey());
     page.querySelector('[data-sum="engine"]').textContent = S.engines[draft.engine];
     page.querySelector('[data-sum="guide"]').textContent = s.guide.name;
+    page.querySelector('[data-sum="prices"]').textContent = s.price_table.fetched ? S.prices.listOf(s.price_table.fetched.date, s.price_table.fetched.models).replace(/\.$/, "")
+      : Object.keys(draft.prices).length ? `${Object.keys(draft.prices).length} ${S.prices.origin.set}` : S.prices.origin.default(s.price_table.models.find(m => m.origin === "default")?.date || "");
+    page.querySelector('[data-dot="prices"]').hidden = JSON.stringify(draft.prices) === JSON.stringify(s.prices || {});
+    drawPrices();
     page.querySelector('[data-sum="models"]').textContent = Object.keys(draft.models)
       .map(r => `${modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ");
     page.querySelector('[data-dot="engine"]').hidden = draft.engine === s.engine && draft.key === s.key;
@@ -316,6 +360,76 @@ function drawSettings(s, message = "") {
     if (changed) $("#settings-message").textContent = "";
   };
   settingsChanged = () => state(draft) !== state(s);
+
+  /* The « Prices » category: the table with the draft's own prices (« to save » until the settings are saved). */
+  let editing = null;
+  const fmt = n => (Math.round(n * 1000) / 1000).toLocaleString(lang);
+  const originOf = m => {
+    const P = S.prices.origin, label = x => !x ? P.none : x.origin === "fetched" ? P.fetched(x.date) : P.default(x.date);
+    if (draft.prices[m.id]) return JSON.stringify(draft.prices[m.id]) === JSON.stringify((s.prices || {})[m.id]) ? P.set : `${P.set} (${S.prices.unsaved})`;
+    return m.origin === "set" ? label(m.base) : m.rates ? label(m) : P.none;
+  };
+  function drawPrices() {
+    const body = $("#price-rows");
+    if (!body) return;
+    const rows = s.price_table.models;
+    body.innerHTML = rows.map(m => {
+      const rates = draft.prices[m.id] || (m.origin === "set" ? (m.base && m.base.rates) : m.rates);
+      if (editing === m.id) {
+        const r = rates || { input: 0, output: 0, cache_read: 0, cache_write: 0 };
+        return `<tr><th scope="row">${esc(m.id)}</th>${["input", "output", "cache_read", "cache_write"].map(k =>
+          `<td><input type="number" min="0" step="any" data-rate="${k}" value="${r[k]}" aria-label="${k}"></td>`).join("")}
+          <td colspan="2"><button type="button" id="price-ok">${S.prices.ok}</button> <button type="button" id="price-cancel">${S.prices.cancel}</button></td></tr>`;
+      }
+      return `<tr${m.in_use ? ' class="in-use"' : ""}><th scope="row">${esc(m.id)}${m.in_use ? ` <span class="badge">${S.prices.inUse}</span>` : ""}</th>
+        ${rates ? ["input", "output", "cache_read", "cache_write"].map(k => `<td class="number">${fmt(rates[k])}</td>`).join("") : `<td colspan="4" class="muted">—</td>`}
+        <td class="muted">${originOf(m)}</td>
+        <td>${draft.prices[m.id] ? `<button type="button" class="link" data-reset="${esc(m.id)}">${S.prices.reset}</button>`
+          : `<button type="button" class="link" data-set="${esc(m.id)}">${S.prices.set}</button>`}</td></tr>`;
+    }).join("");
+    body.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { editing = b.dataset.set; drawPrices(); });
+    body.querySelectorAll("[data-reset]").forEach(b => b.onclick = () => { delete draft.prices[b.dataset.reset]; refresh(); });
+    if (editing) {
+      $("#price-cancel").onclick = () => { editing = null; $("#price-error").textContent = ""; drawPrices(); };
+      $("#price-ok").onclick = () => {
+        const r = {};
+        for (const i of body.querySelectorAll("[data-rate]")) r[i.dataset.rate] = Number(i.value);
+        if (Object.values(r).some(v => !Number.isFinite(v) || v < 0) || [...body.querySelectorAll("[data-rate]")].some(i => i.value === "")) {
+          $("#price-error").textContent = S.prices.invalid;
+          return;
+        }
+        $("#price-error").textContent = "";
+        draft.prices[editing] = r;
+        editing = null;
+        refresh();
+      };
+    }
+  }
+  $("#price-fetch").onclick = async () => {
+    const b = $("#price-fetch"), out = $("#price-changes");
+    b.disabled = true;
+    b.textContent = S.prices.fetching;
+    try {
+      const r = await api("/api/prices/fetch", {});
+      const fresh = r.changes.filter(c => c.startsWith("+ ")), other = r.changes.filter(c => !c.startsWith("+ "));
+      out.innerHTML = `<p>${S.prices.changes(esc(r.date), r.models)}</p>
+        ${r.changes.length ? `<ul class="cfg-list">${other.map(c => `<li><code>${esc(c)}</code></li>`).join("")}
+          ${fresh.length ? `<li>${S.prices.newModels(fresh.length)} : ${fresh.map(c => `<code>${esc(c.slice(2).split(":")[0])}</code>`).join(", ")}</li>` : ""}</ul>`
+          : `<p class="muted">${S.prices.noChange}</p>`}
+        ${r.estimated.length ? `<p class="muted">${S.prices.estimated}${r.estimated.map(esc).join(", ")}</p>` : ""}
+        <p><button type="button" class="primary" id="price-apply">${S.prices.apply}</button></p>`;
+      $("#price-apply").onclick = async () => {
+        try {
+          drawSettings(await api("/api/prices/apply", {}), S.prices.applied);
+        } catch (err) { out.insertAdjacentHTML("beforeend", `<p class="error-text">${esc(err.message)}</p>`); }
+      };
+    } catch (err) {
+      out.innerHTML = `<p class="error-text">${esc(err.message)}</p>`;
+    } finally {
+      b.disabled = false;
+      b.textContent = S.prices.fetch;
+    }
+  };
 
   page.querySelectorAll(".cfg-cat").forEach(b => b.onclick = () => {
     settingsCategory = b.dataset.cat;
