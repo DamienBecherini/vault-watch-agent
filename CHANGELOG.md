@@ -14,6 +14,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   cache reads of Sonnet 5.5 count at 0.10 $ per million tokens (0.20 before); the lines written before stay as
   they are.
 - Settings: `prices` (model id -> its four rates), checked when saved; a page that saves without them keeps them.
+- `vault-watch prices show` lists the price of each model and its origin; `vault-watch prices update` reads
+  LiteLLM's public list (the Claude models of Anthropic, USD per token turned into USD per million), shows what
+  changes, and replaces the fetched list only on `--yes` or a yes typed at the prompt. A list that cannot be read,
+  or holds no Claude model, changes nothing. Nothing is fetched without this command.
 
 ## 0.3.2 (2026-11-18)
 

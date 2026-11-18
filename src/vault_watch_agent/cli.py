@@ -71,6 +71,51 @@ def use_guide(option: str | None) -> None:
     HOME = working_folder(CONFIG_HOME, guide)
 
 
+def prices_command(args) -> None:
+    """show: the price of each model and its origin. update: reads LiteLLM's public list, shows what changes, and
+    replaces the fetched list on --yes (or a yes typed at the prompt). Nothing is fetched otherwise."""
+    from datetime import date
+
+    from . import config, prices
+
+    table = Prices.of_home(CONFIG_HOME, config.load(CONFIG_HOME))
+    if args.action == "show":
+        for model in table.known():
+            p = table.of(model)
+            print(f"{model:28} {p.input:>8g} {p.output:>8g} {p.cache_read:>8g} {p.cache_write:>8g}   {p.label}")
+        print("USD per million tokens: input, output, cache read, cache write.")
+        return
+    try:
+        fetched = prices.fetch(date.today().isoformat())
+    except ValueError as e:
+        sys.exit(f"vault-watch: {e}")
+    changes = prices.diff(table, fetched)
+    new = [c for c in changes if c.startswith("+ ")]
+    for line in [c for c in changes if not c.startswith("+ ")]:
+        print(line)
+    if new:
+        print(f"+ {len(new)} model(s) the agent had no price for: "
+              + ", ".join(c[2:].split(":")[0] for c in new[:12]) + (" ..." if len(new) > 12 else ""))
+    if fetched["estimated"]:
+        print(f"  cache prices estimated (0.1 x and 1.25 x input) for: {', '.join(fetched['estimated'][:8])}")
+    if not changes:
+        print("vault-watch: the fetched list changes no price.")
+    if not (args.yes or _confirm("Replace the fetched list? [y/N] ")):
+        print("vault-watch: nothing replaced.")
+        return
+    print(f"vault-watch: wrote {prices.save(CONFIG_HOME, fetched)} ({len(fetched['models'])} models, {fetched['date']}).")
+
+
+def _confirm(question: str) -> bool:
+    """A yes typed at a terminal; no terminal, or nothing typed: no."""
+    if not sys.stdin.isatty():
+        return False
+    try:
+        return input(question).strip().lower() in ("y", "yes", "o", "oui")
+    except EOFError:
+        return False
+
+
 def onboarding(args) -> None:
     """init and doctor: they work on a guide that has no manifest yet, or a wrong one, so they do not go through
     use_guide(). The guide is --guide, VAULT_PATH or the current folder (never the folder of before)."""
@@ -230,6 +275,9 @@ def main(argv: list[str] | None = None) -> None:
     e.add_argument("--variant", choices=["keyword", "full"], required=True,
                    help="keyword: excerpts only; full: plus the cross-check on the whole vault")
     e.add_argument("--tag", default="", help="suffix of the run label, to replay again after a change (e.g. -v2)")
+    pr = sub.add_parser("prices", help="the prices of the models and where each comes from; update fetches the public list")
+    pr.add_argument("action", choices=["show", "update"])
+    pr.add_argument("--yes", action="store_true", help="update: replace the fetched list without asking")
     c = sub.add_parser("costs", help="what the upkeep costs, from the call journal")
     c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
     w = sub.add_parser("serve", help="web interface on http://127.0.0.1:4430/ (same runs as the command line)")
@@ -241,6 +289,9 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.cmd in ("init", "doctor"):
         onboarding(args)
+        return
+    if args.cmd == "prices":
+        prices_command(args)
         return
     if args.cmd != "costs":
         use_guide(args.guide)

@@ -234,6 +234,9 @@ Two independent halves; the first is small and can ship alone.
 - **T2.2 Fetching.** `vault-watch prices update` and a button in the Settings read LiteLLM's public list, keep
   the entries of the providers in use, and show a diff before replacing the cache. Never fetched without an
   action of the user; a list that cannot be read changes nothing.
+  Done 2026-11-18 for the command line (`vault-watch prices update`); the button comes with T2.3. The first read
+  of the real list differs from the defaults on one price: Fable 5.1 cache reads, 0.25 against 1.0 (to check on
+  Anthropic's page before changing the defaults).
 - **T2.3 Shown everywhere.** The Settings get a "Prices" category (per model: the price, its origin, a field to
   set one, "back to default"); the Costs page and every estimate carry the origin when it is not a fetched or a
   set price ("default of 2026-11"); a model without a price is flagged as today.

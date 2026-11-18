@@ -110,3 +110,73 @@ class Prices:
     def known(self) -> list[str]:
         """Every model id some source prices."""
         return sorted({m for _, _, table in self.sources for m in table})
+
+
+# -- the fetched list (T2.2) ----------------------------------------------------------------------------------
+LITELLM = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
+PROVIDERS = ("anthropic",)  # the providers whose models the agent calls
+
+
+def parse_litellm(data: dict, today: str) -> dict:
+    """LiteLLM's public list (USD per token) as a fetched list of this agent (USD per million tokens): the models
+    of PROVIDERS that have an input and an output price; a missing cache price is taken as 0.1 x and 1.25 x input,
+    and said so in `estimated`."""
+    models, estimated = {}, []
+    for name, entry in data.items():
+        if not isinstance(entry, dict) or entry.get("litellm_provider") not in PROVIDERS or not name.startswith("claude-"):
+            continue
+        try:
+            p_in, p_out = float(entry["input_cost_per_token"]) * 1e6, float(entry["output_cost_per_token"]) * 1e6
+        except (KeyError, TypeError, ValueError):
+            continue
+        read, write = entry.get("cache_read_input_token_cost"), entry.get("cache_creation_input_token_cost")
+        if read is None or write is None:
+            estimated.append(name)
+        models[name] = {"input": round(p_in, 6), "output": round(p_out, 6),
+                        "cache_read": round(float(read) * 1e6 if read is not None else p_in * 0.1, 6),
+                        "cache_write": round(float(write) * 1e6 if write is not None else p_in * 1.25, 6)}
+    return {"date": today, "source": LITELLM, "models": dict(sorted(models.items())), "estimated": sorted(estimated)}
+
+
+def fetch(today: str, url: str = LITELLM, timeout: int = 30) -> dict:
+    """Reads the public list; ValueError when it cannot be read or holds no model of PROVIDERS."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "vault-watch-agent"}),
+                                    timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except (OSError, ValueError) as e:
+        raise ValueError(f"the price list could not be read ({type(e).__name__}: {e})") from e
+    fetched = parse_litellm(data, today)
+    if not fetched["models"]:
+        raise ValueError("the price list holds no Claude model: nothing replaced")
+    return fetched
+
+
+def diff(before: "Prices", fetched: dict) -> list[str]:
+    """What replacing the cached list with `fetched` changes, for the models priced today and the new ones."""
+    lines = []
+    for model, rates in fetched["models"].items():
+        old = before.of(model)
+        if old is None:
+            lines.append(f"+ {model}: {_rates(rates)} (new)")
+        elif old.origin != "set" and old.rates() != rates:
+            lines.append(f"~ {model}: {_rates(old.rates())} ({old.label}) -> {_rates(rates)}")
+    current = {m for _, _, table in before.sources[1:2] for m in table}
+    lines += [f"- {m}: no longer in the list (the default applies again, if any)" for m in sorted(current - set(fetched["models"]))]
+    return lines
+
+
+def save(home: Path, fetched: dict) -> Path:
+    import os
+
+    home.mkdir(parents=True, exist_ok=True)
+    partial = home / (FETCHED + ".partial")
+    partial.write_text(json.dumps(fetched, indent=1) + "\n", encoding="utf-8")
+    os.replace(partial, home / FETCHED)
+    return home / FETCHED
+
+
+def _rates(r: dict) -> str:
+    return " / ".join(f"{r[k]:g}" for k in RATES)

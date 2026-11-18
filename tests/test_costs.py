@@ -123,3 +123,30 @@ def test_an_api_call_keeps_the_price_it_was_counted_at(tmp_path):
     line = json.loads(journal.read_text(encoding="utf-8"))
     assert line["cost_usd"] == 1.5 and line["price_origin"] == "set in the Settings"
     assert line["price"] == {"input": 1.5, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0}
+
+
+def test_the_public_list_is_read_for_claude_models_only_and_compared_before_it_replaces_anything(tmp_path):
+    from vault_watch_agent import prices
+
+    data = {
+        "claude-opus-5-5": {"litellm_provider": "anthropic", "input_cost_per_token": 4e-6, "output_cost_per_token": 2e-5,
+                            "cache_read_input_token_cost": 2e-7, "cache_creation_input_token_cost": 5e-6},
+        "claude-fable-5-1": {"litellm_provider": "anthropic", "input_cost_per_token": 1e-5, "output_cost_per_token": 5e-5,
+                             "cache_read_input_token_cost": 2.5e-7, "cache_creation_input_token_cost": 1.25e-5},
+        "claude-new-6": {"litellm_provider": "anthropic", "input_cost_per_token": 1e-6, "output_cost_per_token": 5e-6},
+        "bedrock/claude-opus-5-5": {"litellm_provider": "bedrock", "input_cost_per_token": 1e-6, "output_cost_per_token": 1e-6},
+        "gpt-9": {"litellm_provider": "openai", "input_cost_per_token": 1e-6, "output_cost_per_token": 1e-6},
+        "sample_spec": "not a model",
+    }
+    fetched = prices.parse_litellm(data, "2026-11-18")
+    assert sorted(fetched["models"]) == ["claude-fable-5-1", "claude-new-6", "claude-opus-5-5"]
+    assert fetched["models"]["claude-new-6"] == {"input": 1.0, "output": 5.0, "cache_read": 0.1, "cache_write": 1.25}
+    assert fetched["estimated"] == ["claude-new-6"]
+    changes = prices.diff(prices.Prices(), fetched)
+    assert any(c.startswith("~ claude-fable-5-1:") and "-> 10 / 50 / 0.25 / 12.5" in c for c in changes)
+    assert "+ claude-new-6: 1 / 5 / 0.1 / 1.25 (new)" in changes
+    assert not any("claude-opus-5-5" in c for c in changes)  # same price: not listed
+    prices.save(tmp_path, fetched)
+    table = prices.Prices.of_home(tmp_path)
+    assert table.of("claude-fable-5-1").label == "fetched of 2026-11-18" and table.of("claude-fable-5-1").cache_read == 0.25
+    assert table.of("claude-haiku-5-5").origin == "default"  # not in the fetched list: the default applies
