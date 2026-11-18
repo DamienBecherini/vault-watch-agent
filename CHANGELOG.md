@@ -3,6 +3,11 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- A verification's file is written aside then put in place in one go: the page, which reads it every few seconds
+  while the checks run, could read it empty in the middle of a write (seen as a test failing once on GitHub).
+
 ## 0.4.0 (2026-11-18), M2: prices and capabilities
 
 - `prices.py`: a price is four rates (input, output, cache read, cache write) with its origin. Sources in order:

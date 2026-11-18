@@ -54,6 +54,21 @@ STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role i
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming"}
 
 
+def write_json(path: Path, data: dict) -> None:
+    """Writes a file the page reads while a check runs: aside, then put in place in one go, so a read never finds
+    it empty or half written. Windows refuses the swap while a reader holds the file: tried again for a moment."""
+    partial = path.with_name(path.name + ".partial")
+    partial.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    for attempt in range(40):
+        try:
+            os.replace(partial, path)
+            return
+        except PermissionError:
+            if attempt == 39:
+                raise
+            time.sleep(0.05)
+
+
 def _version() -> str:
     """The version of the code that runs (the source, not the copy an install may have left in site-packages)."""
     return __version__
@@ -619,7 +634,7 @@ def create_app(settings: Settings) -> FastAPI:
                     handled[f] = {**entry, "t": time.time()}
                 else:
                     handled.pop(f, None)
-            path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            write_json(path, data)
 
     @app.post("/api/verifications/{vid}/leads")
     def verif_handle(vid: str, body: Handle):
@@ -666,7 +681,7 @@ def create_app(settings: Settings) -> FastAPI:
         path, work_dir = verifs / f"{vid}.json", verifs / vid
         data = {"id": vid, "started": time.time(), "checks": steps, "asked": body.checks, "results": {},
                 "cost": 0.0, "done": False}
-        path.write_text(json.dumps(data), encoding="utf-8")
+        write_json(path, data)
 
         def work(graph, job: Job):
             deps = settings.make_deps(vid, "verify")
@@ -686,11 +701,11 @@ def create_app(settings: Settings) -> FastAPI:
                     result["fixable"] = check.fixable
                     data["cost"] = round(data["cost"] + sum(u.get("cost_usd", 0) for u in result.get("usage", [])), 2)
                     data["results"][step] = result
-                    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                    write_json(path, data)
                     job.events.append({"t": time.time(), "node": step, "cost": data["cost"]})
             finally:
                 data["done"] = True
-                path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                write_json(path, data)
 
         start(vid, "verify", "verify", work)
         return {"id": vid}
