@@ -3,6 +3,14 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased (0.5.0, M3: any watch)
+
+- The watch format is a contract: `docs/watch-format.md` (and in French) describes `watch.json` key by key, with a
+  `schema` number. The loader checks it: a newer schema is refused with « update vault-watch-agent », an item
+  without `title` or `triage`, a `triage` other than keep or drop, a watch without `until` or a file that is not
+  JSON are refused with what is wrong and where. Every watch of the IA on-prem guide since October follows it; the
+  sample guide's watch now dates its two dropped items and declares `schema = 1`.
+
 ## 0.4.1 (2026-11-18)
 
 - A verification's file is written aside then put in place in one go: the page, which reads it every few seconds

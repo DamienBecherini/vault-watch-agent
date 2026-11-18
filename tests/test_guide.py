@@ -237,3 +237,32 @@ def test_the_command_line_finds_the_guide(tmp_path, monkeypatch):
     os.utime(guide / "vault-watch.toml", (later, later))
     with pytest.raises(SystemExit, match="language is required"):
         cli.use_guide(str(guide))
+
+
+def test_a_watch_follows_its_contract(tmp_path):
+    import json
+
+    import pytest
+
+    from vault_watch_agent.inputs import WatchError, load_items
+
+    def watch(**data):
+        path = tmp_path / "watch.json"
+        path.write_text(json.dumps({"until": "2026-11-16", "items": [], **data}), encoding="utf-8")
+        return path
+
+    ok = {"title": "vllm 0.33.1", "url": "https://x", "date": "2026-11-12T09:30:00Z", "triage": "keep"}
+    items, until = load_items(watch(items=[ok, {**ok, "title": "advisory", "urgent": True}, {**ok, "triage": "drop"}]))
+    assert until == "2026-11-16" and [i["title"] for i in items] == ["advisory", "vllm 0.33.1"]  # urgent first
+    assert items[1]["date"] == "2026-11-12"
+    with pytest.raises(WatchError, match="schema 2, this agent reads schema 1: update"):
+        load_items(watch(schema=2))
+    with pytest.raises(WatchError, match="item 1 lacks title"):
+        load_items(watch(items=[{"triage": "keep"}]))
+    with pytest.raises(WatchError, match="triage = 'maybe'"):
+        load_items(watch(items=[{**ok, "triage": "maybe"}]))
+    with pytest.raises(WatchError, match="`until`"):
+        load_items(watch(until=""))
+    (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
+    with pytest.raises(WatchError, match="not valid JSON"):
+        load_items(tmp_path / "bad.json")

@@ -279,6 +279,8 @@ runs "by chapter" when the window is forced small in a test, and the report says
 
 - **T3.1 The contract.** `docs/watch-format.md`: `watch.json` field by field (items, triage, urgent, notes,
   window), versioned with a `schema` number; the loader refuses a newer major and says which.
+  Done 2026-11-18 (`inputs.check_watch`; the six watches of the IA on-prem guide since 10 October pass it). `url`
+  and `date` are expected, not required: a watch written by hand may lack them.
 - **T3.2 `WatchSource`.** A protocol (`list()` the watches, `fetch(id)` one) with three sources: `github-issue`
   (today's code, moved out of `inputs.py` and `web.py`), `file` (a folder of `watch.json`), `feeds` (T3.3). The
   manifest chooses; the list of watches of the interface comes from the source.

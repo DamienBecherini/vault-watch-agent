@@ -37,9 +37,45 @@ def download_watch(issue: int, repo: str, cache: Path, artifact: str = "weekly-w
     return target / "watch.json"
 
 
+WATCH_SCHEMA = 1  # the version of docs/watch-format.md this code reads
+ITEM_KEYS = ("title", "triage")  # url and date are expected (the model checks and dates the fact with them), not required
+
+
+class WatchError(ValueError):
+    """The watch does not follow docs/watch-format.md; the message says what is wrong and where."""
+
+
+def check_watch(data, where: str = "watch.json") -> dict:
+    """The watch as the contract describes it, or WatchError naming the first problem."""
+    if not isinstance(data, dict):
+        raise WatchError(f"{where}: an object with `items` is expected")
+    schema = data.get("schema", 1)
+    if not isinstance(schema, int) or isinstance(schema, bool) or schema < 1:
+        raise WatchError(f"{where}: schema = {schema!r}: a whole number, 1 or more")
+    if schema > WATCH_SCHEMA:
+        raise WatchError(f"{where}: schema {schema}, this agent reads schema {WATCH_SCHEMA}: update vault-watch-agent")
+    items = data.get("items")
+    if not isinstance(items, list):
+        raise WatchError(f"{where}: `items` must be a list")
+    for n, item in enumerate(items, start=1):
+        missing = [k for k in ITEM_KEYS if not isinstance(item, dict) or not item.get(k)]
+        if missing:
+            raise WatchError(f"{where}: item {n} lacks {', '.join(missing)}")
+        if item["triage"] not in ("keep", "drop"):
+            raise WatchError(f"{where}: item {n}: triage = {item['triage']!r}, keep or drop")
+    if not data.get("until"):
+        raise WatchError(f"{where}: `until` (the end of the window, YYYY-MM-DD) is required")
+    return data
+
+
 def load_items(watch_json: Path) -> tuple[list[dict], str]:
-    """Kept items with a run-local id, urgent advisories first; returns (items, window end)."""
-    data = json.loads(watch_json.read_text(encoding="utf-8"))
+    """Kept items with a run-local id, urgent advisories first; returns (items, window end).
+    WatchError when the file does not follow docs/watch-format.md."""
+    try:
+        data = json.loads(watch_json.read_text(encoding="utf-8"))
+    except ValueError as e:
+        raise WatchError(f"{watch_json.name}: not valid JSON ({e})") from e
+    data = check_watch(data, watch_json.name)
     kept = [i for i in data["items"] if i.get("triage") == "keep"]
     kept.sort(key=lambda i: not i.get("urgent"))
     items = [
