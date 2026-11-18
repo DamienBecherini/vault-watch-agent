@@ -23,6 +23,7 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   machine itself or the local network, checked again after each redirection), the readable text of a page is cut at
   30,000 characters, a PDF is not read. Without a SearXNG address the model reads pages but cannot search, and the
   steps that check on the web say so (`steps.lacks`: « search »).
+  The page's text leaves out the empty items, headings and cells that icon menus leave (GitHub pages had dozens).
 - Settings: the engine « OpenAI-compatible server » and its options; the cost shown before an action says « local
   model, not billed » or « billed by your provider » instead of a Claude estimate. Model ids of any form can be priced.
 - What a call keeps beside the guide follows the model's window: 100k tokens with a window of 300k or more, a third

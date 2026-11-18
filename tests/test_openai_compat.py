@@ -112,7 +112,8 @@ def test_a_page_is_read_as_text_after_its_redirections_each_one_checked():
             return httpx.Response(301, headers={"location": "/new"})
         return httpx.Response(200, headers={"content-type": "text/html; charset=utf-8"}, text=(
             "<html><head><title>v0.33.1</title><script>track()</script></head><body><nav>menu</nav>"
-            "<h2>Security</h2><p>Fixes CVE-2026-1234 &amp; more.</p><ul><li>one</li></ul></body></html>"))
+            "<h2>Security</h2><p>Fixes CVE-2026-1234 &amp; more.</p><ul><li>one</li></ul>"
+            "<ul><li><svg></svg></li><li><svg></svg></li></ul><h3><svg></svg></h3></body></html>"))
 
     tools = webtools.WebTools(client=httpx.Client(transport=httpx.MockTransport(handle)),
                               check_address=checked.append)
@@ -121,6 +122,7 @@ def test_a_page_is_read_as_text_after_its_redirections_each_one_checked():
     assert page.startswith("Source: https://example.org/new\nTitle: v0.33.1")
     assert "## Security" in page and "Fixes CVE-2026-1234 & more." in page and "- one" in page
     assert "track()" not in page and "menu" not in page
+    assert page.rstrip().endswith("- one")  # the empty items and heading left by icons are dropped
 
 
 def test_a_redirection_to_the_local_network_is_refused():

@@ -326,7 +326,9 @@ the same items with either collector; its manifest names its feeds since
   fetch with extraction of the readable text. A tool loop in the engine base class runs them for the engines
   whose model has no web of its own, with the same limits as today (20 searches, 30 pages).
   Done 2026-11-18 (`webtools.py`), the loop in the OpenAI-compatible engine (the only one without web); public
-  addresses only. Tested against a fake SearXNG: no instance to try it on yet.
+  addresses only. Tried on 18/11/2026 against the SearXNG of the homelab (CT 107, `http://192.168.1.200:8888`,
+  deployed the same day): 40 results from Brave and Google CSE (DuckDuckGo answers a CAPTCHA); reading a GitHub
+  release page showed the empty items its icons leave, now dropped.
 - **T4.4 The OpenAI-compatible engine.** Base URL, key by reference, models from `GET /v1/models`, structured
   output by `response_format` with a JSON schema (by instruction and a tolerant reading when the server has
   none), tools by function calling, the context window from the Settings when the server does not say it.

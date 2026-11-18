@@ -112,7 +112,9 @@ class _Text(HTMLParser):
 
     def text(self) -> str:
         lines = (re.sub(r"[ \t\r\f\v]+", " ", line).strip() for line in "".join(self.out).split("\n"))
-        return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+        # Items, headings and cells left empty (menus of icons, as on GitHub) are dropped: they eat the page's budget.
+        kept = (line for line in lines if not re.fullmatch(r"(#+|-|\|)( \|)*", line))
+        return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
 
 
 def readable(html: str) -> tuple[str, str]:
