@@ -102,7 +102,7 @@ def test_a_window_too_small_for_the_guide_reads_it_chapter_by_chapter_and_the_re
 
     class SmallWindow(SampleLLM):  # a model whose window holds a chapter, not the guide
         def capabilities(self):
-            return Capabilities(context=reading.RESERVE + 1_000)
+            return Capabilities(context=8_192 + 1_000)  # the smallest reserve, 8k, leaves 1,000
 
     guide, watch = sample_guide
     assert reading.plan(guide, SampleLLM()).mode == "whole"  # no capabilities declared: the whole guide
@@ -137,3 +137,10 @@ def test_the_manifest_budget_caps_what_one_call_reads(sample_guide):
     manifest.write_text(manifest.read_text(encoding="utf-8") + "\n[budget]\nmax_context_tokens = 1000\n", encoding="utf-8")
     plan = reading.plan(guide, Big())
     assert (plan.mode, plan.budget) == ("chapters", 1000)
+
+
+def test_the_reserve_beside_the_guide_follows_the_window():
+    """100k with a 1M window; a third of a smaller one; a 64k local model reads a small guide whole."""
+    from vault_watch_agent import reading
+
+    assert [reading.reserve(w) for w in (1_000_000, 300_000, 200_000, 65_536, 16_384)] ==         [100_000, 100_000, 66_666, 21_845, 8_192]

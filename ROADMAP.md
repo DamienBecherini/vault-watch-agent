@@ -332,8 +332,11 @@ the same items with either collector; its manifest names its feeds since
   none), tools by function calling, the context window from the Settings when the server does not say it.
   output by `response_format` with a JSON schema (by instruction and a tolerant reading when the server has
   none), tools by function calling, the context window from the Settings when the server does not say it.
-  Written 2026-11-18 (`openai_compat.py`, its Settings checked in the browser against a fake server); its first
-  run on a real server comes with T4.5.
+  Written 2026-11-18 (`openai_compat.py`, its Settings checked in the browser against a fake server). First real
+  run the same day, the sample guide on Qwen3.6-35B-A3B (llama.cpp on the RTX 5070 of the PC, 64k window, key by
+  sops reference): every model step answered in the schema, 1 min 19 s, nothing billed. It showed that the fixed
+  reserve of 100k left a 64k window a negative budget (the guide read by chapter): the reserve is now a third of a
+  window under 300k. Read whole, the cross-check found the port contradiction between two chapters.
 - **T4.5 Scores.** `vault-watch eval` on the published watches for: the baseline, one hosted model, one local
   model, each whole-guide and by chapter where it applies; the table in the README, the method next to it. An
   engine or a model is listed as "supported" only with a line in that table.

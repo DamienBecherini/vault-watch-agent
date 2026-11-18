@@ -182,8 +182,9 @@ class OpenAICompatible(_Journal):
         try:
             return self._post(body, node)
         except _HTTPError as e:
-            if with_format and self.structured == "auto" and e.status in (400, 422, 501) and \
-                    re.search(r"response_format|json_schema|grammar|schema", e.text, re.I):
+            # Any refusal of a request with a schema, in auto: the schema goes into the instructions (servers word it
+            # their own way; Anthropic's OpenAI layer only takes strict schemas). Another cause fails again below.
+            if with_format and self.structured == "auto" and e.status in (400, 422, 501):
                 self.structured = "instruction"
                 body = {k: v for k, v in body.items() if k != "response_format"}
                 body["messages"] = _with_schema(body["messages"], schema)

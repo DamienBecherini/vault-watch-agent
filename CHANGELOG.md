@@ -25,6 +25,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   steps that check on the web say so (`steps.lacks`: « search »).
 - Settings: the engine « OpenAI-compatible server » and its options; the cost shown before an action says « local
   model, not billed » or « billed by your provider » instead of a Claude estimate. Model ids of any form can be priced.
+- What a call keeps beside the guide follows the model's window: 100k tokens with a window of 300k or more, a third
+  of a smaller one (8k at least). A fixed 100k left a model of 64k tokens a negative budget, and even a small guide
+  was cross-checked chapter by chapter (seen on the first run on a local model).
+- The OpenAI-compatible engine, in `structured = "auto"`, puts the schema in the instructions whenever the server
+  refuses a request carrying one (servers word that refusal their own way; Anthropic's OpenAI layer only takes strict
+  schemas).
 - `docs/write-an-engine.md` (and in French): the protocol, the capabilities, declaring an engine, the contract tests;
   its example, an engine for Ollama's own API in 90 lines (`examples/engines/ollama_engine.py`), passes them.
 - The list of Claude models no longer fails with an HTTP 500 when no API key is set (the SDK raises a TypeError

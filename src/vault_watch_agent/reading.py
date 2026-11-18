@@ -18,6 +18,13 @@ from pathlib import Path
 from . import vault
 
 RESERVE = 100_000  # tokens kept for what a call adds to the guide: instructions, corrections, web pages, answer
+
+
+def reserve(window: int) -> int:
+    """What a call keeps beside the guide: 100k with the 1M windows, a third of a smaller one (a model of 64k tokens
+    keeps about 21k), never less than 8k. A fixed 100k left a 64k window a negative budget: a guide of 2k tokens was
+    read by chapter (seen 18/11/2026 on a local model)."""
+    return max(8_192, min(RESERVE, window // 3))
 BYTES_PER_TOKEN = 2.1  # measured on the IA on-prem guide (French, Markdown); see verify.py
 MARGIN = 1.15  # an estimate is raised by 15 %: a guide in another language or with more code has more tokens per byte
 
@@ -65,7 +72,7 @@ def plan(vault_dir: Path, llm, window: int | None = None) -> Plan:
         tokens = int(len(text.encode("utf-8")) / BYTES_PER_TOKEN * MARGIN)
     if window is None:
         return Plan("whole", tokens, 0, exact)
-    budget = window - RESERVE
+    budget = window - reserve(window)
     cap = vault.guide_of(vault_dir).max_context_tokens
     if cap:
         budget = min(budget, cap)
