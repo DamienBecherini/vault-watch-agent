@@ -91,7 +91,7 @@ Where the items of a watch come from.
 | :-- | :-- | :-- |
 | `none` (default) | | No watch: the agent verifies the guide and fixes reported errors only. |
 | `github-issue` | `label` (`veille` by default), `artifact` (`weekly-watch` by default) | Open issues with that label in `repository`. The body of the issue links the workflow run that collected the watch (`.../actions/runs/<id>`); the items are the `watch.json` of that run's artifact named `artifact`. |
-| `file` | `path` | A `watch.json` in the guide, or given on the command line (`vault-watch run --watch-json`). |
+| `file` | `path` | A `watch.json` of the guide, or a folder of them (one per watch, listed newest first in the interface, each with its window and its items kept; a file that breaks the format is listed with what is wrong). Also any file given on the command line (`vault-watch run --watch-json`). |
 
 A `watch.json` holds the items your collector kept (feeds, release pages, advisories); its format, key by key:
 [The watch format](watch-format.md).

@@ -39,6 +39,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import costs, fix, forge, inputs, llm, prices, steps, vault, verify
+from . import watches as watches_mod
 from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
@@ -104,6 +105,7 @@ class Job:
 class Analyse(BaseModel):
     issue: int | None = None
     watch_json: str | None = None
+    watch: str | None = None  # the id of a watch of the guide's source (a file of the guide)
 
 
 class Review(BaseModel):
@@ -425,26 +427,32 @@ def create_app(settings: Settings) -> FastAPI:
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e
 
-    def run_of(issue: dict, known: list[str]) -> dict:
+    def run_of(watch: dict, known: list[str]) -> dict:
         """The run that counts for a watch: the published one, else the latest (re-runs are named issue-50b…)."""
-        runs = [summary(t) for t in known if re.fullmatch(rf"issue-{issue['number']}[a-z]?", t)]
+        runs = [summary(t) for t in known if re.fullmatch(rf"{re.escape(watch['thread'])}[a-z]?", t)]
         if runs:
             return next((r for r in runs if r["pr_url"]), runs[0])
-        new = summary(f"issue-{issue['number']}")
-        if issue["state"] == "closed":
+        new = summary(watch["thread"])
+        if watch["state"] == "closed":
             new["status"] = "closed"  # handled by hand, before the agent or without it
         return new
 
+    def watch_source():
+        """The guide's watch source (manifest [watch]); the tests give their own list of issues."""
+        return watches_mod.of(vault.guide_of(settings.vault), settings.home, settings.list_issues)
+
     @app.get("/api/watches")
     def watches():
-        watch = vault.guide_of(settings.vault).watch
-        issues, known = (settings.list_issues or list_issues(settings.repo, watch.label or "veille"))(), threads()
-        return [{**i, "run": run_of(i, known)} for i in issues]
+        found, known = watch_source().list(), threads()
+        return [{**w, "run": run_of(w, known)} for w in found]
 
     @app.get("/api/runs")
     def runs():
-        """Runs that are not a watch's (fix runs, files), newest first."""
-        return [summary(t) for t in threads() if not re.fullmatch(r"issue-\d+[a-z]?", t)]
+        """Runs that are not a watch's (fix runs, files of another folder), newest first."""
+        src = watch_source()
+        mine = {w["thread"] for w in src.list()} if src.kind == "file" else set()
+        return [summary(t) for t in threads()
+                if not re.fullmatch(r"issue-\d+[a-z]?", t) and re.sub(r"[a-z]$", "", t) not in mine and t not in mine]
 
     @app.get("/api/runs/{thread}")
     def run_view(thread: str):
@@ -511,8 +519,13 @@ def create_app(settings: Settings) -> FastAPI:
     # -- actions -------------------------------------------------------------------------------
     @app.post("/api/analyses")
     def analyse(body: Analyse):
+        if body.watch:  # a watch of the guide's own source
+            try:
+                body.watch_json = str(watch_source().fetch(body.watch))
+            except ValueError as e:
+                raise HTTPException(400, str(e)) from e
         if not body.issue and not body.watch_json:
-            raise HTTPException(400, "issue or watch_json")
+            raise HTTPException(400, "issue, watch or watch_json")
         thread = f"issue-{body.issue}" if body.issue else Path(body.watch_json).stem
         if viewer.get_state(config(thread)).values:
             raise HTTPException(409, f"{thread} already has a run")
@@ -731,13 +744,5 @@ def gh_pr_state(url: str) -> str:
 
 
 def list_issues(repo: str, label: str = "veille") -> Callable[[], list[dict]]:
-    """Watch issues of the guide (the manifest's [watch] label), newest first, from the forge; none for a local
-    guide. `items`: the number of items the title gives (« 73 éléments », « 73 items »), when it gives one."""
-    def fetch() -> list[dict]:
-        if not repo:
-            return []
-        return [{"number": i["number"], "title": i["title"], "state": i["state"], "date": i["date"],
-                 "urgent": "urgent" in i["labels"],
-                 "items": int(m.group(1)) if (m := re.search(r"(\d+) (?:éléments|items)\b", i["title"])) else None}
-                for i in forge.get().issues(repo, label)]
-    return fetch
+    """Watch issues of the guide (the manifest's [watch] label), newest first, from the forge (watches.Issues)."""
+    return lambda: watches_mod.Issues(repo, label, "", Path(".")).list()

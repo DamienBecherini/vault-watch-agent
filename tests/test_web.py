@@ -286,3 +286,37 @@ def test_the_watch_issues_and_the_pull_requests_go_through_the_forge(monkeypatch
         assert web.list_issues("", "watch")() == []  # a local guide has no issue
     finally:
         forge.use(before)
+
+
+def test_a_guide_whose_watches_are_files_lists_them_and_starts_from_one(sample_guide, tmp_path):
+    import json
+
+    from fastapi.testclient import TestClient
+
+    from vault_watch_agent import watches
+    from vault_watch_agent.vault import guide_of
+
+    guide, watch = sample_guide
+    folder = guide / "watches"
+    folder.mkdir()
+    data = json.loads(watch.read_text(encoding="utf-8"))
+    (folder / "2026-11-02.json").write_text(json.dumps(data), encoding="utf-8")
+    (folder / "2026-11-16.json").write_text(json.dumps({**data, "since": "2026-11-03", "until": "2026-11-16"}), encoding="utf-8")
+    (folder / "broken.json").write_text(json.dumps({"items": [{"title": "x"}]}), encoding="utf-8")
+    manifest = guide / "vault-watch.toml"
+    manifest.write_text(manifest.read_text(encoding="utf-8").replace('path = "watch.json"', 'path = "watches"'), encoding="utf-8")
+
+    src = watches.of(guide_of(guide), tmp_path / "home")
+    listed = src.list()
+    assert [w["id"] for w in listed] == ["watches/broken.json", "watches/2026-11-16.json", "watches/2026-11-02.json"]
+    assert listed[1]["items"] == 5 and listed[1]["urgent"] and listed[1]["thread"] == "2026-11-16"
+    assert "lacks triage" in listed[0]["error"]
+    assert src.fetch("watches/2026-11-02.json").name == "2026-11-02.json"
+    with pytest.raises(ValueError, match="not a watch of this guide"):
+        src.fetch("../outside.json")
+
+    app = create_app(Settings(vault=guide, home=tmp_path / "home", journal=tmp_path / "usage.jsonl",
+                              make_deps=lambda thread, kind: None))
+    c = TestClient(app)
+    assert [w["kind"] for w in c.get("/api/watches").json()] == ["file"] * 3
+    assert c.post("/api/analyses", json={"watch": "vault-watch.toml"}, headers=ACT).status_code == 400

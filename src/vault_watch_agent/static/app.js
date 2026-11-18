@@ -59,7 +59,7 @@ const TEXTS = {
     analyse: c => `Analyser · ${c}`, merge: "Fusionner sur GitHub",
     buttons: { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
-    issue: open => `issue ${open ? "ouverte" : "fermée"}`,
+    issue: open => `issue ${open ? "ouverte" : "fermée"}`, watchFile: n => n == null ? "fichier de veille" : `fichier de veille, ${n} élément(s) retenu(s)`,
     count: (n, a) => `${n} correction(s), ${a} appliquée(s)`,
     noWatch: "Aucune veille.", others: "Autres passages",
     watchUpTo: d => `Veille jusqu'au ${d}`,
@@ -164,7 +164,7 @@ const TEXTS = {
     analyse: c => `Analyse · ${c}`, merge: "Merge on GitHub",
     buttons: { review: "Review", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
-    issue: open => `issue ${open ? "open" : "closed"}`,
+    issue: open => `issue ${open ? "open" : "closed"}`, watchFile: n => n == null ? "watch file" : `watch file, ${n} item(s) kept`,
     count: (n, a) => `${n} correction(s), ${a} applied`,
     noWatch: "No watch.", others: "Other runs",
     watchUpTo: d => `Watch up to ${d}`,
@@ -314,14 +314,16 @@ async function viewWatches() {
     ${watches.map(v => {
       const r = v.run, link = `#/run/${encodeURIComponent(r.thread)}`;
       const action = r.status === "closed" ? ""
-        : r.status === "new" ? `<button class="primary" data-analyse="${v.number}">${T.analyse(cost("≈ 4 $"))}</button>`
+        : v.error ? ""
+        : r.status === "new" ? `<button class="primary" data-analyse="${esc(v.id)}" data-kind="${v.kind}">${T.analyse(cost("≈ 4 $"))}</button>`
         : r.status === "pr-open" ? extLink(r.pr_url, `<button class="primary">${T.merge}</button>`)
         : `<a href="${link}"><button${["review", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
             T.buttons[r.status] || T.details}</button></a>`;
       return `<div class="card row${FINISHED.includes(r.status) ? " finished" : ""}">
         <div class="grow">
-          <b>#${v.number}</b> ${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
-          <div class="muted small">${v.date} · ${T.issue(v.state === "open")}${
+          ${v.kind === "issue" ? `<b>#${v.number}</b> ` : ""}${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
+          ${v.error ? `<div class="error-text small">${esc(v.error)}</div>` : ""}
+          <div class="muted small">${v.date} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
             !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${dollars(r.cost)}` : ""}${
             r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div>
         </div>
@@ -335,7 +337,7 @@ async function viewWatches() {
         ${badge(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a></div>`).join("")}` : ""}`;
   page.querySelectorAll("[data-analyse]").forEach(b => b.onclick = async () => {
     b.disabled = true;
-    const { thread } = await api("/api/analyses", { issue: Number(b.dataset.analyse) });
+    const { thread } = await api("/api/analyses", b.dataset.kind === "issue" ? { issue: Number(b.dataset.analyse) } : { watch: b.dataset.analyse });
     location.hash = `/run/${encodeURIComponent(thread)}`;
   });
 }

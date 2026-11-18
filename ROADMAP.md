@@ -284,6 +284,7 @@ runs "by chapter" when the window is forced small in a test, and the report says
 - **T3.2 `WatchSource`.** A protocol (`list()` the watches, `fetch(id)` one) with three sources: `github-issue`
   (today's code, moved out of `inputs.py` and `web.py`), `file` (a folder of `watch.json`), `feeds` (T3.3). The
   manifest chooses; the list of watches of the interface comes from the source.
+  Done 2026-11-18 for `github-issue`, `file` (a file or a folder) and `none` (`watches.py`); `feeds` comes with T3.3.
 - **T3.3 Collection by the agent.** `vault-watch collect`: from a `feeds.json` (GitHub releases, GitHub security
   advisories, RSS and Atom), the items of a window, the notes cached, the routine releases dropped by rule. A port
   of what `watch-feeds.mjs` of the IA on-prem guide does, tested against its output on the same feeds.
