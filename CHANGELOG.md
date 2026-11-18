@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 0.3.2 (2026-11-18)
 
 - READMEs: the review screen right after the introduction (a new capture, English and French, from the replay of
   watch #77), a « What this repository shows » section, and the pull requests of the guide as a count (twelve)
