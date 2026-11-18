@@ -136,9 +136,12 @@ ne déclare pas est « non vérifié » dans le rapport, sur l'écran de publica
 
 ### `[budget]`
 
-`max_context_tokens` : un plafond de ce qu'un seul appel du modèle peut lire (le guide entier pour la
-contre-vérification). Il est lu et vérifié aujourd'hui, et appliqué à partir du M2 (tâche T2.7 de la
-[feuille de route](../ROADMAP.md)) : d'ici là, un appel lit ce qu'il lit aujourd'hui, jusqu'à la limite du modèle.
+`max_context_tokens` : un plafond de ce qu'un seul appel du modèle peut lire du guide, quel que soit le modèle.
+La relecture globale, son balayage et le contrôle de cohérence lisent le guide entier en un appel quand il tient
+dans la fenêtre du modèle (moins une réserve de 100 k tokens pour les consignes, le web et la réponse) et sous ce
+plafond ; sinon ils passent chapitre par chapitre (un dossier de premier niveau par appel, avec les pages que
+modifient les corrections), et le rapport comme l'écran du passage le disent : une contradiction entre deux
+chapitres peut alors échapper. Sans plafond : la fenêtre du modèle décide.
 
 ## Ce que débloque chaque partie
 

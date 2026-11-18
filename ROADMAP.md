@@ -263,6 +263,8 @@ Two independent halves; the first is small and can ship alone.
   chapter with the excerpts of the other chapters the corrections touch; the run view and the report say
   "by chapter: a contradiction between two chapters can be missed". `[budget].max_context_tokens` of the manifest
   caps what the agent will put in one call whatever the model.
+  Done 2026-11-18 (`reading.py`); the sample guide runs by chapter with a window forced small in a test, and its
+  report says so.
 - **T2.8 A role per step.** The Settings assign a model and an effort to each step (triage, proposals,
   cross-check, mirror, each check), with two presets that reproduce today's two roles; a step shows a warning
   when its model lacks something it needs.

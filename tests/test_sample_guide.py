@@ -94,3 +94,46 @@ def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_pa
 
     graph.invoke(Command(resume=False), config)  # no push
     assert not graph.get_state(config).next
+
+
+def test_a_window_too_small_for_the_guide_reads_it_chapter_by_chapter_and_the_report_says_so(sample_guide, tmp_path):
+    from vault_watch_agent import reading
+    from vault_watch_agent.llm import Capabilities
+
+    class SmallWindow(SampleLLM):  # a model whose window holds a chapter, not the guide
+        def capabilities(self):
+            return Capabilities(context=reading.RESERVE + 1_000)
+
+    guide, watch = sample_guide
+    assert reading.plan(guide, SampleLLM()).mode == "whole"  # no capabilities declared: the whole guide
+    plan = reading.plan(guide, SmallWindow())
+    assert plan.mode == "chapters" and plan.tokens > plan.budget == 1_000 and not plan.exact
+    llm = SmallWindow()
+    graph = build(Deps(vault=guide, home=tmp_path / "home", llm=llm, today="2026-11-17"), InMemorySaver())
+    config = {"configurable": {"thread_id": "small"}}
+    graph.invoke({"source": str(watch), "issue": None}, config)
+    review = graph.get_state(config).tasks[0].interrupts[0].value
+    assert {c["page"]: c["check"] for c in review["corrections"]} == {"02-install/requirements.md": "ok",
+                                                                       "02-install/configuration.md": "ok"}
+    assert {c for c in llm.calls if c.startswith("crosscheck")} == {f"crosscheck {ch}" for ch in reading.chapters(guide)}
+    values = graph.get_state(config).values
+    assert all(c["review"].startswith("keep") for c in values["corrections"])  # the verdict of the page's own chapter
+    assert values["reading"]["mode"] == "chapters"
+    text = Path(values["report_path"]).read_text(encoding="utf-8")
+    assert "| Cross-check | by chapter:" in text and "a contradiction between two chapters can be missed" in text
+
+
+def test_the_manifest_budget_caps_what_one_call_reads(sample_guide):
+    from vault_watch_agent import reading
+    from vault_watch_agent.llm import Capabilities
+
+    class Big(SampleLLM):
+        def capabilities(self):
+            return Capabilities(context=1_000_000)
+
+    guide, _ = sample_guide
+    assert reading.plan(guide, Big()).mode == "whole"
+    manifest = guide / "vault-watch.toml"
+    manifest.write_text(manifest.read_text(encoding="utf-8") + "\n[budget]\nmax_context_tokens = 1000\n", encoding="utf-8")
+    plan = reading.plan(guide, Big())
+    assert (plan.mode, plan.budget) == ("chapters", 1000)

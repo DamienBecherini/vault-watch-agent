@@ -17,7 +17,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import crosscheck, inputs, prompts, quotes, vault
+from . import crosscheck, inputs, prompts, quotes, reading, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -165,12 +165,13 @@ def build(deps: Deps, checkpointer=None):
         corrections = state.get("corrections", [])
         if not deps.crosscheck or not corrections or state.get("mode") == "translation":
             return {}
-        result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm)
+        plan = reading.plan(deps.vault, deps.llm)  # the whole guide in one call, or chapter by chapter
+        result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm, plan)
         amended = crosscheck.amend(corrections, result, checks)
         mark_conflicts(deps.vault, amended)
         findings, excerpts = crosscheck.noticed(deps.vault, result)
         usages = [usage]
-        swept = crosscheck.sweep(deps.vault, amended, deps.llm)
+        swept = crosscheck.sweep(deps.vault, amended, deps.llm, plan)
         if swept:
             result, usage, checks = swept
             amended = crosscheck.add_edits(amended, result, checks, "the sweep")
@@ -180,7 +181,7 @@ def build(deps: Deps, checkpointer=None):
             excerpts.update(found)
             usages.append(usage)
         return {"corrections": amended, "findings": findings, "finding_excerpts": excerpts, "usage": usages,
-                "leftovers": vault.leftovers(deps.vault, amended)}
+                "leftovers": vault.leftovers(deps.vault, amended), "reading": plan.summary()}
 
     # -- report ---------------------------------------------------------------
     def report(state: WatchState) -> dict:
@@ -499,6 +500,7 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
         f"| Triage | {len(items)} items → correct {count['correct']} · addition {count['addition']} · drop {count['drop']} |",
         f"| Proposals | Critical {sev['Critical']} · Major {sev['Major']} · Minor {sev['Minor']} |",
         f"| Claims past « Recheck by » | {len(state.get('claims_due', []))} (listed below, not re-checked yet) |",
+        *([f"| Cross-check | {state['reading']['note']} |"] if state.get("reading") else []),
         f"| Model usage | {usage_line(state.get('usage', []))} |",
         "",
         "## Corrections",

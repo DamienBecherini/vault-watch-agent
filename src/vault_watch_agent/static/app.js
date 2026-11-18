@@ -67,6 +67,7 @@ const TEXTS = {
     progress: (min, cost) => `Démarré il y a ${min} min · coût de ce passage ≈ ${cost}`,
     applyId: id => `Appliquer ${id}`,
     crossCheck: "Relecture globale", from: "D'après", colon: " : ",
+    byChapter: (t, b) => `Relecture globale chapitre par chapitre : le guide (≈ ${t.toLocaleString("fr")} tokens) dépasse ce qu'un appel du modèle peut lire (${b.toLocaleString("fr")}). Une contradiction entre deux chapitres peut échapper.`,
     sourceMissing: "Source à vérifier", leftovers: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
@@ -171,6 +172,7 @@ const TEXTS = {
     progress: (min, cost) => `Started ${min} min ago · cost of this run ≈ ${cost}`,
     applyId: id => `Apply ${id}`,
     crossCheck: "Cross-check", from: "From", colon: ": ",
+    byChapter: (t, b) => `Cross-check chapter by chapter: the guide (≈ ${t.toLocaleString("en")} tokens) exceeds what one call of the model can read (${b.toLocaleString("en")}). A contradiction between two chapters can be missed.`,
     sourceMissing: "Source to check", leftovers: n => `Removed values still present, left as they are (${n})`,
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
@@ -431,6 +433,7 @@ function viewReview(r, title) {
   const figures = [Object.values(r.triage).reduce((a, b) => a + b, 0), r.triage.correct, r.corrections.length, r.additions.length];
   page.innerHTML = `${title}
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.reviewFigures[i]}</div>`).join("")}</div>
+    ${r.reading?.mode === "chapters" ? `<p class="banner small">${T.byChapter(r.reading.tokens, r.reading.budget)}</p>` : ""}
     <h2>${T.corrections}</h2>
     <p class="muted small">${T.reviewHelp}</p>
     ${Object.entries(groups).map(([g, cs]) => cs.length > 1

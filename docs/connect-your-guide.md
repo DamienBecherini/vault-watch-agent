@@ -136,9 +136,11 @@ declare reads « not checked » in the report, on the publish screen and in the 
 
 ### `[budget]`
 
-`max_context_tokens`: a ceiling on what a single model call may read (the whole guide for the cross-check). It is
-read and checked today, and applied from M2 (task T2.7 of the [roadmap](../ROADMAP.md)): until then a call reads
-what it reads now, up to the model's own limit.
+`max_context_tokens`: a ceiling on what a single model call may read of the guide, whatever the model. The
+cross-check, its sweep and the coherence check read the whole guide in one call when it fits in the model's window
+(minus a reserve of 100 k tokens for the instructions, the web and the answer) and under this ceiling; otherwise they
+run chapter by chapter (one top folder per call, with the pages the corrections change), and the report and the
+run view say so: a contradiction between two chapters can then be missed. Not set: the model's window decides.
 
 ## What each part unlocks
 

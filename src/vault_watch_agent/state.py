@@ -96,6 +96,7 @@ class WatchState(TypedDict, total=False):
     # Proposals, filled in parallel by one branch per item
     proposals: Annotated[list[dict], operator.add]
     usage: Annotated[list[dict], operator.add]
+    reading: dict  # how the cross-check read the guide: whole or by chapter (reading.Plan.summary)
     # Review
     mode: str  # "translation" for a fix run on English pages (no cross-check); absent otherwise
     corrections: list[dict]  # numbered C1, C2… with their deterministic check

@@ -20,7 +20,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs, prompts, quotes, vault
+from . import inputs, prompts, quotes, reading, vault
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -117,12 +117,8 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
 
 
 def by_chapter(vault_dir: Path) -> dict[str, list[Path]]:
-    """The pages by top folder; the pages at the root (index, home) form one group."""
-    groups: dict[str, list[Path]] = {}
-    for p in vault.french_pages(vault_dir):
-        parts = p.relative_to(vault_dir).parts
-        groups.setdefault(parts[0] if len(parts) > 1 else "(root)", []).append(p)
-    return groups
+    """The pages by top folder (reading.chapters)."""
+    return reading.chapters(vault_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -237,10 +233,25 @@ def _findings(vault_dir: Path, result: Findings) -> dict:
 
 
 def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
-    result, usage = llm.parse(system=prompts.fill(COHERENCE, vault_dir) + EXCERPTS, prompt="List the findings.", schema=Findings, effort="high",
-                              node="verify coherence", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
-    return {"ok": not result.findings, "summary": f"{len(result.findings)} findings", **_findings(vault_dir, result),
-            "usage": [usage]}
+    plan = reading.plan(vault_dir, llm)
+    system = prompts.fill(COHERENCE, vault_dir) + EXCERPTS
+    if plan.mode == "whole":
+        result, usage = llm.parse(system=system, prompt="List the findings.", schema=Findings, effort="high",
+                                  node="verify coherence", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
+        usages = [usage]
+    else:  # one call per chapter: contradictions within a chapter only, said in the summary
+        found, usages = [], []
+        for chapter, pages in reading.chapters(vault_dir).items():
+            part, usage = llm.parse(system=system.replace("The whole guide is above", f"One chapter of the guide ({chapter}) is above", 1),
+                                    prompt="List the findings.", schema=Findings, effort="high",
+                                    node=f"verify coherence {chapter}",
+                                    context=f"<guide>\n{reading.corpus_of(vault_dir, pages)}\n</guide>")
+            found += part.findings
+            usages.append(usage)
+        result = Findings(findings=found)
+    by = "" if plan.mode == "whole" else f" ({plan.note})"
+    return {"ok": not result.findings, "summary": f"{len(result.findings)} findings{by}", **_findings(vault_dir, result),
+            "usage": usages, "reading": plan.summary()}
 
 
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:

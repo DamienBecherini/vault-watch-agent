@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import prompts, quotes, vault
+from . import prompts, quotes, reading, vault
 from .llm import LLM
 from .quotes import Quote
 
@@ -98,7 +98,19 @@ def noticed(vault_dir: Path, result: CrossCheck) -> tuple[list[str], dict[str, l
             {f.problem: quotes.locate_all(vault_dir, f.excerpts) for f in result.other_findings if f.excerpts})
 
 
-def run(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck, dict, list[str]]:
+CHAPTER = ("One chapter of the guide is above ({chapter}), with the pages the corrections change; the other "
+           "chapters are not shown. Judge only the corrections on the pages above against what you see, and list "
+           "consistency edits and findings only for these pages.")
+
+
+def _by_chapter(text: str, chapter: str) -> str:
+    return text.replace("The whole guide is above, one <page> per file.", CHAPTER.format(chapter=chapter), 1)
+
+
+def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: "reading.Plan | None" = None) -> tuple[CrossCheck, dict, list[str]]:
+    """The cross-check: the whole guide in one call, or chapter by chapter when `plan` says it does not fit."""
+    if plan is not None and plan.mode == "chapters":
+        return _run_by_chapter(vault_dir, corrections, llm)
     listing = "\n\n".join(
         f"<correction id=\"{c['id']}\" page=\"{c['page']}\" severity=\"{c['severity']}\" group=\"{c['group']}\">\n"
         f"<current>\n{c['current']}\n</current>\n<proposed>\n{c['proposed']}\n</proposed>\n"
@@ -113,11 +125,46 @@ def run(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck,
     return result, usage, checks
 
 
-def _guide(vault_dir: Path) -> str:
-    return f"<guide>\n{vault.corpus(vault_dir)}\n</guide>"
+def _guide(vault_dir: Path, pages: list[Path] | None = None) -> str:
+    return f"<guide>\n{vault.corpus(vault_dir) if pages is None else reading.corpus_of(vault_dir, pages)}\n</guide>"
 
 
-def sweep(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck, dict, list[str]] | None:
+def _listing(corrections: list[dict]) -> str:
+    return "\n\n".join(
+        f"<correction id=\"{c['id']}\" page=\"{c['page']}\" severity=\"{c['severity']}\" group=\"{c['group']}\">\n"
+        f"<current>\n{c['current']}\n</current>\n<proposed>\n{c['proposed']}\n</proposed>\n"
+        f"<rationale>{c['rationale']}</rationale>\n<source>{c['source_url']}</source>\n</correction>"
+        for c in corrections
+    )
+
+
+def _run_by_chapter(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck, dict, list[str]]:
+    """One call per chapter, with that chapter and the pages the corrections change. A correction keeps the verdict
+    of the call that holds its page's chapter; the edits and findings of every call are kept, each edit once."""
+    touched = sorted({vault_dir / c["page"] for c in corrections if (vault_dir / c["page"]).is_file()})
+    reviews: dict[str, CorrectionReview] = {}
+    edits: dict[tuple, ConsistencyEdit] = {}
+    findings: list[Noticed] = []
+    usages = []
+    for chapter, pages in reading.chapters(vault_dir).items():
+        own = {p.relative_to(vault_dir).as_posix() for p in pages}
+        result, usage = llm.parse(
+            system=_by_chapter(prompts.fill(SYSTEM, vault_dir), chapter),
+            prompt=f"Proposed corrections:\n\n{_listing(corrections)}", schema=CrossCheck, effort="high",
+            node=f"crosscheck {chapter}", context=_guide(vault_dir, sorted(set(pages) | set(touched))), web=True)
+        usages.append(usage)
+        page_of = {c["id"]: c["page"] for c in corrections}
+        reviews.update({r.id: r for r in result.reviews if page_of.get(r.id) in own})
+        edits.update({(e.page, e.current): e for e in result.consistency_edits if (e.page, e.current) not in edits})
+        findings += result.other_findings
+    result = CrossCheck(reviews=[reviews[c["id"]] for c in corrections if c["id"] in reviews],
+                        consistency_edits=list(edits.values()), other_findings=findings)
+    checks = [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
+    return result, reading.add_usage(usages, "crosscheck (by chapter)"), checks
+
+
+def sweep(vault_dir: Path, corrections: list[dict], llm: LLM,
+          plan: "reading.Plan | None" = None) -> tuple[CrossCheck, dict, list[str]] | None:
     """Second pass, on what the corrections leave behind, the ones the cross-check added included.
 
     The code finds the values they remove that still appear elsewhere; the model only decides which of
@@ -133,9 +180,15 @@ def sweep(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossChec
         for c in corrections if c["check"] == "ok"
     )
     occurrences = "\n".join(f"- {h['page']}:{h['line']} ({', '.join(h['tokens'])}): {h['text']}" for h in hits)
+    system, pages = prompts.fill(SWEEP_SYSTEM, vault_dir), None
+    if plan is not None and plan.mode == "chapters":  # the pages of the occurrences and of the corrections only
+        pages = sorted({vault_dir / p for p in {h["page"] for h in hits} | {c["page"] for c in corrections}
+                        if (vault_dir / p).is_file()})
+        system = system.replace("The whole guide is above, one <page> per file.",
+                                "The pages of the corrections and of the remaining occurrences are above, one <page> per file.", 1)
     result, usage = llm.parse(
-        system=prompts.fill(SWEEP_SYSTEM, vault_dir), prompt=f"Corrections:\n\n{listing}\n\nRemaining occurrences:\n\n{occurrences}",
-        schema=CrossCheck, effort="high", node="sweep", context=_guide(vault_dir), web=True,
+        system=system, prompt=f"Corrections:\n\n{listing}\n\nRemaining occurrences:\n\n{occurrences}",
+        schema=CrossCheck, effort="high", node="sweep", context=_guide(vault_dir, pages), web=True,
     )
     return result, usage, [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
 

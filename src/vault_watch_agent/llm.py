@@ -121,6 +121,14 @@ class Claude(_Journal):
         # The API hands the fetched page to the model, and counts tokens exactly (messages.count_tokens).
         return Capabilities(context=context_of(self.model), exact_count=True)
 
+    def count_tokens(self, text: str) -> int | None:
+        """The tokens of `text` for this model (Token Counting API, not billed); None when it cannot be asked."""
+        try:
+            return self.client.messages.count_tokens(
+                model=self.model, messages=[{"role": "user", "content": text}]).input_tokens
+        except Exception:  # noqa: BLE001 - any failure: the caller estimates instead
+            return None
+
     def __init__(self, model: str = MODEL, client: anthropic.Anthropic | None = None, journal: Path | None = None):
         super().__init__(model, journal)
         # Reads ANTHROPIC_API_KEY from the environment (injected by sops, never stored here).

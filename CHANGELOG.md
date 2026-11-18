@@ -26,6 +26,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   (and whether the model reads the page itself or a summary of it), effort levels, caching, billing, exact token
   count. The window comes from the Models API when it was read, else 1M for a model the agent knows and 200k for
   one it does not. The list of the models in the Settings no longer leaves out the models with a smaller window.
+- The context decides how the guide is read (`reading.py`): the guide is counted once per run (exactly on the
+  API, which counts tokens for free; else estimated from its size with a 15 % margin) and compared with the model's
+  window minus a reserve of 100 k tokens, capped by `[budget] max_context_tokens`. Fits: the whole guide in one
+  call, as before. Does not: the cross-check, its sweep and the coherence check run chapter by chapter (one top
+  folder per call, with the pages the corrections change; a correction keeps the verdict of its own chapter), and
+  the report, the review screen and the verification say « by chapter: a contradiction between two chapters can be
+  missed ».
 - The estimates of the checks say where their price comes from when it is the default or none; the Costs page
   counts the API calls by the origin of their price (the lines before 0.4.0: « list prices of the time »).
 

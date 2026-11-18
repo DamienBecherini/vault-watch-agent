@@ -455,6 +455,7 @@ def create_app(settings: Settings) -> FastAPI:
             "findings": v.get("findings", []),
             "finding_excerpts": v.get("finding_excerpts", {}),
             "leftovers": v.get("leftovers", []),
+            "reading": v.get("reading"),  # whole guide or by chapter (reading.Plan.summary)
             "claims_due": v.get("claims_due", []),
             "usage": usage_line(v.get("usage", [])),
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
