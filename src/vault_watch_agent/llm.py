@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol, TypeVar
@@ -49,6 +50,41 @@ class LLM(Protocol):
 
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")  # accepted by the API and by Claude Code (--effort)
 EFFORT_STEPS = {"lower": -1, "normal": 0, "higher": 1}  # the effort of a role in the settings (config.EFFORTS)
+
+# The input window of a model when the engine cannot ask it: the current Claude models read 1M tokens; a model the
+# agent does not know is taken at the smaller window of the older ones, so the guide is never sent whole to a model
+# that cannot hold it.
+KNOWN_CONTEXT = 1_000_000
+UNKNOWN_CONTEXT = 200_000
+CONTEXTS: dict[str, int] = {}  # model id -> its window, as the Models API gave it (list_models fills it)
+
+
+def context_of(model: str) -> int:
+    """The input window of `model`: from the Models API when it was read, else what the agent knows."""
+    if model in CONTEXTS:
+        return CONTEXTS[model]
+    known = {m for names in config.MODELS.values() for m in names} | set(Prices().known())
+    base = next((k for k in sorted(known, key=len, reverse=True) if model == k or model.startswith(k + "-")), None)
+    return KNOWN_CONTEXT if base else UNKNOWN_CONTEXT
+
+
+@dataclass(frozen=True)
+class Capabilities:
+    """What a call through an engine can rely on. The steps check it before they ask (T2.6); a missing
+    capability changes how a step runs or turns it off, never silently."""
+    context: int  # tokens a call can read (the model's input window)
+    structured: str = "native"  # native: the engine checks the JSON shape; instruction: the prompt asks for it
+    web: str = "native"  # native: search and fetch run by the engine; none
+    web_reading: str = "page"  # page: the model reads the fetched page itself; summary: a smaller model reports on it
+    efforts: tuple = EFFORT_LEVELS
+    caching: bool = True  # a context shared by several calls is read from a cache at a lower price
+    billing: str = "token"  # token: each call is billed; subscription: within the limits of a plan
+    exact_count: bool = False  # the engine counts the tokens of a text before sending it (else an estimate)
+
+    def summary(self) -> dict:
+        return {"context": self.context, "structured": self.structured, "web": self.web,
+                "web_reading": self.web_reading, "efforts": list(self.efforts), "caching": self.caching,
+                "billing": self.billing, "exact_count": self.exact_count}
 
 
 def shift_effort(effort: str, step: int) -> str:
@@ -80,6 +116,10 @@ class _Journal:
 
 class Claude(_Journal):
     """The Claude API, billed per token."""
+
+    def capabilities(self) -> Capabilities:
+        # The API hands the fetched page to the model, and counts tokens exactly (messages.count_tokens).
+        return Capabilities(context=context_of(self.model), exact_count=True)
 
     def __init__(self, model: str = MODEL, client: anthropic.Anthropic | None = None, journal: Path | None = None):
         super().__init__(model, journal)
@@ -202,6 +242,10 @@ class ClaudeCode(_Journal):
         super().__init__(model, journal)
         self.checked = False
 
+    def capabilities(self) -> Capabilities:
+        # Its WebFetch has a smaller model read the page and report; it cannot count tokens before a call.
+        return Capabilities(context=context_of(self.model), web_reading="summary", billing="subscription")
+
     def prepare(self) -> None:
         if self.checked:
             return
@@ -319,15 +363,15 @@ def api_client(reference: str) -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=key) if key else anthropic.Anthropic()
 
 
-MIN_CONTEXT = 1_000_000
+MIN_CONTEXT = 1_000_000  # the window of the current models: the whole guide in one call (a smaller one: by chapter)
 _models: dict[str, tuple[float, list[dict]]] = {}  # reference of the key -> (time, models), asked again after 10 min
 
 
 def list_models(reference: str, client: anthropic.Anthropic | None = None, prices: Prices | None = None) -> list[dict]:
     """The Claude models the API key of `reference` can use (Models API, GET /v1/models), newest first:
     {id, name, context, priced}; `priced`: the price table knows its price, so the journal and the estimates count it.
-    Only the models with a context of 1M tokens: the cross-check holds the whole guide (about 430 k tokens), and the
-    older models with a smaller one also lack what the calls use (the effort levels up to max, the current web tools).
+    Every current model, whatever its window: what a smaller one changes (the guide read by chapter) is the
+    business of the steps (Capabilities), not of this list. The windows read here are kept for `context_of`.
     ModelError when the API cannot be asked (no key, network, refused)."""
     cached = _models.get(reference)
     if cached and time.monotonic() - cached[0] < 600 and client is None:
@@ -341,8 +385,8 @@ def list_models(reference: str, client: anthropic.Anthropic | None = None, price
     models = [{"id": m.id, "name": m.display_name or m.id, "context": m.max_input_tokens,
                "priced": price_of(m.id, prices) is not None}
               for m in sorted(found, key=lambda m: m.created_at, reverse=True)
-              if m.id.startswith("claude-") and not getattr(m, "deprecated_at", None)
-              and (m.max_input_tokens or 0) >= MIN_CONTEXT]
+              if m.id.startswith("claude-") and not getattr(m, "deprecated_at", None)]
+    CONTEXTS.update({m["id"]: m["context"] for m in models if m["context"]})
     _models[reference] = (time.monotonic(), models)
     return models
 

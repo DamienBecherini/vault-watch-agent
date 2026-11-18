@@ -22,6 +22,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   date, the default of 2026-11, no price), the models in use first; a price set here (checked: four numbers, 0 or
   more) and « back to the default price ». « Read the list » fetches LiteLLM's list and shows what it would change;
   « Replace with this list » puts it in place. Nothing is fetched without that click.
+- Each engine declares what it can do (`llm.Capabilities`): the model's input window, structured output, web
+  (and whether the model reads the page itself or a summary of it), effort levels, caching, billing, exact token
+  count. The window comes from the Models API when it was read, else 1M for a model the agent knows and 200k for
+  one it does not. The list of the models in the Settings no longer leaves out the models with a smaller window.
 - The estimates of the checks say where their price comes from when it is the default or none; the Costs page
   counts the API calls by the origin of their price (the lines before 0.4.0: « list prices of the time »).
 

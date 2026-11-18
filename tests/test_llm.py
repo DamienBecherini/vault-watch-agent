@@ -171,6 +171,18 @@ def test_the_models_come_from_the_api_newest_first_with_their_price_known_or_not
     assert [m["priced"] for m in models] == [False, True, True] and models[1]["name"] == "Claude Fable 5.2"
 
 
+def test_engines_declare_what_they_can_do():
+    llm.CONTEXTS.clear()
+    api, cc = llm.Claude("claude-opus-5-5", client=object()), llm.ClaudeCode("claude-opus-5-5")
+    assert (api.capabilities().context, api.capabilities().billing, api.capabilities().exact_count) == (1_000_000, "token", True)
+    assert (cc.capabilities().billing, cc.capabilities().web_reading, cc.capabilities().exact_count) == ("subscription", "summary", False)
+    assert llm.context_of("claude-mythos-7") == llm.UNKNOWN_CONTEXT  # unknown: the smaller window, never more
+    assert llm.context_of("claude-sonnet-4-6-20260101") == llm.KNOWN_CONTEXT  # a dated id of a known model
+    llm.CONTEXTS["claude-mythos-7"] = 2_000_000  # read from the Models API
+    assert llm.Claude("claude-mythos-7", client=object()).capabilities().context == 2_000_000
+    llm.CONTEXTS.clear()
+
+
 def test_a_list_that_cannot_be_read_is_an_error():
     import anthropic
 

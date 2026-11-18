@@ -252,6 +252,9 @@ Two independent halves; the first is small and can ship alone.
   is one), structured output (native, by instruction), web (search and fetch: native, none), effort levels,
   caching, billing (per token, subscription). `Claude` and `ClaudeCode` declare theirs; the checks of
   `list_models` (1M context only) become a consequence of them.
+  Done 2026-11-18 (`llm.Capabilities`, `context_of`: the Models API's window when it was read, 1M for a model the
+  agent knows, 200k for one it does not). `list_models` keeps every current model; T2.7 decides what a smaller
+  window changes.
 - **T2.6 What a step needs.** Each call site names its needs (`needs=("web", "whole_guide")`) next to its effort;
   `STEP_EFFORTS` of `web.py` disappears into that one table, read by the Settings.
 - **T2.7 The context decides the strategy.** The agent counts the guide once per run (exact count when the
