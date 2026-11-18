@@ -1,5 +1,6 @@
-"""Where a guide's watches come from, as its manifest says (`[watch] source`): GitHub issues, `watch.json` files, or
-none. Each source lists its watches for the interface and fetches one as a local `watch.json` (docs/watch-format.md).
+"""Where a guide's watches come from, as its manifest says (`[watch] source`): GitHub issues, `watch.json` files, the
+agent's own collection from the guide's feeds, or none. Each source lists its watches for the interface and fetches
+one as a local `watch.json` (docs/watch-format.md).
 
     src = watches.of(guide, home)
     src.list()            # [{id, thread, kind, title, date, state, urgent, items}], newest first
@@ -61,7 +62,7 @@ class Files:
     def _files(self) -> list[Path]:
         target = self.root / self.path
         if target.is_dir():
-            return sorted(target.glob("*.json"), key=lambda p: p.name, reverse=True)
+            return sorted(target.glob("*.json"), key=lambda p: p.stem, reverse=True)  # watch-x-2 after watch-x
         return [target] if target.is_file() else []
 
     def list(self) -> list[dict]:
@@ -87,6 +88,35 @@ class Files:
         return path
 
 
+class Collected(Files):
+    """The watches `vault-watch collect` wrote in the guide's working folder (`watches/`), from its feeds.json."""
+
+    kind = "feeds"
+    FOLDER = "watches"
+
+    def __init__(self, guide: Guide, home: Path):
+        super().__init__(home, self.FOLDER)
+        self.guide = guide
+
+    def collect(self, **kw) -> Path:
+        """Reads the feeds now and writes the watch (`watches/watch-<until>.json`, `-2`… when one is already there)."""
+        from . import collect
+
+        watch = collect.Collector.of_guide(self.guide).collect(**kw)
+        return write(watch, self.root / self.FOLDER)
+
+
+def write(watch: dict, folder: Path) -> Path:
+    """`watch-<until>.json` in `folder`, never over an existing one (a run may have read it)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path, n = folder / f"watch-{watch['until']}.json", 1
+    while path.exists():
+        n += 1
+        path = folder / f"watch-{watch['until']}-{n}.json"
+    path.write_text(json.dumps(watch, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 class Nothing:
     kind = "none"
 
@@ -104,4 +134,6 @@ def of(guide: Guide, home: Path, issues: Callable[[], list[dict]] | None = None)
         return Issues(guide.repository, w.label, w.artifact, home / "downloads", issues)
     if w.source == "file":
         return Files(guide.root, w.path)
+    if w.source == "feeds":
+        return Collected(guide, home)
     return Nothing()

@@ -1,0 +1,12 @@
+{
+  "$comment": "Feeds of the sample guide, read by `vault-watch collect` (format: docs/collect.md). Quillnote and Larkdb are made up: these feeds follow real projects of the same kind, a notes server, a database and a web server, so that a collection has something to show.",
+  "defaults": { "days": 8, "maxItemsPerFeed": 15 },
+  "domains": { "security": "Security", "releases": "Releases", "news": "News" },
+  "feeds": [
+    { "id": "memos", "domain": "releases", "type": "github-releases", "repo": "usememos/memos", "tier": "A" },
+    { "id": "adv-memos", "domain": "security", "type": "github-advisories", "repo": "usememos/memos", "tier": "A" },
+    { "id": "caddy", "domain": "releases", "type": "github-releases", "repo": "caddyserver/caddy", "tier": "A" },
+    { "id": "postgresql-news", "domain": "news", "type": "rss", "url": "https://www.postgresql.org/news.rss", "tier": "A",
+      "keywords": ["released", "security"] }
+  ]
+}

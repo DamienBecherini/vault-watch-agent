@@ -337,7 +337,7 @@ def create_app(settings: Settings) -> FastAPI:
     @app.get("/api/info")
     def info():
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
-                "guide": guide.name,
+                "guide": guide.name, "watch_source": guide.watch.source,
                 "version": _version()}
 
     # -- settings of the user (config.py): engine, reference to the API key, models -----------------
@@ -450,7 +450,7 @@ def create_app(settings: Settings) -> FastAPI:
     def runs():
         """Runs that are not a watch's (fix runs, files of another folder), newest first."""
         src = watch_source()
-        mine = {w["thread"] for w in src.list()} if src.kind == "file" else set()
+        mine = {w["thread"] for w in src.list()} if src.kind in ("file", "feeds") else set()
         return [summary(t) for t in threads()
                 if not re.fullmatch(r"issue-\d+[a-z]?", t) and re.sub(r"[a-z]$", "", t) not in mine and t not in mine]
 
@@ -517,6 +517,20 @@ def create_app(settings: Settings) -> FastAPI:
         return StreamingResponse(stream(), media_type="text/event-stream")
 
     # -- actions -------------------------------------------------------------------------------
+    @app.post("/api/collect")
+    def collect_now():
+        """A new watch from the guide's feeds (`[watch] source = "feeds"`): no model, nothing billed."""
+        from . import collect
+
+        src = watch_source()
+        if src.kind != "feeds":
+            raise HTTPException(400, 'the guide\'s watches do not come from its feeds ([watch] source = "feeds")')
+        try:
+            path = src.collect()
+        except collect.CollectError as e:
+            raise HTTPException(400, str(e)) from e
+        return next(w for w in src.list() if w["thread"] == path.stem)
+
     @app.post("/api/analyses")
     def analyse(body: Analyse):
         if body.watch:  # a watch of the guide's own source

@@ -92,6 +92,11 @@ D'où viennent les éléments d'une veille.
 | `none` (défaut) | | Pas de veille : l'agent vérifie le guide et corrige seulement les erreurs signalées. |
 | `github-issue` | `label` (`veille` par défaut), `artifact` (`weekly-watch` par défaut) | Les issues ouvertes de `repository` qui portent cette étiquette. Le corps de l'issue contient le lien du run du workflow qui a collecté la veille (`.../actions/runs/<id>`) ; les éléments sont le `watch.json` de l'artefact `artifact` de ce run. |
 | `file` | `path` | Un `watch.json` du guide, ou un dossier qui en contient (un par veille, listés du plus récent au plus ancien dans l'interface, chacun avec sa fenêtre et ses éléments retenus ; un fichier qui ne respecte pas le format est listé avec ce qui ne va pas). Aussi tout fichier donné en ligne de commande (`vault-watch run --watch-json`). |
+| `feeds` | `feeds` | Les veilles que l'agent a collectées depuis les flux du guide (`vault-watch collect`, ou le bouton « Collecter une veille » de l'interface), rangées dans le dossier de travail du guide. |
+
+Quelle que soit la source, `feeds` (un `feeds.json`), `floors` et `seen` permettent à `vault-watch collect` de
+rassembler une veille depuis les flux du guide, sans modèle ; le workflow GitHub réutilisable le fait chaque semaine
+et ouvre l'issue : [Collecter une veille](collect.fr.md).
 
 Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) ; son
 format, clé par clé : [Le format d'une veille](watch-format.fr.md).

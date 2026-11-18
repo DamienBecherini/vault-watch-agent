@@ -21,6 +21,8 @@ modified_field = "last_modified"                   # front matter date bumped by
 source = "github-issue"
 label = "veille"
 artifact = "weekly-watch"
+feeds = ".agents/vault-maintenance/feeds.json"      # `vault-watch collect` reads the same feeds as watch-feeds.mjs
+seen = ".agents/vault-maintenance/watch-seen.md"     # items already triaged (their URLs are dropped)
 
 [rules]                                            # optional: the agent ships defaults
 brief = ".agents/skills/vault-watch/brief.md"

@@ -61,26 +61,34 @@ Only the main links are drawn; the table below gives each module's role. Two rul
   `ClaudeCode` (`claude -p` on a Claude subscription); `create(role, journal, settings)` picks one from the
   user's settings.
 - **One door to the guide.** Reading, searching and editing pages go through
-  [`vault.py`](../src/vault_watch_agent/vault.py); calls to `git`, `gh` and the guide's own scripts go through
-  [`inputs.py`](../src/vault_watch_agent/inputs.py). The model never touches a file.
+  [`vault.py`](../src/vault_watch_agent/vault.py); calls to `git` and the guide's own scripts go through
+  [`inputs.py`](../src/vault_watch_agent/inputs.py), the forge's (`gh`) through [`forge.py`](../src/vault_watch_agent/forge.py). The model never touches a file.
 
 | Module | Lines | Role |
 | :-- | --: | :-- |
-| `graph.py` | 608 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
-| `web.py` | 660 | `create_app(settings)`: REST routes, server-sent events, background jobs, the user's settings, the notices of the page, the static page |
-| `verify.py` | 317 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
-| `llm.py` | 374 | The two engines (API, Claude Code on a subscription): structured output, prompt caching, web search and fetch, cost journal |
-| `cli.py` | 251 | `vault-watch run / resume / fix / eval / costs / serve`; wires the checkpointer and the dependencies |
-| `vault.py` | 234 | French pages, keyword search with excerpts, exact-quote check, apply an edit, leftovers sweep |
-| `crosscheck.py` | 211 | Second reading of the corrections with the whole guide cached in context, then the sweep |
+| `web.py` | 762 | `create_app(settings)`: REST routes, server-sent events, background jobs, the user's settings, the notices of the page, the static page |
+| `graph.py` | 623 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
+| `collect.py` | 564 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
+| `cli.py` | 420 | `vault-watch init / doctor / run / resume / fix / eval / collect / prices / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
+| `llm.py` | 406 | The two engines (API, Claude Code on a subscription): structured output, prompt caching, web search and fetch, capabilities, cost journal |
+| `verify.py` | 365 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
+| `onboard.py` | 320 | `init` (a manifest from what a repository shows) and `doctor` (what will run, what is missing) |
+| `guide.py` | 303 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
+| `vault.py` | 283 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit, leftovers sweep |
+| `crosscheck.py` | 264 | Second reading of the corrections with the whole guide cached in context (or chapter by chapter), then the sweep |
+| `prices.py` | 182 | The price of a model and its origin: the user's, a fetched list, the defaults |
 | `quotes.py` | 158 | Locates the passage a finding talks about: exact match, else the closest window of lines on normalised text |
-| `fix.py` | 135 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
-| `evaluate.py` | 126 | Hunks of the human's merged diff vs. the agent's proposals, matched by a judge model |
-| `config.py` | 138 | The user's settings (`settings.json`): engine, models, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
-| `state.py` | 116 | `WatchState` and the Pydantic schemas the model must answer with |
-| `prompts.py` | 79 | System prompts built from the guide's own editorial brief and translation policy |
-| `inputs.py` | 65 | Watch issue and artifact (`gh`), items, freshness claims due |
-| `costs.py` | 77 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |
+| `config.py` | 151 | The user's settings (`settings.json`): engine, models, prices, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
+| `fix.py` | 150 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
+| `watches.py` | 139 | Where the watches come from (`[watch] source`): GitHub issues, `watch.json` files, the agent's own collection, none |
+| `evaluate.py` | 132 | Hunks of the human's merged diff vs. the agent's proposals, matched by a judge model |
+| `inputs.py` | 121 | The watch as the contract says (`check_watch`), its kept items, its artifact; the guide's scripts; freshness claims due |
+| `state.py` | 117 | `WatchState` and the Pydantic schemas the model must answer with |
+| `prompts.py` | 105 | System prompts built from the guide's own editorial brief and translation policy |
+| `reading.py` | 92 | How the guide is read: whole in one call, or chapter by chapter when it does not fit the model's window |
+| `costs.py` | 87 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |
+| `forge.py` | 84 | Issues, artifacts and pull requests behind a `Forge` interface; GitHub (through `gh`) its one implementation |
+| `steps.py` | 53 | Each step of a run: its role, its effort, what it needs from an engine |
 | `notify.py` | 47 | Windows toast notifications for `serve --notify` |
 
 ## The graph, node by node

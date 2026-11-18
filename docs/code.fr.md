@@ -61,26 +61,34 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
   faux. Deux moteurs l'implémentent : `Claude` (l'API) et `ClaudeCode` (`claude -p` sur un abonnement Claude) ;
   `create(role, journal, settings)` choisit d'après les réglages de l'utilisateur.
 - **Une seule porte vers le guide.** Lire, chercher et modifier les pages passe par
-  [`vault.py`](../src/vault_watch_agent/vault.py) ; les appels à `git`, `gh` et aux scripts du guide passent par
-  [`inputs.py`](../src/vault_watch_agent/inputs.py). Le modèle ne touche jamais un fichier.
+  [`vault.py`](../src/vault_watch_agent/vault.py) ; les appels à `git` et aux scripts du guide passent par
+  [`inputs.py`](../src/vault_watch_agent/inputs.py), ceux de la forge (`gh`) par [`forge.py`](../src/vault_watch_agent/forge.py). Le modèle ne touche jamais un fichier.
 
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
-| `graph.py` | 608 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
-| `web.py` | 660 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
-| `verify.py` | 317 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
-| `llm.py` | 374 | Les deux moteurs (API, Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts |
-| `cli.py` | 251 | `vault-watch run / resume / fix / eval / costs / serve` ; branche le checkpointer et les dépendances |
-| `vault.py` | 234 | Pages françaises, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
-| `crosscheck.py` | 211 | Seconde lecture des corrections avec tout le guide en cache dans le contexte, puis le balayage |
+| `web.py` | 762 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
+| `graph.py` | 623 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
+| `collect.py` | 564 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
+| `cli.py` | 420 | `vault-watch init / doctor / run / resume / fix / eval / collect / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
+| `llm.py` | 406 | Les deux moteurs (API, Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
+| `verify.py` | 365 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
+| `onboard.py` | 320 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
+| `guide.py` | 303 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
+| `vault.py` | 283 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
+| `crosscheck.py` | 264 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
+| `prices.py` | 182 | Le prix d'un modèle et son origine : celui de l'utilisateur, une liste téléchargée, les valeurs par défaut |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
-| `fix.py` | 135 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
-| `evaluate.py` | 126 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
-| `config.py` | 138 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
-| `state.py` | 116 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
-| `prompts.py` | 79 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
-| `inputs.py` | 65 | Issue et artefact de la veille (`gh`), éléments, affirmations à revérifier |
-| `costs.py` | 77 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
+| `config.py` | 151 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
+| `fix.py` | 150 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
+| `watches.py` | 139 | D'où viennent les veilles (`[watch] source`) : issues GitHub, fichiers `watch.json`, collecte de l'agent, aucune |
+| `evaluate.py` | 132 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
+| `inputs.py` | 121 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |
+| `state.py` | 117 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
+| `prompts.py` | 105 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
+| `reading.py` | 92 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
+| `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
+| `forge.py` | 84 | Issues, artefacts et pull requests derrière une interface `Forge` ; GitHub (par `gh`) sa seule implémentation |
+| `steps.py` | 53 | Chaque étape d'un passage : son rôle, son effort, ce qu'elle demande à un moteur |
 | `notify.py` | 47 | Notifications Windows de `serve --notify` |
 
 ## Le graphe, étape par étape

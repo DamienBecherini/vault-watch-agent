@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 
 MANIFEST = "vault-watch.toml"
 SCHEMA = 1  # version of the manifest format this code reads
-WATCH_SOURCES = ("none", "github-issue", "file")
+WATCH_SOURCES = ("none", "github-issue", "file", "feeds")
 CHECK_COMMANDS = ("audits", "claims_due", "sources")  # shell commands; {out} = a JSON file the agent reads after
 LANGUAGES = {"fr": "French", "en": "English", "de": "German", "es": "Spanish", "it": "Italian", "pt": "Portuguese",
              "nl": "Dutch", "pl": "Polish", "ja": "Japanese", "zh": "Chinese", "ko": "Korean", "ru": "Russian"}
@@ -42,6 +42,9 @@ class Watch:
     label: str = ""         # github-issue: label of the watch issues
     artifact: str = ""      # github-issue: workflow artifact holding watch.json
     path: str = ""          # file: watch.json, relative to the guide
+    feeds: str = ""         # feeds.json read by `vault-watch collect` (any source; required by "feeds")
+    seen: str = ""          # collect: a file whose URLs are dropped (items the editor already triaged)
+    floors: str = ""        # collect: version floors ({"floors": {feed id: version}}); default [checks] version_floors
 
 
 @dataclass(frozen=True)
@@ -99,7 +102,7 @@ class Guide:
                             for c, f in sorted(self.mirrors.items())],
                 "modified_field": self.modified_field or "",
                 "watch": {"source": self.watch.source, "label": self.watch.label, "artifact": self.watch.artifact,
-                          "path": self.watch.path},
+                          "path": self.watch.path, "feeds": self.watch.feeds},
                 "rules": {"brief": rel(self.brief), "translation_policy": rel(self.translation_policy)},
                 "checks": {"audits": self.audits or "", "claims_due": self.claims_due or "", "sources": self.sources or "",
                            "version_floors": self.version_floors.script if self.version_floors else ""},
@@ -116,7 +119,7 @@ _KEYS = {
     "": {"schema", "guide", "content", "watch", "rules", "checks", "budget"},
     "guide": {"name", "description", "repository", "site", "base_branch"},
     "content": {"language", "include", "exclude", "mirrors", "modified_field"},
-    "watch": {"source", "label", "artifact", "path"},
+    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
     "budget": {"max_context_tokens"},
@@ -166,9 +169,12 @@ def parse(data: dict, root: Path) -> Guide:
     if source not in WATCH_SOURCES:
         raise GuideError(f"[watch] source = {source!r}: one of {', '.join(WATCH_SOURCES)}")
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
-                  path=_text(w, "watch", "path"))
+                  path=_text(w, "watch", "path"),
+                  **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors") if k in w})
     if source == "file" and not watch.path:
         raise GuideError('[watch] source = "file" needs path (the watch.json to read)')
+    if source == "feeds" and not watch.feeds:
+        raise GuideError('[watch] source = "feeds" needs feeds (the feeds.json that `vault-watch collect` reads)')
 
     floors = checks.get("version_floors")
     if floors is not None:

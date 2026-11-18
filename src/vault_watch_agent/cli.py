@@ -8,6 +8,7 @@
     vault-watch resume <thread> --accept all   # or none, or C1,C3
     vault-watch resume <thread> --publish yes  # second pause: push + pull request
     vault-watch status <thread>
+    vault-watch collect --json watch.json      # a watch from the guide's feeds.json (no model), Markdown on stdout
 
 The run is checkpointed in SQLite: each command is a separate process, and a
 paused run waits as long as needed.
@@ -191,6 +192,31 @@ def run_eval(args, deps: Deps, saver) -> None:
     print(json.dumps({k: result[k] for k in ("issue", "variant", "scores", "run_cost_usd", "judge_cost_usd")}, indent=2))
 
 
+def collect_command(args) -> None:
+    """The watch of the window from the guide's feeds: the JSON to a file, the Markdown on stdout. Free (no model)."""
+    from . import collect, watches
+
+    try:
+        collector = collect.Collector.of_guide(vault.guide_of(VAULT), triage_on=not args.no_triage)
+    except collect.CollectError as e:
+        sys.exit(f"vault-watch: {e}")
+    only = set(args.only.split(",")) if args.only else None
+    watch = collector.collect(days=args.days, since=args.since, only=only)
+    report = collect.markdown(watch, collector, only)
+    if args.json:
+        args.json.parent.mkdir(parents=True, exist_ok=True)
+        args.json.write_text(json.dumps(watch, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        path = args.json
+    else:
+        path = watches.write(watch, HOME / watches.Collected.FOLDER)
+    if args.markdown:
+        args.markdown.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown.write_text(report + "\n", encoding="utf-8")
+    print(report)
+    print(f"vault-watch: {watch['kept']} item(s) kept of {len(watch['items'])}, {watch['urgent']} urgent, "
+          f"{len(watch['errors'])} feed(s) in error: {path}", file=sys.stderr)
+
+
 def make_deps(thread: str, kind: str) -> Deps:
     """Model clients labelled with the run, so the cost journal says which run paid for what.
     `view` builds a graph that only reads checkpoints: no client, no API key needed."""
@@ -278,6 +304,13 @@ def main(argv: list[str] | None = None) -> None:
     pr = sub.add_parser("prices", help="the prices of the models and where each comes from; update fetches the public list")
     pr.add_argument("action", choices=["show", "update"])
     pr.add_argument("--yes", action="store_true", help="update: replace the fetched list without asking")
+    co = sub.add_parser("collect", help="read the guide's feeds ([watch] feeds) and write a watch.json, no model")
+    co.add_argument("--days", type=int, help="the window, in days back from today (default: the feeds file's)")
+    co.add_argument("--since", help="the start of the window, YYYY-MM-DD (instead of --days)")
+    co.add_argument("--only", help="some domains only, e.g. engines,security")
+    co.add_argument("--json", type=Path, help="where to write the watch (default: watches/ of the guide's working folder)")
+    co.add_argument("--markdown", type=Path, help="also write the Markdown report there (it is printed anyway)")
+    co.add_argument("--no-triage", action="store_true", help="keep every item of the window")
     c = sub.add_parser("costs", help="what the upkeep costs, from the call journal")
     c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
     w = sub.add_parser("serve", help="web interface on http://127.0.0.1:4430/ (same runs as the command line)")
@@ -297,6 +330,9 @@ def main(argv: list[str] | None = None) -> None:
         use_guide(args.guide)
     if args.cmd == "serve":
         serve(args.port, args.idle_exit, args.notify)
+        return
+    if args.cmd == "collect":
+        collect_command(args)
         return
     if args.cmd == "costs":
         from . import costs

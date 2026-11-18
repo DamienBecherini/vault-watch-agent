@@ -73,7 +73,8 @@ def propose(root: Path) -> str:
         (f"modified_field = {q(field)}   # {why_field}" if field else f"# modified_field = \"last_modified\"   # {why_field}"),
         "",
         "[watch]",
-        'source = "none"   # or "github-issue" (with label, artifact) or "file" (with path to a watch.json)',
+        'source = "none"   # or "github-issue" (with label, artifact), "file" (with path to a watch.json),',
+        '#                    or "feeds" (with feeds: the feeds.json `vault-watch collect` reads)',
         "",
         "# Optional: [rules] brief, translation_policy (files of the guide; the agent has defaults),",
         "# [checks] audits, claims_due, sources, version_floors (the guide's own commands; undeclared = not checked),",
@@ -265,8 +266,18 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
     elif w.source == "github-issue":
         out.append(Line("ok" if guide.repository else "fail", "watch", f"issues labelled {w.label or 'veille'}"
                         if guide.repository else "github-issue needs [guide] repository"))
+    elif w.source == "feeds":
+        out.append(Line("ok", "watch", f"collected by the agent from {w.feeds}"))
     else:
         out.append(Line("off", "watch", "none: checks and reported errors only"))
+    if w.feeds:
+        from . import collect
+
+        try:
+            n = len(collect.Collector.of_guide(guide).feeds)
+            out.append(Line("ok", "feeds", f"{n} feed(s) in {w.feeds} (`vault-watch collect`)"))
+        except (collect.CollectError, OSError, ValueError) as e:
+            out.append(Line("fail", "feeds", str(e)))
 
     for key in ("audits", "claims_due", "sources"):
         command = getattr(guide, key)

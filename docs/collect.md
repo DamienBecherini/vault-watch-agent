@@ -1,0 +1,144 @@
+*[Version française](collect.fr.md)*
+
+# Collecting a watch (`vault-watch collect`)
+
+A watch lists what changed in your guide's field over a few days. The agent can collect it itself: you list the
+feeds to read in a `feeds.json`, and `vault-watch collect` gathers the items of the window, drops the routine by
+rules, keeps the release notes and advisory texts, and writes a [`watch.json`](watch-format.md). No model is called:
+a collection costs nothing.
+
+```bash
+vault-watch --guide ../my-guide collect                  # the last 8 days; Markdown report on stdout
+vault-watch --guide ../my-guide collect --days 15 --json watch.json --markdown watch.md
+vault-watch --guide ../my-guide collect --since 2026-11-01 --only security,releases
+vault-watch --guide ../my-guide collect --no-triage      # keep every item of the window
+```
+
+Without `--json`, the watch goes to `watches/watch-<date>.json` in the guide's working folder. With
+`source = "feeds"`, the interface lists it there (below).
+
+GitHub limits requests without a token. Set `GITHUB_TOKEN` (or `GH_TOKEN`), for example
+`GITHUB_TOKEN=$(gh auth token)`, before collecting. Security advisories need it.
+
+## In the manifest
+
+```toml
+[watch]
+source = "feeds"                    # the interface lists the collected watches and has a « Collect a watch » button
+feeds = "watch/feeds.json"          # the feeds to read (any source can name it: `vault-watch collect` works anyway)
+floors = "watch/floors.json"        # optional: the lowest versions the guide recommends
+seen = "watch/seen.md"              # optional: items already triaged, dropped when they come back
+```
+
+`floors` defaults to the file of `[checks] version_floors` when the guide has one.
+
+## `feeds.json`
+
+```json
+{
+  "defaults": { "days": 8, "maxItemsPerFeed": 15 },
+  "domains": { "security": "Security", "releases": "Releases", "news": "News" },
+  "feeds": [
+    { "id": "memos", "domain": "releases", "type": "github-releases", "repo": "usememos/memos", "tier": "A" },
+    { "id": "adv-memos", "domain": "security", "type": "github-advisories", "repo": "usememos/memos", "tier": "A" },
+    { "id": "postgresql-news", "domain": "news", "type": "rss", "url": "https://www.postgresql.org/news.rss",
+      "tier": "A", "keywords": ["released", "security"] }
+  ]
+}
+```
+
+The sample guide has a complete one: [`examples/sample-guide/feeds.json`](../examples/sample-guide/feeds.json).
+
+| Key | What it is |
+| :-- | :-- |
+| `defaults.days` | The window when the command gives none (8). |
+| `defaults.maxItemsPerFeed` | At most this many items per feed, the newest (15). |
+| `domains` | Optional. The sections of the report, in order, with their titles. Without it, the domains appear in the order of the feeds, with `security` first and the leads (`discovery`, `signals`) last. |
+| `feeds` | The feeds, below. |
+
+### A feed
+
+| Key | For | What it is |
+| :-- | :-- | :-- |
+| `id` | all | A unique name: it appears in the report, and `floors` uses it. |
+| `domain` | all | The section of the report: the part of the guide the feed concerns. |
+| `type` | all | `github-releases`, `github-tags`, `github-advisories`, `rss` (RSS 2.0 or Atom; the default), `youtube`, `huggingface-author`, `huggingface-trending`, `github-search`. |
+| `tier` | all | How far the source can be trusted: `A` primary, `B` reputable secondary, `C` a lead only. Tier C items are counted as leads. |
+| `repo` | the GitHub types except search | `owner/name`. |
+| `url` | `rss` | The address of the feed. |
+| `channelId`, `name` | `youtube` | The channel and the name shown before each title. |
+| `author` | `huggingface-author` | The publisher on Hugging Face. |
+| `query`, `minStars`, `maxAgeDays`, `limit` | `github-search` | Young repositories that gained traction: the search, the stars (500), the age in days (30), the number (10). |
+| `limit` | `huggingface-trending` | How many trending models to read (40); publishers already followed are left out. |
+| `keywords` | any | Keep only the items whose title or summary has one of these words, matched at the start of a word (`IA` does not match « Debian »). |
+| `exclude` | any | A regular expression: items whose title matches are left out. |
+| `minLevel` | releases, tags | `major`, `minor` (default) or `patch`: smaller releases are dropped. |
+| `collapse` | releases, tags | `true` for a project that publishes a build per commit: the window's releases become a single routine line. |
+| `discovery` | any | `true`: the feed looks for what the guide does not cover yet. Its items go in the `discovery` section, and an item counts by its age (`maxAgeDays`, 45), not by the window. |
+
+## The pre-triage
+
+Each item is kept or dropped by rule, with a reason. Only the kept items reach the model. The rules:
+
+- **Releases.** Pre-releases (rc, alpha, beta, dev, nightly, preview, canary, snapshot) and releases below
+  `minLevel` are dropped. A release whose notes mention a security fix (security, CVE, GHSA, vulnerability) is kept
+  anyway.
+- **Advisories.** An advisory of low severity is dropped, and so is one already fixed at the guide's floor: the
+  floor is outside the vulnerable range, or the first patched version is at or below the floor, or the fix
+  published for the floor's own release line is. A High or Critical advisory that the floor does not cover is
+  **urgent**, and the run handles it first.
+- **Models.** Quantized variants, adapters (LoRA), and fine-tunes by another publisher (in discovery) are dropped.
+- **Already seen.** An item whose address is in the `seen` file is dropped.
+
+The floors file:
+
+```json
+{ "floors": { "adv-memos": "26.11.0" } }
+```
+
+The seen file can be in any format: each `http(s)://` address it contains counts. A table of the items you already
+triaged works.
+
+## Every week, on GitHub
+
+The reusable workflow [`collect.yml`](../.github/workflows/collect.yml) does the collection on GitHub. It installs
+the agent, collects, keeps `watch.json` as an artifact and opens an issue with the report. Add this file to the
+guide as `.github/workflows/watch.yml`:
+
+```yaml
+name: Watch
+on:
+  schedule: [{ cron: "30 6 * * 1" }]   # Mondays, 06:30 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  watch:
+    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v0.5.0
+    with:
+      days: 8
+```
+
+Then set the manifest to `source = "github-issue"` with `label = "watch"`: the agent reads these issues, and their
+artifact holds the watch. The workflow's inputs:
+
+| Input | Default | What it is |
+| :-- | :-- | :-- |
+| `days` | the feeds file's | The window. |
+| `guide` | `.` | The guide's folder in its repository. |
+| `label`, `artifact` | `watch`, `weekly-watch` | The issue's label and the artifact's name; the manifest's `label` and `artifact` must match. |
+| `title` | `Watch` | The start of the issue's title. |
+| `urgent_only` | `false` | Open an issue only for an urgent advisory: a run between two full ones. |
+| `open_issue` | `true` | `false`: keep the artifact, open nothing. |
+| `agent_ref` | the version of the workflow | The version of the agent to install. |
+
+No issue is opened when nothing is kept.
+
+## The IA on-prem guide's collector
+
+`vault-watch collect` is a port of `scripts/watch-feeds.mjs` of the IA on-prem guide. It has the same feed types and
+the same rules, and its output has the same format. On that guide's 63 feeds, over the same window, both give the
+same items with the same triage, the same notes and the same urgencies (compared on 18 November 2026: 172 items, 105
+kept since 3 November; 455 items, 241 kept since 1 June). A guide can keep its own collector: the agent only reads
+the `watch.json`.

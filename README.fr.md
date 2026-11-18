@@ -16,7 +16,7 @@
 
 **Français** · [English](README.md)
 
-[Présentation avec schémas](docs/presentation.fr.md) · [Brancher son guide](docs/connect-your-guide.fr.md) · [Structure du code](docs/code.fr.md)
+[Présentation avec schémas](docs/presentation.fr.md) · [Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Structure du code](docs/code.fr.md)
 
 </div>
 
@@ -34,7 +34,9 @@ jour le miroir anglais, lance les contrôles et la vérification des liens du gu
 ouvre la pull request.
 
 Depuis la 0.3.0, il peut tenir n'importe quel guide en Markdown décrit par un manifeste qui lui est propre :
-voir [Brancher son guide](docs/connect-your-guide.fr.md).
+voir [Brancher son guide](docs/connect-your-guide.fr.md). Depuis la 0.5.0, il peut aussi collecter la veille
+lui-même à partir d'une liste de flux, sans modèle, à la main ou chaque semaine sur GitHub : voir
+[Collecter une veille](docs/collect.fr.md).
 
 ![L'écran de relecture : chaque correction proposée avec sa source, l'avis de la relecture globale et le diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/review.fr.png)
 

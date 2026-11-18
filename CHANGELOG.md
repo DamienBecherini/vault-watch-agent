@@ -18,6 +18,21 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   pull request, its state, whether the repository can be read) are the methods of `GitHub`, behind a `Forge`
   interface a Gitea or GitLab forge can fill. The number of items is read from an issue title in French or
   English (« 73 éléments », « 73 items »).
+- `vault-watch collect` (`collect.py`): the agent collects a watch itself from the guide's `feeds.json` (manifest
+  `[watch] feeds`, with `floors` and `seen`), without a model. Feed types: GitHub releases, tags and security
+  advisories, RSS and Atom, YouTube, Hugging Face authors and trending models, GitHub search. The rules drop
+  pre-releases, routine patches (unless their notes mention a security fix), advisories of low severity or already
+  fixed at the guide's floor, quantized variants and adapters, and items already seen; a High or Critical advisory
+  the floor does not cover is urgent. A port of the IA on-prem guide's `watch-feeds.mjs`: on its 63 feeds and the
+  same window, both give the same items, the same triage and the same notes (455 items, 241 kept, since 1 June).
+  Only the standard library. `docs/collect.md` (and in French).
+- `source = "feeds"`: the interface lists the watches collected in the guide's working folder and has a « Collect
+  a watch » button (free); a second collection the same day never overwrites the first. `doctor` checks the feeds
+  file. The sample guide has a `feeds.json` (real projects of the kind it describes) and a floors file.
+- The reusable workflow `.github/workflows/collect.yml`: a guide calls it from a ten-line workflow; it collects every
+  week, keeps `watch.json` as an artifact and opens the issue the `github-issue` source reads (label, artifact,
+  window, urgent-only runs as inputs). `sample-watch.yml` runs it on the sample guide by hand.
+- `docs/code.md` lists every module again, with its size.
 
 ## 0.4.1 (2026-11-18)
 

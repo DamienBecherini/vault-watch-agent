@@ -34,7 +34,7 @@ anything you write) and hands it to the agent as one `watch.json`. This page is 
 | `schema` | no | The version of this format, `1` today (absent: 1). The agent refuses a file whose `schema` is newer than the one it reads, and says which: update the agent. |
 | `since`, `until` | `until` | The window, as dates (`YYYY-MM-DD`). `until` is the date of the run's report and of its branch. |
 | `items` | yes | The items, kept or dropped (below). |
-| `errors` | no | What the collector could not read (a feed down, a rate limit), one string each; shown, never fatal. |
+| `errors` | no | What the collector could not read (a feed down, a rate limit), one string each, or `{"feed": ..., "error": ...}` as both collectors write them; shown, never fatal. |
 
 Other keys (counts, the collector's version) are allowed and ignored.
 
@@ -65,4 +65,6 @@ dropped are not read.
 ## Where it comes from
 
 The guide's manifest says it (`[watch]`, see [Connect your guide](connect-your-guide.md)): a `watch.json` in the guide
-(`source = "file"`), the artifact of the workflow run linked from a GitHub issue (`source = "github-issue"`), or none.
+(`source = "file"`), the artifact of the workflow run linked from a GitHub issue (`source = "github-issue"`), the
+watches the agent collected from the guide's feeds (`source = "feeds"`, see [Collecting a watch](collect.md)), or
+none.

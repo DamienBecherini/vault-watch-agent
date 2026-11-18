@@ -284,13 +284,22 @@ runs "by chapter" when the window is forced small in a test, and the report says
 - **T3.2 `WatchSource`.** A protocol (`list()` the watches, `fetch(id)` one) with three sources: `github-issue`
   (today's code, moved out of `inputs.py` and `web.py`), `file` (a folder of `watch.json`), `feeds` (T3.3). The
   manifest chooses; the list of watches of the interface comes from the source.
-  Done 2026-11-18 for `github-issue`, `file` (a file or a folder) and `none` (`watches.py`); `feeds` comes with T3.3.
+  Done 2026-11-18 for `github-issue`, `file` (a file or a folder) and `none` (`watches.py`); `feeds` with T3.3
+  (`watches.Collected`: the watches collected in the guide's working folder, and a « Collect a watch » button).
 - **T3.3 Collection by the agent.** `vault-watch collect`: from a `feeds.json` (GitHub releases, GitHub security
   advisories, RSS and Atom), the items of a window, the notes cached, the routine releases dropped by rule. A port
   of what `watch-feeds.mjs` of the IA on-prem guide does, tested against its output on the same feeds.
+  Done 2026-11-18 (`collect.py`, `docs/collect.md`), with every feed type of the IA on-prem guide (also tags,
+  YouTube, Hugging Face and the two discovery types). On its 63 feeds, run back to back with the JS collector:
+  the same 172 items and 105 kept since 3 November, the same 455 and 241 since 1 June, with the same reasons, notes
+  and floors; the only differences were star counts that moved between the two runs. Text is cut in UTF-16 units,
+  as JavaScript does, so that both give the same notes.
 - **T3.4 Collection in CI.** A reusable GitHub workflow in this repository that runs T3.3 weekly and opens the
   issue with the artifact: a guide adds a `feeds.json` and a ten-line workflow. The IA on-prem guide keeps its
   own collector as long as it wants; both give the same format.
+  Written 2026-11-18 (`.github/workflows/collect.yml`, and `sample-watch.yml` that runs it on the sample guide);
+  its collect step checked locally and from a clean install of the package. Its first run on GitHub comes with the
+  publication of 0.5.0 (the workflow installs the agent from its tag).
 - **T3.5 The forge.** `gh` calls gathered behind `Forge` (issues, artifacts, pull requests, their state). Only
   GitHub is implemented; the port is what a Gitea or GitLab contribution fills.
   Done 2026-11-18 (`forge.py`: `Forge`, `GitHub`, `get`, `use`); no call to `gh` is left outside it.

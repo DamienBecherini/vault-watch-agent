@@ -1,0 +1,142 @@
+name: Collect a watch
+
+# Reusable: a guide calls it on a schedule (docs/collect.md). It installs vault-watch-agent, runs `vault-watch collect`
+# on the guide's feeds ([watch] feeds of its vault-watch.toml), keeps watch.json and watch.md as an artifact, and
+# opens an issue with the report: the guide's manifest then reads it with source = "github-issue". No model, no
+# secret: GitHub's own token reads the feeds (security advisories need it) and opens the issue.
+#
+# The caller (in the guide's repository, .github/workflows/watch.yml):
+#
+#   on:
+#     schedule: [{ cron: "30 6 * * 1" }]   # Mondays
+#     workflow_dispatch:
+#   permissions:
+#     contents: read
+#     issues: write
+#   jobs:
+#     watch:
+#       uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v0.5.0
+#       with:
+#         days: 8
+on:
+  workflow_call:
+    inputs:
+      days:
+        description: "The window, in days back from the run (0: the feeds file's default)"
+        type: number
+        default: 0
+      guide:
+        description: "The guide's folder in its repository"
+        type: string
+        default: "."
+      label:
+        description: "Label of the issue: the manifest's [watch] label"
+        type: string
+        default: "watch"
+      artifact:
+        description: "Name of the artifact holding watch.json: the manifest's [watch] artifact"
+        type: string
+        default: "weekly-watch"
+      title:
+        description: "Start of the issue's title"
+        type: string
+        default: "Watch"
+      urgent_only:
+        description: "Open an issue only when an advisory is urgent (a run between two full ones)"
+        type: boolean
+        default: false
+      open_issue:
+        description: "Open the issue (false: the artifact only)"
+        type: boolean
+        default: true
+      agent_ref:
+        description: "Version of vault-watch-agent to install (a tag, a branch or a commit)"
+        type: string
+        default: "v0.5.0"
+    outputs:
+      kept:
+        description: "Items kept by the pre-triage"
+        value: ${{ jobs.collect.outputs.kept }}
+      urgent:
+        description: "Urgent advisories"
+        value: ${{ jobs.collect.outputs.urgent }}
+
+jobs:
+  collect:
+    name: Collect the watch
+    runs-on: ubuntu-latest
+    outputs:
+      kept: ${{ steps.collect.outputs.kept }}
+      urgent: ${{ steps.collect.outputs.urgent }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install vault-watch-agent
+        env:
+          REF: ${{ inputs.agent_ref }}
+        run: python -m pip install --quiet "git+https://github.com/DamienBecherini/vault-watch-agent@${REF}"
+
+      - name: Collect
+        id: collect
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VAULT_WATCH_HOME: ${{ runner.temp }}/vault-watch
+          GUIDE: ${{ inputs.guide }}
+          DAYS: ${{ inputs.days }}
+        run: |
+          window=()
+          if [ "$DAYS" != "0" ]; then window=(--days "$DAYS"); fi
+          vault-watch --guide "$GUIDE" collect "${window[@]}" \
+            --json "$RUNNER_TEMP/watch.json" --markdown "$RUNNER_TEMP/watch.md" > /dev/null
+          cat "$RUNNER_TEMP/watch.md" >> "$GITHUB_STEP_SUMMARY"
+          python -c "import json, os; w = json.load(open(os.environ['RUNNER_TEMP'] + '/watch.json', encoding='utf-8')); print(f\"kept={w['kept']}\"); print(f\"urgent={w['urgent']}\")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ${{ inputs.artifact }}
+          path: |
+            ${{ runner.temp }}/watch.json
+            ${{ runner.temp }}/watch.md
+          retention-days: 60
+
+      - name: Open the issue
+        if: inputs.open_issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEPT: ${{ steps.collect.outputs.kept }}
+          URGENT: ${{ steps.collect.outputs.urgent }}
+          URGENT_ONLY: ${{ inputs.urgent_only }}
+          LABEL: ${{ inputs.label }}
+          TITLE: ${{ inputs.title }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ARTIFACT: ${{ inputs.artifact }}
+        run: |
+          if [ "$KEPT" -eq 0 ]; then
+            echo "Nothing kept after the pre-triage: no issue."
+            exit 0
+          fi
+          if [ "$URGENT_ONLY" = "true" ] && [ "$URGENT" -eq 0 ]; then
+            echo "No urgent advisory: no issue (urgent_only)."
+            exit 0
+          fi
+          gh label create "$LABEL" --color 0A7EA4 --description "Watch collected by vault-watch-agent" 2>/dev/null || true
+          labels="$LABEL"
+          title="$TITLE — $(date -u +%Y-%m-%d) ($KEPT items)"
+          if [ "$URGENT" -gt 0 ]; then
+            gh label create urgent --color B60205 --description "High / Critical advisory not covered by a version floor" 2>/dev/null || true
+            labels="$LABEL,urgent"
+            title="$TITLE URGENT — $(date -u +%Y-%m-%d) ($URGENT advisories, $KEPT items)"
+          fi
+          # GitHub caps an issue body at 65,536 characters; the whole report stays in the artifact.
+          head -c 60000 "$RUNNER_TEMP/watch.md" > "$RUNNER_TEMP/body.md"
+          if [ "$(wc -c < "$RUNNER_TEMP/watch.md")" -gt 60000 ]; then
+            printf '\n\n_Truncated: the full report is in the run artifact._\n' >> "$RUNNER_TEMP/body.md"
+          fi
+          # The agent finds the watch from the run link below (its artifact holds watch.json).
+          printf '\n\n---\nRun: %s (artifact `%s`: `watch.json`, with the release notes and advisory texts).\nNext step: analyse it with vault-watch-agent (https://github.com/DamienBecherini/vault-watch-agent), from its web interface or with `vault-watch run --issue <this issue>`.\n' "$RUN_URL" "$ARTIFACT" >> "$RUNNER_TEMP/body.md"
+          gh issue create --title "$title" --label "$labels" --body-file "$RUNNER_TEMP/body.md"

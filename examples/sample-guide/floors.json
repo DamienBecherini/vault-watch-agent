@@ -1,0 +1,4 @@
+{
+  "$comment": "The lowest version the guide recommends, per advisory feed of feeds.json: an advisory already fixed at that version is dropped by `vault-watch collect`.",
+  "floors": { "adv-memos": "26.11.0" }
+}

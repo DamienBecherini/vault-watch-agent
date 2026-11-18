@@ -16,7 +16,7 @@
 
 **English** · [Français](README.fr.md)
 
-[Overview with diagrams](docs/presentation.md) · [Connect your guide](docs/connect-your-guide.md) · [How the code fits together](docs/code.md)
+[Overview with diagrams](docs/presentation.md) · [Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [How the code fits together](docs/code.md)
 
 </div>
 
@@ -33,7 +33,8 @@ waits for a human review, applies them on a branch, syncs the English mirror, ru
 link checks and, after a second go-ahead, opens the pull request.
 
 Since 0.3.0 it can keep any Markdown guide described by a manifest of its own: see
-[Connect your guide](docs/connect-your-guide.md).
+[Connect your guide](docs/connect-your-guide.md). Since 0.5.0 it can also collect the watch itself, from a list of feeds
+and without a model, by hand or every week on GitHub: see [Collecting a watch](docs/collect.md).
 
 ![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](docs/review.png)
 

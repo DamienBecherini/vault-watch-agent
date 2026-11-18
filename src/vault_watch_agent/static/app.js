@@ -62,6 +62,8 @@ const TEXTS = {
     issue: open => `issue ${open ? "ouverte" : "fermée"}`, watchFile: n => n == null ? "fichier de veille" : `fichier de veille, ${n} élément(s) retenu(s)`,
     count: (n, a) => `${n} correction(s), ${a} appliquée(s)`,
     noWatch: "Aucune veille.", others: "Autres passages",
+    collectIntro: "L'agent lit les flux du guide (versions, avis de sécurité, annonces) sur les derniers jours et écarte la routine par règles, sans modèle : c'est gratuit. Tu analyses ensuite la veille obtenue.",
+    collectNow: "Collecter une veille", collecting: "Lecture des flux…",
     watchUpTo: d => `Veille jusqu'au ${d}`,
     canClose: "Tu peux fermer la page : l'analyse continue sur le serveur, et l'état est enregistré à chaque étape.",
     progress: (min, cost) => `Démarré il y a ${min} min · coût de ce passage ≈ ${cost}`,
@@ -167,6 +169,8 @@ const TEXTS = {
     issue: open => `issue ${open ? "open" : "closed"}`, watchFile: n => n == null ? "watch file" : `watch file, ${n} item(s) kept`,
     count: (n, a) => `${n} correction(s), ${a} applied`,
     noWatch: "No watch.", others: "Other runs",
+    collectIntro: "The agent reads the guide's feeds (releases, security advisories, announcements) over the last days and drops the routine by rules, without a model: it is free. You then analyse the watch it gives.",
+    collectNow: "Collect a watch", collecting: "Reading the feeds…",
     watchUpTo: d => `Watch up to ${d}`,
     canClose: "You can close the page: the analysis goes on in the server, and the state is saved after each step.",
     progress: (min, cost) => `Started ${min} min ago · cost of this run ≈ ${cost}`,
@@ -310,7 +314,8 @@ async function viewWatches() {
   const [watches, others] = await Promise.all([api("/api/watches"), api("/api/runs")]);
   page.innerHTML = `
     <h1>${T.watches}</h1>
-    <p class="subtitle">${T.watchesIntro}</p>
+    <p class="subtitle">${info?.watch_source === "feeds" ? T.collectIntro : T.watchesIntro}</p>
+    ${info?.watch_source === "feeds" ? `<p><button id="collect">${T.collectNow}</button></p>` : ""}
     ${watches.map(v => {
       const r = v.run, link = `#/run/${encodeURIComponent(r.thread)}`;
       const action = r.status === "closed" ? ""
@@ -335,6 +340,13 @@ async function viewWatches() {
         <div class="muted small">${esc(r.source)} · ${r.corrections} correction(s) · ${dollars(r.cost)}${
           r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div></div>
         ${badge(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a></div>`).join("")}` : ""}`;
+  const collect = $("#collect");
+  if (collect) collect.onclick = async () => {
+    collect.disabled = true;
+    collect.textContent = T.collecting;
+    try { await api("/api/collect", {}); await viewWatches(); }
+    catch (e) { collect.disabled = false; collect.textContent = T.collectNow; collect.insertAdjacentHTML("afterend", ` <span class="error-text">${esc(e.message)}</span>`); }
+  };
   page.querySelectorAll("[data-analyse]").forEach(b => b.onclick = async () => {
     b.disabled = true;
     const { thread } = await api("/api/analyses", b.dataset.kind === "issue" ? { issue: Number(b.dataset.analyse) } : { watch: b.dataset.analyse });

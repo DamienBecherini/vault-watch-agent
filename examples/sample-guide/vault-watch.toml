@@ -14,3 +14,5 @@ modified_field = "last_modified"
 [watch]
 source = "file"
 path = "watch.json"
+feeds = "feeds.json"    # what `vault-watch collect` reads; source = "feeds" to analyse its watches
+floors = "floors.json"  # advisories already fixed at these versions are dropped

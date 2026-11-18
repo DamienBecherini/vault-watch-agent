@@ -35,7 +35,7 @@ le `vault-watch collect` de l'agent, ou ce que vous écrivez) et la remet à l'a
 | `schema` | non | La version de ce format, `1` aujourd'hui (absente : 1). L'agent refuse un fichier dont le `schema` est plus récent que celui qu'il lit, et le dit : mettez l'agent à jour. |
 | `since`, `until` | `until` | La fenêtre, en dates (`AAAA-MM-JJ`). `until` est la date du rapport du passage et de sa branche. |
 | `items` | oui | Les éléments, retenus ou écartés (ci-dessous). |
-| `errors` | non | Ce que le collecteur n'a pas pu lire (un flux en panne, une limite de requêtes), une chaîne chacun ; affiché, jamais bloquant. |
+| `errors` | non | Ce que le collecteur n'a pas pu lire (un flux en panne, une limite de requêtes), une chaîne chacun, ou `{"feed": …, "error": …}` comme l'écrivent les deux collecteurs ; affiché, jamais bloquant. |
 
 Les autres clés (comptes, version du collecteur) sont permises et ignorées.
 
@@ -66,5 +66,6 @@ pour l'éditeur) ou s'il ne change rien ; ce que le modèle écarte est listé e
 ## D'où elle vient
 
 Le manifeste du guide le dit (`[watch]`, voir [Brancher son guide](connect-your-guide.fr.md)) : un `watch.json` dans le
-guide (`source = "file"`), l'artefact du run de workflow lié depuis une issue GitHub (`source = "github-issue"`), ou
+guide (`source = "file"`), l'artefact du run de workflow lié depuis une issue GitHub (`source = "github-issue"`), les
+veilles que l'agent a collectées depuis les flux du guide (`source = "feeds"`, voir [Collecter une veille](collect.fr.md)), ou
 aucune.

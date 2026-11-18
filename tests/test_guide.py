@@ -85,7 +85,8 @@ def test_the_sample_manifest(tmp_path):
 def test_the_ia_on_prem_manifest(tmp_path):
     for rel in (".agents/skills/vault-watch/brief.md",
                 ".agents/skills/vault-translate-content/references/translation-policy.md",
-                "scripts/audit-version-floors.mjs", "03-stack/engines.md", "en/03-stack/engines.md", "README.md"):
+                "scripts/audit-version-floors.mjs", "03-stack/engines.md", "en/03-stack/engines.md", "README.md",
+                ".agents/vault-maintenance/feeds.json", ".agents/vault-maintenance/watch-seen.md"):
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / rel).write_text("x\n", encoding="utf-8")
     g = parse(tomllib.loads((EXAMPLES / "manifests" / "ia-on-prem-vault.toml").read_text(encoding="utf-8")), tmp_path)
@@ -94,6 +95,7 @@ def test_the_ia_on_prem_manifest(tmp_path):
     assert g.mirror_of("03-stack/engines.md", "en") == "en/03-stack/engines.md" and g.mirror_of("a.md", "de") is None
     assert g.brief == tmp_path / ".agents/skills/vault-watch/brief.md" and g.max_context_tokens is None
     assert "{out}" in g.claims_due and g.version_floors.file.endswith("version-floors.json")
+    assert g.watch.feeds == ".agents/vault-maintenance/feeds.json"  # vault-watch collect reads its watch-feeds.mjs feeds
     assert legacy(tmp_path).pages() == g.pages()  # the manifest says what the agent assumed
 
 
