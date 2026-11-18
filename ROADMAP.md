@@ -269,6 +269,8 @@ Two independent halves; the first is small and can ship alone.
 - **T2.8 A role per step.** The Settings assign a model and an effort to each step (triage, proposals,
   cross-check, mirror, each check), with two presets that reproduce today's two roles; a step shows a warning
   when its model lacks something it needs.
+  Moved out of 0.4.0 (decided 2026-11-18): the two roles serve the guides of today, and the criteria of M2 hold
+  without it. `steps.py` (T2.6) already gives each step its role, effort and needs; this task builds on it later.
 
 Done when: every price on screen says where it comes from; the IA on-prem guide runs unchanged; the sample guide
 runs "by chapter" when the window is forced small in a test, and the report says so.
