@@ -306,6 +306,10 @@ runs "by chapter" when the window is forced small in a test, and the report says
 
 Done when: the sample guide gets a watch from `collect` and from the workflow; the IA on-prem guide runs on
 either collector with the same items kept.
+Done 2026-11-18. The sample guide gets its watch from `collect` and, once 0.5.0 was published, from the workflow on
+GitHub (`sample-watch.yml`, 18 s: 12 items, 11 kept, no feed in error, read by the agent). The IA on-prem guide gives
+the same items with either collector; its manifest names its feeds since
+[pull request #84 of the guide](https://github.com/DamienBecherini/ia-on-prem-vault/pull/84).
 
 ### M4. Any model (0.6.0)
 
