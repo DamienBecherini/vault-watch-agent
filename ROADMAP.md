@@ -353,6 +353,11 @@ the same items with either collector; its manifest names its feeds since
   billed (`metrics/eval/issue77-keyword-m4ref.json`). Of the 11 corrections of the whole-guide run (M1), 4 came from
   the proposals, 7 from the cross-check and 1 from the sweep: on this watch the recall is in the cross-check, the
   long part on a local model. The local replay starts with `keyword` (the proposals, a few minutes of GPU).
+  Local, the same day: Qwen3.6-35B-A3B (llama.cpp, 64k window, RTX 5070 laptop), same watch, same Claude judge:
+  0 proposals, 0 of 9 hunks, 5 min (GPU held 6 min). The triage kept the LiteLLM advisory (4 groups against 5);
+  the proposal step saw that the guide's floor 1.106.5 was below the advisory's 1.106.9, then declined the change as
+  "beyond the scope of the sentence" (`metrics/eval/issue77-keyword-m4qwen.json`). A judgement miss, not a format
+  one: every answer fit the schema.
 - **T4.6 Docs.** "Write an engine" (the protocol, the capabilities, the contract tests, a 100-line example);
   "Choose a model" (what each step needs, what by-chapter loses, the scores).
   "Write an engine" done 2026-11-18 (`docs/write-an-engine.md` and in French; the example, an engine for Ollama's own
