@@ -16,8 +16,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   vLLM, Ollama, LM Studio). Its address, a key by reference, a model per role (the server's list offered), its
   window, structured output by `response_format` with the JSON schema or, when the server refuses it, the schema in
   the instructions and a tolerant reading of the answer; billed per token through the price table, or local and not
-  billed. The context opens the system message, so that a server that caches a prompt's prefix reads the guide from
-  its cache.
+  billed. The context opens the system message, so that a server that caches a prompt's prefix (OpenAI, vLLM,
+  llama.cpp, DeepSeek… automatically) reads the guide from its cache; the tokens it served are counted apart
+  (`cache_read`). Anthropic's OpenAI layer has no cache: the engine says so in its capabilities.
 - Web tools for a model without web of its own (`webtools.py`): search through SearXNG and page reading, run by the
   agent within the API engine's limits (20 searches, 30 pages per call). Only public addresses are read (never the
   machine itself or the local network, checked again after each redirection), the readable text of a page is cut at

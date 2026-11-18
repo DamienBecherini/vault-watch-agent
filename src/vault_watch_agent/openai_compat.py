@@ -150,7 +150,9 @@ class OpenAICompatible(_Journal):
             web="tools" if self.web.can_search else "fetch",
             web_reading="page",
             efforts=("low", "medium", "high") if self.options["effort"] else (),
-            caching=False,
+            # The server's own prefix cache (OpenAI, vLLM, llama.cpp, DeepSeek… automatic; read from cached_tokens);
+            # Anthropic's OpenAI layer has none.
+            caching="api.anthropic.com" not in self.options["base_url"],
             billing="none" if self.options["billing"] == "local" else "token",
         )
 
