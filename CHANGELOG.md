@@ -3,6 +3,14 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- READMEs: the review screen right after the introduction (a new capture, English and French, from the replay of
+  watch #77), a « What this repository shows » section, and the pull requests of the guide as a count (twelve)
+  instead of the first three.
+- Interface: the colon follows the language (" : " in French, ": " in English) in the review
+  cards, the addition leads and the applied corrections.
+
 ## 0.3.1 (2026-11-18)
 
 - The runs made before 0.3.0 stay visible once the IA on-prem guide has its manifest: they belong to that guide

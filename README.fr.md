@@ -33,9 +33,31 @@ page fausse, propose des corrections sourcées, attend une relecture humaine, le
 jour le miroir anglais, lance les contrôles et la vérification des liens du guide puis, après un second accord,
 ouvre la pull request.
 
-Il a produit les pull requests [#51](https://github.com/DamienBecherini/ia-on-prem-vault/pull/51),
-[#53](https://github.com/DamienBecherini/ia-on-prem-vault/pull/53) et
-[#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54) du guide, toutes relues et fusionnées.
+Depuis la 0.3.0, il peut tenir n'importe quel guide en Markdown décrit par un manifeste qui lui est propre :
+voir [Brancher son guide](docs/connect-your-guide.fr.md).
+
+![L'écran de relecture : chaque correction proposée avec sa source, l'avis de la relecture globale et le diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/review.fr.png)
+
+*L'écran de relecture sur une vraie veille du guide (avis de sécurité de LiteLLM) : rien n'est écrit dans le guide
+avant que l'éditeur ait coché les corrections, et rien n'est publié sans un second accord.*
+
+## Ce que montre ce dépôt
+
+- Un `StateGraph` LangGraph sur un état typé (`WatchState`, un `TypedDict` avec des reducers), avec une branche
+  parallèle par groupe d'éléments de veille (`Send`).
+- Deux pauses humaines (`interrupt`, reprises avec `Command`) : la relecture des corrections, puis l'accord pour
+  pousser et ouvrir la pull request. Un checkpointer SQLite garde un passage en pause des jours durant, et un autre
+  processus le reprend (la ligne de commande ou l'interface web).
+- Des sorties structurées : chaque appel au modèle répond dans un modèle Pydantic. Le guide entier (environ 400 k
+  tokens) est lu à travers le cache de prompt.
+- Un journal des coûts, une ligne par appel au modèle ([`metrics/usage.jsonl`](metrics/usage.jsonl)), et une
+  évaluation qui rejoue des veilles passées sur le guide tel qu'il était et note les propositions face à la pull
+  request fusionnée : le 18 novembre 2026, le rejeu de la veille #77 a retrouvé les 11 corrections de
+  [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78), aucune fausse.
+- 124 tests (pytest), une interface web locale (FastAPI) et deux moteurs : Claude Code sur un abonnement Claude, ou
+  l'API Anthropic.
+- Douze pull requests du guide produites par l'agent et fusionnées après relecture, par exemple [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une
+  veille) et [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections issues d'une vérification de tout le guide).
 
 ```mermaid
 flowchart TD
@@ -173,8 +195,6 @@ le cite, le code le retrouve dans la page, et une citation introuvable est signa
 comme le texte du guide. L'interface est en anglais ou en
 français (bascule dans l'en-tête, langue du navigateur par défaut) ; les corrections elles-mêmes sont en
 français, la langue du guide.
-
-![Écran de relecture](docs/review.png)
 
 Les appels au modèle tournent dans un fil d'exécution par run et chaque étape est enregistrée : on peut fermer
 la page, et un run lancé ici peut être repris en ligne de commande. Le serveur n'écoute que sur 127.0.0.1,

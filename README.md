@@ -32,9 +32,30 @@ vendor feeds. This agent does the next step. It decides what makes a page wrong,
 waits for a human review, applies them on a branch, syncs the English mirror, runs the guide's own audits and
 link checks and, after a second go-ahead, opens the pull request.
 
-It produced the pull requests [#51](https://github.com/DamienBecherini/ia-on-prem-vault/pull/51),
-[#53](https://github.com/DamienBecherini/ia-on-prem-vault/pull/53) and
-[#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54) of the guide, all reviewed and merged.
+Since 0.3.0 it can keep any Markdown guide described by a manifest of its own: see
+[Connect your guide](docs/connect-your-guide.md).
+
+![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](docs/review.png)
+
+*The review screen on a real watch of the guide (security advisories of LiteLLM): nothing is written to the guide
+until the editor has ticked the corrections, and nothing is published before a second go-ahead.*
+
+## What this repository shows
+
+- A LangGraph `StateGraph` over a typed state (`WatchState`, a `TypedDict` with reducers), with one parallel branch
+  per group of watch items (`Send`).
+- Two human pauses (`interrupt`, resumed with `Command`): the review of the corrections, then the go-ahead to push
+  and open the pull request. A SQLite checkpointer keeps a paused run for days, and another process resumes it (the
+  command line or the web interface).
+- Structured outputs: every model call answers into a Pydantic model. The whole guide (about 400 k tokens) is read
+  through the prompt cache.
+- A cost journal with one line per model call ([`metrics/usage.jsonl`](metrics/usage.jsonl)), and an evaluation
+  that replays past watches on the guide as it was and scores the proposals against the pull request that was
+  merged: on 18 November 2026, the replay of watch #77 found the 11 corrections of [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78), none wrong.
+- 124 tests (pytest), a local web interface (FastAPI), and two model engines: Claude Code on a Claude subscription,
+  or the Anthropic API.
+- Twelve pull requests of the guide produced by the agent and merged after review, for example [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a
+  watch) and [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections from a verification of the whole guide).
 
 ```mermaid
 flowchart TD
@@ -167,8 +188,6 @@ bell: notifications of the browser when a run waits for you, ends or fails, whil
 its line number: the model quotes it, the code finds it in the page, and a quote it cannot find is shown as such,
 never as the guide's text. The interface is in English or French (toggle in the header, the browser language by default); the
 corrections themselves are in French, the language of the guide.
-
-![Review screen](docs/review.png)
 
 Model calls run in a background thread per run and every step is checkpointed, so the page can be closed
 and a run started here can be resumed from the command line. The server listens on 127.0.0.1 only, refuses

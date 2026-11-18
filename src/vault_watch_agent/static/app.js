@@ -66,7 +66,7 @@ const TEXTS = {
     canClose: "Tu peux fermer la page : l'analyse continue sur le serveur, et l'état est enregistré à chaque étape.",
     progress: (min, cost) => `Démarré il y a ${min} min · coût de ce passage ≈ ${cost}`,
     applyId: id => `Appliquer ${id}`,
-    crossCheck: "Relecture globale", from: "D'après",
+    crossCheck: "Relecture globale", from: "D'après", colon: " : ",
     sourceMissing: "Source à vérifier", leftovers: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
@@ -167,7 +167,7 @@ const TEXTS = {
     canClose: "You can close the page: the analysis goes on in the server, and the state is saved after each step.",
     progress: (min, cost) => `Started ${min} min ago · cost of this run ≈ ${cost}`,
     applyId: id => `Apply ${id}`,
-    crossCheck: "Cross-check", from: "From",
+    crossCheck: "Cross-check", from: "From", colon: ": ",
     sourceMissing: "Source to check", leftovers: n => `Removed values still present, left as they are (${n})`,
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
@@ -407,8 +407,8 @@ function correctionCard(c, r) {
       <div class="header"><b>${c.id}</b><span class="badge ${c.severity}">${c.severity}</span><code>${esc(c.page)}</code>
         ${valid ? "" : `<span class="badge error">${esc(c.check)}</span>`}</div>
       <p>${esc(c.rationale)}</p>
-      ${c.review ? `<p class="muted small">${T.crossCheck} : ${esc(c.review)}</p>` : ""}
-      ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing} : ${esc(c.warning)}</p>` : ""}
+      ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${esc(c.review)}</p>` : ""}
+      ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${esc(c.warning)}</p>` : ""}
       <div class="diff before" lang="fr">${before}</div>
       <div class="diff after" lang="fr">${after}</div>
       <div class="muted small">${T.from} ${sources || "—"}${c.source_url ? ` · ${extLink(c.source_url, "source")}` : ""}</div>
@@ -431,7 +431,7 @@ function viewReview(r, title) {
       ? `<div class="group"><p class="muted small">${T.group(g)}${broken.has(g) ? T.groupLeftOut : ""}</p>${cs.map(c => correctionCard(c, r)).join("")}</div>`
       : correctionCard(cs[0], r)).join("") || `<p class="muted">${T.noCorrection}</p>`}
     <details><summary>${T.leads(r.additions.length)}</summary>
-      <ul>${r.additions.map(a => `<li>${a.url ? extLink(a.url, esc(a.title)) : esc(a.title)} : ${esc(a.reason)}</li>`).join("") || `<li>${T.none}</li>`}</ul></details>
+      <ul>${r.additions.map(a => `<li>${a.url ? extLink(a.url, esc(a.title)) : esc(a.title)}${T.colon}${esc(a.reason)}</li>`).join("") || `<li>${T.none}</li>`}</ul></details>
     <details><summary>${T.noticed(r.findings.length)}</summary>
       <ul>${r.findings.map(f => `<li>${esc(f)}${excerpts(r.finding_excerpts?.[f])}</li>`).join("") || `<li>${T.nothing}</li>`}</ul>
       ${r.findings.length ? `<p class="muted small">${T.noticedHelp}</p>` : ""}</details>
@@ -502,7 +502,7 @@ function viewEnd(r, title) {
     <div class="card"><p>${text}</p>
       ${r.error ? `<p class="error-text">${esc(r.error)}</p>` : ""}
       ${r.status === "stopped" ? `<button class="primary" id="resume">${T.resume}</button>` : ""}</div>
-    ${r.applied.length ? `<p>${T.applied} : ${r.applied.join(", ")}</p>` : ""}
+    ${r.applied.length ? `<p>${T.applied}${T.colon}${r.applied.join(", ")}</p>` : ""}
     ${r.report_path ? `<p class="small"><a href="/api/runs/${encodeURIComponent(r.thread)}/report" target="_blank">${T.report}</a></p>` : ""}`;
   const b = $("#resume");
   if (b) b.onclick = async () => { b.disabled = true; await api(`/api/runs/${encodeURIComponent(r.thread)}/resume`, {}); route(); };
