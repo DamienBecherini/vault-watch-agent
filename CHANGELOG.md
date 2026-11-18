@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased (0.6.0, M4: any model)
+## 0.6.0 (2026-11-18), M4: any model
 
 - Engines are a protocol (`llm.Engine`: `parse`, `capabilities`, optional `count_tokens`) and a registry
   (`llm.engines()`): the Claude API, Claude Code, the OpenAI-compatible server, and any engine another package
