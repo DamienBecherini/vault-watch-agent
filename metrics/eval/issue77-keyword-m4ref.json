@@ -1,0 +1,211 @@
+{
+  "issue": 77,
+  "variant": "keyword",
+  "vault_commit": "60b6ab32af34a8baeaad29482852c9e69a25dcd6",
+  "truth": "89f7d08^..89f7d08",
+  "run_models": [
+    "claude-code:claude-opus-5-5"
+  ],
+  "judge": "claude-code:claude-opus-5-5",
+  "scores": {
+    "truth_hunks": 9,
+    "truth_corrections": 7,
+    "proposals": 3,
+    "recall": 0.333,
+    "recall_corrections": 0.286,
+    "precision": 1.0,
+    "lenient_precision": 1.0,
+    "verdicts": {
+      "matches_truth": 3,
+      "valid_extra": 0,
+      "wrong": 0,
+      "unclear": 0
+    }
+  },
+  "run_cost_usd": 0.0,
+  "judge_cost_usd": 0.0,
+  "judgement": {
+    "hunks": [
+      {
+        "hunk_id": "H1",
+        "kind": "correction",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H2",
+        "kind": "correction",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H3",
+        "kind": "correction",
+        "matched_by": [
+          "C1"
+        ]
+      },
+      {
+        "hunk_id": "H4",
+        "kind": "addition",
+        "matched_by": [
+          "C2"
+        ]
+      },
+      {
+        "hunk_id": "H5",
+        "kind": "correction",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H6",
+        "kind": "correction",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H7",
+        "kind": "correction",
+        "matched_by": [
+          "C3"
+        ]
+      },
+      {
+        "hunk_id": "H8",
+        "kind": "correction",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H9",
+        "kind": "addition",
+        "matched_by": []
+      }
+    ],
+    "proposals": [
+      {
+        "id": "C1",
+        "assessment": "matches_truth",
+        "note": "Adds GHSA-2rwg-2wh4-7c4f (2026-11-12) to litellm.md, with fixed versions 1.106.9/1.108.6/1.109.1, the Azure conditions and the reverse-proxy workaround, as in H3."
+      },
+      {
+        "id": "C2",
+        "assessment": "matches_truth",
+        "note": "New footnote [^10] for GHSA-2rwg-2wh4-7c4f, with the same content as H4."
+      },
+      {
+        "id": "C3",
+        "assessment": "matches_truth",
+        "note": "Adds the Azure advisory and the 1.106.9/1.108.6/1.109.1 floor in local-inference-security.md, matching H7 (no footnote or workaround, and the floor only applies to Azure proxies)."
+      }
+    ]
+  },
+  "truth_hunks": [
+    {
+      "id": "H1",
+      "page": "04-blueprints/scenario-b-sme-appliance.md",
+      "removed": [
+        "4. Pointer les clients (Open WebUI, LiteLLM) vers la nouvelle IP — en versions à jour : LiteLLM ≥ 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 selon sa ligne (avis critique du 2026-10-27 sur les proxys sous licence Enterprise ; deux CVE LiteLLM sont au catalogue KEV de la CISA), et Open WebUI suivi au fil des releases, le projet ayant publié une série d'avis de sécurité de niveau High en septembre 2026 ; ne jamais figer une version[^7]"
+      ],
+      "added": [
+        "4. Pointer les clients (Open WebUI, LiteLLM) vers la nouvelle IP — en versions à jour : LiteLLM ≥ 1.106.9 / 1.108.6 / 1.109.1 selon sa ligne (avis du 2026-11-12 sur les proxys servant un modèle Azure, après l'avis critique du 2026-10-27 sur les proxys sous licence Enterprise ; deux CVE LiteLLM sont au catalogue KEV de la CISA), et Open WebUI suivi au fil des releases, le projet ayant publié une série d'avis de sécurité de niveau High en septembre 2026 ; ne jamais figer une version[^7]"
+      ]
+    },
+    {
+      "id": "H2",
+      "page": "04-blueprints/scenario-b-sme-appliance.md",
+      "removed": [
+        "[^7]: BerriAI, *GHSA-7hp6-4w63-5g45* (escalade `internal_user` → `proxy_admin` → exécution sur l'hôte, CVSS 9.9, corrigé 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1), 2026-09-30 · BerriAI, *GHSA-w4c7-34wj-hqm8* (lecture de fichier non authentifiée sur proxy Enterprise, CVSS 10.0, corrigé 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), 2026-10-27, [https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8). [https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45](https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45) · LiteLLM, *Version Support Policy*. [https://docs.litellm.ai/blog/version-support](https://docs.litellm.ai/blog/version-support) · Open WebUI, *Security Advisories* (série d'avis High publiés les 27–28 septembre 2026), consulté le 2026-10-10. [https://github.com/open-webui/open-webui/security/advisories](https://github.com/open-webui/open-webui/security/advisories)"
+      ],
+      "added": [
+        "[^7]: BerriAI, *GHSA-7hp6-4w63-5g45* (escalade `internal_user` → `proxy_admin` → exécution sur l'hôte, CVSS 9.9, corrigé 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1), 2026-09-30 · BerriAI, *GHSA-w4c7-34wj-hqm8* (lecture de fichier non authentifiée sur proxy Enterprise, CVSS 10.0, corrigé 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), 2026-10-27, [https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8) · BerriAI, *GHSA-2rwg-2wh4-7c4f* (exfiltration de secrets via les paramètres Entra ID d'un modèle Azure, CVSS 7.7, corrigé 1.106.9 / 1.108.6 / 1.109.1), 2026-11-12, [https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f](https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f). [https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45](https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45) · LiteLLM, *Version Support Policy*. [https://docs.litellm.ai/blog/version-support](https://docs.litellm.ai/blog/version-support) · Open WebUI, *Security Advisories* (série d'avis High publiés les 27–28 septembre 2026), consulté le 2026-10-10. [https://github.com/open-webui/open-webui/security/advisories](https://github.com/open-webui/open-webui/security/advisories)"
+      ]
+    },
+    {
+      "id": "H3",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "removed": [
+        "- Ajoute une couche critique à sécuriser : LiteLLM a connu en 2026 une série de failles exploitées, dont trois inscrites au catalogue KEV de la CISA (CVE-2026-42208, CVE-2026-42271, CVE-2026-59822, toutes corrigées à partir de la 1.84.0) et une escalade de privilèges critique (GHSA-7hp6-4w63-5g45, CVSS 9.9, un `internal_user` devient `proxy_admin` puis exécute des commandes sur l'hôte ; corrigée en 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1). Au T4 2026, ne jamais déployer une version antérieure à 1.84.0. La 1.100.4 corrige l'escalade de septembre, mais l'avis critique du 2026-10-27 ne corrige plus que les lignes 1.103 à 1.106 : viser au minimum 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5. C'est impératif avec une licence Enterprise (GHSA-w4c7-34wj-hqm8, CVSS 10.0 : une requête non authentifiée fait lire au proxy un fichier local, par exemple `/proc/self/environ`, et expose `LITELLM_MASTER_KEY` et les clés des providers ; les déploiements open source sans licence ne sont pas concernés). Dans tous les cas, limiter les sorties réseau du proxy aux endpoints des providers et charger la clé maître depuis un gestionnaire de secrets plutôt que depuis l'environnement du processus[^4][^5][^9]."
+      ],
+      "added": [
+        "- Ajoute une couche critique à sécuriser : LiteLLM a connu en 2026 une série de failles exploitées, dont trois inscrites au catalogue KEV de la CISA (CVE-2026-42208, CVE-2026-42271, CVE-2026-59822, toutes corrigées à partir de la 1.84.0) et une escalade de privilèges critique (GHSA-7hp6-4w63-5g45, CVSS 9.9, un `internal_user` devient `proxy_admin` puis exécute des commandes sur l'hôte ; corrigée en 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1). Au T4 2026, ne jamais déployer une version antérieure à 1.84.0. La 1.100.4 corrige l'escalade de septembre, mais l'avis critique du 2026-10-27 ne corrige que les lignes 1.103 à 1.106 (1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), et l'avis du 2026-11-12 (GHSA-2rwg-2wh4-7c4f, gravité haute, CVSS 7.7 : sur un proxy qui sert au moins un modèle `azure/` ou `azure_ai/` sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` défini, un utilisateur authentifié lit les variables d'environnement du proxy, dont `LITELLM_MASTER_KEY`) n'est corrigé qu'en 1.106.9 / 1.108.6 / 1.109.1, la ligne 1.107 n'ayant pas de correctif : au T4 2026, viser au minimum l'une de ces trois versions, ou bloquer en attendant les paramètres Entra ID (`tenant_id`, `client_id`, `client_secret`, `azure_username`, `azure_password`, `azure_scope`) au reverse proxy[^10]. C'est impératif avec une licence Enterprise (GHSA-w4c7-34wj-hqm8, CVSS 10.0 : une requête non authentifiée fait lire au proxy un fichier local, par exemple `/proc/self/environ`, et expose `LITELLM_MASTER_KEY` et les clés des providers ; les déploiements open source sans licence ne sont pas concernés). Dans tous les cas, limiter les sorties réseau du proxy aux endpoints des providers et charger la clé maître depuis un gestionnaire de secrets plutôt que depuis l'environnement du processus[^4][^5][^9]."
+      ]
+    },
+    {
+      "id": "H4",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "removed": [],
+      "added": [
+        "[^10]: BerriAI, *GHSA-2rwg-2wh4-7c4f* (advisory LiteLLM, gravité haute : exfiltration de secrets par un utilisateur authentifié via les paramètres Entra ID d'un modèle `azure/` ou `azure_ai/`, lorsque `AZURE_API_KEY` et `AZURE_OPENAI_API_KEY` ne sont pas définis ; corrigé en 1.106.9 / 1.108.6 / 1.109.1 ; contournement : bloquer les six paramètres au reverse proxy), 2026-11-12. [https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f](https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f)"
+      ]
+    },
+    {
+      "id": "H5",
+      "page": "05-agents-et-assistants-on-prem/fondations-communes/possible-architectures.md",
+      "removed": [
+        "| **LiteLLM + Ollama** | [LiteLLM proxy quickstart](https://docs.litellm.ai/docs/proxy/quick_start) — routage unifié vers un modèle local ; **exigez une version ≥ 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 selon votre ligne** (avis critique du 2026-10-27 sur les proxys sous licence Enterprise) : trois failles LiteLLM figurent au catalogue KEV de la CISA en 2026 et une escalade critique (CVSS 9.9) a été corrigée le 2026-09-30[^2] |"
+      ],
+      "added": [
+        "| **LiteLLM + Ollama** | [LiteLLM proxy quickstart](https://docs.litellm.ai/docs/proxy/quick_start) — routage unifié vers un modèle local ; **exigez une version ≥ 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne** (avis du 2026-11-12 sur les proxys servant un modèle Azure, après l'avis critique du 2026-10-27 sur les proxys sous licence Enterprise) : trois failles LiteLLM figurent au catalogue KEV de la CISA en 2026 et une escalade critique (CVSS 9.9) a été corrigée le 2026-09-30[^2] |"
+      ]
+    },
+    {
+      "id": "H6",
+      "page": "05-agents-et-assistants-on-prem/fondations-communes/possible-architectures.md",
+      "removed": [
+        "[^2]: BerriAI, *GHSA-7hp6-4w63-5g45* (escalade `internal_user` → `proxy_admin` → exécution sur l'hôte, CVSS 9.9, corrigée en 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1), 2026-09-30 ; BerriAI, *GHSA-w4c7-34wj-hqm8* (lecture de fichier non authentifiée sur proxy Enterprise, CVSS 10.0, corrigée en 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), 2026-10-27, [https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8) ; CISA, *Known Exploited Vulnerabilities Catalog* (CVE-2026-42208, CVE-2026-42271, CVE-2026-59822), catalogue daté 2026-10-08. [https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45](https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45) · [https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json](https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json)"
+      ],
+      "added": [
+        "[^2]: BerriAI, *GHSA-7hp6-4w63-5g45* (escalade `internal_user` → `proxy_admin` → exécution sur l'hôte, CVSS 9.9, corrigée en 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1), 2026-09-30 ; BerriAI, *GHSA-w4c7-34wj-hqm8* (lecture de fichier non authentifiée sur proxy Enterprise, CVSS 10.0, corrigée en 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), 2026-10-27, [https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8) ; BerriAI, *GHSA-2rwg-2wh4-7c4f* (exfiltration de secrets via les paramètres Entra ID d'un modèle Azure, CVSS 7.7, corrigée en 1.106.9 / 1.108.6 / 1.109.1), 2026-11-12, [https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f](https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f) ; CISA, *Known Exploited Vulnerabilities Catalog* (CVE-2026-42208, CVE-2026-42271, CVE-2026-59822), catalogue daté 2026-10-08. [https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45](https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45) · [https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json](https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json)"
+      ]
+    },
+    {
+      "id": "H7",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [
+        "> Le gateway concentre clés, routes et outils MCP : trois vulnérabilités critiques ou activement exploitées ont été publiées entre juin et septembre 2026 (CVE-2026-42271 et CVE-2026-59822, toutes deux au catalogue KEV de la CISA ; GHSA-7hp6-4w63-5g45, CVSS 9.9, escalade `internal_user` → admin → exécution sur l'hôte). Au T4 2026 : au minimum 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 selon votre ligne. L'avis critique du 2026-10-27 (GHSA-w4c7-34wj-hqm8, CVSS 10.0 : lecture de fichier non authentifiée qui expose `LITELLM_MASTER_KEY` sur les proxys sous licence Enterprise) ne corrige plus que ces quatre lignes. Appliquez le dernier correctif de votre ligne, limitez les sorties réseau du proxy aux endpoints des providers, désactivez les endpoints MCP s'ils ne servent pas, et ne suivez que les quatre lignes maintenues : une version figée est une version vulnérable[^15][^22]."
+      ],
+      "added": [
+        "> Le gateway concentre clés, routes et outils MCP : trois vulnérabilités critiques ou activement exploitées ont été publiées entre juin et septembre 2026 (CVE-2026-42271 et CVE-2026-59822, toutes deux au catalogue KEV de la CISA ; GHSA-7hp6-4w63-5g45, CVSS 9.9, escalade `internal_user` → admin → exécution sur l'hôte). Au T4 2026 : au minimum 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne (la ligne 1.107 n'a pas de correctif : passer en 1.108.6). L'avis critique du 2026-10-27 (GHSA-w4c7-34wj-hqm8, CVSS 10.0 : lecture de fichier non authentifiée qui expose `LITELLM_MASTER_KEY` sur les proxys sous licence Enterprise) n'était corrigé que sur les lignes 1.103 à 1.106 (1.103.10 / 1.104.8 / 1.105.6 / 1.106.5). L'avis du 2026-11-12 (GHSA-2rwg-2wh4-7c4f, gravité haute, CVSS 7.7 : sur un proxy qui sert au moins un modèle `azure/` ou `azure_ai/` sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` défini, un utilisateur authentifié lit les variables d'environnement du proxy, dont `LITELLM_MASTER_KEY`) n'est corrigé qu'en 1.106.9 / 1.108.6 / 1.109.1 ; en attendant, bloquez au reverse proxy les paramètres Entra ID (`tenant_id`, `client_id`, `client_secret`, `azure_username`, `azure_password`, `azure_scope`)[^23]. Appliquez le dernier correctif de votre ligne, limitez les sorties réseau du proxy aux endpoints des providers, désactivez les endpoints MCP s'ils ne servent pas, et ne suivez que les quatre lignes maintenues : une version figée est une version vulnérable[^15][^22]."
+      ]
+    },
+    {
+      "id": "H8",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [
+        "> vLLM ≥ 0.33.0 (avis du 2 novembre 2026, corrigés en 0.33.0 : arrêt du moteur par un identifiant de token hors vocabulaire sous `--skip-tokenizer-init`, épuisement des ressources du frontend par une requête chargée d'images distantes, lecture d'un répertoire local via la configuration `speculators` d'un dépôt servi ; auparavant RCE via `code_revision`, DoS `/v1/embeddings`, et la vague d'avis High publiée le 9 octobre 2026 : connecteurs KV, bombes de décompression image et vidéo, `prompt_logprobs` ; n'activez pas `--trust-request-mm-kwargs`, qui rouvre ces chemins, devant des clients que vous ne maîtrisez pas ; origines CORS ouvertes par défaut avant la 0.32.0, CVE-2026-115917) · LiteLLM ≥ 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 selon votre ligne (lecture de fichier non authentifiée exposant la clé maître sur proxy Enterprise, CVSS 10.0 ; escalade admin 9.9 ; deux CVE au KEV CISA) · Ollama ≥ 0.31.2 (approbation Bash contournable en mode agent, durcissement GGUF ; CVE-2026-5757, lecture mémoire via import GGUF, sans correctif confirmé par le CERT/CC au 2026-04-22) · Open WebUI ≥ 0.11.4 (publiée le 2026-09-21 : elle corrige les 15 avis publiés les 27 et 28 septembre 2026, dont 4 High ; l'un d'eux ne demande aucun compte, puisque n'importe quel site visité par un utilisateur connecté pouvait voler son jeton de session tant que le partage communautaire, actif par défaut, n'était pas coupé avec `ENABLE_COMMUNITY_SHARING=false` ; la 0.11.1 fermait déjà la SSRF CVE-2026-87996) · llama-server : build à jour et pas de `--sleep-idle-seconds` sur un port exposé. Ces planchers vieillissent en semaines : abonnez-vous aux advisories GitHub de chaque projet[^14][^15][^16][^18][^19][^22]."
+      ],
+      "added": [
+        "> vLLM ≥ 0.33.0 (avis du 2 novembre 2026, corrigés en 0.33.0 : arrêt du moteur par un identifiant de token hors vocabulaire sous `--skip-tokenizer-init`, épuisement des ressources du frontend par une requête chargée d'images distantes, lecture d'un répertoire local via la configuration `speculators` d'un dépôt servi ; auparavant RCE via `code_revision`, DoS `/v1/embeddings`, et la vague d'avis High publiée le 9 octobre 2026 : connecteurs KV, bombes de décompression image et vidéo, `prompt_logprobs` ; n'activez pas `--trust-request-mm-kwargs`, qui rouvre ces chemins, devant des clients que vous ne maîtrisez pas ; origines CORS ouvertes par défaut avant la 0.32.0, CVE-2026-115917) · LiteLLM ≥ 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne (lecture des variables d'environnement, dont la clé maître, via les paramètres Entra ID d'un modèle Azure, CVSS 7.7 ; lecture de fichier non authentifiée sur proxy Enterprise, CVSS 10.0 ; escalade admin 9.9 ; deux CVE au KEV CISA) · Ollama ≥ 0.31.2 (approbation Bash contournable en mode agent, durcissement GGUF ; CVE-2026-5757, lecture mémoire via import GGUF, sans correctif confirmé par le CERT/CC au 2026-04-22) · Open WebUI ≥ 0.11.4 (publiée le 2026-09-21 : elle corrige les 15 avis publiés les 27 et 28 septembre 2026, dont 4 High ; l'un d'eux ne demande aucun compte, puisque n'importe quel site visité par un utilisateur connecté pouvait voler son jeton de session tant que le partage communautaire, actif par défaut, n'était pas coupé avec `ENABLE_COMMUNITY_SHARING=false` ; la 0.11.1 fermait déjà la SSRF CVE-2026-87996) · llama-server : build à jour et pas de `--sleep-idle-seconds` sur un port exposé. Ces planchers vieillissent en semaines : abonnez-vous aux advisories GitHub de chaque projet[^14][^15][^16][^18][^19][^22][^23]."
+      ]
+    },
+    {
+      "id": "H9",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [],
+      "added": [
+        "[^23]: BerriAI, *GHSA-2rwg-2wh4-7c4f* (LiteLLM, gravité haute, CVSS 7.7 : exfiltration de secrets par un utilisateur authentifié via les paramètres Entra ID d'un modèle `azure/` ou `azure_ai/`, lorsque `AZURE_API_KEY` et `AZURE_OPENAI_API_KEY` ne sont pas définis ; corrigé en 1.106.9 / 1.108.6 / 1.109.1 ; contournement : bloquer les six paramètres au reverse proxy), 2026-11-12. [https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f](https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f)",
+        ""
+      ]
+    }
+  ],
+  "proposals": [
+    {
+      "id": "C1",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "current": "La 1.100.4 corrige l'escalade de septembre, mais l'avis critique du 2026-10-27 ne corrige plus que les lignes 1.103 à 1.106 : viser au minimum 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5.",
+      "proposed": "La 1.100.4 corrige l'escalade de septembre, mais l'avis critique du 2026-10-27 ne corrige plus que les lignes 1.103 à 1.106 : viser au minimum 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5. Depuis l'avis du 2026-11-12 (GHSA-2rwg-2wh4-7c4f, sévérité élevée), un proxy qui sert au moins un modèle `azure/` ou `azure_ai/` sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` dans l'environnement doit passer en 1.106.9 / 1.108.6 / 1.109.1 (les lignes 1.103 à 1.105 ne reçoivent pas ce correctif). Sur ces versions, un utilisateur authentifié peut glisser les paramètres Entra ID (`tenant_id`, `client_id`, `client_secret`…) dans le corps de la requête et lire les variables d'environnement du proxy, dont `LITELLM_MASTER_KEY`. En attendant la mise à jour, bloquer ces six paramètres au reverse proxy[^10].",
+      "check": "ok"
+    },
+    {
+      "id": "C2",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "current": "[^9]: BerriAI, *GHSA-w4c7-34wj-hqm8* (advisory LiteLLM critique, CVSS 10.0 : lecture de fichier non authentifiée sur un proxy sous licence Enterprise, exposant `LITELLM_MASTER_KEY` et les clés des providers ; versions affectées < 1.103.10 / < 1.104.8 / < 1.105.6 / < 1.106.5, corrigées en 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 ; open source sans licence non concerné ; recommandations : clé maître dans un gestionnaire de secrets, `LITELLM_SALT_KEY` distinct, sorties réseau limitées aux providers), 2026-10-27. [https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8)",
+      "proposed": "[^9]: BerriAI, *GHSA-w4c7-34wj-hqm8* (advisory LiteLLM critique, CVSS 10.0 : lecture de fichier non authentifiée sur un proxy sous licence Enterprise, exposant `LITELLM_MASTER_KEY` et les clés des providers ; versions affectées < 1.103.10 / < 1.104.8 / < 1.105.6 / < 1.106.5, corrigées en 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 ; open source sans licence non concerné ; recommandations : clé maître dans un gestionnaire de secrets, `LITELLM_SALT_KEY` distinct, sorties réseau limitées aux providers), 2026-10-27. [https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8)\n[^10]: BerriAI, *GHSA-2rwg-2wh4-7c4f* (advisory LiteLLM, sévérité élevée : exfiltration de secrets par un utilisateur authentifié via les paramètres Entra ID Azure `tenant_id`, `client_id`, `client_secret`, `azure_username`, `azure_password` et `azure_scope`, absents de la liste de blocage du corps des requêtes ; concerne les proxys servant un modèle `azure/` ou `azure_ai/` sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` ; corrigé en 1.106.9 / 1.108.6 / 1.109.1 ; contournement : bloquer ces six paramètres au reverse proxy), 2026-11-12. [https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f](https://github.com/BerriAI/litellm/security/advisories/GHSA-2rwg-2wh4-7c4f)",
+      "check": "ok"
+    },
+    {
+      "id": "C3",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "current": "Au T4 2026 : au minimum 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 selon votre ligne.",
+      "proposed": "Au T4 2026 : au minimum 1.103.10 / 1.104.8 / 1.105.6 / 1.106.5 selon votre ligne. Si le proxy sert un modèle Azure (`azure/`, `azure_ai/`) sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` dans l'environnement, passez en 1.106.9 / 1.108.6 / 1.109.1 : l'avis GHSA-2rwg-2wh4-7c4f du 2026-11-12 (sévérité élevée) permet à un utilisateur authentifié de lire les variables d'environnement du proxy, dont `LITELLM_MASTER_KEY`, via les paramètres Entra ID du corps de la requête.",
+      "check": "ok"
+    }
+  ]
+}

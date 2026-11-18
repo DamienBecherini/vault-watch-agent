@@ -348,6 +348,11 @@ the same items with either collector; its manifest names its feeds since
 - **T4.5 Scores.** `vault-watch eval` on the published watches for: the baseline, one hosted model, one local
   model, each whole-guide and by chapter where it applies; the table in the README, the method next to it. An
   engine or a model is listed as "supported" only with a line in that table.
+  2026-11-18: the judge is now a Claude model whatever model ran the watch (`--judge`). Reference by excerpts
+  (`keyword`, no cross-check) on Claude Code, Opus 5.5, watch #77: 3 of 9 hunks, 3 proposals all right, 70 s, nothing
+  billed (`metrics/eval/issue77-keyword-m4ref.json`). Of the 11 corrections of the whole-guide run (M1), 4 came from
+  the proposals, 7 from the cross-check and 1 from the sweep: on this watch the recall is in the cross-check, the
+  long part on a local model. The local replay starts with `keyword` (the proposals, a few minutes of GPU).
 - **T4.6 Docs.** "Write an engine" (the protocol, the capabilities, the contract tests, a 100-line example);
   "Choose a model" (what each step needs, what by-chapter loses, the scores).
   "Write an engine" done 2026-11-18 (`docs/write-an-engine.md` and in French; the example, an engine for Ollama's own
