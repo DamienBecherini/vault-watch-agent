@@ -339,6 +339,8 @@ the same items with either collector; its manifest names its feeds since
   engine or a model is listed as "supported" only with a line in that table.
 - **T4.6 Docs.** "Write an engine" (the protocol, the capabilities, the contract tests, a 100-line example);
   "Choose a model" (what each step needs, what by-chapter loses, the scores).
+  "Write an engine" done 2026-11-18 (`docs/write-an-engine.md` and in French; the example, an engine for Ollama's own
+  API in `examples/engines/`, passes the contract tests); "Choose a model" waits for the scores.
 
 Done when: the sample guide and the IA on-prem guide run end to end on the OpenAI-compatible engine with a
 hosted model; the triage, the proposals and the mirror run on a local model; the scores are published.

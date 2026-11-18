@@ -154,3 +154,40 @@ class OpenAIAdapter:
 
 def test_the_openai_compatible_engine_keeps_the_contract(tmp_path):
     check_engine(OpenAIAdapter(), tmp_path)
+
+
+# -- the example of docs/write-an-engine.md: Ollama's own API ----------------------------------------------------
+
+def _ollama(scenario: str) -> dict:
+    content = {"valid": json.dumps({"facts": FACTS}), "invalid": '{"facts": "not a list"}',
+               "refusal": "I can't help with that.", "truncated": '{"facts": ["vLLM'}[scenario]
+    return {"model": "qwen3.6", "message": {"role": "assistant", "content": content}, "done": True,
+            "done_reason": "length" if scenario == "truncated" else "stop", "prompt_eval_count": 1200, "eval_count": 300}
+
+
+class OllamaAdapter:
+    def __init__(self):
+        import importlib.util
+        from pathlib import Path
+
+        path = Path(__file__).parents[1] / "examples" / "engines" / "ollama_engine.py"
+        spec = importlib.util.spec_from_file_location("ollama_engine", path)
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+
+    def make(self, scenario, journal):
+        def handle(request):
+            assert request.url.path == "/api/chat" and json.loads(request.content)["format"]["type"] == "object"
+            return httpx.Response(200, json=_ollama(scenario))
+
+        http = httpx.Client(transport=httpx.MockTransport(handle), base_url="http://ollama.test")
+        return self.module.Ollama("qwen3.6", {}, journal, http=http)
+
+    def saw_web(self):
+        return False
+
+
+def test_the_example_engine_of_the_docs_keeps_the_contract(tmp_path):
+    adapter = OllamaAdapter()
+    check_engine(adapter, tmp_path)
+    assert adapter.module.KIND.name == "ollama" and adapter.module.KIND.check({})["context"] == 32768

@@ -25,6 +25,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   steps that check on the web say so (`steps.lacks`: « search »).
 - Settings: the engine « OpenAI-compatible server » and its options; the cost shown before an action says « local
   model, not billed » or « billed by your provider » instead of a Claude estimate. Model ids of any form can be priced.
+- `docs/write-an-engine.md` (and in French): the protocol, the capabilities, declaring an engine, the contract tests;
+  its example, an engine for Ollama's own API in 90 lines (`examples/engines/ollama_engine.py`), passes them.
 - The list of Claude models no longer fails with an HTTP 500 when no API key is set (the SDK raises a TypeError
   there): the Settings say why and offer the models the agent knows. The « Guide » category names the `feeds` watch
   source (missing since 0.5.0).

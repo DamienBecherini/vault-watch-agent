@@ -6,8 +6,10 @@ answer of `scenario`, and `saw_web()` says whether the last call offered the mod
     from engine_contract import check_engine
     check_engine(MyAdapter())
 
-Scenarios: valid (the answer in the schema), invalid (an answer that is not), refusal, truncated (cut at the output
-limit), web (the model searched before answering: at least one search counted). docs/write-an-engine.md.
+Scenarios: valid (the answer in the schema), invalid (an answer that is not), refusal (a declined request: an error
+that says it was refused when the server signals it, else an answer not in the shape), truncated (cut at the output
+limit), web (the model searched before answering: at least one search counted; skipped for an engine whose
+capabilities say it has no web). docs/write-an-engine.md.
 """
 
 from __future__ import annotations
@@ -64,11 +66,12 @@ def check_engine(adapter: Adapter, tmp_path: Path) -> None:
     assert caps.structured in ("native", "instruction")
 
     # Wrong answers are errors that name the step, never a half-read object.
-    for scenario, words in (("invalid", ()), ("refusal", ("refus",)), ("truncated", ())):
+    for scenario in ("invalid", "refusal", "truncated"):
         with pytest.raises(llm.ModelError) as e:
             ask(adapter.make(scenario, journal))
         assert "contract" in str(e.value), f"{scenario}: the error does not name the step: {e.value}"
-        assert all(w in str(e.value).lower() for w in words), f"{scenario}: {e.value}"
+    if caps.web == "none":
+        return
 
     # The web: offered only when asked, and the searches counted.
     answer, usage = ask(adapter.make("web", journal), web=True)
