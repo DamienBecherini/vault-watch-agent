@@ -398,6 +398,12 @@ Done 2026-11-18, published as 0.6.0.
     text documented.
   - To see in a run: whether the cross-check, which reads the whole guide, keeps to the brief and leaves the
     testimonials alone.
+  First run the same day (API engine, Opus 5.5, 23 s, 0.09 $): the triage kept the two high n8n advisories and
+  dropped the rest as the brief says; the proposal step judged them outside the uses the guide describes (a
+  single person's n8n, not a multi-user instance) and left the testimonials alone. It also said why it could not
+  have written a line anyway: `03-outils/depuis.md` was not among the excerpts, so it had no text to replace. That
+  is the second gap above, seen in a run: a target page must reach the proposal step whatever the keywords say.
+  No correction, so no cross-check: the first point stays to be seen.
 - **T5.2 Freeze.** Manifest schema 1, `watch.json` schema 1, engine protocol 1: a change after that is a new
   schema number with a migration. The settings file gets its own number and its migrations.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes
