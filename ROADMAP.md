@@ -67,7 +67,19 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 - [ ] **E7. Dead links fixed by a fix run.** The weekly source audit (warn-only today) feeds `vault-watch fix`:
   find the moved page or an equivalent primary source on the web; tell a real 404 from an anti-bot 403 with the
   API's web fetch. First case: the OpenHuman architecture README (404).
-- [ ] **E5. Yield per source.** From past reports, leads per accepted addition; drop the feeds that never pay.
+- [x] **E5. Yield per source** (2026-11-19: the « Sources » page, `sources.py`). From the watches and the runs
+  kept on the machine, per feed: collected, kept by the rules, judged and kept by the model, corrections proposed
+  and accepted, and a verdict by rule. Dropping a feed stays the editor's decision.
+  Next, asked for on 2026-11-19 (the maintainer): question the sources over time from the interface.
+  - [ ] **« Check the sources »**: ask each source itself (free, network): is it alive, when did it last publish,
+    is the repository archived or renamed, does the feed type still fit (Aider no longer publishes GitHub
+    releases). Proposals to remove (dead, noise, a tool the guide no longer mentions) and to add (repositories
+    and Hugging Face authors the guide cites and no feed follows, E3), reviewed, then a pull request on
+    `feeds.json`.
+  - [ ] **A « watched page » feed type**: a page whose change is an event (a price list the guide cites). The
+    Lambda prices of 16 November 2026 were not seen by any feed; the maintainer reported them by hand.
+  - [ ] **« Look for what is new »** (E4, then D1 to D4): a run that reads the whole guide and the web and lists
+    what a reader would expect and does not find, the cost announced before.
 
 ## Phase F — publication and interface
 

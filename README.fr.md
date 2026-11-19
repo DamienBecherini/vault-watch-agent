@@ -147,7 +147,7 @@ vault-watch serve --notify fr         # notification Windows quand un passage vo
 Un écran par étape : la liste des veilles avec leur état, un passage en cours (chaque étape terminée envoyée à la
 page), la relecture (une carte par correction avec un diff mot à mot, ses sources et le verdict de la relecture
 croisée), l'étape de publication (contrôles, liens en défaut, le diff de la branche), puis la pull request. D'autres
-pages signalent des erreurs à corriger, vérifient tout le guide à la demande avec une estimation de son coût, et
+pages montrent ce que chaque source de la veille a apporté et ce qu'il en est sorti ([quelles sources méritent leur place](docs/collect.fr.md#quelles-sources-méritent-leur-place)), signalent des erreurs à corriger, vérifient tout le guide à la demande avec une estimation de son coût, et
 montrent ce que coûte l'entretien. L'interface est en français ou en anglais. Un passage lancé ici peut être repris
 en ligne de commande, et l'inverse. Le serveur n'écoute que sur 127.0.0.1 ([Sécurité](docs/security.fr.md)).
 

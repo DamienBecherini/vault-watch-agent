@@ -14,7 +14,28 @@ let source = null;  // EventSource of the run being followed
 // --- Languages ---------------------------------------------------------------------------------------
 const TEXTS = {
   fr: {
-    nav: { watches: "Veilles", check: "Vérifier le guide", report: "Signaler une erreur", costs: "Coûts" },
+    nav: { watches: "Veilles", sources: "Sources", check: "Vérifier le guide", report: "Signaler une erreur", costs: "Coûts" },
+    sources: {
+      title: "Sources de la veille",
+      intro: (p, runs, file) => `Ce que chaque source a apporté sur ${p.watches} veille(s), du ${p.since || "…"} au ${p.until}, et ce qu'il en est sorti dans ${runs} passage(s). Calculé sans modèle, à partir des veilles et des passages gardés sur cette machine. La liste est dans <code>${file}</code>.`,
+      none: "Ce guide ne déclare pas de liste de sources (<code>[watch] feeds</code> dans son manifeste).",
+      noHistory: "Aucune veille n'a encore été lue sur cette machine : le tableau se remplira avec les premières.",
+      columns: ["Source", "Type", "Dernier élément", "Collectés", "Gardés au tri", "Jugés par le modèle", "Retenus", "Corrections proposées", "acceptées", "État"],
+      help: ["Collectés : éléments distincts vus dans les veilles.", "Gardés au tri : après les règles du collecteur (pré-versions, correctifs de routine écartés), sans modèle.",
+        "Jugés par le modèle : ceux qu'un passage a triés.", "Retenus : jugés utiles pour une correction ou un ajout."],
+      verdicts: { error: "en erreur", noise: "bruit", silent: "muette", quiet: "peu d'éléments", leads: "pistes sans suite", useful: "utile" },
+      rules: (n, share) => ({
+        error: "le collecteur n'a pas pu la lire à la dernière veille",
+        noise: `au moins ${n} éléments jugés par le modèle, ${Math.round(share * 100)} % au plus retenus, aucune correction proposée`,
+        silent: "aucun élément sur toute la période : source morte, ou sujet qui ne publie rien (seule la source peut le dire)",
+        leads: "des éléments retenus par le modèle, aucune correction n'en est sortie",
+        quiet: "quelques éléments, rien de retenu : trop peu pour juger",
+        useful: "au moins une correction proposée ou un candidat à l'ajout",
+      }),
+      insurance: "faille de sécurité : se juge sur sa santé, jamais sur son rendement",
+      removed: n => `${n} source(s) présentes dans les veilles ne sont plus dans la liste :`,
+      count: (n, label) => `${n} ${label}`,
+    },
     links: ["Guide", "Dépôt du guide", "Code de l'agent", "Claude API"],
     verif: {
       title: "Vérifier le guide",
@@ -126,7 +147,28 @@ const TEXTS = {
     subscription: "abonnement, non facturé", local: "modèle local, non facturé", provider: "facturé par ton fournisseur",
   },
   en: {
-    nav: { watches: "Watches", check: "Check the guide", report: "Report an error", costs: "Costs" },
+    nav: { watches: "Watches", sources: "Sources", check: "Check the guide", report: "Report an error", costs: "Costs" },
+    sources: {
+      title: "Sources of the watch",
+      intro: (p, runs, file) => `What each source brought over ${p.watches} watch(es), from ${p.since || "…"} to ${p.until}, and what came out of it in ${runs} run(s). Computed without a model, from the watches and the runs kept on this machine. The list is in <code>${file}</code>.`,
+      none: "This guide declares no list of sources (<code>[watch] feeds</code> in its manifest).",
+      noHistory: "No watch has been read on this machine yet: the table fills with the first ones.",
+      columns: ["Source", "Type", "Last item", "Collected", "Kept by the rules", "Judged by the model", "Kept", "Corrections proposed", "accepted", "State"],
+      help: ["Collected: distinct items seen in the watches.", "Kept by the rules: after the collector's rules (pre-releases, routine patches dropped), no model.",
+        "Judged by the model: those a run has triaged.", "Kept: judged useful for a correction or an addition."],
+      verdicts: { error: "in error", noise: "noise", silent: "silent", quiet: "few items", leads: "leads without follow-up", useful: "useful" },
+      rules: (n, share) => ({
+        error: "the collector could not read it in the latest watch",
+        noise: `at least ${n} items judged by the model, ${Math.round(share * 100)} % at most kept, no correction proposed`,
+        silent: "no item over the whole period: a dead source, or a subject that publishes nothing (only the source can tell)",
+        leads: "items kept by the model, no correction came out of them",
+        quiet: "a few items, none kept: too few to judge",
+        useful: "at least one correction proposed or one addition candidate",
+      }),
+      insurance: "security advisories: judged on its health, never on its yield",
+      removed: n => `${n} source(s) found in the watches are no longer in the list:`,
+      count: (n, label) => `${n} ${label}`,
+    },
     links: ["Guide", "Guide repository", "Agent code", "Claude API"],
     verif: {
       title: "Check the guide",
@@ -314,6 +356,7 @@ async function route() {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
     else if (h === "/check") await viewChecks();
+    else if (h === "/sources") await viewSources();
     else if (h === "/report") viewReport();
     else if (h === "/costs") await viewCosts();
     else await viewWatches();
@@ -724,6 +767,38 @@ function viewReport() {
 }
 
 // --- Costs -------------------------------------------------------------------------------------------------
+// --- Sources of the watch ----------------------------------------------------------------------------
+const SOURCE_ORDER = ["error", "noise", "silent", "leads", "quiet", "useful"];  // what to look at first
+const SOURCE_CLASS = { error: "error", noise: "attention", silent: "attention", leads: "neutral", quiet: "neutral", useful: "ok" };
+
+async function viewSources() {
+  const s = await api("/api/sources"), S = T.sources;
+  if (location.hash.slice(1) !== "/sources") return;  // left the page meanwhile
+  if (!s.file) { page.innerHTML = `<h1>${S.title}</h1><p class="subtitle">${S.none}</p>`; return; }
+  const rules = S.rules(s.noise_min, s.noise_share);
+  const by = v => s.feeds.filter(f => f.verdict === v);
+  const cell = n => `<td class="number">${n || ""}</td>`;
+  const rows = s.feeds.slice().sort((a, b) => SOURCE_ORDER.indexOf(a.verdict) - SOURCE_ORDER.indexOf(b.verdict)
+    || b.collected - a.collected || a.id.localeCompare(b.id));
+  page.innerHTML = `
+    <h1>${S.title}</h1>
+    <p class="subtitle">${s.period.watches ? S.intro(s.period, s.runs, esc(s.file)) : S.noHistory}</p>
+    <ul class="small cfg-list">${SOURCE_ORDER.filter(v => by(v).length).map(v =>
+      `<li><span class="badge ${SOURCE_CLASS[v]}">${S.count(by(v).length, S.verdicts[v])}</span> ${rules[v]}</li>`).join("")}</ul>
+    <div class="card"><table>
+      <thead><tr>${S.columns.map((c, i) => `<th${i > 2 && i < 9 ? ' class="number"' : ""}>${c}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(f => `<tr>
+        <td><b>${esc(f.id)}</b><div class="muted small">${f.url ? extLink(f.url, esc(f.target)) : esc(f.target)}</div></td>
+        <td class="small">${esc(f.type)}${f.tier ? ` · ${esc(f.tier)}` : ""}</td>
+        <td class="small">${esc(f.last_item) || "—"}</td>
+        ${cell(f.collected)}${cell(f.kept)}${cell(f.judged)}${cell(f.useful)}${cell(f.proposed)}${cell(f.accepted)}
+        <td><span class="badge ${SOURCE_CLASS[f.verdict]}" title="${esc(rules[f.verdict])}">${S.verdicts[f.verdict]}</span>${
+          f.insurance ? ` <span class="muted small" title="${esc(S.insurance)}">🛡</span>` : ""}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <p class="muted small">${S.help.join(" ")} 🛡 ${S.insurance}.</p>
+    ${s.removed.length ? `<p class="muted small">${S.removed(s.removed.length)} ${s.removed.map(r => `<code>${esc(r.id)}</code> (${r.items})`).join(", ")}</p>` : ""}`;
+}
+
 async function viewCosts() {
   const c = await api("/api/costs");
   const number = n => n.toLocaleString(lang);

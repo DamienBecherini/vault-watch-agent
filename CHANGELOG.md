@@ -5,6 +5,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- « Sources » page (`sources.py`, `GET /api/sources`): for each feed of the guide's `feeds.json`, what it brought
+  over the watches kept on the machine and what became of it in the runs (kept by the rules, judged and kept by
+  the model, corrections proposed and accepted), with the verdict of a stated rule: in error, noise, silent,
+  leads without follow-up, few items, useful. No model, no network. Security advisories are never called noise.
+  A run's items now keep the feed they come from. First reading on the IA on-prem guide (6 watches, 25 September
+  to 16 November 2026, 63 feeds): 7 feeds led to an accepted correction, all of them releases or advisories of a
+  tool; 16 gave no item, among them the releases of Aider, whose last GitHub release is of August 2025.
 - A check of the guide that a stopped server left unfinished could not be handled: dismissing its leads or sending
   them to a fix run answered « the check is still running », for ever. Its leads are now handled like those of a
   finished check; the page says it was interrupted and which checks it did not reach; a check can be deleted.

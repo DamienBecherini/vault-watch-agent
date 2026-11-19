@@ -39,7 +39,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, forge, inputs, llm, prices, steps, vault, verify
+from . import costs, fix, forge, inputs, llm, prices, sources, steps, vault, verify
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
 
@@ -656,6 +656,31 @@ def create_app(settings: Settings) -> FastAPI:
     def costs_view():
         entries = costs.load(settings.journal)
         return {**{by: costs.rows(entries, by) for by in ("month", "run")}, "origins": costs.origins(entries)}
+
+    # -- the sources of the watch (sources.py): what each feed brought, from the watches and runs kept here ----
+    outcomes: dict[str, tuple[str, dict]] = {}  # thread -> (its last checkpoint, what became of each item)
+
+    def watch_outcomes() -> list[dict]:
+        """What became of the items of each watch run; a run is read again only when it has moved."""
+        if not db.exists():
+            return []
+        with sqlite3.connect(db) as c:
+            try:
+                rows = c.execute("SELECT thread_id, MAX(checkpoint_id) FROM checkpoints GROUP BY thread_id").fetchall()
+            except sqlite3.OperationalError:
+                return []
+        found = []
+        for thread, last in rows:
+            if thread.startswith("eval-"):  # a replay of a watch already counted
+                continue
+            if outcomes.get(thread, ("",))[0] != last:
+                outcomes[thread] = (last, sources.run_outcomes(viewer.get_state(config(thread)).values))
+            found.append(outcomes[thread][1])
+        return found
+
+    @app.get("/api/sources")
+    def sources_view():
+        return sources.summary(vault.guide_of(settings.vault), settings.home, watch_outcomes())
 
     # -- health check of the guide (verify.py): one JSON file per verification ---------------------
     verifs = settings.home / "verifications"

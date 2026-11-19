@@ -101,6 +101,35 @@ Le fichier des planchers :
 Le fichier des éléments déjà vus peut avoir n'importe quel format : chaque adresse `http(s)://` qu'il contient
 compte. Un tableau des éléments déjà triés convient.
 
+## Quelles sources méritent leur place
+
+La page « Sources » de l'interface (`GET /api/sources`) montre, pour chaque flux de `feeds.json`, ce qu'il a
+apporté et ce qu'il en est sorti. Rien n'est demandé à un modèle ni au réseau : le tableau est calculé à partir des
+veilles gardées sur la machine (chaque élément nomme son flux) et des passages faits à partir d'elles.
+
+| Colonne | Ce qu'elle compte |
+| :-- | :-- |
+| Collectés | les éléments distincts vus dans les veilles (leurs fenêtres se recouvrent : un élément compte une fois) |
+| Gardés au tri | ceux que le tri préalable a gardés, avant tout modèle |
+| Jugés par le modèle | ceux qu'un passage a triés |
+| Retenus | ceux que le modèle a retenus pour une correction ou comme candidat à un ajout |
+| Corrections proposées, acceptées | les corrections qui citent un élément du flux, et celles que le relecteur a acceptées |
+
+Chaque flux reçoit le verdict d'une règle, que la page énonce :
+
+| Verdict | Règle |
+| :-- | :-- |
+| en erreur | le collecteur n'a pas pu le lire à la dernière veille |
+| bruit | au moins 10 éléments jugés par le modèle, un sur dix au plus retenu, aucune correction proposée |
+| muette | aucun élément sur toute la période : source morte, ou sujet qui ne publie rien |
+| pistes sans suite | des éléments retenus par le modèle, aucune correction n'en est sortie |
+| peu d'éléments | quelques éléments, rien de retenu : trop peu pour juger |
+| utile | au moins une correction proposée, ou un candidat à l'ajout |
+
+Un flux de failles de sécurité est une assurance : son silence est une bonne nouvelle, et il n'est jamais classé en
+bruit. Les verdicts disent où regarder, ils ne décident rien : retirer ou ajouter un flux reste une modification de
+`feeds.json`, par une pull request du guide.
+
 ## Chaque semaine, sur GitHub
 
 Le workflow réutilisable [`collect.yml`](../.github/workflows/collect.yml) fait la collecte sur GitHub. Il installe

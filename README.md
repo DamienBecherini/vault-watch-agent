@@ -144,7 +144,8 @@ vault-watch serve --notify en         # Windows notification when a run waits fo
 
 One screen per step: the list of watches with their status, a run in progress (each finished step streamed to the
 page), the review (one card per correction with a word-level diff, its sources and the cross-check's verdict), the
-publish step (checks, link problems, the diff of the branch), then the pull request. Other pages report errors to
+publish step (checks, link problems, the diff of the branch), then the pull request. Other pages show what each source of the watch
+brought and what became of it ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)), report errors to
 fix, check the whole guide on demand with an estimate of its cost, and show what the upkeep costs. The interface is
 in English or French. A run started here can be resumed from the command line, and the reverse. The server listens
 on 127.0.0.1 only ([Security](docs/security.md)).

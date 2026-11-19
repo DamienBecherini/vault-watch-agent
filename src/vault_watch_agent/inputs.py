@@ -83,6 +83,7 @@ def load_items(watch_json: Path) -> tuple[list[dict], str]:
     items = [
         {
             "id": f"W{n}",
+            "feed": i.get("feed", ""),
             "domain": i.get("domain", ""),
             "tier": i.get("tier", ""),
             "title": i.get("title", ""),

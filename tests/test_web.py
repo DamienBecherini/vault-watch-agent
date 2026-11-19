@@ -118,6 +118,16 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
     assert c.get(f"/api/verifications/{vid}").json()["handled"][finding]["thread"] == thread  # linked to its fix run
 
 
+def test_the_sources_page_counts_what_a_run_did_with_the_items(client):
+    c, watch = client
+    s = c.get("/api/sources").json()
+    assert s["file"] == "" and s["feeds"] == []  # the test guide declares no feeds: the page says so
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=ACT).json()["thread"]
+    wait(c, thread)
+    assert c.get("/api/sources").json()["runs"] == 1  # the run is read; a second call reads it from memory
+    assert c.get("/api/sources").json()["runs"] == 1
+
+
 def test_the_review_says_when_the_rest_of_a_free_run_would_be_billed(client, monkeypatch):
     c, watch = client
     monkeypatch.setenv("VAULT_WATCH_ENGINE", "api")  # the settings now name a billed engine

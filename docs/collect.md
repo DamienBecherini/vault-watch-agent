@@ -99,6 +99,35 @@ The floors file:
 The seen file can be in any format: each `http(s)://` address it contains counts. A table of the items you already
 triaged works.
 
+## Which sources earn their place
+
+The « Sources » page of the interface (`GET /api/sources`) shows, for each feed of `feeds.json`, what it brought
+and what became of it. Nothing is asked of a model or of the network: the table is computed from the watches kept
+on the machine (each item names its feed) and from the runs made from them.
+
+| Column | What it counts |
+| :-- | :-- |
+| Collected | distinct items seen in the watches (their windows overlap: an item counts once) |
+| Kept by the rules | those the pre-triage kept, before any model |
+| Judged by the model | those a run has triaged |
+| Kept | those the model kept for a correction or as an addition candidate |
+| Corrections proposed, accepted | corrections that cite an item of the feed, and those the reviewer accepted |
+
+Each feed gets the verdict of a rule, which the page states:
+
+| Verdict | Rule |
+| :-- | :-- |
+| in error | the collector could not read it in the latest watch |
+| noise | at least 10 items judged by the model, one in ten at most kept, no correction proposed |
+| silent | no item over the whole period: a dead source, or a subject that publishes nothing |
+| leads without follow-up | items kept by the model, no correction came out of them |
+| few items | a few items, none kept: too few to judge |
+| useful | at least one correction proposed, or one addition candidate |
+
+A feed of security advisories is insurance: its silence is good news, and it is never called noise. The verdicts
+are where to look, not decisions: removing or adding a feed stays an edit of `feeds.json`, through a pull request
+of the guide.
+
 ## Every week, on GitHub
 
 The reusable workflow [`collect.yml`](../.github/workflows/collect.yml) does the collection on GitHub. It installs
