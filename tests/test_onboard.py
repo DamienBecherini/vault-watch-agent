@@ -101,3 +101,12 @@ def test_cli_init_and_doctor(folder, tmp_path, monkeypatch, capsys):
         cli.main(["--guide", str(folder), "doctor"])  # repository named, gh missing
     assert stop.value.code == 1
     assert "gh is not installed" in capsys.readouterr().out
+
+
+def test_doctor_names_a_gitea_forge(folder, tmp_path):
+    (folder / MANIFEST).write_text('schema = 1\n[guide]\nname = "G"\nrepository = "owner/guide"\nforge = "gitea"\n'
+                                   'forge_url = "http://gitea.test:3100"\n[content]\nlanguage = "fr"\n',
+                                   encoding="utf-8")
+    lines = {line.label: line for line in onboard.diagnose(folder, tmp_path / "home", gh_check=False)}
+    assert "GitHub" not in lines  # gh is not needed
+    assert lines["Gitea"].status == "ok" and lines["Gitea"].detail == "owner/guide on http://gitea.test:3100"

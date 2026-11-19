@@ -5,6 +5,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased (M5: stable)
 
+- Gitea forge: a guide on a Gitea server says so in its manifest (`[guide] forge = "gitea"`, `forge_url`, and
+  `forge_token`, a reference to the token: `env:GITEA_TOKEN` by default, or `sops:file#NAME`, `file:path`). The
+  agent then reads the watch issues, downloads the Actions artifacts (Gitea 1.23 or later), opens the pull request
+  and follows its state through the Gitea API; the branch is pushed by git as before. `doctor` checks the
+  repository with the token; the interface names the forge and links the repository on it. GitHub is unchanged.
 - Manifest: `[content] readonly`, pages the agent reads but never edits (generated pages, dated statements): a
   correction on one is refused (`read-only`), whatever step proposes it (proposals, cross-check, sweep, fixes), and
   every prompt is told. `[watch] changes_page`, a page where a watch records changes as dated lines: every proposal

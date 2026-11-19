@@ -91,7 +91,7 @@ const SETTINGS_TEXTS = {
       modified: "Date de modification", modifiedOn: f => `champ <code>${f}</code> mis à jour par une correction`,
       modifiedOff: "les dates des pages ne changent pas",
       watch: "Veille", watchSources: { none: "vérifications et erreurs signalées seulement",
-        "github-issue": w => `issues GitHub d'étiquette « ${w.label || "veille"} »`, file: w => `fichier <code>${w.path}</code>`, feeds: w => `collectée par l'agent depuis <code>${w.feeds}</code>` },
+        "github-issue": w => `issues ${w.forge} d'étiquette « ${w.label || "veille"} »`, file: w => `fichier <code>${w.path}</code>`, feeds: w => `collectée par l'agent depuis <code>${w.feeds}</code>` },
       brief: "Consignes de veille", policy: "Politique de traduction", rulesOff: "celles de l'agent s'appliquent",
       audits: "Contrôles du guide", claims: "Affirmations datées", sources: "Audit des sources", floors: "Versions minimales",
       checkOff: "« non vérifié » à chaque passage, jamais un échec",
@@ -180,7 +180,7 @@ const SETTINGS_TEXTS = {
       modified: "Modified date", modifiedOn: f => `field <code>${f}</code> updated by a correction`,
       modifiedOff: "the dates of the pages do not change",
       watch: "Watch", watchSources: { none: "checks and reported errors only",
-        "github-issue": w => `GitHub issues labelled « ${w.label || "veille"} »`, file: w => `file <code>${w.path}</code>`, feeds: w => `collected by the agent from <code>${w.feeds}</code>` },
+        "github-issue": w => `${w.forge} issues labelled « ${w.label || "veille"} »`, file: w => `file <code>${w.path}</code>`, feeds: w => `collected by the agent from <code>${w.feeds}</code>` },
       brief: "Watch brief", policy: "Translation policy", rulesOff: "the agent's own apply",
       audits: "Guide audits", claims: "Dated claims", sources: "Source audit", floors: "Version floors",
       checkOff: "« not checked » in every run, never a failure",
@@ -250,14 +250,14 @@ function guidePage(g) {
     ${row(G.name, esc(g.name))}
     ${g.description ? row(G.about, esc(g.description)) : ""}
     ${row(G.language, `${esc(g.language_name)} · ${G.pages(g.pages)}`)}
-    ${row(G.repository, g.repository ? code(g.repository) : `<span class="muted">${G.local}</span>`)}
+    ${row(G.repository, g.repository ? code(g.repository) + (g.forge === "gitea" ? ` · ${esc(g.forge_url)}` : "") : `<span class="muted">${G.local}</span>`)}
     ${g.site ? row(G.site, extLink(g.site, esc(g.site))) : ""}
     ${row(G.base, code(g.base_branch))}
     <h3 class="cfg-sub">${G.parts}</h3>
     <ul class="small cfg-list">
       ${g.mirrors.length ? g.mirrors.map(m => part(G.mirror, true, G.mirrorOn({ ...m, folder: esc(m.folder) }))).join("") : part(G.mirror, false, "", G.mirrorOff)}
       ${part(G.modified, !!g.modified_field, G.modifiedOn(esc(g.modified_field)), G.modifiedOff)}
-      ${part(G.watch, w.source !== "none", typeof src === "function" ? src({ label: esc(w.label), path: esc(w.path), feeds: esc(w.feeds || "") }) : "", G.watchSources.none)}
+      ${part(G.watch, w.source !== "none", typeof src === "function" ? src({ label: esc(w.label), path: esc(w.path), feeds: esc(w.feeds || ""), forge: g.forge === "gitea" ? "Gitea" : "GitHub" }) : "", G.watchSources.none)}
       ${part(G.brief, !!g.rules.brief, code(g.rules.brief), G.rulesOff)}
       ${part(G.policy, !!g.rules.translation_policy, code(g.rules.translation_policy), G.rulesOff)}
       ${part(G.audits, !!g.checks.audits, code(g.checks.audits), G.checkOff)}

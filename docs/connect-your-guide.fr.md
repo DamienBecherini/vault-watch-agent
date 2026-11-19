@@ -69,7 +69,10 @@ frappe ne doit pas désactiver une partie sans rien dire.
 | :-- | :-- | :-- |
 | `name` | oui | Le nom du guide, dans l'interface et dans les consignes du modèle. |
 | `description` | non | Le sujet du guide, en une phrase. Elle entre dans les consignes : le modèle juge la pertinence d'après elle. |
-| `repository` | non | `propriétaire/nom` sur GitHub. Sans lui, le guide est local : aucune issue lue, aucune pull request, la branche d'un passage reste sur votre machine. |
+| `repository` | non | `propriétaire/nom` sur la forge (GitHub, sauf si `forge` en nomme une autre). Sans lui, le guide est local : aucune issue lue, aucune pull request, la branche d'un passage reste sur votre machine. |
+| `forge` | non | Où se trouve `repository` : `github` (par défaut, par `gh`, authentifié par `gh auth login`) ou `gitea` (par l'API de Gitea, avec un jeton). |
+| `forge_url` | avec `gitea` | L'adresse du serveur Gitea, par exemple `https://gitea.example.org` ou `http://192.168.1.10:3000`. |
+| `forge_token` | non | Gitea : où se trouve le jeton, sous forme de référence, jamais le jeton lui-même : `env:NOM` (par défaut `env:GITEA_TOKEN`), `sops:fichier#NOM` ou `file:chemin`. Il lui faut le droit `repository` en écriture pour ouvrir les pull requests, et le droit `issue` (en écriture) pour une veille `github-issue`. Un jeton Gitea vaut pour tous les dépôts que son compte peut atteindre : donnez à l'agent un compte à lui, collaborateur du seul dépôt du guide. |
 | `site` | non | Le site publié, lié depuis l'interface. |
 | `base_branch` | non | La branche d'où partent les passages et que visent les pull requests (`main` par défaut). |
 
@@ -91,7 +94,7 @@ D'où viennent les éléments d'une veille.
 | `source` | Avec | Ce que lit l'agent |
 | :-- | :-- | :-- |
 | `none` (défaut) | | Pas de veille : l'agent vérifie le guide et corrige seulement les erreurs signalées. |
-| `github-issue` | `label` (`veille` par défaut), `artifact` (`weekly-watch` par défaut) | Les issues ouvertes de `repository` qui portent cette étiquette. Le corps de l'issue contient le lien du run du workflow qui a collecté la veille (`.../actions/runs/<id>`) ; les éléments sont le `watch.json` de l'artefact `artifact` de ce run. |
+| `github-issue` | `label` (`veille` par défaut), `artifact` (`weekly-watch` par défaut) | Les issues ouvertes de `repository` qui portent cette étiquette, sur sa forge (GitHub ou Gitea ; les artefacts des Actions de Gitea demandent Gitea 1.23 ou plus récent). Le corps de l'issue contient le lien du run du workflow qui a collecté la veille (`.../actions/runs/<id>`) ; les éléments sont le `watch.json` de l'artefact `artifact` de ce run. |
 | `file` | `path` | Un `watch.json` du guide, ou un dossier qui en contient (un par veille, listés du plus récent au plus ancien dans l'interface, chacun avec sa fenêtre et ses éléments retenus ; un fichier qui ne respecte pas le format est listé avec ce qui ne va pas). Aussi tout fichier donné en ligne de commande (`vault-watch run --watch-json`). |
 | `feeds` | `feeds` | Les veilles que l'agent a collectées depuis les flux du guide (`vault-watch collect`, ou le bouton « Collecter une veille » de l'interface), rangées dans le dossier de travail du guide. |
 
@@ -159,7 +162,7 @@ chapitres peut alors échapper. Sans plafond : la fenêtre du modèle décide.
 
 | Sans | L'agent |
 | :-- | :-- |
-| `repository` | travaille en local : pas d'issue, pas de pull request, pas de lien vers GitHub. |
+| `repository` | travaille en local : pas d'issue, pas de pull request, pas de lien vers la forge. |
 | `mirrors` | n'a pas d'étape de traduction ni de contrôle des traductions. |
 | `modified_field` | laisse les dates des pages telles quelles. |
 | `[watch]` | vérifie le guide et corrige les erreurs que vous signalez (`vault-watch fix`, « Vérifier le guide » dans l'interface). |

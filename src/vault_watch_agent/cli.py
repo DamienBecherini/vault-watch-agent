@@ -68,6 +68,9 @@ def use_guide(option: str | None) -> None:
         guide = vault.guide_of(VAULT)
     except GuideError as e:
         sys.exit(f"vault-watch: {e}")
+    from . import forge
+
+    forge.use(forge.for_guide(guide))  # GitHub, or the Gitea server the manifest names
     CONFIG_HOME.mkdir(parents=True, exist_ok=True)
     HOME = working_folder(CONFIG_HOME, guide)
 

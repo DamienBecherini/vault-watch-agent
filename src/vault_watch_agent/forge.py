@@ -1,20 +1,31 @@
-"""Where the guide's repository lives: issues, workflow artifacts, pull requests. Only GitHub is written (through
-the `gh` command line); a Gitea or GitLab forge is a class with the same methods.
+"""Where the guide's repository lives: issues, workflow artifacts, pull requests. Two forges: GitHub (through the
+`gh` command line) and Gitea (through its REST API, with a token). The manifest chooses (`[guide] forge`); another
+forge (GitLab…) is a class with the same methods.
 
-    forge = get()                                   # GitHub through gh
+    use(for_guide(guide))                           # the guide's forge, for the rest of the process
+    forge = get()
     forge.issues("owner/guide", label="veille")     # the watch issues, newest first
     forge.open_pull_request("owner/guide", base="main", head="chore/watch-x", title=..., body=..., cwd=worktree)
+
+The branch itself is pushed by git (`git push origin`), with the user's own access (ssh key or credential helper):
+the forge only opens the pull request.
 """
 
 from __future__ import annotations
 
+import io
 import json
+import re
 import shutil
 import subprocess
+import zipfile
 from pathlib import Path
 from typing import Protocol
+from urllib.parse import quote, urlsplit
 
 from . import inputs
+
+FORGES = ("github", "gitea")
 
 
 class Forge(Protocol):
@@ -69,6 +80,134 @@ class GitHub:
     def pull_request_state(self, url: str) -> str:
         """open, merged or closed."""
         return inputs.run(["gh", "pr", "view", url, "--json", "state", "--jq", ".state"]).strip().lower()
+
+
+class ForgeError(RuntimeError):
+    pass
+
+
+class Gitea:
+    """A Gitea server through its REST API (`/api/v1`). The token is given by reference (env:NAME, sops:file#NAME or
+    file:path, as the API key of the settings) and read on the first call; it needs the repository scope in writing
+    (pull requests) and the issue scope in writing (to close a watch issue), on the guide's repository only if the
+    account allows it (a dedicated account, collaborator of that repository alone)."""
+
+    name = "Gitea"
+
+    def __init__(self, url: str, token: str = "env:GITEA_TOKEN", client=None):
+        self.url = url.rstrip("/")
+        self.token_ref = token
+        self._token: str | None = None
+        self._client = client  # an httpx.Client (tests give one with a mock transport)
+
+    # -- HTTP
+
+    def _http(self):
+        if self._client is None:
+            import httpx
+
+            self._client = httpx.Client(timeout=60, follow_redirects=True)
+        return self._client
+
+    def _headers(self) -> dict:
+        if self._token is None:
+            from .config import ConfigError, resolve_key
+
+            try:
+                self._token = resolve_key(self.token_ref)
+            except ConfigError as e:
+                raise ForgeError(f"Gitea token ({self.token_ref}): {e}") from e
+        headers = {"Accept": "application/json"}
+        if self._token:
+            headers["Authorization"] = f"token {self._token}"
+        return headers
+
+    def _call(self, method: str, path: str, *, json_body: dict | None = None, params: dict | None = None,
+              raw: bool = False):
+        url = f"{self.url}/api/v1{path}"
+        try:
+            r = self._http().request(method, url, headers=self._headers(), json=json_body, params=params)
+        except Exception as e:  # httpx.HTTPError, an unreachable server
+            raise ForgeError(f"Gitea {self.url} cannot be reached ({type(e).__name__})") from e
+        if r.status_code >= 400:
+            detail = ""
+            try:
+                detail = str(r.json().get("message") or "")
+            except ValueError:
+                pass
+            hint = " (check the token: [guide] forge_token)" if r.status_code in (401, 403) else ""
+            raise ForgeError(f"Gitea {method} {path}: {r.status_code} {detail[:300]}{hint}".rstrip())
+        if raw:
+            return r.content
+        return r.json() if r.content else None
+
+    @staticmethod
+    def _repo(repo: str) -> str:
+        owner, _, name = repo.partition("/")
+        return f"/repos/{quote(owner, safe='')}/{quote(name, safe='')}"
+
+    # -- Forge
+
+    def can_read(self, repo: str) -> tuple[bool, str]:
+        try:
+            self._call("GET", self._repo(repo))
+        except ForgeError as e:
+            return False, f"{e} (check [guide] repository, forge_url and forge_token)"
+        return True, f"{repo} on {self.url}"
+
+    def issues(self, repo: str, label: str, limit: int = 12) -> list[dict]:
+        """{number, title, state (open|closed), date, labels, body}, newest first."""
+        found = self._call("GET", f"{self._repo(repo)}/issues",
+                           params={"state": "all", "type": "issues", "labels": label, "limit": limit}) or []
+        found = sorted(found, key=lambda i: i.get("created_at") or "", reverse=True)[:limit]
+        return [{"number": i["number"], "title": i["title"], "state": (i.get("state") or "").lower(),
+                 "date": (i.get("created_at") or "")[:10], "labels": [lab["name"] for lab in i.get("labels") or []],
+                 "body": i.get("body") or ""} for i in found]
+
+    def issue_body(self, repo: str, number: int) -> str:
+        return (self._call("GET", f"{self._repo(repo)}/issues/{int(number)}") or {}).get("body") or ""
+
+    def close_issue(self, repo: str, number: int, comment: str) -> None:
+        self._call("POST", f"{self._repo(repo)}/issues/{int(number)}/comments", json_body={"body": comment})
+        self._call("PATCH", f"{self._repo(repo)}/issues/{int(number)}", json_body={"state": "closed"})
+
+    def download_artifact(self, repo: str, run_id: str, name: str, dest: Path) -> None:
+        """The artifact `name` of the Actions run `run_id`, unzipped into `dest` (Gitea 1.23 or later)."""
+        listed = self._call("GET", f"{self._repo(repo)}/actions/runs/{int(run_id)}/artifacts") or {}
+        match = [a for a in listed.get("artifacts") or [] if a.get("name") == name]
+        if not match:
+            raise ForgeError(f"Gitea: no artifact {name!r} in the run {run_id} of {repo}")
+        data = self._call("GET", f"{self._repo(repo)}/actions/artifacts/{int(match[0]['id'])}/zip", raw=True)
+        dest = Path(dest)
+        dest.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            for member in z.infolist():
+                target = (dest / member.filename).resolve()
+                if not target.is_relative_to(dest.resolve()):  # a name with ../ never writes outside dest
+                    raise ForgeError(f"Gitea: the artifact {name!r} holds a path outside its folder")
+            z.extractall(dest)
+
+    def open_pull_request(self, repo: str, *, base: str, head: str, title: str, body: str, cwd: Path) -> str:
+        pr = self._call("POST", f"{self._repo(repo)}/pulls",
+                        json_body={"base": base, "head": head, "title": title, "body": body})
+        return pr.get("html_url") or f"{self.url}/{repo}/pulls/{pr['number']}"
+
+    def pull_request_state(self, url: str) -> str:
+        """open, merged or closed, from the pull request's web address (…/owner/name/pulls/N)."""
+        m = re.search(r"/([^/]+)/([^/]+)/pulls/(\d+)/?$", urlsplit(url).path)
+        if not m:
+            raise ForgeError(f"Gitea: {url} is not a pull request address")
+        pr = self._call("GET", f"{self._repo(m.group(1) + '/' + m.group(2))}/pulls/{m.group(3)}") or {}
+        if pr.get("merged"):
+            return "merged"
+        return (pr.get("state") or "").lower()
+
+
+def for_guide(guide) -> Forge:
+    """The forge the manifest names ([guide] forge, forge_url, forge_token): GitHub unless it says gitea."""
+    if getattr(guide, "forge", "github") == "gitea":
+        return Gitea(guide.forge_url, guide.forge_token or "env:GITEA_TOKEN")
+    return GitHub()
 
 
 _forge: Forge = GitHub()

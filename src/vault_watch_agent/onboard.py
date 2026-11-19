@@ -254,8 +254,16 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
     else:
         out.append(Line("ok", "git", f"branch {guide.base_branch}"))
 
-    needs_gh = bool(guide.repository) or guide.watch.source == "github-issue"
-    if needs_gh:
+    needs_forge = bool(guide.repository) or guide.watch.source == "github-issue"
+    if needs_forge and guide.forge == "gitea":
+        if gh_check:
+            from . import forge
+
+            ok, detail = forge.for_guide(guide).can_read(guide.repository)
+            out.append(Line("ok" if ok else "fail", "Gitea", detail))
+        else:
+            out.append(Line("ok", "Gitea", f"{guide.repository} on {guide.forge_url}"))
+    elif needs_forge:
         if not shutil.which("gh"):
             out.append(Line("fail", "GitHub", "gh is not installed: it opens the pull requests and reads the issues"))
         elif gh_check:

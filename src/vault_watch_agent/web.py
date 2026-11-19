@@ -143,6 +143,7 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
 def create_app(settings: Settings) -> FastAPI:
     guide = vault.guide_of(settings.vault)  # the repository and the site shown, unless given
     settings.repo, settings.site = settings.repo or guide.repository, settings.site or guide.site
+    forge.use(forge.for_guide(guide))  # GitHub, or the Gitea server the manifest names
     settings.home.mkdir(parents=True, exist_ok=True)
     cfg_home = settings.config_home or settings.home  # the user's settings
     db = settings.home / "checkpoints.sqlite"
@@ -193,13 +194,13 @@ def create_app(settings: Settings) -> FastAPI:
     MESSAGES = {
         "fr": {"review": ("Relecture à faire", "{n} correction(s) proposée(s) : à toi de trancher."),
                "publish": ("Publication à valider", "Corrections appliquées et contrôlées : la PR attend ton feu vert."),
-               "pr": ("Pull request ouverte", "À relire et fusionner sur GitHub."),
+               "pr": ("Pull request ouverte", "À relire et fusionner sur {forge}."),
                "nothing-applied": ("Passage clos", "Aucune correction appliquée."),
                "error": ("Passage interrompu", "Erreur : {error}"),
                "verif": ("Vérification terminée", "{n} piste(s) à traiter."), "verif-error": ("Vérification interrompue", "{error}")},
         "en": {"review": ("Review pending", "{n} correction(s) proposed: your call."),
                "publish": ("Publish pending", "Corrections applied and checked: the PR waits for your go-ahead."),
-               "pr": ("Pull request opened", "To review and merge on GitHub."),
+               "pr": ("Pull request opened", "To review and merge on {forge}."),
                "nothing-applied": ("Run closed", "No correction applied."),
                "error": ("Run stopped", "Error: {error}"),
                "verif": ("Check finished", "{n} lead(s) to handle."), "verif-error": ("Check stopped", "{error}")},
@@ -217,7 +218,7 @@ def create_app(settings: Settings) -> FastAPI:
             n, page = s["corrections"], f"#/run/{job.thread}"
         if key not in MESSAGES["en"]:
             return
-        texts = {lang: {"title": f"vault-watch · {job.thread} · {m[key][0]}", "body": m[key][1].format(n=n, error=job.error[:150])}
+        texts = {lang: {"title": f"vault-watch · {job.thread} · {m[key][0]}", "body": m[key][1].format(n=n, error=job.error[:150], forge=forge.get().name)}
                  for lang, m in MESSAGES.items()}
         with lock:
             notices.append({"id": len(notices) + 1, "t": time.time(), "thread": job.thread, "key": key, "page": page, **texts})
@@ -348,11 +349,19 @@ def create_app(settings: Settings) -> FastAPI:
             return "none" if (cfg["engines"].get("openai") or {}).get("billing") == "local" else "token"
         return "token"
 
+    def forge_repo_url() -> str:
+        """The repository's web page on its forge ("" for a local guide)."""
+        if not settings.repo:
+            return ""
+        base = guide.forge_url if guide.forge == "gitea" else "https://github.com"
+        return f"{base}/{settings.repo}"
+
     @app.get("/api/info")
     def info():
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
                 "billing": billing_now(),
-                "guide": guide.name, "watch_source": guide.watch.source,
+                "guide": guide.name, "watch_source": guide.watch.source, "forge": forge.get().name,
+                "repo_url": forge_repo_url(),
                 "version": _version()}
 
     # -- settings of the user (config.py): engine, reference to the API key, models -----------------

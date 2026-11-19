@@ -59,7 +59,10 @@ class Guide:
     root: Path
     name: str
     language: str
-    repository: str = ""            # owner/name on GitHub: issues and pull requests; "" = local only
+    repository: str = ""            # owner/name on the forge: issues and pull requests; "" = local only
+    forge: str = "github"           # where the repository is: github (through gh) or gitea (its API)
+    forge_url: str = ""             # the Gitea server (http(s)://host[:port]); "" for GitHub
+    forge_token: str = ""           # Gitea: where its token is, a reference (env:NAME, sops:file#NAME, file:path)
     description: str = ""           # what the guide is about, one sentence, for the prompts
     site: str = ""
     base_branch: str = "main"
@@ -102,8 +105,9 @@ class Guide:
         """What the guide provides, for the interface (read-only): its parts, and the ones it lacks."""
         rel = lambda p: p.relative_to(self.root).as_posix() if p and p.is_relative_to(self.root) else (str(p) if p else "")  # noqa: E731
         return {"name": self.name, "description": self.description, "language": self.language,
-                "language_name": language_name(self.language), "repository": self.repository, "site": self.site,
-                "base_branch": self.base_branch, "pages": len(self.pages()),
+                "language_name": language_name(self.language), "repository": self.repository, "forge": self.forge,
+                "forge_url": self.forge_url, "site": self.site, "base_branch": self.base_branch,
+                "pages": len(self.pages()),
                 "mirrors": [{"language": c, "language_name": language_name(c), "folder": f}
                             for c, f in sorted(self.mirrors.items())],
                 "modified_field": self.modified_field or "", "readonly": list(self.readonly),
@@ -123,7 +127,7 @@ class Guide:
 
 _KEYS = {
     "": {"schema", "guide", "content", "watch", "rules", "checks", "budget"},
-    "guide": {"name", "description", "repository", "site", "base_branch"},
+    "guide": {"name", "description", "repository", "forge", "forge_url", "forge_token", "site", "base_branch"},
     "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page"},
     "rules": {"brief", "translation_policy"},
@@ -165,6 +169,7 @@ def parse(data: dict, root: Path) -> Guide:
     repository = _text(g, "guide", "repository")
     if repository and repository.count("/") != 1:
         raise GuideError(f"[guide] repository = {repository!r}: expected owner/name")
+    forge, forge_url, forge_token = _forge(g)
     mirrors = c.get("mirrors", {})
     if not isinstance(mirrors, dict) or not all(isinstance(v, str) and v.endswith("/") for v in mirrors.values()):
         raise GuideError('[content] mirrors: a table of language = "folder/" (the folder ends with /)')
@@ -198,8 +203,8 @@ def parse(data: dict, root: Path) -> Guide:
         raise GuideError(f"[watch] changes_page = {watch.changes_page!r} is read-only ([content] readonly): the watch "
                          "could not write to it")
     return Guide(
-        root=root, name=name, language=language, repository=repository, site=_text(g, "guide", "site"),
-        description=_text(g, "guide", "description"),
+        root=root, name=name, language=language, repository=repository, forge=forge, forge_url=forge_url,
+        forge_token=forge_token, site=_text(g, "guide", "site"), description=_text(g, "guide", "description"),
         base_branch=_text(g, "guide", "base_branch") or "main",
         include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()), readonly=readonly,
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
@@ -272,6 +277,27 @@ def working_folder(home: Path, guide: Guide) -> Path:
 
 
 # -- helpers ------------------------------------------------------------------------------------------------
+def _forge(g: dict) -> tuple[str, str, str]:
+    """[guide] forge, forge_url, forge_token, checked: a Gitea forge needs its address; a token is a reference."""
+    from .forge import FORGES
+
+    forge = (_text(g, "guide", "forge") or "github").lower()
+    if forge not in FORGES:
+        raise GuideError(f"[guide] forge = {forge!r}: one of {', '.join(FORGES)}")
+    url, token = _text(g, "guide", "forge_url").rstrip("/"), _text(g, "guide", "forge_token")
+    if forge == "github":
+        if url or token:
+            raise GuideError("[guide] forge_url and forge_token are for a Gitea forge (forge = \"gitea\"): GitHub "
+                             "goes through gh, authenticated by `gh auth login`")
+        return forge, "", ""
+    if not re.fullmatch(r"https?://[^\s/]+(/[^\s]*)?", url):
+        raise GuideError('[guide] forge = "gitea" needs forge_url, the address of the server (http(s)://host[:port])')
+    if token and not token.startswith(("env:", "sops:", "file:")):
+        raise GuideError("[guide] forge_token: a reference to where the token is (env:NAME, sops:file#NAME or "
+                         "file:path), never the token itself")
+    return forge, url, token or "env:GITEA_TOKEN"
+
+
 def _text(table: dict, name: str, key: str, required: bool = False) -> str:
     value = table.get(key, "")
     if not isinstance(value, str):

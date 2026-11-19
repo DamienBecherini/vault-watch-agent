@@ -418,6 +418,12 @@ Done 2026-11-18, published as 0.6.0.
   cross-check » is to decide before the freeze. Decided 2026-11-19 (the maintainer): no, the cross-check keeps
   its full reading, coherence first; a guide that wants a lighter run excludes pages. Moving tags: dropped at
   pre-triage since `882aa4a`, `exclude` documented.
+  The forge: Gitea written before the freeze (decided 2026-11-19), so that the manifest keys are in schema 1.
+  `[guide] forge = "gitea"`, `forge_url`, `forge_token` (a reference: env:, sops:, file:); `Gitea` in `forge.py`
+  implements the seven methods through the REST API (httpx), the branch still pushed by git. Tested against a fake
+  server, and read on the maintainer's Gitea (the repository found; the issues refused to a token without the
+  `issue` scope, with that message). A Gitea token is valid on every repository its account reaches (no
+  per-repository token as in GitLab): the docs advise an account of its own for the agent.
 - **T5.2 Freeze.** Manifest schema 1, `watch.json` schema 1, engine protocol 1: a change after that is a new
   schema number with a migration. The settings file gets its own number and its migrations.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes

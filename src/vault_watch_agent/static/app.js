@@ -55,8 +55,8 @@ const TEXTS = {
       links: "Vérification des liens", publish: "Push et pull request",
     },
     watches: "Veilles",
-    watchesIntro: "Une veille est publiée par GitHub tous les 15 jours. L'agent l'analyse, tu relis ses propositions, puis il ouvre la pull request.",
-    analyse: c => `Analyser · ${c}`, merge: "Fusionner sur GitHub",
+    watchesIntro: () => `Une veille est publiée par ${forgeName()} tous les 15 jours. L'agent l'analyse, tu relis ses propositions, puis il ouvre la pull request.`,
+    analyse: c => `Analyser · ${c}`, merge: () => `Fusionner sur ${forgeName()}`,
     buttons: { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
     issue: open => `issue ${open ? "ouverte" : "fermée"}`, watchFile: n => n == null ? "fichier de veille" : `fichier de veille, ${n} élément(s) retenu(s)`,
@@ -95,8 +95,8 @@ const TEXTS = {
     keepLocal: "Terminer (branche gardée en local)",
     confirmNo: "Garder la branche en local sans pull request ?",
     end: {
-      published: pr => `Pull request : ${pr}. Une fois relue et fusionnée sur GitHub, le site se redéploie tout seul.`,
-      "pr-open": pr => `Pull request à relire et fusionner sur GitHub : ${pr}. Le site se redéploie tout seul après la fusion.`,
+      published: pr => `Pull request : ${pr}. Une fois relue et fusionnée sur ${forgeName()}, le site se redéploie tout seul.`,
+      "pr-open": pr => `Pull request à relire et fusionner sur ${forgeName()} : ${pr}. Le site se redéploie tout seul après la fusion.`,
       merged: pr => `Terminé : la ${pr} est fusionnée et le site redéployé.`,
       "pr-closed": pr => `La ${pr} a été fermée sans fusion.`,
       "nothing-applied": () => "Aucune correction appliquée : le passage est clos.",
@@ -162,8 +162,8 @@ const TEXTS = {
       links: "Link checks", publish: "Push and pull request",
     },
     watches: "Watches",
-    watchesIntro: "GitHub publishes a watch every two weeks. The agent analyses it, you review its proposals, then it opens the pull request.",
-    analyse: c => `Analyse · ${c}`, merge: "Merge on GitHub",
+    watchesIntro: () => `${forgeName()} publishes a watch every two weeks. The agent analyses it, you review its proposals, then it opens the pull request.`,
+    analyse: c => `Analyse · ${c}`, merge: () => `Merge on ${forgeName()}`,
     buttons: { review: "Review", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
     issue: open => `issue ${open ? "open" : "closed"}`, watchFile: n => n == null ? "watch file" : `watch file, ${n} item(s) kept`,
@@ -202,8 +202,8 @@ const TEXTS = {
     keepLocal: "Finish (branch kept locally)",
     confirmNo: "Keep the branch locally, without a pull request?",
     end: {
-      published: pr => `Pull request: ${pr}. Once reviewed and merged on GitHub, the site redeploys by itself.`,
-      "pr-open": pr => `Pull request to review and merge on GitHub: ${pr}. The site redeploys by itself after the merge.`,
+      published: pr => `Pull request: ${pr}. Once reviewed and merged on ${forgeName()}, the site redeploys by itself.`,
+      "pr-open": pr => `Pull request to review and merge on ${forgeName()}: ${pr}. The site redeploys by itself after the merge.`,
       merged: pr => `Done: the ${pr} is merged and the site redeployed.`,
       "pr-closed": pr => `The ${pr} was closed without merging.`,
       "nothing-applied": () => "No correction applied: the run is closed.",
@@ -253,6 +253,7 @@ async function api(path, body) {
 
 // --- Header -------------------------------------------------------------------------------------------
 let info = null;
+const forgeName = () => info?.forge || "GitHub";  // where the pull requests are merged
 const CLAUDE_BILLING = "https://platform.claude.com/settings/billing";  // API credits left (the API engine spends them)
 // What a paid action costs: its estimate on the API, nothing on Claude Code with a subscription (info.engine)
 const onSubscription = () => info?.engine === "claude-code";
@@ -263,7 +264,7 @@ const cost = usd => onSubscription() ? T.subscription : info?.billing === "none"
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
-  const links = info ? [info.site, info.repo && `https://github.com/${info.repo}`, info.agent, CLAUDE_BILLING]
+  const links = info ? [info.site, info.repo_url, info.agent, CLAUDE_BILLING]
     .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
   $("#external").innerHTML = links;
   $("#footer").textContent = info?.version ? `vault-watch ${info.version}` : "";
@@ -317,14 +318,14 @@ async function viewWatches() {
   const [watches, others] = await Promise.all([api("/api/watches"), api("/api/runs")]);
   page.innerHTML = `
     <h1>${T.watches}</h1>
-    <p class="subtitle">${info?.watch_source === "feeds" ? T.collectIntro : T.watchesIntro}</p>
+    <p class="subtitle">${info?.watch_source === "feeds" ? T.collectIntro : T.watchesIntro()}</p>
     ${info?.watch_source === "feeds" ? `<p><button id="collect">${T.collectNow}</button></p>` : ""}
     ${watches.map(v => {
       const r = v.run, link = `#/run/${encodeURIComponent(r.thread)}`;
       const action = r.status === "closed" ? ""
         : v.error ? ""
         : r.status === "new" ? `<button class="primary" data-analyse="${esc(v.id)}" data-kind="${v.kind}">${T.analyse(cost("≈ 4 $"))}</button>`
-        : r.status === "pr-open" ? extLink(r.pr_url, `<button class="primary">${T.merge}</button>`)
+        : r.status === "pr-open" ? extLink(r.pr_url, `<button class="primary">${T.merge()}</button>`)
         : `<a href="${link}"><button${["review", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
             T.buttons[r.status] || T.details}</button></a>`;
       return `<div class="card row${FINISHED.includes(r.status) ? " finished" : ""}">
@@ -610,7 +611,7 @@ async function viewCheck(id) {
       <div class="card row${FINISHED.includes(run.status) ? " finished" : ""}"><div class="grow"><b>${esc(t)}</b>
         ${run.pr_url ? `<div class="muted small">${extLink(run.pr_url, run.pr_url)}</div>` : ""}</div>
         ${badge(run.status)}
-        ${run.status === "pr-open" ? extLink(run.pr_url, `<button class="primary">${T.merge}</button>`)
+        ${run.status === "pr-open" ? extLink(run.pr_url, `<button class="primary">${T.merge()}</button>`)
           : `<a href="#/run/${encodeURIComponent(t)}"><button${["review", "publish"].includes(run.status) ? ' class="primary"' : ""}>${
             T.buttons[run.status] || T.details}</button></a>`}</div>`).join("")}` : ""}
     ${v.checks.map(c => {
