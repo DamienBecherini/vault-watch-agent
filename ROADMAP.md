@@ -72,14 +72,14 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 ## Phase F — publication and interface
 
 - [ ] Tools exposed through MCP (LangChain MCP adapters), so the same graph can be driven from Claude Code.
-- [ ] **OpenAI-compatible engine** (OpenAI, Mistral, a local model behind vLLM, llama.cpp or Ollama): a third class
+- [x] **OpenAI-compatible engine** (OpenAI, Mistral, a local model behind vLLM, llama.cpp or Ollama): a third class
   with the same `parse`, structured output by `response_format`, models listed by `GET /v1/models`, the key as a
   reference like the others. Two limits to solve before it can run every step: the web (the cross-check and the
   checks need a search and a page reader: the provider's own web tool where it has one, else tools the agent runs
   itself, a search API such as SearXNG, Brave or Tavily plus a fetch of the page) and the context (the
   cross-check holds the whole guide, about 430 k tokens: few models take it, almost no local one; it would need
   excerpts instead, as the proposals already use). The triage, the proposals and the English mirror need neither.
-- [ ] **Another guide than this one.** The agent is written for the IA on-prem guide: its path (`VAULT_PATH`) can
+- [x] **Another guide than this one.** The agent is written for the IA on-prem guide: its path (`VAULT_PATH`) can
   change, but the GitHub repository and the site are fixed in the code, and it relies on what the guide provides:
   the watch issues (label `veille`) and their `weekly-watch` artifact, the brief `.agents/skills/vault-watch/brief.md`
   and the translation policy, `scripts/run-audits.mjs`, the version floors, the freshness watchlist, French pages
