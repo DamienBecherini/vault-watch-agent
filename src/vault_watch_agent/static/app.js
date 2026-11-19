@@ -852,11 +852,11 @@ async function viewSources() {
     return `${p.state === "stale" ? "" : esc(p.last) || "—"}${note ? `<div class="${p.state === "stale" ? "muted" : "error-text"} small">${note}</div>` : ""}`;
   };
   const what = f => esc(f.repo || f.author || f.url || f.name || "");
-  const proposal = p => {
+  const proposal = (p, group) => {
     const done = p.applied;
     const ticked = SOURCE_TICKS[p.id] ?? p.recommended;
     return `<li${done ? ' class="handled"' : ""}><label>${done ? `<span class="badge ok">${S.applied}</span>`
-      : `<input type="checkbox" data-proposal="${p.id}"${ticked ? " checked" : ""}>`} <span><b>${esc(p.feed.id)}</b>
+      : `<input type="checkbox" data-proposal="${p.id}" data-group="${group}"${ticked ? " checked" : ""}>`} <span><b>${esc(p.feed.id)}</b>
       <span class="muted">(${esc(p.feed.type || "rss")}${what(p.feed) ? `, ${what(p.feed)}` : ""})</span> : ${esc(S.why[p.why](p))}${
       p.recommended && !done ? ` <span class="badge neutral">${S.recommended}</span>` : ""}${
       done?.pr_url ? ` ${extLink(done.pr_url, "PR")}` : ""}</span></label></li>`;
@@ -878,11 +878,13 @@ async function viewSources() {
     ${check ? `<h2>${S.proposals(check.proposals.length)}</h2>
       ${last ? `<p class="small">${S.appliedTo(esc(last.branch), last.pr_url ? extLink(last.pr_url, esc(last.pr_url)) : "")}</p>` : ""}
       ${groups.length ? groups.map(([g, list]) => `<details class="card foldable"${g === "advisories" ? "" : " open"}>
-        <summary class="header"><b>${S.groups[g]}</b> <span class="badge neutral">${list.length}</span></summary>
-        <ul class="leads">${list.map(proposal).join("")}</ul></details>`).join("") : `<p class="muted">${S.noProposals}</p>`}
+        <summary class="header"><b>${S.groups[g]}</b> <span class="badge neutral">${list.length}</span>${
+          list.some(p => !p.applied) ? ` <button class="small-button" data-tick-group="${g}">${T.verif.tickCard(list.filter(p => !p.applied).length)}</button>` : ""}</summary>
+        <ul class="leads">${list.map(p => proposal(p, g)).join("")}</ul></details>`).join("") : `<p class="muted">${S.noProposals}</p>`}
       <p class="muted small">${S.staleNote(check.stale_days)}</p>
       ${view.error ? `<p class="error-text">${esc(view.error)}</p>` : ""}
-      ${check.proposals.some(p => !p.applied) ? `<div class="bar"><button class="primary" id="apply"></button></div>` : ""}` : ""}
+      ${check.proposals.some(p => !p.applied) ? `<div class="bar"><button id="all">${T.verif.tickAll}</button><button id="nothing">${T.verif.untickAll}</button>
+        <button class="primary" id="apply"></button></div>` : ""}` : ""}
     <ul class="small filters">
       <li><button class="badge neutral${view.states.size ? " dim" : ""}" data-state="" aria-pressed="${!view.states.size}">${S.all(s.feeds.length)}</button> ${S.filterHelp}</li>
       ${SOURCE_ORDER.filter(v => by(v).length).map(v => `<li><button class="badge ${SOURCE_CLASS[v]}${view.states.size && !view.states.has(v) ? " dim" : ""}"
@@ -924,7 +926,15 @@ async function viewSources() {
       const n = boxes.filter(b => b.checked).length;
       if ($("#apply")) { $("#apply").textContent = S.apply(n, s.repository); $("#apply").disabled = n === 0 || busy; }
     };
+    const tick = (list, on) => { list.forEach(b => { b.checked = on; SOURCE_TICKS[b.dataset.proposal] = on; }); count(); };
     boxes.forEach(b => b.onchange = () => { SOURCE_TICKS[b.dataset.proposal] = b.checked; count(); });
+    // A whole group (all ticked: untick it), or every proposal
+    page.querySelectorAll("[data-tick-group]").forEach(b => b.onclick = e => {
+      e.preventDefault();  // in the group's title: tick, do not fold
+      const group = boxes.filter(c => c.dataset.group === b.dataset.tickGroup);
+      tick(group, !group.every(c => c.checked));
+    });
+    if ($("#all")) { $("#all").onclick = () => tick(boxes, true); $("#nothing").onclick = () => tick(boxes, false); }
     count();
     if ($("#apply")) $("#apply").onclick = async () => {
       $("#apply").disabled = true;
