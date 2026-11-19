@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.0.1 (2026-11-19)
 
 - « Sources » page (`sources.py`, `GET /api/sources`): for each feed of the guide's `feeds.json`, what it brought
   over the watches kept on the machine and what became of it in the runs (kept by the rules, judged and kept by

@@ -96,6 +96,9 @@ button.badge[aria-pressed="true"] { background: color-mix(in srgb, currentColor 
 button.badge.dim { opacity: .5; }
 /* A column title that sorts its column: it reads as the title it is */
 th button.sort { all: unset; cursor: pointer; font-weight: 600; }
+ul.filters { list-style: none; padding-left: 0; } ul.filters li { margin: 4px 0; }
+td.nowrap { white-space: nowrap; }
+.card.wide { overflow-x: auto; }  /* a wide table scrolls in its card, not the page */
 th button.sort:hover { text-decoration: underline; }
 th button.sort:focus-visible, button.badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .Critical { color: var(--error); } .Major { color: var(--attention); } .Minor { color: var(--muted); }

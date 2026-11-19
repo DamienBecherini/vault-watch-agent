@@ -15,7 +15,7 @@ name: Collect a watch
 #     issues: write
 #   jobs:
 #     watch:
-#       uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.0.0
+#       uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.0.1
 #       with:
 #         days: 8
 on:
@@ -52,7 +52,7 @@ on:
       agent_ref:
         description: "Version of vault-watch-agent to install (a tag, a branch or a commit)"
         type: string
-        default: "v1.0.0"
+        default: "v1.0.1"
     outputs:
       kept:
         description: "Items kept by the pre-triage"

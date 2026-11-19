@@ -20,7 +20,7 @@ const TEXTS = {
       intro: (p, runs, file) => `Ce que chaque source a apporté sur ${p.watches} veille(s), du ${p.since || "…"} au ${p.until}, et ce qu'il en est sorti dans ${runs} passage(s). Calculé sans modèle, à partir des veilles et des passages gardés sur cette machine. La liste est dans <code>${file}</code>.`,
       none: "Ce guide ne déclare pas de liste de sources (<code>[watch] feeds</code> dans son manifeste).",
       noHistory: "Aucune veille n'a encore été lue sur cette machine : le tableau se remplira avec les premières.",
-      columns: ["Source", "Type", "Dernier élément", "Collectés", "Gardés au tri", "Jugés par le modèle", "Retenus", "Corrections proposées", "acceptées", "État"],
+      columns: ["Source", "Type", "Dernier élément", "Collectés", "Gardés au tri", "Jugés par le modèle", "Retenus", "Corrections proposées", "Acceptées", "État"],
       help: ["Collectés : éléments distincts vus dans les veilles.", "Gardés au tri : après les règles du collecteur (pré-versions, correctifs de routine écartés), sans modèle.",
         "Jugés par le modèle : ceux qu'un passage a triés.", "Retenus : jugés utiles pour une correction ou un ajout."],
       verdicts: { error: "en erreur", noise: "bruit", silent: "muette", quiet: "peu d'éléments", leads: "pistes sans suite", useful: "utile" },
@@ -156,7 +156,7 @@ const TEXTS = {
       intro: (p, runs, file) => `What each source brought over ${p.watches} watch(es), from ${p.since || "…"} to ${p.until}, and what came out of it in ${runs} run(s). Computed without a model, from the watches and the runs kept on this machine. The list is in <code>${file}</code>.`,
       none: "This guide declares no list of sources (<code>[watch] feeds</code> in its manifest).",
       noHistory: "No watch has been read on this machine yet: the table fills with the first ones.",
-      columns: ["Source", "Type", "Last item", "Collected", "Kept by the rules", "Judged by the model", "Kept", "Corrections proposed", "accepted", "State"],
+      columns: ["Source", "Type", "Last item", "Collected", "Kept by the rules", "Judged by the model", "Kept", "Corrections proposed", "Accepted", "State"],
       help: ["Collected: distinct items seen in the watches.", "Kept by the rules: after the collector's rules (pre-releases, routine patches dropped), no model.",
         "Judged by the model: those a run has triaged.", "Kept: judged useful for a correction or an addition."],
       verdicts: { error: "in error", noise: "noise", silent: "silent", quiet: "few items", leads: "leads without follow-up", useful: "useful" },
@@ -807,20 +807,20 @@ async function viewSources() {
     page.innerHTML = `
     <h1>${S.title}</h1>
     <p class="subtitle">${s.period.watches ? S.intro(s.period, s.runs, esc(s.file)) : S.noHistory}</p>
-    <ul class="small cfg-list">
+    <ul class="small filters">
       <li><button class="badge neutral${view.states.size ? " dim" : ""}" data-state="" aria-pressed="${!view.states.size}">${S.all(s.feeds.length)}</button> ${S.filterHelp}</li>
       ${SOURCE_ORDER.filter(v => by(v).length).map(v => `<li><button class="badge ${SOURCE_CLASS[v]}${view.states.size && !view.states.has(v) ? " dim" : ""}"
         data-state="${v}" aria-pressed="${view.states.has(v)}">${S.count(by(v).length, S.verdicts[v])}</button> ${rules[v]}</li>`).join("")}</ul>
     <p class="muted small">${S.shown(shown.length, s.feeds.length)}${view.sort ? ` · <button class="small-button" id="default-sort">${S.defaultSort}</button>` : ""}</p>
-    <div class="card"><table>
+    <div class="card wide"><table>
       <thead><tr>${S.columns.map((c, i) => { const [key, number] = SOURCE_COLUMNS[i]; return `<th${number ? ' class="number"' : ""}${
         view.sort === key ? ` aria-sort="${view.dir > 0 ? "ascending" : "descending"}"` : ""}><button class="sort" data-sort="${key}" title="${esc(S.sortBy(c))}">${c}${arrow(key)}</button></th>`; }).join("")}</tr></thead>
       <tbody>${shown.map(f => `<tr>
         <td><b>${esc(f.id)}</b><div class="muted small">${f.url ? extLink(f.url, esc(f.target)) : esc(f.target)}</div></td>
         <td class="small">${esc(f.type)}${f.tier ? ` · ${esc(f.tier)}` : ""}</td>
-        <td class="small">${esc(f.last_item) || "—"}</td>
+        <td class="small nowrap">${esc(f.last_item) || "—"}</td>
         ${cell(f.collected)}${cell(f.kept)}${cell(f.judged)}${cell(f.useful)}${cell(f.proposed)}${cell(f.accepted)}
-        <td><span class="badge ${SOURCE_CLASS[f.verdict]}" title="${esc(rules[f.verdict])}">${S.verdicts[f.verdict]}</span>${
+        <td class="nowrap"><span class="badge ${SOURCE_CLASS[f.verdict]}" title="${esc(rules[f.verdict])}">${S.verdicts[f.verdict]}</span>${
           f.insurance ? ` <span class="muted small" title="${esc(S.insurance)}">🛡</span>` : ""}</td></tr>`).join("")}</tbody>
     </table></div>
     <p class="muted small">${S.help.join(" ")} 🛡 ${S.insurance}.</p>
