@@ -268,3 +268,36 @@ def test_a_watch_follows_its_contract(tmp_path):
     (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
     with pytest.raises(WatchError, match="not valid JSON"):
         load_items(tmp_path / "bad.json")
+
+
+def test_read_only_pages_are_read_but_never_edited(tmp_path):
+    """A generated page, or one that reports dated statements: in the excerpts and the cross-check, never edited."""
+    root = _guide(tmp_path, 'readonly = ["notes/**"]\n')
+    assert root / "notes" / "b.md" in vault.pages(root)  # still read
+    assert vault.check(root, "notes/b.md", "Alt 1.0.") == "read-only" and vault.check(root, "a.md", "Alt 1.0.") == "ok"
+    from vault_watch_agent import prompts
+    assert "notes/** are read-only" in prompts.fill("<<GUIDE>>.", root)  # the cross-check, fixes, checks are told
+    assert "read-only" in prompts.describe(vault.guide_of(root))  # and the triage and the proposals
+
+
+def test_the_changes_page_reaches_every_proposal_step(tmp_path):
+    root = _guide(tmp_path, '[watch]\nchanges_page = "a.md"\n')
+    found = [{"page": "notes/b.md", "text": "Alt 1.0."}]
+    assert [e["page"] for e in vault.with_changes_page(root, found)] == ["notes/b.md", "a.md"]
+    assert vault.with_changes_page(root, [{"page": "a.md", "text": "x"}]) == [{"page": "a.md", "text": "x"}]  # once
+    assert "goes to a.md" in prompts_of(root)
+    (tmp_path / "other").mkdir()
+    assert vault.with_changes_page(_guide(tmp_path / "other", ""), found) == found  # none declared
+
+
+def prompts_of(root: Path) -> str:
+    from vault_watch_agent import prompts
+    return prompts.describe(vault.guide_of(root))
+
+
+def test_the_changes_page_must_be_a_page_the_watch_can_write(tmp_path):
+    (tmp_path / "log.md").write_text("x", encoding="utf-8")
+    with pytest.raises(GuideError, match="read-only"):
+        parse(minimal(content={"readonly": ["*.md"]}, watch={"changes_page": "log.md"}), tmp_path)
+    with pytest.raises(GuideError, match="no such file"):
+        parse(minimal(watch={"changes_page": "missing.md"}), tmp_path)

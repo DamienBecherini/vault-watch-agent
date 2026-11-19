@@ -45,6 +45,7 @@ class Watch:
     feeds: str = ""         # feeds.json read by `vault-watch collect` (any source; required by "feeds")
     seen: str = ""          # collect: a file whose URLs are dropped (items the editor already triaged)
     floors: str = ""        # collect: version floors ({"floors": {feed id: version}}); default [checks] version_floors
+    changes_page: str = ""  # a page where a watch adds dated lines; shown to every proposal step
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,7 @@ class Guide:
     base_branch: str = "main"
     include: tuple[str, ...] = ("**/*.md", "**/*.mdx")
     exclude: tuple[str, ...] = ()
+    readonly: tuple[str, ...] = ()  # pages read (excerpts, cross-check) but never edited: generated, or dated statements
     mirrors: dict[str, str] = field(default_factory=dict)  # language -> folder ("en/")
     modified_field: str | None = None
     watch: Watch = Watch()
@@ -92,6 +94,10 @@ class Guide:
                 found.add(path)
         return sorted(found)
 
+    def is_readonly(self, page: str) -> bool:
+        """Whether `page` (relative to the guide, with /) is one the agent reads but never edits."""
+        return any(matches(page, p) for p in self.readonly)
+
     def summary(self) -> dict:
         """What the guide provides, for the interface (read-only): its parts, and the ones it lacks."""
         rel = lambda p: p.relative_to(self.root).as_posix() if p and p.is_relative_to(self.root) else (str(p) if p else "")  # noqa: E731
@@ -100,9 +106,9 @@ class Guide:
                 "base_branch": self.base_branch, "pages": len(self.pages()),
                 "mirrors": [{"language": c, "language_name": language_name(c), "folder": f}
                             for c, f in sorted(self.mirrors.items())],
-                "modified_field": self.modified_field or "",
+                "modified_field": self.modified_field or "", "readonly": list(self.readonly),
                 "watch": {"source": self.watch.source, "label": self.watch.label, "artifact": self.watch.artifact,
-                          "path": self.watch.path, "feeds": self.watch.feeds},
+                          "path": self.watch.path, "feeds": self.watch.feeds, "changes_page": self.watch.changes_page},
                 "rules": {"brief": rel(self.brief), "translation_policy": rel(self.translation_policy)},
                 "checks": {"audits": self.audits or "", "claims_due": self.claims_due or "", "sources": self.sources or "",
                            "version_floors": self.version_floors.script if self.version_floors else ""},
@@ -118,8 +124,8 @@ class Guide:
 _KEYS = {
     "": {"schema", "guide", "content", "watch", "rules", "checks", "budget"},
     "guide": {"name", "description", "repository", "site", "base_branch"},
-    "content": {"language", "include", "exclude", "mirrors", "modified_field"},
-    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors"},
+    "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
+    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
     "budget": {"max_context_tokens"},
@@ -170,7 +176,8 @@ def parse(data: dict, root: Path) -> Guide:
         raise GuideError(f"[watch] source = {source!r}: one of {', '.join(WATCH_SOURCES)}")
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
                   path=_text(w, "watch", "path"),
-                  **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors") if k in w})
+                  **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors", "changes_page")
+                     if k in w})
     if source == "file" and not watch.path:
         raise GuideError('[watch] source = "file" needs path (the watch.json to read)')
     if source == "feeds" and not watch.feeds:
@@ -186,11 +193,15 @@ def parse(data: dict, root: Path) -> Guide:
     if tokens is not None and (not isinstance(tokens, int) or isinstance(tokens, bool) or tokens <= 0):
         raise GuideError("[budget] max_context_tokens: a positive whole number")
 
+    readonly = _globs(c, "readonly", ())
+    if watch.changes_page and any(matches(watch.changes_page, p) for p in readonly):
+        raise GuideError(f"[watch] changes_page = {watch.changes_page!r} is read-only ([content] readonly): the watch "
+                         "could not write to it")
     return Guide(
         root=root, name=name, language=language, repository=repository, site=_text(g, "guide", "site"),
         description=_text(g, "guide", "description"),
         base_branch=_text(g, "guide", "base_branch") or "main",
-        include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()),
+        include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()), readonly=readonly,
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
         brief=_rule(root, rules, "brief"), translation_policy=_rule(root, rules, "translation_policy"),
         **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, max_context_tokens=tokens,

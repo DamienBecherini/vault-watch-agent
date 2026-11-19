@@ -114,6 +114,7 @@ def build(deps: Deps, checkpointer=None):
     # -- propose (one branch per group of items sharing pages, in parallel) ----
     def propose(payload: dict) -> dict:
         items, excerpts = payload["items"], payload["excerpts"]
+        excerpts = vault.with_changes_page(deps.vault, excerpts)
         listing = "\n\n".join(
             f"<item id=\"{i['id']}\">\n{i['title']}\nurl: {i['url']}\ndate: {i['date']} tier: {i['tier']}"
             f"{' URGENT advisory' if i['urgent'] else ''}\nCached notes:\n{i['notes'] or '(none)'}\n</item>"

@@ -81,6 +81,7 @@ switch a part off without a word.
 | `include` | no | Glob patterns of the pages (`["**/*.md", "**/*.mdx"]` by default). `*` stays in one folder, `**` crosses folders. |
 | `exclude` | no | Glob patterns left out (`["docs/**", "README.md"]`). Dot folders (`.git`, `.agents`…) are always left out. |
 | `mirrors` | no | Translated copies kept in step: `{ en = "en/" }` means `en/<page>` is the English copy of `<page>`. The folder ends with `/`; its pages are not pages of the source language. |
+| `readonly` | no | Glob patterns of pages the agent reads (excerpts, cross-check) but never edits: pages your own scripts generate (an edit would be lost at the next build), or pages that report dated statements. A correction proposed on one is refused (`read-only`). |
 | `modified_field` | no | A front matter date that an accepted correction sets to the day's date (`last_modified`). Without it, the dates of the pages do not change. |
 
 ### `[watch]`
@@ -97,6 +98,10 @@ Where the items of a watch come from.
 With any source, `feeds` (a `feeds.json`), `floors` and `seen` let `vault-watch collect` gather a watch from the
 guide's feeds, without a model; the reusable GitHub workflow does it every week and opens the issue:
 [Collecting a watch](collect.md).
+
+`changes_page` (any source) names a page where a watch records changes as dated lines, such as « What changed
+since »: every proposal step sees it whole, whatever the item's keywords found, and adds a line by quoting the
+page's last line (or a placeholder sentence) and giving it back followed by the new one. It must not be read-only.
 
 A `watch.json` holds the items your collector kept (feeds, release pages, advisories); its format, key by key:
 [The watch format](watch-format.md).

@@ -22,7 +22,20 @@ def describe(g: Guide) -> str:
     about = f" It is about {g.description}." if g.description else ""
     mirrors = "".join(f" A mirror in {language_name(code)} under {folder} follows them."
                       for code, folder in sorted(g.mirrors.items()))
-    return f"The guide « {g.name} » is written in {lang}.{about} Its {lang} pages are the source.{mirrors}"
+    return f"The guide « {g.name} » is written in {lang}.{about} Its {lang} pages are the source.{mirrors}{editing(g)}"
+
+
+def editing(g: Guide) -> str:
+    """What the manifest says about editing: the pages never edited, the page where a watch adds dated lines."""
+    out = ""
+    if g.readonly:
+        out += (f" Pages matching {', '.join(g.readonly)} are read-only: read them, never propose an edit to them "
+                "(a tool refuses it); when one of them would need a change, say so in your reasons.")
+    if g.watch.changes_page:
+        out += (f" A change the watch records goes to {g.watch.changes_page}, shown with the excerpts: to add a dated "
+                "line, quote the page's last line (or its placeholder sentence) as `current` and give it followed by "
+                "the new line as `proposed`.")
+    return out
 
 
 def fill(text: str, vault: Path, mirror: str | None = None) -> str:
@@ -35,7 +48,8 @@ def fill(text: str, vault: Path, mirror: str | None = None) -> str:
     if mirror:
         text = text.replace("<<MIRROR>>", language_name(mirror)).replace("<<MIRROR_DIR>>", g.mirrors[mirror])
     assert "<<" not in text, text[text.index("<<"):][:40]
-    return text
+    rules = editing(g).strip()
+    return f"{text}\n\n{rules}" if rules else text
 
 
 def _contract(g: Guide, path: Path | None, default: Path) -> str:

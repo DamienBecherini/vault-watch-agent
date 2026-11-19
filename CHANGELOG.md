@@ -3,6 +3,14 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased (M5: stable)
+
+- Manifest: `[content] readonly`, pages the agent reads but never edits (generated pages, dated statements): a
+  correction on one is refused (`read-only`), whatever step proposes it (proposals, cross-check, sweep, fixes), and
+  every prompt is told. `[watch] changes_page`, a page where a watch records changes as dated lines: every proposal
+  step sees it whole, whatever the keywords found. `doctor` lists both. Found on the second real guide (T5.1).
+- The workflows use the actions that run on Node 24 (`setup-python@v7`, `checkout@v7`).
+
 ## 0.6.1 (2026-11-18)
 
 - Python 3.11 works again: 0.6.0 stopped at its start on 3.11 (a backslash in an f-string's expression in

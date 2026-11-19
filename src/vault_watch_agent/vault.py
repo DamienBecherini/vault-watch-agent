@@ -111,11 +111,22 @@ def search(vault: Path, terms: list[str], max_pages: int = 4, max_chars: int = 8
     return excerpts
 
 
+def with_changes_page(vault: Path, excerpts: list[dict]) -> list[dict]:
+    """The excerpts of a proposal step, with the manifest's changes page ([watch] changes_page) added whole when they
+    lack it: the page where a watch adds dated lines must be there whatever the item's keywords found."""
+    page = guide_of(vault).watch.changes_page
+    if not page or not (vault / page).is_file() or any(e["page"] == page for e in excerpts):
+        return excerpts
+    return [*excerpts, {"page": page, "text": read(vault / page)[:CHANGES_PAGE_CHARS]}]
+
+
 def check(vault: Path, page: str, current: str) -> str:
-    """'ok' when `current` occurs exactly once in the page, else why not."""
+    """'ok' when `current` occurs exactly once in the page, else why not (a read-only page is never edited)."""
     path = vault / page
     if not path.is_file():
         return "page-not-found"
+    if guide_of(vault).is_readonly(page):
+        return "read-only"
     count = read(path).replace("\r\n", "\n").count(current.replace("\r\n", "\n"))
     return {0: "text-not-found", 1: "ok"}.get(count, "ambiguous")
 
@@ -126,6 +137,7 @@ _IDENTIFIER = re.compile(r"(?<![\w.-])-?([a-z]+\d+[a-z\d]*)(?![\w.])")  # cu129,
 _FLAG = re.compile(r"--[a-z][a-z-]+")
 _FOOTNOTE_MARK = re.compile(r"\[\^([^\]]+)\](?!:)")
 MAX_LEFTOVERS = 80  # lines handed to the model and listed in the report
+CHANGES_PAGE_CHARS = 6000  # of the manifest's changes_page, added to every proposal step's excerpts
 
 
 def _versions(text: str) -> set[str]:

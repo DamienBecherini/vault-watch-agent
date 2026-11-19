@@ -81,6 +81,7 @@ frappe ne doit pas désactiver une partie sans rien dire.
 | `include` | non | Motifs glob des pages (`["**/*.md", "**/*.mdx"]` par défaut). `*` reste dans un dossier, `**` traverse les dossiers. |
 | `exclude` | non | Motifs glob écartés (`["docs/**", "README.md"]`). Les dossiers qui commencent par un point (`.git`, `.agents`…) sont toujours écartés. |
 | `mirrors` | non | Copies traduites tenues au même niveau : `{ en = "en/" }` veut dire que `en/<page>` est la copie anglaise de `<page>`. Le dossier finit par `/` ; ses pages ne sont pas des pages de la langue source. |
+| `readonly` | non | Motifs glob des pages que l'agent lit (extraits, relecture globale) sans jamais les modifier : les pages que vos propres scripts génèrent (une modification serait perdue à la génération suivante), ou celles qui rapportent des propos datés. Une correction proposée sur l'une d'elles est refusée (`read-only`). |
 | `modified_field` | non | Une date du front matter qu'une correction acceptée met à la date du jour (`last_modified`). Sans elle, les dates des pages ne changent pas. |
 
 ### `[watch]`
@@ -97,6 +98,11 @@ D'où viennent les éléments d'une veille.
 Quelle que soit la source, `feeds` (un `feeds.json`), `floors` et `seen` permettent à `vault-watch collect` de
 rassembler une veille depuis les flux du guide, sans modèle ; le workflow GitHub réutilisable le fait chaque semaine
 et ouvre l'issue : [Collecter une veille](collect.fr.md).
+
+`changes_page` (quelle que soit la source) désigne une page où la veille note les changements en lignes datées, comme
+« Ce qui a changé depuis » : chaque étape de proposition la voit en entier, quels que soient les mots-clés de
+l'élément, et ajoute une ligne en citant la dernière ligne de la page (ou une phrase d'attente) et en la rendant suivie
+de la nouvelle. Elle ne doit pas être en lecture seule.
 
 Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) ; son
 format, clé par clé : [Le format d'une veille](watch-format.fr.md).
