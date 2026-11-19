@@ -30,8 +30,11 @@ Chaque supposition est commentée : relisez le fichier avant le premier passage.
 programme dont il a besoin, et le moteur (Claude Code connecté avec un abonnement, ou une clé d'API trouvée).
 
 Sans `--guide`, les commandes prennent `VAULT_PATH`, puis le dossier courant s'il contient un `vault-watch.toml`.
-Les passages de chaque guide sont rangés à part, dans un dossier à eux sous `.vault-watch/guides/` ; les réglages
-(moteur, modèles) sont communs à tous les guides.
+Les passages de chaque guide sont rangés à part, dans un dossier à eux sous `~/.vault-watch/guides/` ; les réglages
+(moteur, modèles, dans `~/.vault-watch/settings.json`) sont communs à tous les guides. `VAULT_WATCH_HOME` place ce
+dossier ailleurs ; un dossier `.vault-watch` dans le dossier courant, comme l'agent l'utilisait avant 1.0, sert
+encore s'il existe. Le journal des coûts va dans `~/.vault-watch/usage.jsonl` (`VAULT_WATCH_JOURNAL` pour le
+changer). Rien n'est écrit dans le guide en dehors de la branche d'un passage.
 
 ## Le manifeste
 

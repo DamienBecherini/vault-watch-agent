@@ -110,3 +110,24 @@ def test_doctor_names_a_gitea_forge(folder, tmp_path):
     lines = {line.label: line for line in onboard.diagnose(folder, tmp_path / "home", gh_check=False)}
     assert "GitHub" not in lines  # gh is not needed
     assert lines["Gitea"].status == "ok" and lines["Gitea"].detail == "owner/guide on http://gitea.test:3100"
+
+
+def test_the_agent_folder_is_never_created_inside_the_guide(tmp_path, monkeypatch):
+    monkeypatch.delenv("VAULT_WATCH_HOME", raising=False)
+    monkeypatch.delenv("VAULT_WATCH_JOURNAL", raising=False)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "user")
+    guide = tmp_path / "guide"
+    guide.mkdir()
+    monkeypatch.chdir(guide)
+    assert cli.default_home() == (tmp_path / "user" / ".vault-watch").resolve()
+    assert cli.default_journal(cli.default_home()) == (tmp_path / "user" / ".vault-watch" / "usage.jsonl").resolve()
+    # The agent's own clone, as before 1.0: its .vault-watch and its versioned journal
+    clone = tmp_path / "clone"
+    (clone / ".vault-watch").mkdir(parents=True)
+    (clone / "metrics").mkdir()
+    (clone / "metrics" / "usage.jsonl").write_text("", encoding="utf-8")
+    monkeypatch.chdir(clone)
+    assert cli.default_home() == (clone / ".vault-watch").resolve()
+    assert cli.default_journal(cli.default_home()) == (clone / "metrics" / "usage.jsonl").resolve()
+    monkeypatch.setenv("VAULT_WATCH_HOME", str(tmp_path / "elsewhere"))
+    assert cli.default_home() == (tmp_path / "elsewhere").resolve()

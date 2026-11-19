@@ -30,8 +30,11 @@ an existing one.
 program it needs, and the engine (Claude Code signed in with a subscription, or an API key found).
 
 Without `--guide`, the commands take `VAULT_PATH`, then the current folder when it holds a `vault-watch.toml`. The
-runs of each guide are kept apart, in a folder of their own under `.vault-watch/guides/`; the settings (engine,
-models) are shared by every guide.
+runs of each guide are kept apart, in a folder of their own under `~/.vault-watch/guides/`; the settings (engine,
+models, in `~/.vault-watch/settings.json`) are shared by every guide. `VAULT_WATCH_HOME` puts that folder elsewhere;
+a `.vault-watch` folder in the current folder, as the agent used before 1.0, is still used when it exists. The cost
+journal goes to `~/.vault-watch/usage.jsonl` (`VAULT_WATCH_JOURNAL` to change it). Nothing is written inside the
+guide outside a run's branch.
 
 ## The manifest
 

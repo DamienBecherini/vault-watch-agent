@@ -10,7 +10,7 @@
 
 ---
 
-Environ 3 000 lignes de Python dans [`src/vault_watch_agent/`](../src/vault_watch_agent/), une page statique sans étape
+Environ 7 000 lignes de Python dans [`src/vault_watch_agent/`](../src/vault_watch_agent/), une page statique sans étape
 de build, et des tests qui font tourner tout le graphe avec un faux modèle sur un dépôt git jetable. Commencez par
 [`graph.py`](../src/vault_watch_agent/graph.py) : tout le reste l'alimente ou le pilote.
 
@@ -35,7 +35,7 @@ flowchart TB
   end
   subgraph base["Fondations, utilisées par tous"]
     state["state.py<br/><i>état + schémas de sortie</i>"]
-    llm["llm.py<br/><i>seul appelant de Claude</i>"]
+    llm["llm.py<br/><i>les moteurs</i>"]
     config["config.py<br/><i>réglages de l'utilisateur</i>"]
     vault["vault.py<br/><i>pages, recherche, modifications</i>"]
     inputs["inputs.py<br/><i>gh, veille, scripts</i>"]
@@ -55,40 +55,43 @@ flowchart TB
 
 Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle de chaque module. Deux règles donnent sa forme au code :
 
-- **Une seule porte vers le modèle.** Seul [`llm.py`](../src/vault_watch_agent/llm.py) importe `anthropic` ou lance
-  Claude Code. Tous les autres modules reçoivent un objet doté d'une méthode
+- **Une seule porte vers le modèle.** Seuls [`llm.py`](../src/vault_watch_agent/llm.py) et les moteurs qu'il charge appellent un modèle. Tous les autres modules reçoivent un objet doté d'une méthode
   `parse(system, prompt, schema, effort, node, context, web)` (le protocole `LLM`) : les tests le remplacent par un
-  faux. Deux moteurs l'implémentent : `Claude` (l'API) et `ClaudeCode` (`claude -p` sur un abonnement Claude) ;
-  `create(role, journal, settings)` choisit d'après les réglages de l'utilisateur.
+  faux. Trois moteurs l'implémentent : `Claude` (l'API), `ClaudeCode` (`claude -p` sur un abonnement Claude) et
+  `OpenAICompatible` (tout serveur compatible OpenAI, dans [`openai_compat.py`](../src/vault_watch_agent/openai_compat.py)),
+  et un autre paquet peut ajouter le sien (un point d'entrée `EngineKind`) ; `create(role, journal, settings)`
+  choisit d'après les réglages de l'utilisateur.
 - **Une seule porte vers le guide.** Lire, chercher et modifier les pages passe par
   [`vault.py`](../src/vault_watch_agent/vault.py) ; les appels à `git` et aux scripts du guide passent par
   [`inputs.py`](../src/vault_watch_agent/inputs.py), ceux de la forge (`gh`) par [`forge.py`](../src/vault_watch_agent/forge.py). Le modèle ne touche jamais un fichier.
 
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
-| `web.py` | 762 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
-| `graph.py` | 623 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
-| `collect.py` | 564 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
-| `cli.py` | 420 | `vault-watch init / doctor / run / resume / fix / eval / collect / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
-| `llm.py` | 406 | Les deux moteurs (API, Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
+| `web.py` | 807 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
+| `graph.py` | 624 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
+| `collect.py` | 568 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
+| `llm.py` | 506 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
+| `cli.py` | 436 | `vault-watch init / doctor / run / resume / fix / eval / collect / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
 | `verify.py` | 365 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
-| `onboard.py` | 320 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
-| `guide.py` | 303 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
-| `vault.py` | 283 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
+| `guide.py` | 342 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
+| `onboard.py` | 335 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
+| `openai_compat.py` | 323 | Le moteur compatible OpenAI (llama.cpp, vLLM, Ollama, un service hébergé) : sortie structurée, boucle des outils web, usage et coût |
+| `vault.py` | 295 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
 | `crosscheck.py` | 264 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
+| `webtools.py` | 234 | Recherche web (SearXNG) et lecture de pages pour les moteurs sans web propre ; adresses publiques seulement |
+| `forge.py` | 223 | Issues, artefacts et pull requests derrière une interface `Forge` : GitHub (par `gh`) et Gitea (son API REST, un jeton par référence) ; `for_guide` prend celle du manifeste |
+| `config.py` | 185 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
 | `prices.py` | 182 | Le prix d'un modèle et son origine : celui de l'utilisateur, une liste téléchargée, les valeurs par défaut |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
-| `config.py` | 151 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
 | `fix.py` | 150 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
+| `evaluate.py` | 148 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
 | `watches.py` | 139 | D'où viennent les veilles (`[watch] source`) : issues GitHub, fichiers `watch.json`, collecte de l'agent, aucune |
-| `evaluate.py` | 132 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
 | `inputs.py` | 121 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |
+| `prompts.py` | 119 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
 | `state.py` | 117 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
-| `prompts.py` | 105 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
-| `reading.py` | 92 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
+| `reading.py` | 99 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
 | `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
-| `forge.py` | 84 | Issues, artefacts et pull requests derrière une interface `Forge` ; GitHub (par `gh`) sa seule implémentation |
-| `steps.py` | 53 | Chaque étape d'un passage : son rôle, son effort, ce qu'elle demande à un moteur |
+| `steps.py` | 56 | Chaque étape d'un passage : son rôle, son effort, ce qu'elle demande à un moteur |
 | `notify.py` | 47 | Notifications Windows de `serve --notify` |
 
 ## Le graphe, étape par étape

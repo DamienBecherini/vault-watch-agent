@@ -435,6 +435,12 @@ Done 2026-11-18, published as 0.6.0.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes
   the reference example); the architecture page current; a security page (keys as references, local server,
   what the model reads from the web is data, quotes checked by the code).
+  Done 2026-11-19: README and README.fr rewritten (quick start with pipx, the needs per part, the three engines, the
+  forges; the IA on-prem guide as the reference example with its measures), `docs/security.md` (EN, FR),
+  `docs/code.md` current. Found while writing the quick start: the agent's folder and the cost journal were
+  created in the current folder, so a newcomer running from the guide would have written them into it; they now
+  default to `~/.vault-watch/`, an existing `./.vault-watch` and `./metrics/usage.jsonl` still used (the
+  maintainer's set-up unchanged). To check at the release: the pipx install from the tag, on a clean machine.
 - **T5.4 Release.** Tag, release notes from the changelog, the package installable with `pipx`.
 
 Done when: someone who is not the author connects a guide by following the docs alone.

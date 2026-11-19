@@ -10,7 +10,7 @@ with a message that says what to update. A change to one of them is a new number
 | The manifest of a guide | `vault-watch.toml` at the root of the guide | `schema = 1` | you ([connect-your-guide.md](connect-your-guide.md)) |
 | A watch | `watch.json` | `"schema": 1` | your collector or `vault-watch collect` ([watch-format.md](watch-format.md)) |
 | The engine protocol | `llm.Engine`, `llm.EngineKind` | `EngineKind.protocol = 1` | an engine package ([write-an-engine.md](write-an-engine.md)) |
-| The settings | `.vault-watch/settings.json` | `"schema": 1` | the Settings page, or you |
+| The settings | `~/.vault-watch/settings.json` | `"schema": 1` | the Settings page, or you |
 
 ## The rules
 
@@ -30,6 +30,6 @@ with a message that says what to update. A change to one of them is a new number
 ## What is not frozen
 
 The working files of the agent (`checkpoints.sqlite`, the journal of runs, the reports of a check, the files of
-`.vault-watch/<guide>/`) belong to the agent: a version may change them, and says so in its release notes. The
+`~/.vault-watch/guides/<guide>/`) belong to the agent: a version may change them, and says so in its release notes. The
 prompts, the steps of a run and the web interface change with each version. The Python modules are not a library:
 only `llm.Engine` and `llm.EngineKind`, for engine packages, are part of the protocol.

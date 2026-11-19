@@ -4,62 +4,73 @@
 
 # vault-watch-agent
 
-**Un agent LangGraph qui tient à jour un guide technique de 400 k tokens, avec une relecture humaine avant toute publication.**
+**Tenir un guide Markdown à jour de ce qui change dans son domaine : un agent LangGraph propose des corrections sourcées, vous les relisez, il ouvre la pull request.**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.2-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
-[![Claude API](https://img.shields.io/badge/Claude-API-D97757?logo=anthropic&logoColor=white)](https://docs.anthropic.com)
-[![FastAPI](https://img.shields.io/badge/FastAPI-web%20UI-009688?logo=fastapi&logoColor=white)](#interface-web)
-[![Human in the loop](https://img.shields.io/badge/human-in%20the%20loop-FFC107)](#principes)
-[![Guide](https://img.shields.io/badge/maintains-ia--on--prem.damien.becherini.fr-0A7EA4)](https://ia-on-prem.damien.becherini.fr)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude](https://img.shields.io/badge/Claude-API%20ou%20abonnement-D97757?logo=anthropic&logoColor=white)](docs/choose-a-model.fr.md)
+[![FastAPI](https://img.shields.io/badge/FastAPI-interface%20web-009688?logo=fastapi&logoColor=white)](#linterface-web)
+[![Humain dans la boucle](https://img.shields.io/badge/humain-dans%20la%20boucle-FFC107)](#principes)
+[![Licence : MIT](https://img.shields.io/badge/Licence-MIT-blue.svg)](LICENSE)
 
-**Français** · [English](README.md)
+[English](README.md) · **Français**
 
-[Présentation avec schémas](docs/presentation.fr.md) · [Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Structure du code](docs/code.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md)
+[Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Sécurité](docs/security.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md) · [Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
 
 </div>
 
 ---
 
-Un agent [LangGraph](https://langchain-ai.github.io/langgraph/) qui tient à jour le guide
-[Zero to Hero : l'IA on-premise](https://ia-on-prem.damien.becherini.fr/)
-([dépôt](https://github.com/DamienBecherini/ia-on-prem-vault)) à partir de sa veille bimensuelle.
+Un guide technique vieillit une version à la fois : un numéro de version, une option renommée, un avis de sécurité
+qui change une recommandation. vault-watch-agent lit ce qui a changé dans le domaine de votre guide (notes de
+version, avis de sécurité, flux), trouve les phrases du guide devenues fausses, et propose des corrections qui citent
+le texte actuel, donnent le nouveau et citent une source. Il les relit avec tout le guide en contexte, attend votre
+relecture, applique sur une branche ce que vous avez accepté, traduit les changements dans les copies du guide en
+d'autres langues, lance les contrôles propres au guide et, après un second oui, ouvre la pull request.
 
-Le guide (environ 400 k tokens de contenu en français, avec un miroir en anglais) rassemble déjà ce qui a changé
-dans son écosystème grâce à un script déterministe et à un workflow GitHub hebdomadaire : nouvelles versions,
-avis de sécurité, Hugging Face, flux des éditeurs. Cet agent fait l'étape suivante. Il repère ce qui rend une
-page fausse, propose des corrections sourcées, attend une relecture humaine, les applique sur une branche, met à
-jour le miroir anglais, lance les contrôles et la vérification des liens du guide puis, après un second accord,
-ouvre la pull request.
+**Votre guide.** N'importe quel guide Markdown dans un dépôt git, décrit par un petit manifeste
+(`vault-watch.toml`) : où sont les pages, dans quelle langue, quels dossiers en sont la copie traduite, d'où vient
+sa veille, quels contrôles du guide lancer. Hébergé sur GitHub, sur un serveur Gitea, ou gardé en local.
 
-Depuis la 0.3.0, il peut tenir n'importe quel guide en Markdown décrit par un manifeste qui lui est propre :
-voir [Brancher son guide](docs/connect-your-guide.fr.md). Depuis la 0.5.0, il peut aussi collecter la veille
-lui-même à partir d'une liste de flux, sans modèle, à la main ou chaque semaine sur GitHub : voir
-[Collecter une veille](docs/collect.fr.md).
+**Votre modèle.** Claude par Claude Code sur un abonnement Claude (rien de facturé à l'appel) ou par l'API ; ou tout
+serveur compatible OpenAI, local ou hébergé. Le projet ne mesure et ne garantit que Claude Opus 5.5 et Sonnet 5.5 :
+voir [Choisir un modèle](docs/choose-a-model.fr.md).
 
-![L'écran de relecture : chaque correction proposée avec sa source, l'avis de la relecture globale et le diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/review.fr.png)
+**Votre décision.** Le modèle n'écrit jamais un fichier. Rien n'est appliqué avant votre relecture, rien n'est poussé
+avant votre feu vert, et c'est vous qui fusionnez la pull request.
 
-*L'écran de relecture sur une vraie veille du guide (avis de sécurité de LiteLLM) : rien n'est écrit dans le guide
-avant que l'éditeur ait coché les corrections, et rien n'est publié sans un second accord.*
+![L'écran de relecture : chaque correction proposée avec sa source, le verdict de la relecture croisée et un diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/review.fr.png)
 
-## Ce que montre ce dépôt
+*L'écran de relecture sur une vraie veille du guide de référence (avis de sécurité de LiteLLM).*
 
-- Un `StateGraph` LangGraph sur un état typé (`WatchState`, un `TypedDict` avec des reducers), avec une branche
-  parallèle par groupe d'éléments de veille (`Send`).
-- Deux pauses humaines (`interrupt`, reprises avec `Command`) : la relecture des corrections, puis l'accord pour
-  pousser et ouvrir la pull request. Un checkpointer SQLite garde un passage en pause des jours durant, et un autre
-  processus le reprend (la ligne de commande ou l'interface web).
-- Des sorties structurées : chaque appel au modèle répond dans un modèle Pydantic. Le guide entier (environ 400 k
-  tokens) est lu à travers le cache de prompt.
-- Un journal des coûts, une ligne par appel au modèle ([`metrics/usage.jsonl`](metrics/usage.jsonl)), et une
-  évaluation qui rejoue des veilles passées sur le guide tel qu'il était et note les propositions face à la pull
-  request fusionnée : le 18 novembre 2026, le rejeu de la veille #77 a retrouvé les 11 corrections de
-  [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78), aucune fausse.
-- 124 tests (pytest), une interface web locale (FastAPI) et deux moteurs : Claude Code sur un abonnement Claude, ou
-  l'API Anthropic.
-- Douze pull requests du guide produites par l'agent et fusionnées après relecture, par exemple [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une
-  veille) et [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections issues d'une vérification de tout le guide).
+## Démarrage rapide
+
+```bash
+pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.0.0
+
+cd mon-guide                # la racine du dépôt git du guide
+vault-watch init            # écrit vault-watch.toml d'après ce que montre le dossier ; relisez-le, ajustez-le
+vault-watch doctor          # ce qui est prêt, ce qui manque avant un premier passage
+vault-watch collect         # facultatif : ce que disent les flux listés par le manifeste, sans modèle
+vault-watch serve           # http://127.0.0.1:4430/ : veilles, relecture, publication, réglages
+```
+
+`init` devine la langue, les copies traduites, le dépôt GitHub du remote `origin` (un dépôt Gitea, c'est trois
+lignes à ajouter) et les scripts du guide ; chaque clé du manifeste, et ce que débloque chaque partie facultative,
+sont dans [Brancher son guide](docs/connect-your-guide.fr.md). Un guide d'exemple dans [`examples/`](examples/)
+montre le minimum.
+
+Ce qu'il faut :
+
+| Pour | Quoi |
+| :-- | :-- |
+| tout guide | Python 3.11+, git |
+| le modèle | un moteur : Claude Code connecté avec un abonnement Claude, une clé d'API Claude, ou un serveur compatible OpenAI ([réglages](#le-modèle)) |
+| un guide sur GitHub | la CLI GitHub `gh`, connectée (`gh auth login`) |
+| un guide sur Gitea | un jeton Gitea, donné par référence ([Brancher son guide](docs/connect-your-guide.fr.md), [Sécurité](docs/security.fr.md)) |
+| les contrôles du guide | ce qu'ils lancent (Node.js pour un `npm test`, par exemple) |
+
+## Déroulé d'un passage
 
 ```mermaid
 flowchart TD
@@ -76,274 +87,181 @@ flowchart TD
 
 | Étape | Ce qu'elle fait |
 | :-- | :-- |
-| `collect` | Télécharge la veille : le ticket GitHub et l'artefact de son workflow (éléments, notes de version et avis de sécurité mis en cache) |
-| `triage` | Claude trie les éléments : correction, candidat à un ajout, ou rien pour le guide |
-| `locate` | Trouve les pages françaises concernées et regroupe les éléments qui touchent les mêmes pages ou le même outil |
+| `collect` | Lit la veille que nomme le manifeste : un fichier `watch.json`, une issue de la forge et l'artefact de son run de workflow, ou la collecte de l'agent lui-même depuis les flux du guide ([format de la veille](docs/watch-format.fr.md)) |
+| `triage` | Le modèle trie les éléments : correction, candidat à un ajout, ou rien pour le guide (la consigne éditoriale du guide dit ce qui compte) |
+| `locate` | Trouve les pages concernées et regroupe les éléments qui touchent les mêmes pages ou le même outil |
 | `propose` | Une branche parallèle par groupe : des corrections qui citent le texte actuel, donnent le nouveau texte et une source |
 | `number` | Numérote les corrections (C1, C2…), vérifie chaque citation, signale les modifications qui se chevauchent |
-| `crosscheck` | Relit chaque correction avec tout le guide français en contexte (cache de prompt) et le web : garder, réviser ou rejeter, plus des corrections de cohérence sur d'autres pages. Puis un balayage : le code repère les valeurs que les corrections retirent (une version, une option) et qui figurent encore ailleurs, et un second appel décide quelles occurrences doivent changer |
-| `report` | Écrit le rapport Markdown que relit l'humain, avec les corrections qui ajoutent une version absente de leurs notes de bas de page et les valeurs retirées restées en place |
-| `review` | ⏸ Pause : l'humain accepte tout, rien, ou une liste (un groupe est accepté ou refusé en entier) |
-| `apply` | Applique les corrections acceptées dans un worktree git, met à jour `last_modified` et aligne le `version-floors.json` du guide sur les pages |
-| `mirror` | Traduit les passages modifiés dans les pages anglaises (Claude Sonnet) |
-| `audits` | Lance le `npm test` du guide (structure, sources, fraîcheur, i18n stricte) |
+| `crosscheck` | Relit chaque correction avec tout le guide en contexte (cache de prompt, ou chapitre par chapitre quand il ne tient pas dans la fenêtre du modèle) et le web : garder, réviser ou rejeter, plus des retouches de cohérence sur d'autres pages. Puis un balayage : les valeurs que les corrections retirent et qui restent ailleurs |
+| `report` | Écrit le rapport que vous relisez |
+| `review` | ⏸ Pause : vous acceptez tout, rien, ou une liste |
+| `apply` | Applique les corrections acceptées dans un worktree git sur une nouvelle branche et met à jour le champ de date des pages |
+| `mirror` | Traduit les passages modifiés dans les copies du guide (une copie anglaise sous `en/`, par exemple) |
+| `audits` | Lance les contrôles du guide, si le manifeste en déclare |
 | `links` | Vérifie les liens externes des pages modifiées |
-| `publish` | ⏸ Pause : sur un oui, pousse la branche et ouvre la pull request |
+| `publish` | ⏸ Pause : sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
+
+Deux autres sortes de passage passent par la même relecture et la même pull request : un **passage de correction**
+transforme des erreurs signalées (par un lecteur, par une vérification) en corrections contrôlées, et une
+**vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide.
 
 ## Principes
 
-- **Le modèle propose, le code décide.** Claude n'écrit jamais de fichier. Chaque correction cite le texte
-  actuel ; un contrôle déterministe la refuse si la citation n'apparaît pas exactement une fois dans la page.
-- **Un humain dans la boucle, deux fois.** Le run s'arrête après le rapport (`interrupt` de LangGraph), puis
-  avant que quoi que ce soit ne quitte la machine. Un run en pause est enregistré dans SQLite et repris par une
-  commande ultérieure, depuis un autre processus, plusieurs jours plus tard s'il le faut.
-- **Des preuves, pas de la mémoire.** Les propositions s'appuient sur les notes de version et les avis de
-  sécurité mis en cache par la veille, et la relecture croisée sur des sources primaires lues sur le web, jamais
-  sur la seule mémoire du modèle.
-- **Une seule source de règles.** La ligne éditoriale et la politique de traduction vivent dans le guide
-  (`.agents/skills/vault-watch/`) et sont chargées à l'exécution : l'agent applique les règles du guide, il n'en
-  garde pas sa propre copie.
+- **Le modèle propose, le code décide.** Chaque correction cite le texte actuel ; un contrôle déterministe la refuse
+  si la citation n'apparaît pas exactement une fois dans la page. Les pages déclarées en lecture seule ne sont
+  jamais modifiées.
+- **Un humain dans la boucle, deux fois.** Le passage s'arrête après le rapport (`interrupt` de LangGraph), et de
+  nouveau avant que quoi que ce soit ne quitte la machine. Un passage en pause est sauvegardé dans SQLite et repris
+  plus tard, depuis un autre processus, des jours après s'il le faut.
+- **Des preuves, pas la mémoire.** Les propositions s'appuient sur les notes de version et les avis de la veille, et
+  la relecture croisée sur des sources primaires lues sur le web, jamais sur la seule mémoire du modèle.
+- **Les règles du guide.** La consigne éditoriale et la politique de traduction sont dans le guide et lues à chaque
+  passage ; l'agent a des valeurs par défaut pour un guide qui n'en a pas.
 
-## Comment LangGraph est utilisé
-
-| Fonction | Où | Pour quoi |
-| :-- | :-- | :-- |
-| `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON simple pour qu'un run en pause puisse être enregistré |
-| Réducteurs (`Annotated[list, operator.add]`) | `state.py` | Les branches parallèles ajoutent leurs propositions et leur consommation sans s'écraser |
-| Répartition `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, lancées en parallèle (`max_concurrency`) |
-| `interrupt()` et `Command(resume=…)` | Nœuds `review` et `publish` | Les deux pauses humaines ; la réponse de l'humain est la valeur que renvoie `interrupt()` |
-| Checkpointer `SqliteSaver`, un fil par run | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à plusieurs jours d'écart ; la page web et la ligne de commande partagent les runs |
-| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Un run de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné : même relecture, même PR |
-| `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
-
-## Utilisation
-
-Prérequis : Python 3.11+, git, Node.js (scripts de contrôle du guide), la CLI GitHub `gh` authentifiée (tickets
-et artefacts de veille, push, pull requests), un clone local du guide et l'un des deux moteurs ci-dessous.
-
-```bash
-python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]"   # Windows ; bin/ sous Linux
-export VAULT_PATH=../ia-on-prem-vault                                    # clone local du guide (par défaut)
-export ANTHROPIC_API_KEY=...                                             # moteur API seulement : lue par le SDK Anthropic
-```
-
-Un autre guide : `vault-watch --guide ../mon-guide init` écrit son manifeste (`vault-watch.toml`), `vault-watch
---guide ../mon-guide doctor` dit ce qui est prêt et ce qui manque. Le manifeste clé par clé, et ce que débloque
-chaque partie facultative : [Brancher son guide](docs/connect-your-guide.fr.md). Node.js et `gh` ne sont
-nécessaires que si les contrôles du guide utilisent Node et s'il indique un dépôt GitHub.
-
-### Moteur du modèle : Claude Code sur un abonnement, ou l'API
+## Le modèle
 
 | Moteur | Ce qui tourne | Ce que ça coûte |
 | :-- | :-- | :-- |
-| `claude-code` | [Claude Code](https://claude.com/claude-code) installé sur cette machine et connecté à un abonnement Claude, lancé une fois par appel sans terminal (`claude -p`) | Rien de facturé : l'usage compte dans les limites de l'abonnement |
-| `api` | L'API Claude par le SDK officiel (`ANTHROPIC_API_KEY`) | Au token, au prix catalogue |
+| `claude-code` | [Claude Code](https://claude.com/claude-code) sur cette machine, connecté avec un abonnement Claude, lancé une fois par appel (`claude -p`) | Rien de facturé : l'usage compte dans les limites de l'abonnement |
+| `api` | L'API Claude par le SDK officiel | Au token, au prix public |
+| `openai` | Tout serveur compatible OpenAI : llama.cpp, vLLM, Ollama, un service hébergé ; recherche web par SearXNG | Celui de votre serveur |
 
-Sans choix, l'agent utilise Claude Code quand il le trouve connecté à un abonnement, sinon l'API.
-Le choix se fait dans la page Réglages de l'interface web (la roue dentée de l'en-tête), qui écrit
-`.vault-watch/settings.json` ; `VAULT_WATCH_ENGINE=api` (ou `claude-code`) force l'un des deux pour une commande
-et passe avant les réglages. L'agent ne se replie jamais de lui-même sur
-l'API : quand une limite de l'abonnement est atteinte, le run s'arrête avec le message de Claude Code et peut
-être relancé plus tard (`resume --retry`) ou avec l'autre moteur.
+Sans choix, l'agent prend Claude Code quand il le trouve connecté avec un abonnement, sinon l'API. Le moteur, le
+modèle et l'effort de chaque rôle (raisonnement, traduction) se choisissent dans les Réglages de l'interface web
+(l'engrenage), qui écrivent `~/.vault-watch/settings.json` ; `VAULT_WATCH_ENGINE` impose un moteur pour une commande.
+L'agent ne bascule jamais de lui-même vers un moteur facturé : quand une limite de l'abonnement est atteinte, le
+passage s'arrête et peut être repris plus tard (`resume --retry`) ou avec un autre moteur.
 
-Claude Code tourne nu : sans les instructions, hooks, skills ni serveurs MCP de l'utilisateur (`--safe-mode`),
-sans conversation gardée, les clés d'API retirées de son environnement, et sans autre outil que sa recherche et
-sa lecture web aux étapes qui vérifient des sources. Il est refusé s'il est connecté autrement qu'à un
-abonnement (compte Console, clé) : ses appels seraient alors facturés sans question.
+Les clés ne sont jamais stockées : les réglages prennent une référence, `env:NOM`, `sops:fichier#NOM` (un fichier
+chiffré avec [sops](https://github.com/getsops/sops)) ou `file:chemin`, et refusent une clé en clair. Un autre
+moteur peut s'ajouter sous forme de paquet ([Écrire un moteur](docs/write-an-engine.fr.md)).
 
-Les réglages contiennent aussi le modèle et l'effort de chaque rôle (raisonnement, traduction) et l'endroit où
-se trouve la clé d'API. Les modèles proposés sont lus sur l'API avec la clé (Models API) ; l'effort décale d'un
-cran, vers le bas ou vers le haut, chaque étape du rôle par rapport à celui que lui donne le code. La clé elle-même n'est jamais enregistrée : le champ prend une référence, `env:NOM` (une variable
-d'environnement, par défaut `env:ANTHROPIC_API_KEY`), `sops:fichier#NOM` (un champ d'un fichier chiffré par
-[sops](https://github.com/getsops/sops), déchiffré au moment de l'appel) ou `file:chemin` (un fichier qui ne
-contient que la clé). Une clé en clair est refusée à l'enregistrement des réglages et à leur lecture.
-
-```json
-{"engine": "", "key": "sops:../secrets/api.env#ANTHROPIC_API_KEY",
- "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"}}
-```
-
-Deux différences avec l'API sont à connaître. La lecture web de Claude Code fait lire la page par un petit
-modèle qui en rend compte, là où l'API donne la page elle-même au modèle : la vérification d'une version ou
-d'une date exacte peut être moins sûre. Et une relecture croisée lit tout le guide (environ 430 k tokens), ce
-qui pèse sur les limites d'un abonnement ; les appels qui partagent le guide le lisent dans le cache de prompt.
-
-### Interface web
+## L'interface web
 
 ```bash
 vault-watch serve                     # http://127.0.0.1:4430/
 vault-watch serve --idle-exit 3600    # s'arrête après 1 h sans visite ni analyse en cours
-vault-watch serve --notify fr         # notification Windows quand un run vous attend, se termine ou échoue
+vault-watch serve --notify fr         # notification Windows quand un passage vous attend, se termine ou échoue
 ```
 
-Avec `--idle-exit`, le serveur peut être lancé à la demande par un lanceur, puis oublié : un run en pause pour
-la relecture ou la publication ne perd rien, son état est dans les checkpoints. Le délai court depuis la fin de
-la dernière analyse, et `GET /api/health` (contrat « service local » v2 : `state`, `busy`, `activity`, `idle`) indique à un lanceur si le serveur est occupé et combien de temps il
-restera actif.
+Un écran par étape : la liste des veilles avec leur état, un passage en cours (chaque étape terminée envoyée à la
+page), la relecture (une carte par correction avec un diff mot à mot, ses sources et le verdict de la relecture
+croisée), l'étape de publication (contrôles, liens en défaut, le diff de la branche), puis la pull request. D'autres
+pages signalent des erreurs à corriger, vérifient tout le guide à la demande avec une estimation de son coût, et
+montrent ce que coûte l'entretien. L'interface est en français ou en anglais. Un passage lancé ici peut être repris
+en ligne de commande, et l'inverse. Le serveur n'écoute que sur 127.0.0.1 ([Sécurité](docs/security.fr.md)).
 
-Un serveur FastAPI pilote le même graphe que la ligne de commande, avec un écran par pause : la liste des
-tickets de veille et l'état de leur run, un run en cours (chaque étape terminée envoyée à la page en
-server-sent events), la relecture (une carte par correction avec un diff au mot près entre le texte actuel et le
-texte proposé, ses sources et l'avis de la relecture croisée ; les membres d'un groupe sont cochés ensemble),
-l'étape de publication (contrôles, liens en défaut, diff de la branche), puis la pull request. Deux autres pages
-servent à signaler des erreurs à corriger et à suivre le coût de l'entretien, et les Réglages (la roue dentée : une fenêtre par-dessus la page)
-choisissent le moteur du modèle. L'en-tête porte aussi la taille du texte (deux loupes), le mode clair ou sombre,
-les palettes (celles fournies et les vôtres, chacune avec son niveau de contraste WCAG) et une cloche :
-notifications du navigateur quand un run vous attend, se termine ou échoue, tant que la page n'est pas affichée
-(désactivées par défaut, le navigateur demande l'autorisation au premier clic). Ces choix restent dans le
-navigateur. Une piste (un doute de la relecture
-croisée, un constat d'une vérification du guide) montre le passage en cause avec son numéro de ligne : le modèle
-le cite, le code le retrouve dans la page, et une citation introuvable est signalée comme telle, jamais montrée
-comme le texte du guide. L'interface est en anglais ou en
-français (bascule dans l'en-tête, langue du navigateur par défaut) ; les corrections elles-mêmes sont en
-français, la langue du guide.
-
-Les appels au modèle tournent dans un fil d'exécution par run et chaque étape est enregistrée : on peut fermer
-la page, et un run lancé ici peut être repris en ligne de commande. Le serveur n'écoute que sur 127.0.0.1,
-refuse un en-tête `Host` non local (DNS rebinding) et exige un en-tête `X-Vault-Watch` sur toute requête qui
-modifie quelque chose, qu'une page web étrangère ne peut pas envoyer sans une requête CORS préalable que le
-serveur n'accorde jamais.
-
-### Ligne de commande
+## La ligne de commande
 
 ```bash
-vault-watch run --issue 50                  # s'arrête à la relecture, affiche le chemin du rapport
-vault-watch resume issue-50 --accept C1,C3  # ou all / none ; applique, traduit, contrôle, s'arrête à nouveau
-vault-watch resume issue-50 --publish yes   # pousse la branche et ouvre la PR
-vault-watch status issue-50
+vault-watch run --watch-json watch.json     # ou --issue 50 pour une issue de la forge ; s'arrête à la relecture
+vault-watch resume <passage> --accept C1,C3 # ou all / none ; applique, traduit, contrôle, s'arrête de nouveau
+vault-watch resume <passage> --publish yes  # pousse la branche et ouvre la pull request
+vault-watch status <passage>
+vault-watch fix <passage> --findings erreurs.txt  # erreurs signalées → corrections contrôlées, même relecture et PR
+vault-watch collect --json watch.json       # la veille depuis les flux du guide, sans modèle
+vault-watch costs --by month                # ou year, run, step
+vault-watch --guide ../autre-guide doctor   # n'importe quelle commande sur un autre guide
 ```
 
-Autres commandes :
+## Le guide de référence
 
-```bash
-vault-watch crosscheck issue-50                       # relance la relecture croisée sur tout le guide d'un run en pause
-vault-watch fix fix-2026-11-08 --findings errors.txt  # erreurs signalées → corrections vérifiées, même relecture et même PR
-vault-watch fix fix-2026-11-09 --from-threads issue-49,issue-50   # les doutes relevés par les relectures croisées
-vault-watch fix fix-2026-11-09-2 --findings drift.txt --translation  # écarts de traduction : Sonnet corrige les pages anglaises d'après le français
-vault-watch eval --issue 30 --at <commit> --truth <base>..<head> --variant full
-vault-watch costs --by month                          # ou year, run, step
-```
+L'agent a été écrit pour [Zero to Hero : IA on-premise](https://ia-on-prem.damien.becherini.fr/)
+([dépôt](https://github.com/DamienBecherini/ia-on-prem-vault)), environ 400 k tokens de contenu en français avec sa
+copie anglaise, dont la veille de quinzaine est collectée par un workflow GitHub. C'est le guide dont les résultats
+sont mesurés ci-dessous. Un second guide, privé, en français seulement et hébergé sur un Gitea auto-hébergé, a
+vérifié que le manifeste et les forges fonctionnent sur un guide pour lequel l'agent n'a pas été écrit.
 
-`fix` entre dans le graphe après `propose` (`graph.update_state(..., as_node="propose")`) : les erreurs trouvées
-par une relecture croisée ou signalées par un lecteur passent par la même numérotation, la même relecture
-croisée, la même relecture humaine, le même miroir, les mêmes contrôles et la même PR.
+**Produit.** Douze pull requests du guide faites par l'agent et fusionnées après relecture, par exemple
+[#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une veille) et
+[#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections issues d'une vérification de tout
+le guide).
 
-Les tests tournent avec un faux modèle et un dépôt git temporaire qui tient lieu de guide : `pytest`.
+**Évalué.** `vault-watch eval` rejoue une veille passée sur le guide tel qu'il était et fait apparier par un modèle
+juge (toujours Claude) chaque proposition avec le diff fusionné par l'humain ([`metrics/eval/`](metrics/eval/)). Le
+18 novembre 2026, le rejeu de la veille #77 a trouvé les 11 corrections de #78, aucune fausse. Sur la veille #30,
+aucune proposition arrivée à la relecture n'était fausse ; la plupart des corrections manquées ne changeaient qu'une
+date que la page de la version rendait elle-même trompeuse.
 
-## Évaluation sur des veilles passées
+**Coût.** Chaque appel au modèle est noté dans un journal (ici [`metrics/usage.jsonl`](metrics/usage.jsonl), chez
+vous `~/.vault-watch/usage.jsonl`) ; `vault-watch costs` en fait le total, avec à part les appels faits sur un
+abonnement (0 facturé, et ce qu'ils auraient coûté sur l'API). Mesuré en novembre 2026 sur l'API au prix public, Opus
+5.5 pour le raisonnement et Sonnet 5.5 pour la copie anglaise :
 
-Deux veilles traitées à la main avant l'existence de l'agent sont rejouées sur le guide tel qu'il était alors,
-jusqu'à la pause de relecture, et un modèle juge rapproche chaque proposition du diff que l'humain a fusionné
-(`vault-watch eval`, résultats dans [`metrics/eval/`](metrics/eval/)).
-
-| Veille | Décision humaine | Agent, extraits par mots-clés | Agent, relecture croisée sur tout le guide |
-| :-- | :-- | :-- | :-- |
-| #30 (urgente, 89 éléments) | PR #32, 26 passages | 1 proposition, juste | 3 propositions : 2 concordent, 1 page supplémentaire valable |
-| #47 (bimensuelle) | rien d'appliqué | 0 proposition | 0 proposition |
-
-Aucune proposition arrivée à la relecture n'était fausse. Le rappel brut sur #30 est faible (2 passages de
-correction sur 15), et la lecture des oublis en dit plus que le chiffre :
-
-- le changement de fond de la veille (version minimale d'Open WebUI relevée à 0.11.4 après 15 avis de sécurité) a
-  été trouvé sur chaque page qui l'énonce, plus une page que l'humain avait oubliée ;
-- 9 des 13 passages de correction manqués ne changent qu'une date (Ollama 0.40 « septembre » → « octobre » sur
-  8 pages, une note de bas de page 2 → 3 octobre). La page de version GitHub affiche le 25 septembre et l'agent
-  s'est abstenu. L'humain avait raison : un run de correction ultérieur a montré que le 25 septembre est la date
-  de création de l'objet de version sous le nom v0.40.0-rc0, renommé ensuite de rc1 à rc6 ; la v0.40.0 stable est
-  sortie le 6 octobre (son changelog part de la v0.35.1, publiée le 2 octobre). Un oubli, donc, sur une date que la
-  page de version elle-même rend trompeuse ;
-- les ajouts (nouveaux paragraphes : transcription en temps réel, chaîne d'approvisionnement MCP) sont listés
-  comme candidats, par conception, et ne comptent pas dans le rappel des corrections.
-
-Le rejeu a révélé deux vrais défauts, tous deux corrigés : la relecture croisée rejetait une correction juste à
-cause d'une date discutable (elle révise désormais le détail), et les éléments groupés se partageaient un même
-budget d'extraits, si bien que le dernier élément d'un groupe pouvait n'en recevoir aucun (chaque élément a
-maintenant sa part).
-
-## Ce que coûte l'entretien
-
-Chaque appel au modèle est consigné dans [`metrics/usage.jsonl`](metrics/usage.jsonl) (run, étape, modèle,
-tokens, coût au prix catalogue calculé d'après la consommation renvoyée par l'API). Le fichier est versionné :
-c'est l'historique de ce que coûte la mise à jour du guide. La page de facturation de la Console reste la
-référence. Un appel passé par Claude Code sur un abonnement est consigné avec un coût de 0 et, à part, ce qu'il
-aurait coûté sur l'API (`list_usd`) ; `vault-watch costs` montre les deux.
-
-Mesures de novembre 2026, sur l'API Claude au prix catalogue, avec Claude Opus 5.5 pour le tri (effort moyen),
-les propositions et la relecture croisée (effort élevé), et Claude Sonnet 5.5 pour le miroir anglais (effort
-moyen). Un autre modèle ou un autre niveau d'effort changerait ces chiffres ; aucun autre modèle n'a été évalué
-sur cette tâche.
-
-| Run | Coût |
+| Passage | Coût |
 | :-- | --: |
-| Veille avec extraits seulement (ticket #50, 81 éléments retenus, 8 corrections) | 0,90 $ |
-| Veille complète avec relecture croisée sur tout le guide (tickets #49, #50) | 3,80 – 4,40 $ |
-| Run de correction des erreurs trouvées par les relectures croisées (26 corrections, PR #54 du guide) | 6,60 $ |
-| Autres runs de correction d'erreurs signalées (cinq runs) | 5,60 – 8,15 $ |
-| Run de correction de traduction seule (Sonnet) | 0,35 $ |
-| Vérification du guide à la demande (un run) | 7,25 $ |
+| Veille avec extraits seulement (81 éléments gardés, 8 corrections) | 0,90 $ |
+| Veille complète avec la relecture croisée de tout le guide | 3,80 – 4,40 $ |
+| Passage de correction sur des erreurs signalées | 5,60 – 8,15 $ |
+| Passage de correction de la traduction seule (Sonnet) | 0,35 $ |
+| Vérification du guide à la demande | 7,25 $ |
 
-La relecture croisée domine : écrire 400 k tokens dans le cache de prompt coûte environ 2 $, un appel suivant
-sur le même cache environ 0,08 $. Deux veilles complètes par mois reviennent à environ 100 $ par an, pour les
-veilles seules. Les runs de correction et les vérifications à la demande s'y ajoutent et dépendent du nombre
-d'erreurs signalées : chacun ajoute environ 6 à 8 $.
+La relecture croisée domine : écrire 400 k tokens dans le cache de prompt coûte environ 2 $, un appel suivant sur le
+même cache environ 0,08 $. Deux veilles complètes par mois font environ 100 $ par an ; un guide deux fois plus petit
+coûte à peu près moitié moins. Avec Claude Code sur un abonnement, rien n'est facturé, mais une relecture croisée
+pèse sur les limites de l'abonnement.
 
-Le journal totalise 73,70 $, tous dépensés le 2026-11-08 pendant la mise en place de l'agent : 15,75 $ de
-veilles (dont des runs répétés des tickets #49 et #50), 40,61 $ de runs de correction, 10,09 $ de rejeux
-d'évaluation et 7,25 $ pour une vérification. Cette journée est un coût de démarrage, pas un rythme mensuel.
+## Ce que montre ce dépôt
+
+| Fonction de LangGraph | Où | Pour quoi |
+| :-- | :-- | :-- |
+| `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'un passage en pause puisse être stocké |
+| Réducteurs (`Annotated[list, operator.add]`) | `state.py` | Les branches parallèles ajoutent leurs propositions et leur usage sans s'écraser |
+| `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, en parallèle |
+| `interrupt()` et `Command(resume=…)` | nœuds `review` et `publish` | Les deux pauses humaines ; votre réponse est la valeur que renvoie `interrupt()` |
+| Checkpointer `SqliteSaver`, un fil par passage | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passages |
+| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Un passage de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné |
+| `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
+
+Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). 193 tests (pytest) font tourner tout le
+graphe avec un faux modèle et un dépôt git jetable ; un contrat de moteur vérifie n'importe quel moteur. Comment les
+modules s'emboîtent : [docs/code.fr.md](docs/code.fr.md).
 
 ## Choix de conception
 
-- **LangGraph pour l'orchestration, le SDK Anthropic pour le modèle.** Le graphe a besoin d'un état, de
-  branches parallèles (`Send`), de pauses (`interrupt` / `Command(resume=...)`) et d'un checkpointer ; les
-  appels au modèle ont besoin d'une sortie structurée validée par Pydantic, du cache de prompt, de la recherche
-  et de la lecture web côté serveur, et de la consommation exacte de chaque appel. Le SDK officiel fournit tout
-  cela directement : aucune surcouche de modèle LangChain ne s'intercale.
-- **Pas de RAG vectoriel.** Le guide français tient dans la fenêtre de contexte ; avec le cache de prompt, tout
-  le lire coûte moins cher que construire et régler un index de recherche, et le modèle voit les notes de bas
-  de page et les incohérences entre pages que la recherche découperait. La recherche devient utile au-delà du
-  budget de contexte.
-- **Des corrections seulement.** Les ajouts (un nouveau modèle, un nouvel outil) sont listés comme candidats dans
-  le rapport, pas rédigés : décider que quelque chose a sa place dans le guide revient à l'éditeur. La
-  découverte est la prochaine phase de la [feuille de route](ROADMAP.md).
+- **LangGraph pour l'orchestration, le client propre à chaque moteur pour le modèle.** Le graphe a besoin d'un état,
+  de branches parallèles, de pauses et d'un checkpointer ; les appels au modèle ont besoin de sortie structurée, de
+  cache de prompt, de recherche web et de l'usage exact de chaque appel. Aucune surcouche de chat-model LangChain ne
+  s'intercale.
+- **Pas de RAG vectoriel.** Un guide qui tient dans la fenêtre du modèle est lu en entier, avec le cache de prompt :
+  le modèle voit les notes de bas de page et les incohérences entre pages qu'une recherche par extraits couperait.
+  Un guide qui ne tient pas est lu chapitre par chapitre.
+- **Des corrections seulement.** Les ajouts (un nouveau modèle, un nouvel outil) sont listés comme candidats dans le
+  rapport, pas rédigés : décider que quelque chose a sa place dans le guide revient à l'éditeur.
 
 ## Limites
 
-- **Un seul guide.** L'agent est écrit pour ce guide : il s'appuie sur son workflow de veille, ses scripts de
-  contrôle, sa ligne éditoriale et son organisation FR + EN. Une autre base de connaissances demanderait ses
-  propres `collect` et `audits`.
-- **Pas encore d'ajouts.** Les nouveaux modèles et outils sont listés comme pistes ; la rédaction d'une
-  nouvelle page n'est pas automatisée.
-- **Les dates sont difficiles.** Une version a une date de création, une date de tag et une date de
-  publication ; l'évaluation montre l'agent passant à côté d'une date que la page de version rendait trompeuse.
-  Quand ses sources ne tranchent pas une date, il s'abstient.
-- **Le modèle reste l'assistant d'un relecteur.** Toute modification passe par une relecture humaine et une
-  pull request fusionnée ; l'agent ne pousse jamais sur `main`.
+- **Du Markdown dans git.** Des pages dans un autre format, ou un guide qui est un sous-dossier d'un plus grand
+  dépôt, ne sont pas pris en charge.
+- **Pas encore d'ajouts.** Les nouveaux outils et modèles sont listés comme pistes ; rédiger une nouvelle page n'est
+  pas automatisé.
+- **Les dates sont difficiles.** Une version a une date de création, une date de tag et une date de publication ;
+  quand ses sources ne tranchent pas, l'agent s'abstient plutôt que de deviner.
+- **Mesuré sur Claude seulement.** Un autre modèle tourne, mais la qualité de ses corrections n'est pas mesurée :
+  relisez avec soin ses « rien à changer » ([Choisir un modèle](docs/choose-a-model.fr.md)).
 
 ## Organisation du dépôt
 
 ```
 src/vault_watch_agent/
-  graph.py       le graphe : nœuds, arêtes, les deux pauses, texte du rapport et de la PR
+  graph.py       le graphe : nœuds, arêtes, les deux pauses, texte du rapport et de la pull request
   state.py       état du graphe et sorties structurées imposées au modèle (Pydantic)
-  config.py      réglages de l'utilisateur : moteur, référence de la clé d'API, modèles
-  llm.py         appels à Claude (API ou Claude Code sur un abonnement) : sortie structurée, cache de prompt, recherche et lecture web, journal des coûts
-  prompts.py     prompts système, construits d'après la ligne éditoriale et la politique de traduction du guide
-  vault.py       partie déterministe : recherche, contrôle des citations exactes, application, corpus du guide entier
-  inputs.py      ticket de veille et artefact du workflow (gh), affirmations datées
-  crosscheck.py  relecture croisée des corrections sur tout le guide
-  fix.py         runs de correction : erreurs signalées → corrections (mode traduction : pages anglaises corrigées d'après le français)
-  evaluate.py    rejeu des veilles passées et juge
-  costs.py       totaux du journal des coûts
-  cli.py         ligne de commande
-  web.py         serveur FastAPI ; static/ contient la page (JS sans framework, sans étape de build) : app.js,
-                 settings.js, themes.js et boot.js (taille du texte, mode, palettes), notify.js (notifications
-                 du navigateur)
-tests/           faux modèle, dépôt git jetable qui tient lieu de guide
-metrics/         journal des coûts et résultats d'évaluation (versionnés)
+  guide.py       le guide tel que son manifeste le décrit (vault-watch.toml)
+  vault.py       les pages : recherche, contrôle de citation exacte, application d'une modification, tout le guide
+  llm.py         les moteurs (API Claude, Claude Code, extensions) ; openai_compat.py celui compatible OpenAI
+  forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
+  watches.py     d'où viennent les veilles ; collect.py la collecte de l'agent ; inputs.py le format de la veille
+  crosscheck.py  relecture croisée ; fix.py passages de correction ; verify.py vérifications ; evaluate.py rejeux
+  prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
+  config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
+  onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, static/ sa page (sans build)
+tests/           faux modèle, dépôt git jetable, contrat de moteur
+examples/        un guide d'exemple et son manifeste
+metrics/         journal des coûts et résultats d'évaluation du guide de référence
+docs/            la documentation liée plus haut
 ```
 
-Présentation avec schémas : [docs/presentation.fr.md](docs/presentation.fr.md). Structure du code (modules, état du
-graphe, appels au modèle, pause et reprise) : [docs/code.fr.md](docs/code.fr.md). Étapes suivantes : [ROADMAP.md](ROADMAP.md).
+Étapes suivantes : [ROADMAP.md](ROADMAP.md). Changements : [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 

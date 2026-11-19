@@ -5,6 +5,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased (M5: stable)
 
+- What a newcomer reads (T5.3): the README (EN, FR) rewritten around « your guide, your model, your decision »,
+  with a quick start, what each part needs, the three engines and the forges; the IA on-prem guide is now the
+  reference example, with its measures. `docs/security.md` (EN, FR): keys as references, what the model can and
+  cannot do, what it reads is data, the local server, what to know before connecting a guide. `docs/code.md`
+  brought up to date (three engines and plug-ins, two forges, the two modules it missed).
+- The agent's folder (settings, the runs of each guide) and the cost journal are no longer created in the current
+  folder: `~/.vault-watch/` and `~/.vault-watch/usage.jsonl` by default, so that a command run from a guide's folder
+  writes nothing into it. A `.vault-watch` folder and a `metrics/usage.jsonl` already in the current folder (how the
+  agent ran before, from its own clone) are still used; `VAULT_WATCH_HOME` and `VAULT_WATCH_JOURNAL` still win.
 - Freeze (T5.2): the manifest, `watch.json`, the engine protocol and the settings each carry a version number, all
   `1`; `docs/compatibility.md` says what may change within a number (additions only) and how a new number comes
   (refused when newer than the agent, migrated when older). The settings get `"schema": 1` and their migrations

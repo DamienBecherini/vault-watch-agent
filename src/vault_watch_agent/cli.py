@@ -15,8 +15,8 @@ paused run waits as long as needed.
 
 The guide: --guide, else VAULT_PATH, else the current folder when it holds a vault-watch.toml, else
 ../ia-on-prem-vault (the folder the agent was written for, kept so that existing set-ups go on working). Each guide
-has its working folder under VAULT_WATCH_HOME (default .vault-watch, see guide.working_folder); the settings are
-shared.
+has its working folder under the agent's folder (default_home: VAULT_WATCH_HOME, ./.vault-watch, ~/.vault-watch; see
+guide.working_folder); the settings are shared.
 """
 
 from __future__ import annotations
@@ -34,12 +34,32 @@ from . import vault
 from .prices import Prices
 from .graph import Deps, build, describe
 
-CONFIG_HOME = Path(os.environ.get("VAULT_WATCH_HOME", ".vault-watch")).resolve()  # settings, shared by the guides
+
+
+def default_home() -> Path:
+    """The agent's folder (settings, the runs of each guide, the cost journal): VAULT_WATCH_HOME, else a
+    `.vault-watch` in the current folder when there is one (how the agent ran before 1.0, from its own clone),
+    else `~/.vault-watch`: never a new folder inside the guide the command is run from."""
+    if os.environ.get("VAULT_WATCH_HOME"):
+        return Path(os.environ["VAULT_WATCH_HOME"]).expanduser().resolve()
+    here = Path(".vault-watch")
+    return here.resolve() if here.is_dir() else (Path.home() / ".vault-watch").resolve()
+
+
+def default_journal(home: Path) -> Path:
+    """One line per model call with its cost: VAULT_WATCH_JOURNAL, else `metrics/usage.jsonl` in the current folder
+    when it exists (the agent's clone, where it is versioned), else `usage.jsonl` in the agent's folder."""
+    if os.environ.get("VAULT_WATCH_JOURNAL"):
+        return Path(os.environ["VAULT_WATCH_JOURNAL"]).expanduser().resolve()
+    here = Path("metrics/usage.jsonl")
+    return here.resolve() if here.is_file() else home / "usage.jsonl"
+
+
+CONFIG_HOME = default_home()  # settings, shared by the guides
 VAULT = Path(".").resolve()  # the guide, and its working folder: set by use_guide() from --guide
 HOME = CONFIG_HOME
 LEGACY_FOLDER = "../ia-on-prem-vault"
-# One line per model call with its cost; versioned, it is the history of what the upkeep costs.
-JOURNAL = Path(os.environ.get("VAULT_WATCH_JOURNAL", "metrics/usage.jsonl")).resolve()
+JOURNAL = default_journal(CONFIG_HOME)
 
 
 def find_guide(option: str | None) -> Path:

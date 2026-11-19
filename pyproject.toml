@@ -1,7 +1,7 @@
 [project]
 name = "vault-watch-agent"
 dynamic = ["version"]
-description = "LangGraph agent that turns the weekly ecosystem watch of the IA on-prem vault into reviewed, sourced edits and a pull request."
+description = "Keep a Markdown guide up to date with what changes in its field: a LangGraph agent proposes sourced corrections, a human reviews them, it opens the pull request."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
