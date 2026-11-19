@@ -117,6 +117,7 @@ true, the version is tagged, and `main` receives it (work happens on the `dev` b
 | M3. Any watch | 0.5.0 | Get a watch without writing a collector |
 | M4. Any model | 0.6.0 | Run the steps on an OpenAI-compatible model, local ones included |
 | M5. Stable | 1.0.0 | Rely on the manifest and the engine protocol not changing under them |
+| M6. Compaction | 1.1.0 | Keep a guide from growing heavy: redundancies, piled-up history and long sections found and trimmed, reviewed like corrections |
 
 ### Decisions to take first
 
@@ -423,6 +424,33 @@ Done 2026-11-18, published as 0.6.0.
 - **T5.4 Release.** Tag, release notes from the changelog, the package installable with `pipx`.
 
 Done when: someone who is not the author connects a guide by following the docs alone.
+
+### M6. Compaction (1.1.0)
+
+A watch only adds: « since » notes, footnotes stacked on footnotes, one warning copied into three pages, versions
+kept « for the record ». Over months a guide grows heavy without anyone deciding it. Runs of their own, apart from
+the watches (the cross-check of a watch keeps its full reading: nothing here makes it lighter), find what weighs
+and propose to trim it, through the same review as a correction. Asked for on 2026-11-19; it takes up E1, E2
+and C2 below. After M5: a new function, not a change of format.
+
+- **T6.1 Size per page.** A budget per page (the manifest can set it per folder; a default otherwise) shown by
+  `doctor` and in the interface as a warning, never a failure: where to look first (E1).
+- **T6.2 The report: `vault-watch compact`.** One call reads the whole guide (the cost of a cross-check: about
+  2.5 to 3 $ on the IA on-prem guide) and lists, without editing anything: the same fact stated in several pages
+  (which page should keep it, which should link to it), piled-up history (successive « since » notes, superseded
+  versions, advisories fixed long ago below the version floor), sections over budget and what makes them long.
+  Each finding quotes its passages, like the cross-check's findings. Read-only pages are listed, never proposed.
+- **T6.3 Proposals for the chosen findings.** The editor picks findings in the report; the agent proposes
+  targeted edits (current text, proposed text, reason), never a page rewritten whole; a fact moved keeps its
+  source and its footnote, a repetition becomes a link rather than a deletion. Then the same cross-check, review,
+  mirror and pull request as a watch.
+- **T6.4 Replace, do not pile up (C2), at the source.** The proposal step of a watch is told to replace the old
+  fact rather than add a « since » note beside it, history staying in Git: less to compact later.
+- **T6.5 Rhythm.** Quarterly or on demand (a « Compact » action in the interface), the cost announced before.
+
+Done when: a compaction run on the IA on-prem guide (several months of watches) gives a report the editor finds
+right, and the trims chosen from it are merged with the guide's checks passing. Try it there first: the
+automatisation guide, just generated, has nothing piled up yet.
 
 ### Order, and what can move
 
