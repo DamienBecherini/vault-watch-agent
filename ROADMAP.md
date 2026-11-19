@@ -424,6 +424,9 @@ Done 2026-11-18, published as 0.6.0.
   server, and read on the maintainer's Gitea (the repository found; the issues refused to a token without the
   `issue` scope, with that message). A Gitea token is valid on every repository its account reaches (no
   per-repository token as in GitLab): the docs advise an account of its own for the agent.
+  Then the automatisation guide pointed at its Gitea (`adbd783`, token by sops reference): `doctor` reads the
+  repository, and a real pull request was opened, read (open), closed (closed) through the forge, its throwaway
+  branch deleted.
 - **T5.2 Freeze.** Manifest schema 1, `watch.json` schema 1, engine protocol 1: a change after that is a new
   schema number with a migration. The settings file gets its own number and its migrations.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes
