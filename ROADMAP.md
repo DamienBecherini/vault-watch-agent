@@ -57,7 +57,7 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   page), warning first.
 - [ ] **E2. Quarterly compaction graph.** Proposes shorter versions of sections over budget and removes
   advisories fixed more than six months ago below the version floor; human-reviewed diff as always.
-- [ ] **E3. Feed coverage audit.** Every tool with a solution sheet has a release feed and an advisory feed
+- [x] **E3. Feed coverage audit** (2026-11-19, in « Check the sources »). Every tool with a solution sheet has a release feed and an advisory feed
   (today advisories cover 9 tools out of about 25; Liquid AI, Microsoft, AllenAI, Aleph Alpha are not followed).
 - [ ] **E4. Gap-driven discovery, quarterly.** With the whole vault in context, list what an SME on-prem AI
   guide should cover and does not. The model's knowledge only generates leads; each one goes through D1–D4.
@@ -71,11 +71,10 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   kept on the machine, per feed: collected, kept by the rules, judged and kept by the model, corrections proposed
   and accepted, and a verdict by rule. Dropping a feed stays the editor's decision.
   Next, asked for on 2026-11-19 (the maintainer): question the sources over time from the interface.
-  - [ ] **« Check the sources »**: ask each source itself (free, network): is it alive, when did it last publish,
-    is the repository archived or renamed, does the feed type still fit (Aider no longer publishes GitHub
-    releases). Proposals to remove (dead, noise, a tool the guide no longer mentions) and to add (repositories
-    and Hugging Face authors the guide cites and no feed follows, E3), reviewed, then a pull request on
-    `feeds.json`.
+  - [x] **« Check the sources »** (2026-11-19, `sourcecheck.py`): each source asked (there, archived, renamed,
+    last publication), the guide read again (cited and not followed, followed and no longer named, releases
+    without advisories, E3), proposals to remove, change or add, the ticked ones in one pull request on
+    `feeds.json`. A source quiet for 180 days is said, never proposed for removal.
   - [ ] **A « watched page » feed type**: a page whose change is an event (a price list the guide cites). The
     Lambda prices of 16 November 2026 were not seen by any feed; the maintainer reported them by hand.
   - [ ] **« Look for what is new »** (E4, then D1 to D4): a run that reads the whole guide and the web and lists

@@ -20,7 +20,7 @@ const TEXTS = {
       intro: (p, runs, file) => `Ce que chaque source a apporté sur ${p.watches} veille(s), du ${p.since || "…"} au ${p.until}, et ce qu'il en est sorti dans ${runs} passage(s). Calculé sans modèle, à partir des veilles et des passages gardés sur cette machine. La liste est dans <code>${file}</code>.`,
       none: "Ce guide ne déclare pas de liste de sources (<code>[watch] feeds</code> dans son manifeste).",
       noHistory: "Aucune veille n'a encore été lue sur cette machine : le tableau se remplira avec les premières.",
-      columns: ["Source", "Type", "Dernier élément", "Collectés", "Gardés au tri", "Jugés par le modèle", "Retenus", "Corrections proposées", "Acceptées", "État"],
+      columns: ["Source", "Type", "Dernier élément", "À la source", "Collectés", "Gardés au tri", "Jugés par le modèle", "Retenus", "Corrections proposées", "Acceptées", "État"],
       help: ["Collectés : éléments distincts vus dans les veilles.", "Gardés au tri : après les règles du collecteur (pré-versions, correctifs de routine écartés), sans modèle.",
         "Jugés par le modèle : ceux qu'un passage a triés.", "Retenus : jugés utiles pour une correction ou un ajout."],
       verdicts: { error: "en erreur", noise: "bruit", silent: "muette", quiet: "peu d'éléments", leads: "pistes sans suite", useful: "utile" },
@@ -34,6 +34,25 @@ const TEXTS = {
       }),
       insurance: "faille de sécurité : se juge sur sa santé, jamais sur son rendement",
       removed: n => `${n} source(s) présentes dans les veilles ne sont plus dans la liste :`,
+      check: "Vérifier les sources", checkHelp: "Interroge chaque source et relit le guide : sans modèle, rien de facturé, moins d'une minute.",
+      checking: (n, total) => `Vérification en cours… ${n} / ${total}`,
+      checked: d => `Dernière vérification : ${d}.`, neverChecked: "Jamais vérifiées : la colonne « À la source » et les propositions viennent avec la première vérification.",
+      probe: { unreachable: "ne répond pas", archived: "dépôt archivé", moved: r => `déplacé vers ${r}`, empty: "ne liste rien",
+        stale: d => `rien depuis le ${d}` },
+      staleNote: days => `Une source qui n'a rien publié depuis ${days} jours n'est pas proposée au retrait : un outil qui ne bouge plus est une information sur le sujet du guide, c'est la page qui le recommande qu'il faut regarder.`,
+      proposals: n => `Propositions (${n})`, noProposals: "Aucun changement à proposer.",
+      groups: { remove: "Retirer", change: "Modifier", add: "Ajouter : cités dans le guide, suivis par aucune source", advisories: "Ajouter : failles de sécurité d'outils déjà suivis pour leurs versions" },
+      why: {
+        unreachable: p => `la source ne répond pas (${p.error})`, archived: () => "le dépôt est archivé",
+        moved: p => `le dépôt a été déplacé vers ${p.new.repo}`, empty: () => "la source répond et ne liste rien",
+        noise: p => `${p.judged} éléments jugés par le modèle sur la période, ${p.kept} retenu(s), aucune correction proposée`,
+        "not-named": () => "aucune page du guide ne la nomme plus",
+        cited: p => `cité dans ${p.pages} pages (${p.examples.join(", ")})`,
+        "no-advisories": p => `suivi pour ses versions (${p.of}), pas pour ses failles`,
+      },
+      recommended: "un fait tranche", applied: "appliquée",
+      apply: (n, repo) => repo ? `Ouvrir une pull request avec ${n} changement(s)` : `Créer une branche avec ${n} changement(s)`,
+      appliedTo: (branch, pr) => pr ? `Pull request ouverte : ${pr}` : `Changements sur la branche ${branch} (guide sans dépôt : à fusionner à la main).`,
       all: n => `Toutes (${n})`, filterHelp: "Clique un état pour ne voir que lui (plusieurs possibles), un titre de colonne pour trier.",
       shown: (n, total) => n === total ? `${total} sources` : `${n} source(s) affichée(s) sur ${total}`,
       sortBy: c => `Trier par « ${c} » (un second clic inverse)`, defaultSort: "Tri par défaut",
@@ -156,7 +175,7 @@ const TEXTS = {
       intro: (p, runs, file) => `What each source brought over ${p.watches} watch(es), from ${p.since || "…"} to ${p.until}, and what came out of it in ${runs} run(s). Computed without a model, from the watches and the runs kept on this machine. The list is in <code>${file}</code>.`,
       none: "This guide declares no list of sources (<code>[watch] feeds</code> in its manifest).",
       noHistory: "No watch has been read on this machine yet: the table fills with the first ones.",
-      columns: ["Source", "Type", "Last item", "Collected", "Kept by the rules", "Judged by the model", "Kept", "Corrections proposed", "Accepted", "State"],
+      columns: ["Source", "Type", "Last item", "At the source", "Collected", "Kept by the rules", "Judged by the model", "Kept", "Corrections proposed", "Accepted", "State"],
       help: ["Collected: distinct items seen in the watches.", "Kept by the rules: after the collector's rules (pre-releases, routine patches dropped), no model.",
         "Judged by the model: those a run has triaged.", "Kept: judged useful for a correction or an addition."],
       verdicts: { error: "in error", noise: "noise", silent: "silent", quiet: "few items", leads: "leads without follow-up", useful: "useful" },
@@ -170,6 +189,25 @@ const TEXTS = {
       }),
       insurance: "security advisories: judged on its health, never on its yield",
       removed: n => `${n} source(s) found in the watches are no longer in the list:`,
+      check: "Check the sources", checkHelp: "Asks each source and reads the guide again: no model, nothing billed, under a minute.",
+      checking: (n, total) => `Checking… ${n} / ${total}`,
+      checked: d => `Last check: ${d}.`, neverChecked: "Never checked: the « At the source » column and the proposals come with the first check.",
+      probe: { unreachable: "does not answer", archived: "repository archived", moved: r => `moved to ${r}`, empty: "lists nothing",
+        stale: d => `nothing since ${d}` },
+      staleNote: days => `A source that has published nothing for ${days} days is not proposed for removal: a tool that stopped moving is a fact about the guide's subject, the page that recommends it is what to look at.`,
+      proposals: n => `Proposals (${n})`, noProposals: "No change to propose.",
+      groups: { remove: "Remove", change: "Change", add: "Add: cited in the guide, followed by no source", advisories: "Add: security advisories of tools already followed for their releases" },
+      why: {
+        unreachable: p => `the source does not answer (${p.error})`, archived: () => "the repository is archived",
+        moved: p => `the repository moved to ${p.new.repo}`, empty: () => "the source answers and lists nothing",
+        noise: p => `${p.judged} items judged by the model over the period, ${p.kept} kept, no correction proposed`,
+        "not-named": () => "no page of the guide names it any more",
+        cited: p => `cited in ${p.pages} pages (${p.examples.join(", ")})`,
+        "no-advisories": p => `followed for its releases (${p.of}), not for its advisories`,
+      },
+      recommended: "settled by a fact", applied: "applied",
+      apply: (n, repo) => repo ? `Open a pull request with ${n} change(s)` : `Create a branch with ${n} change(s)`,
+      appliedTo: (branch, pr) => pr ? `Pull request opened: ${pr}` : `Changes on the branch ${branch} (a guide without a repository: merge it by hand).`,
       all: n => `All (${n})`, filterHelp: "Click a state to see it alone (several can be chosen), a column title to sort.",
       shown: (n, total) => n === total ? `${total} sources` : `${n} source(s) shown out of ${total}`,
       sortBy: c => `Sort by « ${c} » (a second click reverses)`, defaultSort: "Default order",
@@ -777,7 +815,7 @@ function viewReport() {
 const SOURCE_ORDER = ["error", "noise", "silent", "leads", "quiet", "useful"];  // what to look at first
 const SOURCE_CLASS = { error: "error", noise: "attention", silent: "attention", leads: "neutral", quiet: "neutral", useful: "ok" };
 // The columns, in the order of T.sources.columns: the field each one sorts by, and whether it is a number
-const SOURCE_COLUMNS = [["id"], ["type"], ["last_item"], ["collected", true], ["kept", true], ["judged", true], ["useful", true],
+const SOURCE_COLUMNS = [["id"], ["type"], ["last_item"], ["source_last"], ["collected", true], ["kept", true], ["judged", true], ["useful", true],
   ["proposed", true], ["accepted", true], ["verdict"]];
 // The reader's choices, kept while the page is open: the column sorted (none: what to look at first), its
 // direction, the states shown (none: all)
@@ -794,19 +832,57 @@ function sortSources(feeds) {
   return feeds.slice().sort((a, b) => compare(a, b) || a.id.localeCompare(b.id));
 }
 
+const SOURCE_TICKS = {};  // proposals ticked or unticked by the reader, kept while the page refreshes
+
 async function viewSources() {
+  clearTimeout(followTimer);
   const s = await api("/api/sources"), S = T.sources;
   if (location.hash.slice(1) !== "/sources") return;  // left the page meanwhile
   if (!s.file) { page.innerHTML = `<h1>${S.title}</h1><p class="subtitle">${S.none}</p>`; return; }
-  const rules = S.rules(s.noise_min, s.noise_share), view = SOURCES_VIEW;
+  const rules = S.rules(s.noise_min, s.noise_share), view = SOURCES_VIEW, check = s.check, busy = s.checking.running;
+  s.feeds.forEach(f => { f.source_last = f.probe?.last || ""; });
   const by = v => s.feeds.filter(f => f.verdict === v);
   const cell = n => `<td class="number">${n || ""}</td>`;
+  // What the source answered at the last check: its last publication, and what is wrong with it
+  const answered = f => {
+    const p = f.probe;
+    if (!p) return "—";
+    const note = p.state === "ok" ? "" : p.state === "moved" ? S.probe.moved(esc(p.moved)) : p.state === "stale" ? S.probe.stale(esc(p.last))
+      : S.probe[p.state] || esc(p.state);
+    return `${p.state === "stale" ? "" : esc(p.last) || "—"}${note ? `<div class="${p.state === "stale" ? "muted" : "error-text"} small">${note}</div>` : ""}`;
+  };
+  const what = f => esc(f.repo || f.author || f.url || f.name || "");
+  const proposal = p => {
+    const done = p.applied;
+    const ticked = SOURCE_TICKS[p.id] ?? p.recommended;
+    return `<li${done ? ' class="handled"' : ""}><label>${done ? `<span class="badge ok">${S.applied}</span>`
+      : `<input type="checkbox" data-proposal="${p.id}"${ticked ? " checked" : ""}>`} <span><b>${esc(p.feed.id)}</b>
+      <span class="muted">(${esc(p.feed.type || "rss")}${what(p.feed) ? `, ${what(p.feed)}` : ""})</span> : ${esc(S.why[p.why](p))}${
+      p.recommended && !done ? ` <span class="badge neutral">${S.recommended}</span>` : ""}${
+      done?.pr_url ? ` ${extLink(done.pr_url, "PR")}` : ""}</span></label></li>`;
+  };
+  const groups = check ? [
+    ["remove", check.proposals.filter(p => p.action === "remove")], ["change", check.proposals.filter(p => p.action === "change")],
+    ["add", check.proposals.filter(p => p.action === "add" && p.why !== "no-advisories")],
+    ["advisories", check.proposals.filter(p => p.why === "no-advisories")]].filter(([, list]) => list.length) : [];
+  const last = check?.applied?.at(-1);
   const draw = () => {
     const shown = sortSources(s.feeds.filter(f => !view.states.size || view.states.has(f.verdict)));
     const arrow = key => view.sort !== key ? "" : view.dir > 0 ? " ▲" : " ▼";
     page.innerHTML = `
     <h1>${S.title}</h1>
     <p class="subtitle">${s.period.watches ? S.intro(s.period, s.runs, esc(s.file)) : S.noHistory}</p>
+    <p><button class="primary" id="check"${busy ? " disabled" : ""}>${busy ? S.checking(s.checking.done, s.checking.total) : S.check}</button>
+      <span class="muted small">${check ? S.checked(new Date(check.checked).toLocaleString(lang)) : S.neverChecked} ${S.checkHelp}</span></p>
+    ${s.checking.error ? `<p class="error-text">${esc(s.checking.error)}</p>` : ""}
+    ${check ? `<h2>${S.proposals(check.proposals.length)}</h2>
+      ${last ? `<p class="small">${S.appliedTo(esc(last.branch), last.pr_url ? extLink(last.pr_url, esc(last.pr_url)) : "")}</p>` : ""}
+      ${groups.length ? groups.map(([g, list]) => `<details class="card foldable"${g === "advisories" ? "" : " open"}>
+        <summary class="header"><b>${S.groups[g]}</b> <span class="badge neutral">${list.length}</span></summary>
+        <ul class="leads">${list.map(proposal).join("")}</ul></details>`).join("") : `<p class="muted">${S.noProposals}</p>`}
+      <p class="muted small">${S.staleNote(check.stale_days)}</p>
+      ${view.error ? `<p class="error-text">${esc(view.error)}</p>` : ""}
+      ${check.proposals.some(p => !p.applied) ? `<div class="bar"><button class="primary" id="apply"></button></div>` : ""}` : ""}
     <ul class="small filters">
       <li><button class="badge neutral${view.states.size ? " dim" : ""}" data-state="" aria-pressed="${!view.states.size}">${S.all(s.feeds.length)}</button> ${S.filterHelp}</li>
       ${SOURCE_ORDER.filter(v => by(v).length).map(v => `<li><button class="badge ${SOURCE_CLASS[v]}${view.states.size && !view.states.has(v) ? " dim" : ""}"
@@ -819,6 +895,7 @@ async function viewSources() {
         <td><b>${esc(f.id)}</b><div class="muted small">${f.url ? extLink(f.url, esc(f.target)) : esc(f.target)}</div></td>
         <td class="small">${esc(f.type)}${f.tier ? ` · ${esc(f.tier)}` : ""}</td>
         <td class="small nowrap">${esc(f.last_item) || "—"}</td>
+        <td class="small nowrap">${answered(f)}</td>
         ${cell(f.collected)}${cell(f.kept)}${cell(f.judged)}${cell(f.useful)}${cell(f.proposed)}${cell(f.accepted)}
         <td class="nowrap"><span class="badge ${SOURCE_CLASS[f.verdict]}" title="${esc(rules[f.verdict])}">${S.verdicts[f.verdict]}</span>${
           f.insurance ? ` <span class="muted small" title="${esc(S.insurance)}">🛡</span>` : ""}</td></tr>`).join("")}</tbody>
@@ -840,8 +917,28 @@ async function viewSources() {
       page.querySelector(`[data-sort="${key}"]`)?.focus();  // the keyboard stays on the column
     });
     if ($("#default-sort")) $("#default-sort").onclick = () => { view.sort = ""; view.dir = 1; draw(); };
+    $("#check").onclick = async () => { $("#check").disabled = true; await api("/api/sources/check", {}); viewSources(); };
+    // The proposals: ticked ones go to one pull request
+    const boxes = [...page.querySelectorAll("[data-proposal]")];
+    const count = () => {
+      const n = boxes.filter(b => b.checked).length;
+      if ($("#apply")) { $("#apply").textContent = S.apply(n, s.repository); $("#apply").disabled = n === 0 || busy; }
+    };
+    boxes.forEach(b => b.onchange = () => { SOURCE_TICKS[b.dataset.proposal] = b.checked; count(); });
+    count();
+    if ($("#apply")) $("#apply").onclick = async () => {
+      $("#apply").disabled = true;
+      try {
+        await api("/api/sources/apply", { ids: boxes.filter(b => b.checked).map(b => b.dataset.proposal) });
+        view.error = "";
+      } catch (e) {
+        view.error = e.message;
+      }
+      viewSources();
+    };
   };
   draw();
+  if (busy) followTimer = setTimeout(() => viewSources().catch(() => {}), 1500);
 }
 
 async function viewCosts() {

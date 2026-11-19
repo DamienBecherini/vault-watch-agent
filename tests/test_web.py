@@ -361,3 +361,31 @@ def test_a_guide_whose_watches_are_files_lists_them_and_starts_from_one(sample_g
     c = TestClient(app)
     assert [w["kind"] for w in c.get("/api/watches").json()] == ["file"] * 3
     assert c.post("/api/analyses", json={"watch": "vault-watch.toml"}, headers=ACT).status_code == 400
+
+
+def test_the_sources_page_shows_the_last_check_and_applies_what_is_chosen(client, setup, monkeypatch):  # noqa: F811
+    from vault_watch_agent import sourcecheck
+
+    c, home = client[0], setup[0].home
+    assert c.get("/api/sources").json()["check"] is None
+    assert c.post("/api/sources/apply", json={"ids": ["S1"]}, headers=ACT).status_code == 400  # nothing was checked
+    proposals = [{"id": "S1", "action": "add", "why": "cited", "recommended": False, "pages": 2, "examples": ["a.md"],
+                  "feed": {"id": "new", "domain": "engines", "type": "github-releases", "repo": "acme/new", "tier": "A"}},
+                 {"id": "S2", "action": "remove", "why": "archived", "recommended": True, "feed": {"id": "gone-since"}}]
+    (home / "sources-check.json").write_text(json.dumps(
+        {"checked": "2026-11-19T22:00:00Z", "stale_days": 180, "min_pages": 2, "probes": {}, "proposals": proposals,
+         "applied": []}), encoding="utf-8")
+    shown = c.get("/api/sources").json()["check"]["proposals"]
+    assert [p["id"] for p in shown] == ["S1"]  # a removal of a feed the file no longer lists is done: not shown
+    asked = {}
+
+    def publish(guide, home, chosen, *, today, open_pull_request):
+        asked.update(ids=[p["id"] for p in chosen], today=today)
+        return {"branch": "chore/watch-sources-x", "pr_url": "https://forge.example/pulls/9"}
+
+    monkeypatch.setattr(sourcecheck, "publish", publish)
+    done = c.post("/api/sources/apply", json={"ids": ["S1", "S9"]}, headers=ACT).json()
+    assert done == {"branch": "chore/watch-sources-x", "pr_url": "https://forge.example/pulls/9"} and asked["ids"] == ["S1"]
+    check = c.get("/api/sources").json()["check"]
+    assert check["proposals"][0]["applied"]["pr_url"].endswith("/9") and check["applied"][0]["ids"] == ["S1"]
+    assert c.post("/api/sources/apply", json={"ids": ["S1"]}, headers=ACT).status_code == 400  # already applied

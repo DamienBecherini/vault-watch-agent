@@ -128,6 +128,30 @@ A feed of security advisories is insurance: its silence is good news, and it is 
 are where to look, not decisions: removing or adding a feed stays an edit of `feeds.json`, through a pull request
 of the guide.
 
+### Checking the sources
+
+« Check the sources », on the same page, asks each source itself and reads the guide again. No model, nothing
+billed, under a minute; GitHub is asked with `GITHUB_TOKEN`, else with the token of `gh` when it is signed in.
+The table gains what each source says today (its last publication, or what is wrong), and the page lists
+proposals:
+
+| Proposal | When | Ticked |
+| :-- | :-- | :-- |
+| Remove | the source answers « not found », or its repository is archived | yes: a fact settles it |
+| Change | the repository was renamed: the feed follows it | yes |
+| Remove | the source does not answer (a time-out, a refusal), or answers and lists nothing | no |
+| Remove | the table calls it noise, or no page of the guide names what it follows any more | no |
+| Add | a GitHub repository or a Hugging Face publisher cited in at least two pages, alive, followed by no feed | no |
+| Add | the security advisories of a tool followed for its releases only | no |
+
+A source that has published nothing for 180 days is said, never proposed for removal: a tool that stopped moving
+is a fact about the guide's subject, and the page that recommends it is what to look at. The maintainer's own
+repositories are not proposed.
+
+The proposals you tick go to one pull request (a branch, for a guide without a repository) that edits
+`feeds.json` and nothing else: the lines of the other feeds are not touched. A new feed gets the domain of the
+feeds cited in the same pages; correct it in the pull request if it is wrong.
+
 ## Every week, on GitHub
 
 The reusable workflow [`collect.yml`](../.github/workflows/collect.yml) does the collection on GitHub. It installs

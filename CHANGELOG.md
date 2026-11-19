@@ -3,6 +3,19 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- « Check the sources » (`sourcecheck.py`, the Sources page): each source is asked what it says today (there or
+  not, archived, renamed, its last publication), the guide is read again (the repositories and Hugging Face
+  publishers it cites and no feed follows, the feeds no page names any more, the tools followed for their releases
+  and not for their advisories), and the page lists proposals to remove, change or add. No model, nothing billed.
+  The ticked ones go to one pull request on the feeds file, whose other lines are not touched. A source quiet for
+  180 days is said, never proposed for removal. GitHub is asked with the token of `gh` when the environment has
+  none. First check of the IA on-prem guide: 63 sources in 12 seconds, 58 fine, 5 quiet for more than 180 days
+  (exo, Aider, Khoj, two Hugging Face publishers), 25 proposals.
+- Correction of the 1.0.1 notes below: Aider's feed is not broken. GitHub's releases.atom also lists tags, and
+  Aider's last one is of 12 February 2026: the project is quiet, which the check now says.
+
 ## 1.0.1 (2026-11-19)
 
 - « Sources » page (`sources.py`, `GET /api/sources`): for each feed of the guide's `feeds.json`, what it brought
@@ -11,7 +24,7 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   leads without follow-up, few items, useful. No model, no network. Security advisories are never called noise.
   A run's items now keep the feed they come from. First reading on the IA on-prem guide (6 watches, 25 September
   to 16 November 2026, 63 feeds): 7 feeds led to an accepted correction, all of them releases or advisories of a
-  tool; 16 gave no item, among them the releases of Aider, whose last GitHub release is of August 2025.
+  tool; 16 gave no item over those seven weeks.
   The table sorts by any column (a click on its title, a second one reverses) and filters by state (one or
   several).
 - A check of the guide that a stopped server left unfinished could not be handled: dismissing its leads or sending

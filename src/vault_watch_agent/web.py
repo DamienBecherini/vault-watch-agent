@@ -39,7 +39,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, forge, inputs, llm, prices, sources, steps, vault, verify
+from . import costs, fix, forge, inputs, llm, prices, sourcecheck, sources, steps, vault, verify
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
 
@@ -53,7 +53,8 @@ STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "repo
 # page: what "lower" and "higher" make of them. To keep in step with the code when an effort changes there.
 # What each step of a role runs at, shown in the Settings: read from the one table of the steps (steps.py)
 STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role in ("reasoning", "translator")}
-ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming"}
+ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming",
+              "sources": "checking the sources"}
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -126,6 +127,10 @@ class Report(BaseModel):
 class Handle(BaseModel):
     findings: list[str]
     status: Literal["dismissed", "open"]
+
+
+class Changes(BaseModel):
+    ids: list[str]  # the proposals of the last source check to apply (S1, S4…)
 
 
 class Verification(BaseModel):
@@ -678,9 +683,75 @@ def create_app(settings: Settings) -> FastAPI:
             found.append(outcomes[thread][1])
         return found
 
+    check_file = settings.home / "sources-check.json"  # the last check: what each source answered, the proposals
+    CHECK = "sources-check"  # its job, for the page that follows it and for /api/health
+
+    def last_check() -> dict | None:
+        try:
+            return json.loads(check_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+
     @app.get("/api/sources")
     def sources_view():
-        return sources.summary(vault.guide_of(settings.vault), settings.home, watch_outcomes())
+        data = sources.summary(vault.guide_of(settings.vault), settings.home, watch_outcomes())
+        job, check = jobs.get(CHECK), last_check()
+        known = {f["id"] for f in data["feeds"]}
+        if check:  # what each source answered, beside what it brought
+            for f in data["feeds"]:
+                f["probe"] = check["probes"].get(f["id"])
+            # A proposal about a feed the file no longer lists (the pull request was merged since) is done
+            check["proposals"] = [p for p in check["proposals"] if p["action"] == "add" or p["feed"]["id"] in known]
+        data["check"] = check
+        data["checking"] = {"running": bool(job and not job.done), "done": len(job.events) if job else 0,
+                            "total": len(data["feeds"]), "error": job.error if job else ""}
+        data["repository"] = settings.repo
+        return data
+
+    @app.post("/api/sources/check")
+    def sources_check():
+        """Asks every source and reads the guide (network, no model, nothing billed); followed by GET /api/sources."""
+        with lock:
+            if CHECK in jobs and not jobs[CHECK].done:
+                raise HTTPException(409, "the sources are already being checked")
+            job = jobs[CHECK] = Job(CHECK, "sources")
+
+        def work():
+            try:
+                guide = vault.guide_of(vault.reading_copy(settings.vault, settings.home))  # the guide as merged
+                result = sourcecheck.check(guide, settings.home, watch_outcomes(),
+                                           progress=lambda fid: job.events.append({"t": time.time(), "node": fid}))
+                write_json(check_file, {**result, "applied": []})
+            except Exception as e:  # noqa: BLE001 - shown on the page
+                job.error = f"{type(e).__name__}: {e}"[:500]
+            finally:
+                job.done = True
+                app.state.last_activity = time.time()
+
+        threading.Thread(target=work, daemon=True, name="vault-watch sources").start()
+        return {"started": True}
+
+    @app.post("/api/sources/apply")
+    def sources_apply(body: Changes):
+        """The chosen proposals on a branch of the guide, and a pull request when it has a repository."""
+        check = last_check()
+        chosen = [p for p in (check or {}).get("proposals", []) if p["id"] in body.ids and not p.get("applied")]
+        if not chosen:
+            raise HTTPException(400, "none of these proposals is to apply (check the sources again)")
+        guide = vault.guide_of(settings.vault)
+        try:
+            done = sourcecheck.publish(guide, settings.home, chosen, today=date.today().isoformat(),
+                                       open_pull_request=forge.get().open_pull_request)
+        except (RuntimeError, ValueError) as e:  # git, the forge, or a file that changed since the check
+            raise HTTPException(409, str(e)[:500]) from e
+        with lock:
+            check = last_check() or check
+            for p in check["proposals"]:
+                if p["id"] in {c["id"] for c in chosen}:
+                    p["applied"] = done
+            check.setdefault("applied", []).append({**done, "ids": [c["id"] for c in chosen], "t": time.time()})
+            write_json(check_file, check)
+        return done
 
     # -- health check of the guide (verify.py): one JSON file per verification ---------------------
     verifs = settings.home / "verifications"

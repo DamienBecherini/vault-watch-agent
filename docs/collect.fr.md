@@ -130,6 +130,30 @@ Un flux de failles de sécurité est une assurance : son silence est une bonne n
 bruit. Les verdicts disent où regarder, ils ne décident rien : retirer ou ajouter un flux reste une modification de
 `feeds.json`, par une pull request du guide.
 
+### Vérifier les sources
+
+« Vérifier les sources », sur la même page, interroge chaque source elle-même et relit le guide. Sans modèle, rien
+de facturé, moins d'une minute ; GitHub est interrogé avec `GITHUB_TOKEN`, sinon avec le jeton de `gh` s'il est
+connecté. Le tableau gagne ce que chaque source dit aujourd'hui (sa dernière publication, ou ce qui ne va pas), et
+la page liste des propositions :
+
+| Proposition | Quand | Cochée |
+| :-- | :-- | :-- |
+| Retirer | la source répond « introuvable », ou son dépôt est archivé | oui : un fait tranche |
+| Modifier | le dépôt a été renommé : le flux le suit | oui |
+| Retirer | la source ne répond pas (délai dépassé, refus), ou répond sans rien lister | non |
+| Retirer | le tableau la classe en bruit, ou plus aucune page du guide ne nomme ce qu'elle suit | non |
+| Ajouter | un dépôt GitHub ou un éditeur Hugging Face cité dans au moins deux pages, vivant, suivi par aucun flux | non |
+| Ajouter | les failles de sécurité d'un outil suivi seulement pour ses versions | non |
+
+Une source qui n'a rien publié depuis 180 jours est signalée, jamais proposée au retrait : un outil qui ne bouge
+plus est une information sur le sujet du guide, et c'est la page qui le recommande qu'il faut regarder. Les dépôts
+du mainteneur lui-même ne sont pas proposés.
+
+Les propositions cochées partent dans une seule pull request (une branche, pour un guide sans dépôt) qui modifie
+`feeds.json` et rien d'autre : les lignes des autres flux ne sont pas touchées. Un nouveau flux reçoit le domaine
+des flux cités dans les mêmes pages ; corrigez-le dans la pull request s'il est faux.
+
 ## Chaque semaine, sur GitHub
 
 Le workflow réutilisable [`collect.yml`](../.github/workflows/collect.yml) fait la collecte sur GitHub. Il installe

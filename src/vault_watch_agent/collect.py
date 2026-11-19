@@ -27,6 +27,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -75,6 +77,20 @@ def http_get(url: str, *, as_json: bool = False, github: bool = False, token: st
     except TimeoutError as e:
         raise RuntimeError("timed out") from e
     return json.loads(body) if as_json else body
+
+
+def github_token() -> str:
+    """The token for GitHub's API: GITHUB_TOKEN or GH_TOKEN, else the one of `gh` when it is signed in on this
+    machine, else none (60 requests an hour, and no advisories). It only ever goes to api.github.com."""
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or ""
+    if not token and shutil.which("gh"):
+        try:
+            done = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=10,
+                                  stdin=subprocess.DEVNULL)
+            token = done.stdout.strip() if done.returncode == 0 else ""
+        except (OSError, subprocess.SubprocessError):
+            token = ""
+    return token
 
 
 def cut(s: str, n: int) -> str:
@@ -269,7 +285,7 @@ class Collector:
         seen_urls = set()
         if seen and seen.is_file():
             seen_urls = {u.rstrip("/") for u in re.findall(r"https?://[^\s)>\]|]+", seen.read_text(encoding="utf-8"))}
-        kw.setdefault("token", os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "")
+        kw.setdefault("token", github_token())
         return cls(feeds=config["feeds"], days=int(defaults.get("days", 8)), max_items=int(defaults.get("maxItemsPerFeed", 15)),
                    domains=dict(config.get("domains", {})), floors=floor_map, seen=seen_urls, **kw)
 
