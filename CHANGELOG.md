@@ -3,7 +3,11 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased (M5: stable)
+## 1.0.0 (2026-11-19)
+
+M5: stable. The manifest, `watch.json`, the engine protocol and the settings are frozen at version 1
+([docs/compatibility.md](docs/compatibility.md)); a guide can live on Gitea; the docs are written for someone who
+is not the author.
 
 - What a newcomer reads (T5.3): the README (EN, FR) rewritten around « your guide, your model, your decision »,
   with a quick start, what each part needs, the three engines and the forges; the IA on-prem guide is now the

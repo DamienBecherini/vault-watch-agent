@@ -376,7 +376,7 @@ Revised on 2026-11-18: the engine runs on a hosted model (the sample guide) and 
 watch #77 by excerpts); the docs say which models the project uses and commit to nothing else.
 Done 2026-11-18, published as 0.6.0.
 
-### M5. Stable (1.0.0)
+### M5. Stable (1.0.0, done 2026-11-19)
 
 - **T5.1 A second real guide.** The manifest tried on a guide that is not the IA on-prem one nor the sample;
   what it needed that the format did not have goes into the format before it is frozen.
@@ -442,6 +442,8 @@ Done 2026-11-18, published as 0.6.0.
   default to `~/.vault-watch/`, an existing `./.vault-watch` and `./metrics/usage.jsonl` still used (the
   maintainer's set-up unchanged). To check at the release: the pipx install from the tag, on a clean machine.
 - **T5.4 Release.** Tag, release notes from the changelog, the package installable with `pipx`.
+  Done 2026-11-19: `pipx install git+…` checked in a throwaway environment (the commands, the server, the page and
+  its files, nothing written into the guide); version 1.0.0, `collect.yml` default `agent_ref` v1.0.0.
 
 Done when: someone who is not the author connects a guide by following the docs alone.
 
