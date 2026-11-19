@@ -36,6 +36,7 @@ le `vault-watch collect` de l'agent, ou ce que vous écrivez) et la remet à l'a
 | `since`, `until` | `until` | La fenêtre, en dates (`AAAA-MM-JJ`). `until` est la date du rapport du passage et de sa branche. |
 | `items` | oui | Les éléments, retenus ou écartés (ci-dessous). |
 | `errors` | non | Ce que le collecteur n'a pas pu lire (un flux en panne, une limite de requêtes), une chaîne chacun, ou `{"feed": …, "error": …}` comme l'écrivent les deux collecteurs ; affiché, jamais bloquant. |
+| `pages` | non | Ce que disait chaque page surveillée à cette veille (`{id du flux : {url, snapshot, changed, before}}`), pour que la collecte suivante compare ; écrit par `vault-watch collect` pour les flux de type `page`. Les passages de l'agent ne le lisent pas. |
 
 Les autres clés (comptes, version du collecteur) sont permises et ignorées.
 

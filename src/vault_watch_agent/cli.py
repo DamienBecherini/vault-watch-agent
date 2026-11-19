@@ -224,8 +224,11 @@ def collect_command(args) -> None:
     """The watch of the window from the guide's feeds: the JSON to a file, the Markdown on stdout. Free (no model)."""
     from . import collect, watches
 
+    # The watched pages are compared with what the last watch saw: the one given, else those kept on this machine
+    known = [args.previous] if args.previous else [HOME / watches.Collected.FOLDER, HOME / "downloads"]
     try:
-        collector = collect.Collector.of_guide(vault.guide_of(VAULT), triage_on=not args.no_triage)
+        collector = collect.Collector.of_guide(vault.guide_of(VAULT), triage_on=not args.no_triage,
+                                               previous=collect.previous_pages(known))
     except collect.CollectError as e:
         sys.exit(f"vault-watch: {e}")
     only = set(args.only.split(",")) if args.only else None
@@ -342,6 +345,8 @@ def main(argv: list[str] | None = None) -> None:
     co.add_argument("--json", type=Path, help="where to write the watch (default: watches/ of the guide's working folder)")
     co.add_argument("--markdown", type=Path, help="also write the Markdown report there (it is printed anyway)")
     co.add_argument("--no-triage", action="store_true", help="keep every item of the window")
+    co.add_argument("--previous", type=Path, help="the previous watch (a watch.json, or a folder of them): what the "
+                    "watched pages said then (default: the watches kept in the working folder)")
     c = sub.add_parser("costs", help="what the upkeep costs, from the call journal")
     c.add_argument("--by", choices=["month", "year", "run", "step"], default="month")
     w = sub.add_parser("serve", help="web interface on http://127.0.0.1:4430/ (same runs as the command line)")

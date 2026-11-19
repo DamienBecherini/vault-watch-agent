@@ -35,6 +35,7 @@ anything you write) and hands it to the agent as one `watch.json`. This page is 
 | `since`, `until` | `until` | The window, as dates (`YYYY-MM-DD`). `until` is the date of the run's report and of its branch. |
 | `items` | yes | The items, kept or dropped (below). |
 | `errors` | no | What the collector could not read (a feed down, a rate limit), one string each, or `{"feed": ..., "error": ...}` as both collectors write them; shown, never fatal. |
+| `pages` | no | What each watched page said at this watch (`{feed id: {url, snapshot, changed, before}}`), for the next collection to compare with; written by `vault-watch collect` for the feeds of type `page`. The agent's runs do not read it. |
 
 Other keys (counts, the collector's version) are allowed and ignored.
 

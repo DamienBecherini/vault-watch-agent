@@ -47,7 +47,11 @@ TIMEOUT = 20
 WORKERS = 6
 UA = f"vault-watch-agent/{__version__} (+https://github.com/DamienBecherini/vault-watch-agent)"
 FEED_TYPES = ("github-releases", "github-tags", "github-advisories", "rss", "youtube", "huggingface-author",
-              "huggingface-trending", "github-search")
+              "huggingface-trending", "github-search", "page")
+# A watched page (type "page"): what is kept of it from one watch to the next
+PAGE_VALUES = 500      # the values its `watch` expression finds, or its lines of text
+PAGE_CHARS = 40_000    # of text kept, for a page watched whole
+PAGE_CUMULATE = 30     # days: changes that close together are told as one, from what the page said before them
 # Shown last, as leads: discovery feeds, and tier C sources (a lead, never a citation).
 LEAD_DOMAINS = ("discovery", "signals")
 
@@ -91,6 +95,37 @@ def github_token() -> str:
         except (OSError, subprocess.SubprocessError):
             token = ""
     return token
+
+
+def page_snapshot(html: str, watch: str = "") -> list[str]:
+    """What a watched page says: the distinct matches of `watch` in its readable text, in their order (prices, for
+    `\\$\\d+\\.\\d+`), else its lines of text. Menus, scripts and styles are not read."""
+    from .webtools import readable
+
+    text = readable(html)[1]
+    found = ([m.group(0) for m in re.finditer(watch, text)] if watch
+             else [ln.strip() for ln in text[:PAGE_CHARS].splitlines() if ln.strip()])
+    return list(dict.fromkeys(found))[:PAGE_VALUES]
+
+
+def page_change(before: list[str], now: list[str]) -> tuple[list[str], list[str]]:
+    """(what the page no longer says, what it says and did not), each in the order of its page."""
+    return [v for v in before if v not in set(now)], [v for v in now if v not in set(before)]
+
+
+def previous_pages(paths: list[Path]) -> dict[str, dict]:
+    """The watched pages as the most recent of these watches left them ({feed id: {snapshot, changed, before}});
+    {} when none says anything about pages. A folder stands for the watch.json files under it."""
+    files = [f for p in paths for f in (sorted(p.rglob("*.json")) if p.is_dir() else [p] if p.is_file() else [])]
+    best: tuple[str, dict] = ("", {})
+    for f in files:
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and isinstance(data.get("pages"), dict) and str(data.get("until") or "") >= best[0]:
+            best = (str(data.get("until") or ""), data["pages"])
+    return best[1]
 
 
 def cut(s: str, n: int) -> str:
@@ -268,6 +303,8 @@ class Collector:
     floors: dict[str, str] = field(default_factory=dict)   # advisory feed id -> lowest version the guide recommends
     seen: set[str] = field(default_factory=set)            # URLs already triaged by the editor
     token: str = ""
+    previous: dict[str, dict] = field(default_factory=dict)  # the watched pages as the last watch left them
+    pages: dict[str, dict] = field(default_factory=dict)     # as this collection leaves them (the watch's `pages`)
     triage_on: bool = True
     get: Callable | None = None                             # (url, as_json=, github=, token=) -> text or JSON; http_get
     now: Callable[[], datetime] | None = None               # the clock (tests)
@@ -365,10 +402,41 @@ class Collector:
             return [{"title": cut(f"{r['full_name']} ({r['stargazers_count']} stars) — {r.get('description') or ''}", 200),
                      "url": r["html_url"], "date": r.get("created_at"), "summary": ", ".join(r.get("topics") or [])}
                     for r in res.get("items") or []]
+        if kind == "page":
+            return self._page(feed, now)
         if kind == "youtube":
             return [{**i, "title": f"{feed['name']}: {i['title']}"}
                     for i in parse_feed(self._get(f"https://www.youtube.com/feeds/videos.xml?channel_id={feed['channelId']}"))]
         return parse_feed(self._get(feed["url"]))  # rss
+
+    def _page(self, feed: dict, now: datetime) -> list[dict]:
+        """A watched page: one item when it no longer says what it said at the last watch. The day of the change
+        and what the page said before it are kept in the watch (`pages`), so that a watch with a longer window
+        tells a change a shorter one saw first. The first reading of a page is its reference: no item."""
+        snapshot = page_snapshot(self._get(feed["url"]), feed.get("watch", ""))
+        old = self.previous.get(feed["id"]) or {}
+        state = {"url": feed["url"], "snapshot": snapshot}
+        today = now.strftime("%Y-%m-%d")
+        if old.get("snapshot") is not None and old["snapshot"] != snapshot:
+            recent = old.get("changed", "") >= (now - timedelta(days=PAGE_CUMULATE)).strftime("%Y-%m-%d")
+            state.update(changed=today, before=old["before"] if recent and old.get("before") else old["snapshot"])
+        elif old.get("changed"):
+            state.update(changed=old["changed"], before=old.get("before", []))
+        self.pages[feed["id"]] = state
+        if not state.get("changed"):
+            return []
+        gone, new = page_change(state["before"], snapshot)
+        if not gone and not new:  # it changed, then came back to what it said
+            return []
+        name = feed.get("name") or feed["url"]
+        notes = "\n".join([f"The page {feed['url']} changed (seen on {state['changed']})."]
+                          + (["No longer on the page:", *(f"- {v}" for v in gone)] if gone else [])
+                          + (["New on the page:", *(f"- {v}" for v in new)] if new else []))
+        return [{"title": f"{name}: the page changed ({len(gone)} value(s) gone, {len(new)} new)",
+                 "url": f"{feed['url']}#changed-{state['changed']}",  # one address per change: told once, not for ever
+                 "date": f"{state['changed']}T00:00:00.000Z",
+                 "summary": cut("gone: " + ", ".join(gone[:8]) + " · new: " + ", ".join(new[:8]), 220),
+                 "notes": cut(notes, NOTES_MAX)}]
 
     # -- triage -------------------------------------------------------------------------------------------------
 
@@ -468,6 +536,8 @@ class Collector:
             try:
                 return self._items(feed, start), None
             except Exception as e:  # noqa: BLE001 - a feed in error is reported, the others go on
+                if feed["type"] == "page" and feed["id"] in self.previous:
+                    self.pages[feed["id"]] = self.previous[feed["id"]]  # not read today: what was known stays
                 return [], {"feed": feed["id"], "error": str(e) or type(e).__name__}
 
         with ThreadPoolExecutor(WORKERS) as pool:
@@ -477,7 +547,8 @@ class Collector:
         kept = [i for i in items if i["triage"] == "keep"]
         return {"schema": 1, "collector": f"vault-watch-agent {__version__}", "since": since,
                 "until": now.strftime("%Y-%m-%d"), "kept": len(kept), "core": len([i for i in kept if not lead(i)]),
-                "urgent": len([i for i in kept if i["urgent"]]), "feeds": len(feeds), "items": items, "errors": errors}
+                "urgent": len([i for i in kept if i["urgent"]]), "feeds": len(feeds), "items": items, "errors": errors,
+                **({"pages": {k: self.pages[k] for k in sorted(self.pages)}} if self.pages else {})}
 
     def domain_order(self, feeds: list[dict]) -> list[str]:
         """The sections of the report: the feeds file's `domains` in order, then the others as the feeds list them,
@@ -502,7 +573,7 @@ def check(config, where: str = "feeds.json") -> dict:
     if not isinstance(config, dict) or not isinstance(config.get("feeds"), list):
         raise CollectError(f"{where}: an object with a list `feeds` is expected")
     needs = {"github-releases": "repo", "github-tags": "repo", "github-advisories": "repo", "rss": "url",
-             "youtube": "channelId", "huggingface-author": "author", "github-search": "query"}
+             "youtube": "channelId", "huggingface-author": "author", "github-search": "query", "page": "url"}
     ids = set()
     for n, f in enumerate(config["feeds"], start=1):
         if not isinstance(f, dict) or not f.get("id") or not f.get("domain"):
@@ -520,7 +591,7 @@ def check(config, where: str = "feeds.json") -> dict:
             raise CollectError(f"{where}: feed {f['id']} (youtube) needs name")
         if f.get("minLevel", "minor") not in LEVELS:
             raise CollectError(f"{where}: feed {f['id']}: minLevel is major, minor or patch")
-        for key in ("exclude",):
+        for key in ("exclude", "watch"):
             if f.get(key):
                 try:
                     re.compile(f[key])
@@ -550,6 +621,12 @@ def markdown(watch: dict, collector: Collector, only: set[str] | None = None) ->
           "_Deterministic pre-triage only (rules of `vault-watch collect`). vault-watch-agent turns the kept items into "
           "dated events, verifies the primary source and maps them to the guide's pages. Release notes and advisory "
           "texts are cached in `watch.json` (run artifact). Tier C items are leads only._\n"]
+    watched = [f for f in feeds if f["type"] == "page"]
+    if watched:
+        new = [f["id"] for f in watched if f["id"] in collector.pages and f["id"] not in collector.previous]
+        md.append(f"Watched pages: **{len(watched)}**" + (
+            f" · first reading of {', '.join(new)}: the reference for the next watch (no previous watch said what "
+            "the page showed)" if new else "") + "\n")
     if urgent:
         md.append(f"## Urgent ({len(urgent)}) — High / Critical advisories not covered by a version floor\n")
         md += [f"- [{_cell(r['title'])}]({r['url']}) — {r['reason']}" for r in urgent]

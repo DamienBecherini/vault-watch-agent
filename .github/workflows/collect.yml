@@ -13,6 +13,7 @@ name: Collect a watch
 #   permissions:
 #     contents: read
 #     issues: write
+#     actions: read      # only for watched pages (feeds of type "page"): the previous watch is read from its run
 #   jobs:
 #     watch:
 #       uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.0.1
@@ -80,6 +81,24 @@ jobs:
           REF: ${{ inputs.agent_ref }}
         run: python -m pip install --quiet "git+https://github.com/DamienBecherini/vault-watch-agent@${REF}"
 
+      # A watched page (a feed of type "page") is compared with what the previous watch saw: its watch.json, in
+      # the artifact of the last run of this workflow that has one. Without it (a first run, or a caller that
+      # does not grant `actions: read`) every page is read as for the first time, and the report says so.
+      - name: Previous watch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW: ${{ github.workflow }}
+          ARTIFACT: ${{ inputs.artifact }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/previous"
+          for id in $(gh run list --workflow "$WORKFLOW" --status success --limit 6 --json databaseId --jq '.[].databaseId' 2>/dev/null); do
+            if gh run download "$id" -n "$ARTIFACT" -D "$RUNNER_TEMP/previous/$id" 2>/dev/null; then
+              echo "Previous watch: run $id"
+              break
+            fi
+          done
+          ls "$RUNNER_TEMP/previous" | grep -q . || echo "No previous watch found."
+
       - name: Collect
         id: collect
         env:
@@ -90,7 +109,7 @@ jobs:
         run: |
           window=()
           if [ "$DAYS" != "0" ]; then window=(--days "$DAYS"); fi
-          vault-watch --guide "$GUIDE" collect "${window[@]}" \
+          vault-watch --guide "$GUIDE" collect "${window[@]}" --previous "$RUNNER_TEMP/previous" \
             --json "$RUNNER_TEMP/watch.json" --markdown "$RUNNER_TEMP/watch.md" > /dev/null
           cat "$RUNNER_TEMP/watch.md" >> "$GITHUB_STEP_SUMMARY"
           python -c "import json, os; w = json.load(open(os.environ['RUNNER_TEMP'] + '/watch.json', encoding='utf-8')); print(f\"kept={w['kept']}\"); print(f\"urgent={w['urgent']}\")" >> "$GITHUB_OUTPUT"

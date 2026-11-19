@@ -62,10 +62,12 @@ The sample guide has a complete one: [`examples/sample-guide/feeds.json`](../exa
 | :-- | :-- | :-- |
 | `id` | all | A unique name: it appears in the report, and `floors` uses it. |
 | `domain` | all | The section of the report: the part of the guide the feed concerns. |
-| `type` | all | `github-releases`, `github-tags`, `github-advisories`, `rss` (RSS 2.0 or Atom; the default), `youtube`, `huggingface-author`, `huggingface-trending`, `github-search`. |
+| `type` | all | `github-releases`, `github-tags`, `github-advisories`, `rss` (RSS 2.0 or Atom; the default), `youtube`, `huggingface-author`, `huggingface-trending`, `github-search`, `page` (a watched page, below). |
 | `tier` | all | How far the source can be trusted: `A` primary, `B` reputable secondary, `C` a lead only. Tier C items are counted as leads. |
 | `repo` | the GitHub types except search | `owner/name`. |
-| `url` | `rss` | The address of the feed. |
+| `url` | `rss`, `page` | The address of the feed, or of the page. |
+| `watch` | `page` | Optional. A regular expression: what to watch in the text of the page. Without it, every line of the page. |
+| `name` | `page` | The name shown in the title of the item (the address otherwise). |
 | `channelId`, `name` | `youtube` | The channel and the name shown before each title. |
 | `author` | `huggingface-author` | The publisher on Hugging Face. |
 | `query`, `minStars`, `maxAgeDays`, `limit` | `github-search` | Young repositories that gained traction: the search, the stars (500), the age in days (30), the number (10). |
@@ -75,6 +77,31 @@ The sample guide has a complete one: [`examples/sample-guide/feeds.json`](../exa
 | `minLevel` | releases, tags | `major`, `minor` (default) or `patch`: smaller releases are dropped. |
 | `collapse` | releases, tags | `true` for a project that publishes a build per commit: the window's releases become a single routine line. |
 | `discovery` | any | `true`: the feed looks for what the guide does not cover yet. Its items go in the `discovery` section, and an item counts by its age (`maxAgeDays`, 45), not by the window. |
+
+### A watched page
+
+Some facts of a guide are published by no feed: a price list, a compatibility table, the supported versions of a
+product. A feed of type `page` reads such a page at each watch and tells when it no longer says what it said:
+
+```json
+{ "id": "lambda-pricing", "domain": "hardware", "type": "page", "url": "https://lambda.com/pricing",
+  "name": "Lambda GPU Cloud pricing", "tier": "A", "watch": ".*\\$\\d.*" }
+```
+
+`watch` chooses what counts. `.*\$\d.*` (in JSON each `\` is doubled, as above) keeps the lines that hold a price
+in dollars, each with what it is the price of (« NVIDIA HGX A100 | 80 GB | … | $3.19 »); `\$\d+\.\d+` would keep the
+prices alone. Without `watch` the
+whole text is compared, and a page that shows a date or a counter changes at every reading: give an expression
+whenever you can. Only the readable text is read (no menu, no script): a page that draws its figures with a script
+shows nothing to watch, which the first collection makes visible (its item list stays empty for ever).
+
+The item of a change lists what is no longer on the page and what is new, as the notes the model reads. Its
+address ends with `#changed-<date>`: one change is told once, whatever the number of watches whose window holds it.
+
+What the page said is kept in the watch itself (`pages` in `watch.json`), and the next collection compares with
+the most recent watch it finds: those kept in the working folder, or `--previous <watch.json or folder>`. The
+first reading of a page is its reference: no item, and the report says so. The reusable workflow below fetches
+the previous watch from the last run that has one, which needs `actions: read` in the caller's permissions.
 
 ## The pre-triage
 
@@ -166,6 +193,7 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read   # for watched pages: the previous watch is read from its run
 jobs:
   watch:
     uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.0.1

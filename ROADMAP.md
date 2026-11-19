@@ -75,7 +75,7 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
     last publication), the guide read again (cited and not followed, followed and no longer named, releases
     without advisories, E3), proposals to remove, change or add, the ticked ones in one pull request on
     `feeds.json`. A source quiet for 180 days is said, never proposed for removal.
-  - [ ] **A « watched page » feed type**: a page whose change is an event (a price list the guide cites). The
+  - [x] **A « watched page » feed type** (2026-11-19, `type: "page"` in `collect.py`, state in the watch's `pages`): a page whose change is an event (a price list the guide cites). The
     Lambda prices of 16 November 2026 were not seen by any feed; the maintainer reported them by hand.
   - [ ] **« Look for what is new »** (E4, then D1 to D4): a run that reads the whole guide and the web and lists
     what a reader would expect and does not find, the cost announced before.

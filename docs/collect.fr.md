@@ -62,10 +62,12 @@ Le guide d'exemple en a un complet : [`examples/sample-guide/feeds.json`](../exa
 | :-- | :-- | :-- |
 | `id` | tous | Un nom unique : il apparaît dans le rapport, et `floors` s'en sert. |
 | `domain` | tous | La section du rapport : la partie du guide que le flux concerne. |
-| `type` | tous | `github-releases`, `github-tags`, `github-advisories`, `rss` (RSS 2.0 ou Atom ; par défaut), `youtube`, `huggingface-author`, `huggingface-trending`, `github-search`. |
+| `type` | tous | `github-releases`, `github-tags`, `github-advisories`, `rss` (RSS 2.0 ou Atom ; par défaut), `youtube`, `huggingface-author`, `huggingface-trending`, `github-search`, `page` (une page surveillée, plus bas). |
 | `tier` | tous | La confiance due à la source : `A` primaire, `B` secondaire réputée, `C` simple piste. Les éléments de niveau C comptent comme des pistes. |
 | `repo` | les types GitHub sauf la recherche | `propriétaire/nom`. |
-| `url` | `rss` | L'adresse du flux. |
+| `url` | `rss`, `page` | L'adresse du flux, ou de la page. |
+| `watch` | `page` | Facultatif. Une expression régulière : ce qu'il faut surveiller dans le texte de la page. Sans elle, chaque ligne de la page. |
+| `name` | `page` | Le nom affiché dans le titre de l'élément (l'adresse sinon). |
 | `channelId`, `name` | `youtube` | La chaîne, et le nom affiché devant chaque titre. |
 | `author` | `huggingface-author` | L'éditeur sur Hugging Face. |
 | `query`, `minStars`, `maxAgeDays`, `limit` | `github-search` | Les dépôts jeunes qui ont vite pris : la recherche, les étoiles (500), l'âge en jours (30), le nombre (10). |
@@ -75,6 +77,35 @@ Le guide d'exemple en a un complet : [`examples/sample-guide/feeds.json`](../exa
 | `minLevel` | versions, étiquettes | `major`, `minor` (par défaut) ou `patch` : les versions plus petites sont écartées. |
 | `collapse` | versions, étiquettes | `true` pour un projet qui publie une version par commit : les versions de la fenêtre deviennent une seule ligne de routine. |
 | `discovery` | tous | `true` : le flux cherche ce que le guide ne couvre pas encore. Ses éléments vont dans la section `discovery`, et un élément compte selon son âge (`maxAgeDays`, 45), pas selon la fenêtre. |
+
+### Une page surveillée
+
+Certains faits d'un guide ne sont publiés par aucun flux : une grille de prix, un tableau de compatibilité, les
+versions prises en charge d'un produit. Un flux de type `page` lit une telle page à chaque veille et prévient quand
+elle ne dit plus ce qu'elle disait :
+
+```json
+{ "id": "lambda-pricing", "domain": "hardware", "type": "page", "url": "https://lambda.com/pricing",
+  "name": "Lambda GPU Cloud pricing", "tier": "A", "watch": ".*\\$\\d.*" }
+```
+
+`watch` choisit ce qui compte. `.*\$\d.*` (en JSON chaque `\` est doublé, comme ci-dessus) garde les lignes qui
+contiennent un prix en dollars, chacune avec ce dont c'est le prix (« NVIDIA HGX A100 | 80 GB | … | $3.19 ») ;
+`\$\d+\.\d+` garderait les prix seuls. Sans
+`watch`, tout le texte est comparé, et une page qui affiche une date ou un compteur change à chaque lecture : donnez
+une expression dès que possible. Seul le texte lisible est lu (ni menu, ni script) : une page qui dessine ses
+chiffres par un script ne montre rien à surveiller, ce que la première collecte rend visible (sa liste de valeurs
+reste vide).
+
+L'élément d'un changement liste ce qui n'est plus sur la page et ce qui est nouveau : ce sont les notes que lit le
+modèle. Son adresse se termine par `#changed-<date>` : un changement est annoncé une fois, quel que soit le nombre
+de veilles dont la fenêtre le contient.
+
+Ce que la page disait est gardé dans la veille elle-même (`pages` dans `watch.json`), et la collecte suivante
+compare avec la veille la plus récente qu'elle trouve : celles gardées dans le dossier de travail, ou
+`--previous <watch.json ou dossier>`. La première lecture d'une page est sa référence : aucun élément, et le
+rapport le dit. Le workflow réutilisable ci-dessous va chercher la veille précédente dans le dernier run qui en a
+une, ce qui demande `actions: read` dans les permissions de l'appelant.
 
 ## Le tri préalable
 
@@ -168,6 +199,7 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read   # pour les pages surveillées : la veille précédente est lue dans son run
 jobs:
   watch:
     uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.0.1

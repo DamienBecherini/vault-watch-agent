@@ -102,7 +102,8 @@ class Collected(Files):
         """Reads the feeds now and writes the watch (`watches/watch-<until>.json`, `-2`… when one is already there)."""
         from . import collect
 
-        watch = collect.Collector.of_guide(self.guide).collect(**kw)
+        known = collect.previous_pages([self.root / self.FOLDER, self.root / "downloads"])
+        watch = collect.Collector.of_guide(self.guide, previous=known).collect(**kw)
         return write(watch, self.root / self.FOLDER)
 
 

@@ -5,6 +5,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- Watched pages: a feed of type `page` reads a page at each watch (a price list, a compatibility table) and tells
+  when it no longer says what it said, with what is gone and what is new as the item's notes. `watch`, a regular
+  expression, chooses what counts (the lines that hold a price, for instance). What the page said travels in the
+  watch (`pages` in `watch.json`, an addition to schema 1); the next collection compares with the most recent
+  watch (`vault-watch collect --previous`, or those of the working folder). The reusable workflow `collect.yml`
+  fetches the previous watch from its last run (`actions: read` in the caller). Asked for after the Lambda prices
+  of 16 November 2026, which no feed saw.
 - « Check the sources » (`sourcecheck.py`, the Sources page): each source is asked what it says today (there or
   not, archived, renamed, its last publication), the guide is read again (the repositories and Hugging Face
   publishers it cites and no feed follows, the feeds no page names any more, the tools followed for their releases

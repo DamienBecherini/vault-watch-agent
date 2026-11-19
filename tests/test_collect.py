@@ -250,3 +250,69 @@ def test_a_moving_tag_is_dropped_the_real_release_kept():
         assert c.triage(feed, item)[:2] == ("drop", "moving tag")
     real = {"title": "n8n-io/n8n n8n@3.3.0", "url": "https://github.com/n8n-io/n8n/releases/tag/n8n%403.3.0"}
     assert c.triage(feed, real)[0] == "keep"
+
+
+def page(*prices: str) -> str:
+    rows = "".join(f"<tr><td>GPU {n}</td><td>${p} / hour</td></tr>" for n, p in enumerate(prices))
+    return f"<html><head><title>Prices</title><script>var t = '$9.99'</script></head><body><nav>$0.01</nav><table>{rows}</table></body></html>"
+
+
+def test_a_watched_page_tells_when_it_no_longer_says_what_it_said(tmp_path):
+    from datetime import timedelta
+
+    from vault_watch_agent import collect
+
+    feed = {"id": "prices", "domain": "hardware", "type": "page", "url": "https://cloud.example/pricing",
+            "name": "Cloud prices", "tier": "A", "watch": r"\$\d+\.\d+"}
+    shown = {"html": page("2.79", "3.99")}
+    at = {"now": NOW}
+    make = lambda previous: Collector(feeds=[dict(feed)], get=lambda url, **kw: shown["html"],  # noqa: E731
+                                      now=lambda: at["now"], previous=previous)
+    assert collect.page_snapshot(shown["html"], feed["watch"]) == ["$2.79", "$3.99"]  # not the menu, not the script
+
+    first = make({}).collect(days=8)
+    assert first["items"] == [] and first["pages"] == {"prices": {"url": feed["url"], "snapshot": ["$2.79", "$3.99"]}}
+    told = Collector(feeds=[dict(feed)], pages=first["pages"], now=lambda: NOW)  # as the collector is after it
+    assert "first reading of prices" in collect.markdown(first, told)  # the report says a reference was taken
+
+    same = make(first["pages"]).collect(days=8)
+    assert same["items"] == [] and same["pages"] == first["pages"]  # nothing moved: nothing told
+
+    # A week later the prices changed: one item, with what is gone and what is new
+    at["now"], shown["html"] = NOW + timedelta(days=7), page("3.19", "4.59", "3.99")
+    week = make(same["pages"]).collect(days=8)
+    [item] = week["items"]
+    assert item["title"] == "Cloud prices: the page changed (1 value(s) gone, 2 new)" and item["triage"] == "keep"
+    assert item["url"] == "https://cloud.example/pricing#changed-2026-11-25" and item["date"].startswith("2026-11-25")
+    assert "No longer on the page:\n- $2.79" in item["notes"] and "New on the page:\n- $3.19\n- $4.59" in item["notes"]
+    assert week["pages"]["prices"] == {"url": feed["url"], "snapshot": ["$3.19", "$4.59", "$3.99"],
+                                       "changed": "2026-11-25", "before": ["$2.79", "$3.99"]}
+
+    # The watch of the fortnight, a week after: the page did not move again, the change is still in its window
+    at["now"] = NOW + timedelta(days=14)
+    fortnight = make(week["pages"]).collect(days=15)
+    assert [i["url"] for i in fortnight["items"]] == [item["url"]]  # the same address: the same change, told once
+    # Later still, out of the window: nothing more
+    at["now"] = NOW + timedelta(days=40)
+    assert make(fortnight["pages"]).collect(days=15)["items"] == []
+
+    # A page that cannot be read keeps what was known of it, and the feed is reported in error
+    def down(url, **kw):
+        raise RuntimeError("HTTP 503")
+
+    broken = Collector(feeds=[dict(feed)], get=down, now=lambda: at["now"], previous=week["pages"]).collect(days=8)
+    assert broken["errors"] == [{"feed": "prices", "error": "HTTP 503"}] and broken["pages"] == week["pages"]
+
+    # The previous watch is the most recent of those kept; a folder stands for its files
+    for name, watch in (("a/watch.json", first | {"until": "2026-11-18"}), ("b/watch.json", week | {"until": "2026-11-25"})):
+        (tmp_path / name).parent.mkdir()
+        (tmp_path / name).write_text(json.dumps(watch), encoding="utf-8")
+    (tmp_path / "broken.json").write_text("{", encoding="utf-8")
+    assert collect.previous_pages([tmp_path]) == week["pages"] and collect.previous_pages([tmp_path / "nope"]) == {}
+
+    # A page watched whole: its lines of text
+    assert collect.page_snapshot("<p>One</p><p>Two</p><p>One</p>") == ["One", "Two"]
+    with pytest.raises(collect.CollectError, match="needs url"):
+        collect.check({"feeds": [{"id": "p", "domain": "d", "type": "page"}]})
+    with pytest.raises(collect.CollectError, match="watch is not a valid regular expression"):
+        collect.check({"feeds": [{"id": "p", "domain": "d", "type": "page", "url": "https://x.example", "watch": "("}]})
