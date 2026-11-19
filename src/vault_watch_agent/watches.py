@@ -130,7 +130,7 @@ class Nothing:
 def of(guide: Guide, home: Path, issues: Callable[[], list[dict]] | None = None) -> WatchSource:
     """The source the manifest declares; `issues` replaces the forge's list (the interface's tests)."""
     w = guide.watch
-    if w.source == "github-issue":
+    if w.source == "issues":
         return Issues(guide.repository, w.label, w.artifact, home / "downloads", issues)
     if w.source == "file":
         return Files(guide.root, w.path)

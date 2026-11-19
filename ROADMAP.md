@@ -429,6 +429,9 @@ Done 2026-11-18, published as 0.6.0.
   branch deleted.
 - **T5.2 Freeze.** Manifest schema 1, `watch.json` schema 1, engine protocol 1: a change after that is a new
   schema number with a migration. The settings file gets its own number and its migrations.
+  Done 2026-11-19: `docs/compatibility.md` (EN, FR) gives the rules; `config.SCHEMA` and `config.MIGRATIONS`,
+  `llm.ENGINE_PROTOCOL` checked when a plug-in loads; the source `github-issue` renamed `issues` before the freeze
+  (old name still read). The IA on-prem guide's manifest keeps `github-issue`, read as before.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes
   the reference example); the architecture page current; a security page (keys as references, local server,
   what the model reads from the web is data, quotes checked by the code).

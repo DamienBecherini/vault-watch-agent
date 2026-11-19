@@ -70,6 +70,7 @@ An `llm.EngineKind` tells the agent how to make the engine and what it offers:
 | `check(options)` | Optional. It checks the engine's options (`settings["engines"]["<name>"]`), fills the defaults and raises on a wrong one. |
 | `model_of(settings, role)` | The model of a role. |
 | `options` | The defaults of its options. |
+| `protocol` | The version of the engine protocol it implements: `1` (the default, `llm.ENGINE_PROTOCOL`). An engine of another protocol is not loaded ([compatibility.md](compatibility.md)). |
 
 Point an entry point of the group `vault_watch_agent.engines` to it, in your package's `pyproject.toml`:
 

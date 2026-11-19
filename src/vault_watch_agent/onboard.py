@@ -73,7 +73,7 @@ def propose(root: Path) -> str:
         (f"modified_field = {q(field)}   # {why_field}" if field else f"# modified_field = \"last_modified\"   # {why_field}"),
         "",
         "[watch]",
-        'source = "none"   # or "github-issue" (with label, artifact), "file" (with path to a watch.json),',
+        'source = "none"   # or "issues" (with label, artifact), "file" (with path to a watch.json),',
         '#                    or "feeds" (with feeds: the feeds.json `vault-watch collect` reads)',
         "",
         "# Optional: [rules] brief, translation_policy (files of the guide; the agent has defaults),",
@@ -254,7 +254,7 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
     else:
         out.append(Line("ok", "git", f"branch {guide.base_branch}"))
 
-    needs_forge = bool(guide.repository) or guide.watch.source == "github-issue"
+    needs_forge = bool(guide.repository) or guide.watch.source == "issues"
     if needs_forge and guide.forge == "gitea":
         if gh_check:
             from . import forge
@@ -278,9 +278,9 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
     if w.source == "file":
         found = (root / w.path).is_file()
         out.append(Line("ok" if found else "warn", "watch", f"file {w.path}" + ("" if found else " (not there yet)")))
-    elif w.source == "github-issue":
+    elif w.source == "issues":
         out.append(Line("ok" if guide.repository else "fail", "watch", f"issues labelled {w.label or 'veille'}"
-                        if guide.repository else "github-issue needs [guide] repository"))
+                        if guide.repository else "issues needs [guide] repository"))
     elif w.source == "feeds":
         out.append(Line("ok", "watch", f"collected by the agent from {w.feeds}"))
     else:

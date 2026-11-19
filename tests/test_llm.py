@@ -189,3 +189,20 @@ def test_a_list_that_cannot_be_read_is_an_error():
     client = type("C", (), {"models": FakeModels(anthropic.AnthropicError("no key"))})()
     with pytest.raises(llm.ModelError, match="could not be read"):
         llm.list_models("env:X", client)
+
+
+def test_a_plug_in_engine_of_another_protocol_is_reported_not_loaded(monkeypatch):
+    from types import SimpleNamespace
+
+    from vault_watch_agent import llm as llm_mod
+
+    good = llm_mod.EngineKind("mine", "Mine", lambda role, journal, settings: None)
+    ahead = llm_mod.EngineKind("future", "Future", lambda role, journal, settings: None, protocol=2)
+    points = [SimpleNamespace(name="mine", load=lambda: good), SimpleNamespace(name="future", load=lambda: ahead)]
+    monkeypatch.setattr(llm_mod, "entry_points", lambda group: points)
+    monkeypatch.setattr(llm_mod, "_engines", None)
+    monkeypatch.setattr(llm_mod, "ENGINE_ERRORS", {})
+    found = llm_mod.engines()
+    assert "mine" in found and "future" not in found
+    assert "engine protocol 2" in llm_mod.ENGINE_ERRORS["future"]
+    monkeypatch.setattr(llm_mod, "_engines", None)  # the next test reads the real list again

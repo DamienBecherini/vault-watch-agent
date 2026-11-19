@@ -66,6 +66,6 @@ pour l'éditeur) ou s'il ne change rien ; ce que le modèle écarte est listé e
 ## D'où elle vient
 
 Le manifeste du guide le dit (`[watch]`, voir [Brancher son guide](connect-your-guide.fr.md)) : un `watch.json` dans le
-guide (`source = "file"`), l'artefact du run de workflow lié depuis une issue GitHub (`source = "github-issue"`), les
+guide (`source = "file"`), l'artefact du run de workflow lié depuis une issue de la forge (`source = "issues"`), les
 veilles que l'agent a collectées depuis les flux du guide (`source = "feeds"`, voir [Collecter une veille](collect.fr.md)), ou
 aucune.

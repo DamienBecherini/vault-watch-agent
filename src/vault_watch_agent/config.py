@@ -3,7 +3,9 @@
 One JSON file, `settings.json` in the home of the agent (`.vault-watch/`), written by the Settings page of the
 web interface or by hand. A missing file or a missing field means the default.
 
-    {"engine": "",                               "" (automatic), "claude-code", "api", "openai" or an installed
+    {"schema": 1,                                the version of this format (SCHEMA); a file without it is older
+                                                 than 1.0 and is read as schema 1, the same fields
+     "engine": "",                               "" (automatic), "claude-code", "api", "openai" or an installed
                                                  engine (llm.engines)
      "key": "env:ANTHROPIC_API_KEY",             where the API key is: a reference, never the key itself
      "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},   the Claude engines' models
@@ -28,11 +30,16 @@ import os
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 from .prices import check_rates
 
 FILE = "settings.json"
+SCHEMA = 1  # the version of the settings format; a change of format is a new number and an entry in MIGRATIONS
+# schema n -> n+1, applied in order to a file written by an older agent, before it is checked. A file written by a
+# newer agent (a higher number) is refused: an older agent would drop the fields it does not know when it saves.
+MIGRATIONS: dict[int, "Callable[[dict], dict]"] = {}
 ENGINE_NAME = re.compile(r"[a-z][a-z0-9-]{1,40}")  # "": Claude Code on a subscription, otherwise the API
 REFERENCES = ("env:", "file:", "sops:")
 KEY_FORMS = "env:NAME, sops:file#NAME or file:path"
@@ -45,7 +52,7 @@ MODELS = {
 MODEL_ID = re.compile(r"claude-[a-z0-9][a-z0-9.-]{1,60}")  # the Claude engines' models
 ANY_MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,159}")  # another engine's: qwen3.6, org/model:tag…
 EFFORTS = ("lower", "normal", "higher")  # relative to the effort the code gives each step
-DEFAULTS = {"engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()},
+DEFAULTS = {"schema": SCHEMA, "engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()},
             "effort": {role: "normal" for role in MODELS}, "prices": {}, "engines": {}}
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # Windows: no console window when the server has none
 
@@ -58,6 +65,7 @@ def check(cfg: dict) -> dict:
     """The settings with every field present and valid, or ConfigError; unknown fields are dropped."""
     if not isinstance(cfg, dict):
         raise ConfigError("the settings must be a JSON object")
+    cfg = migrate(cfg)
     from . import llm  # the installed engines (llm imports this module)
 
     engine = str(cfg.get("engine", DEFAULTS["engine"]) or "").strip().lower()
@@ -100,7 +108,20 @@ def check(cfg: dict) -> dict:
     for name, options in given.items():
         kind = llm.engines().get(name)
         engines[name] = kind.check(options) if kind and kind.check else dict(options)  # an engine not installed: kept
-    return {"engine": engine, "key": key, "models": models, "effort": effort, "prices": prices, "engines": engines}
+    return {"schema": SCHEMA, "engine": engine, "key": key, "models": models, "effort": effort, "prices": prices, "engines": engines}
+
+
+def migrate(cfg: dict) -> dict:
+    """The settings brought to SCHEMA: no number is a file of before 1.0 (the fields of schema 1)."""
+    schema = cfg.get("schema", 1)
+    if not isinstance(schema, int) or isinstance(schema, bool) or schema < 1:
+        raise ConfigError(f"schema = {schema!r}: a whole number, 1 or more")
+    if schema > SCHEMA:
+        raise ConfigError(f"schema {schema}: these settings were written by a newer vault-watch-agent (this one reads "
+                          f"schema {SCHEMA}); update the agent")
+    while schema < SCHEMA:
+        cfg, schema = MIGRATIONS[schema](dict(cfg)), schema + 1
+    return cfg
 
 
 def load(home: Path) -> dict:

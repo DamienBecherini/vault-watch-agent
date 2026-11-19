@@ -122,7 +122,7 @@ jobs:
       days: 8
 ```
 
-Le manifeste passe alors à `source = "github-issue"` avec `label = "watch"` : l'agent lit ces issues, dont
+Le manifeste passe alors à `source = "issues"` avec `label = "watch"` : l'agent lit ces issues, dont
 l'artefact contient la veille. Les paramètres du workflow :
 
 | Paramètre | Par défaut | Ce que c'est |

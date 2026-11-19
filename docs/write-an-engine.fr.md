@@ -70,6 +70,7 @@ Un `llm.EngineKind` dit à l'agent comment créer le moteur et ce qu'il propose 
 | `check(options)` | Facultatif. Il vérifie les options du moteur (`settings["engines"]["<nom>"]`), complète les valeurs par défaut et lève une erreur sur une mauvaise valeur. |
 | `model_of(settings, role)` | Le modèle d'un rôle. |
 | `options` | Les valeurs par défaut de ses options. |
+| `protocol` | La version du protocole des moteurs qu'il implémente : `1` (par défaut, `llm.ENGINE_PROTOCOL`). Un moteur d'un autre protocole n'est pas chargé ([compatibility.fr.md](compatibility.fr.md)). |
 
 Pointez vers lui un point d'entrée du groupe `vault_watch_agent.engines`, dans le `pyproject.toml` de votre paquet :
 

@@ -8,7 +8,7 @@ from vault_watch_agent import config, llm
 
 
 def test_defaults_when_there_is_no_file(tmp_path):
-    assert config.load(tmp_path) == {"engine": "", "key": "env:ANTHROPIC_API_KEY",
+    assert config.load(tmp_path) == {"schema": 1, "engine": "", "key": "env:ANTHROPIC_API_KEY",
                                      "models": {"reasoning": "claude-opus-5-5", "translator": "claude-sonnet-5-5"},
                                      "effort": {"reasoning": "normal", "translator": "normal"}, "prices": {}, "engines": {}}
 
@@ -17,11 +17,26 @@ def test_saved_settings_are_read_back_and_unknown_fields_dropped(tmp_path):
     saved = config.save(tmp_path, {"engine": "API", "key": " sops:secrets.env#ANTHROPIC_API_KEY ",
                                    "models": {"translator": "claude-haiku-5-5", "reasoning": "claude-fable-5-2"},
                                    "effort": {"reasoning": "Higher"}, "theme": "dark"})
-    assert saved == {"engine": "api", "key": "sops:secrets.env#ANTHROPIC_API_KEY",
+    assert saved == {"schema": 1, "engine": "api", "key": "sops:secrets.env#ANTHROPIC_API_KEY",
                      "models": {"reasoning": "claude-fable-5-2", "translator": "claude-haiku-5-5"},
                      "effort": {"reasoning": "higher", "translator": "normal"}, "prices": {}, "engines": {}}
     assert config.load(tmp_path) == saved
     assert not (tmp_path / "settings.json.partial").exists()
+
+
+def test_the_settings_carry_their_format_number(tmp_path, monkeypatch):
+    (tmp_path / "settings.json").write_text(json.dumps({"engine": "api"}), encoding="utf-8")  # before 1.0: no number
+    assert config.load(tmp_path)["schema"] == config.SCHEMA == 1
+    (tmp_path / "settings.json").write_text(json.dumps({"schema": 2, "engine": "api"}), encoding="utf-8")
+    with pytest.raises(config.ConfigError, match="written by a newer vault-watch-agent"):
+        config.load(tmp_path)
+    with pytest.raises(config.ConfigError, match="a whole number"):
+        config.check({"schema": "1"})
+    # A future format: each migration runs in order, from the number of the file
+    monkeypatch.setattr(config, "SCHEMA", 3)
+    monkeypatch.setattr(config, "MIGRATIONS", {1: lambda c: {**c, "one": True}, 2: lambda c: {**c, "two": c["one"]}})
+    assert config.migrate({"engine": "api"}) == {"engine": "api", "one": True, "two": True}
+    assert config.migrate({"schema": 2, "one": False}) == {"schema": 2, "one": False, "two": False}
 
 
 @pytest.mark.parametrize("settings, word", [

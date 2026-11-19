@@ -5,6 +5,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased (M5: stable)
 
+- Freeze (T5.2): the manifest, `watch.json`, the engine protocol and the settings each carry a version number, all
+  `1`; `docs/compatibility.md` says what may change within a number (additions only) and how a new number comes
+  (refused when newer than the agent, migrated when older). The settings get `"schema": 1` and their migrations
+  (`config.MIGRATIONS`; a file without the number is read as 1); `EngineKind.protocol` (an engine package of
+  another protocol is reported, not loaded). The watch source `github-issue` is now `issues` (a Gitea forge has
+  issues too); the old name is still read.
 - Gitea forge: a guide on a Gitea server says so in its manifest (`[guide] forge = "gitea"`, `forge_url`, and
   `forge_token`, a reference to the token: `env:GITEA_TOKEN` by default, or `sops:file#NAME`, `file:path`). The
   agent then reads the watch issues, downloads the Actions artifacts (Gitea 1.23 or later), opens the pull request

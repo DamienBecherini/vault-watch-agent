@@ -61,7 +61,7 @@ switch a part off without a word.
 
 ### `schema`
 
-`1`, the version of the format. Optional (1 by default).
+`1`, the version of the format. Optional (1 by default). Frozen from 1.0: what may change, and how, is in [compatibility.md](compatibility.md).
 
 ### `[guide]`
 
@@ -72,7 +72,7 @@ switch a part off without a word.
 | `repository` | no | `owner/name` on the forge (GitHub unless `forge` says otherwise). Without it the guide is local: no issue is read, no pull request is opened, the branch of a run stays on your machine. |
 | `forge` | no | Where `repository` lives: `github` (default, through `gh`, authenticated by `gh auth login`) or `gitea` (through the Gitea API, with a token). |
 | `forge_url` | with `gitea` | The address of the Gitea server, such as `https://gitea.example.org` or `http://192.168.1.10:3000`. |
-| `forge_token` | no | Gitea: where the token is, as a reference, never the token itself: `env:NAME` (default `env:GITEA_TOKEN`), `sops:file#NAME` or `file:path`. It needs the `repository` scope in writing to open pull requests, and the `issue` scope (writing) for a `github-issue` watch. A Gitea token is valid on every repository its account can reach: give the agent an account of its own, collaborator of the guide's repository alone. |
+| `forge_token` | no | Gitea: where the token is, as a reference, never the token itself: `env:NAME` (default `env:GITEA_TOKEN`), `sops:file#NAME` or `file:path`. It needs the `repository` scope in writing to open pull requests, and the `issue` scope (writing) for an `issues` watch. A Gitea token is valid on every repository its account can reach: give the agent an account of its own, collaborator of the guide's repository alone. |
 | `site` | no | The published site, linked from the interface. |
 | `base_branch` | no | The branch runs start from and pull requests target (`main` by default). |
 
@@ -94,7 +94,7 @@ Where the items of a watch come from.
 | `source` | With | What the agent reads |
 | :-- | :-- | :-- |
 | `none` (default) | | No watch: the agent verifies the guide and fixes reported errors only. |
-| `github-issue` | `label` (`veille` by default), `artifact` (`weekly-watch` by default) | Open issues with that label in `repository`, on its forge (GitHub or Gitea, whose Actions artifacts need Gitea 1.23 or later). The body of the issue links the workflow run that collected the watch (`.../actions/runs/<id>`); the items are the `watch.json` of that run's artifact named `artifact`. |
+| `issues` | `label` (`veille` by default), `artifact` (`weekly-watch` by default) | (Named `github-issue` before 1.0, a name still read.) Open issues with that label in `repository`, on its forge (GitHub or Gitea, whose Actions artifacts need Gitea 1.23 or later). The body of the issue links the workflow run that collected the watch (`.../actions/runs/<id>`); the items are the `watch.json` of that run's artifact named `artifact`. |
 | `file` | `path` | A `watch.json` of the guide, or a folder of them (one per watch, listed newest first in the interface, each with its window and its items kept; a file that breaks the format is listed with what is wrong). Also any file given on the command line (`vault-watch run --watch-json`). |
 | `feeds` | `feeds` | The watches the agent collected from the guide's feeds (`vault-watch collect`, or the « Collect a watch » button of the interface), kept in the guide's working folder. |
 

@@ -357,6 +357,9 @@ class ClaudeCode(_Journal):
         return parsed, usage
 
 
+ENGINE_PROTOCOL = 1  # the version of llm.Engine and EngineKind; a plug-in says which one it implements
+
+
 @dataclass(frozen=True)
 class EngineKind:
     """An engine the agent can use. `make(role, journal, settings)` gives the client of a role; `models(settings)`
@@ -369,6 +372,7 @@ class EngineKind:
     check: Callable[[dict], dict] | None = None
     model_of: Callable[[dict, str], str] = lambda settings, role: settings["models"][role]
     options: dict = field(default_factory=dict)  # the defaults of its options, for the Settings page
+    protocol: int = ENGINE_PROTOCOL  # the version of the engine protocol it implements (docs/write-an-engine.md)
 
 
 def _make_api(role: str, journal: Path | None, settings: dict) -> Engine:
@@ -416,6 +420,9 @@ def engines() -> dict[str, EngineKind]:
                 kind = point.load()
                 if not isinstance(kind, EngineKind):
                     raise TypeError("not an EngineKind")
+                if kind.protocol != ENGINE_PROTOCOL:
+                    raise TypeError(f"it implements the engine protocol {kind.protocol}, this vault-watch-agent the "
+                                    f"protocol {ENGINE_PROTOCOL}: update the one that is behind")
                 found.setdefault(kind.name, kind)
             except Exception as e:  # noqa: BLE001 - a broken plug-in is reported, the agent goes on
                 ENGINE_ERRORS[point.name] = f"{type(e).__name__}: {e}"

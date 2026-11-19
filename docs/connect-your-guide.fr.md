@@ -61,7 +61,7 @@ frappe ne doit pas désactiver une partie sans rien dire.
 
 ### `schema`
 
-`1`, la version du format. Facultatif (1 par défaut).
+`1`, la version du format. Facultatif (1 par défaut). Figé à partir de 1.0 : ce qui peut changer, et comment, est dans [compatibility.fr.md](compatibility.fr.md).
 
 ### `[guide]`
 
@@ -72,7 +72,7 @@ frappe ne doit pas désactiver une partie sans rien dire.
 | `repository` | non | `propriétaire/nom` sur la forge (GitHub, sauf si `forge` en nomme une autre). Sans lui, le guide est local : aucune issue lue, aucune pull request, la branche d'un passage reste sur votre machine. |
 | `forge` | non | Où se trouve `repository` : `github` (par défaut, par `gh`, authentifié par `gh auth login`) ou `gitea` (par l'API de Gitea, avec un jeton). |
 | `forge_url` | avec `gitea` | L'adresse du serveur Gitea, par exemple `https://gitea.example.org` ou `http://192.168.1.10:3000`. |
-| `forge_token` | non | Gitea : où se trouve le jeton, sous forme de référence, jamais le jeton lui-même : `env:NOM` (par défaut `env:GITEA_TOKEN`), `sops:fichier#NOM` ou `file:chemin`. Il lui faut le droit `repository` en écriture pour ouvrir les pull requests, et le droit `issue` (en écriture) pour une veille `github-issue`. Un jeton Gitea vaut pour tous les dépôts que son compte peut atteindre : donnez à l'agent un compte à lui, collaborateur du seul dépôt du guide. |
+| `forge_token` | non | Gitea : où se trouve le jeton, sous forme de référence, jamais le jeton lui-même : `env:NOM` (par défaut `env:GITEA_TOKEN`), `sops:fichier#NOM` ou `file:chemin`. Il lui faut le droit `repository` en écriture pour ouvrir les pull requests, et le droit `issue` (en écriture) pour une veille `issues`. Un jeton Gitea vaut pour tous les dépôts que son compte peut atteindre : donnez à l'agent un compte à lui, collaborateur du seul dépôt du guide. |
 | `site` | non | Le site publié, lié depuis l'interface. |
 | `base_branch` | non | La branche d'où partent les passages et que visent les pull requests (`main` par défaut). |
 
@@ -94,7 +94,7 @@ D'où viennent les éléments d'une veille.
 | `source` | Avec | Ce que lit l'agent |
 | :-- | :-- | :-- |
 | `none` (défaut) | | Pas de veille : l'agent vérifie le guide et corrige seulement les erreurs signalées. |
-| `github-issue` | `label` (`veille` par défaut), `artifact` (`weekly-watch` par défaut) | Les issues ouvertes de `repository` qui portent cette étiquette, sur sa forge (GitHub ou Gitea ; les artefacts des Actions de Gitea demandent Gitea 1.23 ou plus récent). Le corps de l'issue contient le lien du run du workflow qui a collecté la veille (`.../actions/runs/<id>`) ; les éléments sont le `watch.json` de l'artefact `artifact` de ce run. |
+| `issues` | `label` (`veille` par défaut), `artifact` (`weekly-watch` par défaut) | (Nommée `github-issue` avant 1.0, nom toujours lu.) Les issues ouvertes de `repository` qui portent cette étiquette, sur sa forge (GitHub ou Gitea ; les artefacts des Actions de Gitea demandent Gitea 1.23 ou plus récent). Le corps de l'issue contient le lien du run du workflow qui a collecté la veille (`.../actions/runs/<id>`) ; les éléments sont le `watch.json` de l'artefact `artifact` de ce run. |
 | `file` | `path` | Un `watch.json` du guide, ou un dossier qui en contient (un par veille, listés du plus récent au plus ancien dans l'interface, chacun avec sa fenêtre et ses éléments retenus ; un fichier qui ne respecte pas le format est listé avec ce qui ne va pas). Aussi tout fichier donné en ligne de commande (`vault-watch run --watch-json`). |
 | `feeds` | `feeds` | Les veilles que l'agent a collectées depuis les flux du guide (`vault-watch collect`, ou le bouton « Collecter une veille » de l'interface), rangées dans le dossier de travail du guide. |
 

@@ -120,7 +120,7 @@ jobs:
       days: 8
 ```
 
-Then set the manifest to `source = "github-issue"` with `label = "watch"`: the agent reads these issues, and their
+Then set the manifest to `source = "issues"` with `label = "watch"`: the agent reads these issues, and their
 artifact holds the watch. The workflow's inputs:
 
 | Input | Default | What it is |

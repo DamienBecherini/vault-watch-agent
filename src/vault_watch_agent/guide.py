@@ -21,7 +21,8 @@ from pathlib import Path, PurePosixPath
 
 MANIFEST = "vault-watch.toml"
 SCHEMA = 1  # version of the manifest format this code reads
-WATCH_SOURCES = ("none", "github-issue", "file", "feeds")
+WATCH_SOURCES = ("none", "issues", "file", "feeds")
+SOURCE_NAMES = {"github-issue": "issues"}  # the names of before 1.0, still read (a Gitea forge has issues too)
 CHECK_COMMANDS = ("audits", "claims_due", "sources")  # shell commands; {out} = a JSON file the agent reads after
 LANGUAGES = {"fr": "French", "en": "English", "de": "German", "es": "Spanish", "it": "Italian", "pt": "Portuguese",
              "nl": "Dutch", "pl": "Polish", "ja": "Japanese", "zh": "Chinese", "ko": "Korean", "ru": "Russian"}
@@ -38,9 +39,9 @@ class GuideError(ValueError):
 
 @dataclass(frozen=True)
 class Watch:
-    source: str = "none"    # none | github-issue | file
-    label: str = ""         # github-issue: label of the watch issues
-    artifact: str = ""      # github-issue: workflow artifact holding watch.json
+    source: str = "none"    # none | issues | file | feeds
+    label: str = ""         # issues: label of the watch issues
+    artifact: str = ""      # issues: workflow artifact holding watch.json
     path: str = ""          # file: watch.json, relative to the guide
     feeds: str = ""         # feeds.json read by `vault-watch collect` (any source; required by "feeds")
     seen: str = ""          # collect: a file whose URLs are dropped (items the editor already triaged)
@@ -177,6 +178,7 @@ def parse(data: dict, root: Path) -> Guide:
         raise GuideError(f"[content] mirrors: {language!r} is the language of the pages, not a mirror")
 
     source = _text(w, "watch", "source") or "none"
+    source = SOURCE_NAMES.get(source, source)
     if source not in WATCH_SOURCES:
         raise GuideError(f"[watch] source = {source!r}: one of {', '.join(WATCH_SOURCES)}")
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
@@ -224,7 +226,7 @@ def legacy(root: Path) -> Guide:
         exclude=("en/**", "assets/**", "docs/**", "scripts/**", "_private/**", "_templates/**", "build/**",
                  "public/**", "node_modules/**", "README.md", "CLAUDE.md", "AGENTS.md"),
         mirrors={"en": "en/"}, modified_field="last_modified",
-        watch=Watch(source="github-issue", label="veille", artifact="weekly-watch"),
+        watch=Watch(source="issues", label="veille", artifact="weekly-watch"),
         brief=rel(".agents/skills/vault-watch/brief.md"),
         translation_policy=rel(".agents/skills/vault-translate-content/references/translation-policy.md"),
         audits="node scripts/run-audits.mjs",

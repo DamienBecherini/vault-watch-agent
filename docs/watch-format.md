@@ -65,6 +65,6 @@ dropped are not read.
 ## Where it comes from
 
 The guide's manifest says it (`[watch]`, see [Connect your guide](connect-your-guide.md)): a `watch.json` in the guide
-(`source = "file"`), the artifact of the workflow run linked from a GitHub issue (`source = "github-issue"`), the
+(`source = "file"`), the artifact of the workflow run linked from a forge issue (`source = "issues"`), the
 watches the agent collected from the guide's feeds (`source = "feeds"`, see [Collecting a watch](collect.md)), or
 none.

@@ -39,7 +39,7 @@ def test_defaults_of_a_minimal_manifest(tmp_path):
     (minimal(content={"mirrors": {"fr": "fr"}}), "the folder ends with /"),
     (minimal(content={"mirrors": {"en": "en/"}}), "is the language of the pages"),
     (minimal(content={"exclude": "en/**"}), "a list of glob patterns"),
-    (minimal(watch={"source": "rss"}), "one of none, github-issue, file"),
+    (minimal(watch={"source": "rss"}), "one of none, issues, file"),
     (minimal(watch={"source": "file"}), "needs path"),
     (minimal(rules={"brief": "missing.md"}), "no such file in the guide"),
     (minimal(rules={"brief": "../outside.md"}), "must stay inside the guide"),
@@ -268,6 +268,11 @@ def test_a_watch_follows_its_contract(tmp_path):
     (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
     with pytest.raises(WatchError, match="not valid JSON"):
         load_items(tmp_path / "bad.json")
+
+
+def test_the_issues_source_keeps_its_name_of_before_1_0(tmp_path):
+    assert parse(minimal(watch={"source": "github-issue"}), tmp_path).watch.source == "issues"
+    assert parse(minimal(watch={"source": "issues"}), tmp_path).watch.source == "issues"
 
 
 def test_read_only_pages_are_read_but_never_edited(tmp_path):
