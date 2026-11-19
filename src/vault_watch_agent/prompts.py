@@ -40,11 +40,13 @@ def editing(g: Guide) -> str:
 
 def fill(text: str, vault: Path, mirror: str | None = None) -> str:
     """A prompt written with markers, for the guide at `vault`: <<GUIDE>> (the guide in a few words), <<LANG>> (the
-    language of its pages), and for a translation <<MIRROR>> (the mirror's language) and <<MIRROR_DIR>> (its folder)."""
+    language of its pages), <<REPLACE>> (the rule « replace, do not pile up »), and for a translation <<MIRROR>> (the
+    mirror's language) and <<MIRROR_DIR>> (its folder)."""
     g = guide_of(vault)
     lang = language_name(g.language)
     about = f", about {g.description}" if g.description else ""
     text = text.replace("<<GUIDE>>", f"a guide written in {lang}, « {g.name} »{about}").replace("<<LANG>>", lang)
+    text = text.replace("<<REPLACE>>", REPLACE)
     if mirror:
         text = text.replace("<<MIRROR>>", language_name(mirror)).replace("<<MIRROR_DIR>>", g.mirrors[mirror])
     assert "<<" not in text, text[text.index("<<"):][:40]
@@ -79,6 +81,14 @@ write them (e.g. "vLLM", "DGX Spark", "LiteLLM"), not generic words. Answer for 
 The contract's steps about issues, reports and agents are run by the surrounding program, not by you.{_contract(g, g.brief, DEFAULT_BRIEF)}"""
 
 
+# C2: a page states the current fact. Said to every step that writes a correction; the cross-check has its own
+# wording of it (« state the current fact instead of piling up »).
+REPLACE = """Replace, do not pile up: when a fact changed, `proposed` states the current fact in place of the old one. Do
+  not keep the old value beside the new one (« previously 0.32 », « 2,79 $ until October, 3,19 $ since ») and do not
+  add a « since » note next to a sentence left wrong: the history stays in Git and in the source. Keep an old value
+  only when the reader needs it to act (a version below which a flaw applies, a migration from the old behaviour)."""
+
+
 def propose(vault: Path) -> str:
     g = guide_of(vault)
     return f"""{describe(g)}
@@ -102,6 +112,7 @@ Rules:
   changes a decision (version, price, availability, support); Minor = wording or a detail.
 - Corrections that only make sense together (a sentence that cites a new footnote, and that footnote)
   share a `group` label, so the reviewer accepts or refuses them as one.
+- {REPLACE}
 - Zero, one or a few corrections. Do not rewrite paragraphs.{_contract(g, g.brief, DEFAULT_BRIEF)}"""
 
 

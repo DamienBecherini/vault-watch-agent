@@ -38,6 +38,10 @@ const TEXTS = {
       toHandleTitle: "À traiter", newCheck: "Nouvelle vérification", fixRuns: "Passes fix lancées depuis cette vérification",
       warning: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
       sent: "→ passe fix", dismissed: "écartée", reopen: "Rétablir", dismiss: n => `Écarter ${n} piste(s)`,
+      interrupted: "interrompue",
+      interruptedText: names => `Cette vérification s'est arrêtée avant la fin (serveur fermé pendant qu'elle tournait). Contrôles non faits : ${names}. Ce qu'elle a trouvé reste utilisable ; pour le reste, lance une nouvelle vérification.`,
+      remove: "Supprimer cette vérification",
+      confirmRemove: "Supprimer cette vérification et ses pistes ? Les passes fix déjà lancées restent.",
     },
     loading: "Chargement…",
     serverDown: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passages en pause n'ont rien perdu.",
@@ -92,6 +96,7 @@ const TEXTS = {
     linksOk: "Toutes les sources des pages modifiées répondent.",
     linksNotChecked: "Sources non vérifiées : le guide ne déclare pas d'audit des sources.",
     changes: "Modifications", doNotPublish: "Ne pas publier", publish: "Pousser et ouvrir la pull request",
+    billedNext: "Ce passage a tourné jusqu'ici sans facturation (abonnement ou modèle local), mais les Réglages désignent maintenant un moteur facturé : la suite (la traduction) serait facturée à l'API. Change le moteur dans les Réglages avant d'appliquer si ce n'est pas voulu.",
     keepLocal: "Terminer (branche gardée en local)",
     confirmNo: "Garder la branche en local sans pull request ?",
     end: {
@@ -145,6 +150,10 @@ const TEXTS = {
       toHandleTitle: "To handle", newCheck: "New check", fixRuns: "Fix runs started from this check",
       warning: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
       sent: "→ fix run", dismissed: "dismissed", reopen: "Reopen", dismiss: n => `Dismiss ${n} lead(s)`,
+      interrupted: "interrupted",
+      interruptedText: names => `This check stopped before its end (the server was closed while it ran). Checks not done: ${names}. What it found stays usable; for the rest, start a new check.`,
+      remove: "Delete this check",
+      confirmRemove: "Delete this check and its leads? The fix runs already started stay.",
     },
     loading: "Loading…",
     serverDown: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
@@ -199,6 +208,7 @@ const TEXTS = {
     linksOk: "Every source of the changed pages answers.",
     linksNotChecked: "Sources not checked: the guide declares no source audit.",
     changes: "Changes", doNotPublish: "Do not publish", publish: "Push and open the pull request",
+    billedNext: "This run has cost nothing so far (a subscription or a local model), but the Settings now name a billed engine: what is left (the translation) would be billed to the API. Change the engine in the Settings before applying if that is not what you want.",
     keepLocal: "Finish (branch kept locally)",
     confirmNo: "Keep the branch locally, without a pull request?",
     end: {
@@ -467,6 +477,7 @@ function viewReview(r, title) {
     <details><summary>${T.claims(r.claims_due.length)}</summary>
       <ul>${r.claims_due.map(c => `<li>${esc(c.recheckBy)} <code>${esc(c.page)}</code> : ${esc(c.claim)}</li>`).join("") || `<li>${T.none}</li>`}</ul></details>
     <p class="small"><a href="/api/runs/${encodeURIComponent(r.thread)}/report" target="_blank">${T.report}</a></p>
+    ${r.billed_next ? `<p class="error-text">${T.billedNext}</p>` : ""}
     <div class="bar">
       <button id="nothing">${T.applyNothing}</button>
       <button class="primary" id="apply"></button>
@@ -542,7 +553,7 @@ const checkBadge = p => {
     running: [V.running, "attention"], "to-handle": [V.toHandle(p.counts.open), "attention"],
     handled: [V.handled, "ok"], clear: [V.ok, "ok"],
   }[p.status] || [p.status, "neutral"];
-  return `<span class="badge ${cls}">${text}</span>`;
+  return `<span class="badge ${cls}">${text}</span>${p.interrupted ? ` <span class="badge neutral">${V.interrupted}</span>` : ""}`;
 };
 
 async function viewChecks() {
@@ -607,6 +618,8 @@ async function viewCheck(id) {
     <h1>${V.title} · ${new Date(v.started * 1000).toLocaleString(lang)} ${checkBadge(v)}</h1>
     <p class="subtitle">${V.cost(dollars(v.cost))} · ${V.counts(v.counts)}${v.commit ? ` · main @ <code>${esc(v.commit)}</code>` : ""}</p>
     ${v.error ? `<p class="error-text">${esc(v.error)}</p>` : ""}
+    ${v.interrupted ? `<p class="muted">${V.interruptedText(v.missing.map(c => esc(titles[c] || c)).join(", ") || "—")}</p>` : ""}
+    ${v.running ? "" : `<p><button class="small-button" id="remove">${V.remove}</button></p>`}
     ${Object.keys(v.runs).length ? `<h2>${V.fixRuns}</h2>${Object.entries(v.runs).map(([t, run]) => `
       <div class="card row${FINISHED.includes(run.status) ? " finished" : ""}"><div class="grow"><b>${esc(t)}</b>
         ${run.pr_url ? `<div class="muted small">${extLink(run.pr_url, run.pr_url)}</div>` : ""}</div>
@@ -672,6 +685,8 @@ async function viewCheck(id) {
   $("#nothing").onclick = () => { boxes.forEach(c => c.checked = false); count(); };
   count();
   const leads = (findings, status) => api(`/api/verifications/${encodeURIComponent(id)}/leads`, { findings, status }).then(() => viewCheck(id));
+  if ($("#remove")) $("#remove").onclick = () => confirm(V.confirmRemove)
+    && api(`/api/verifications/${encodeURIComponent(id)}/delete`, {}).then(() => { location.hash = "/check"; });
   page.querySelectorAll("[data-reopen]").forEach(b => b.onclick = () => leads([b.dataset.reopen], "open"));
   if (!boxes.length) page.querySelector(".bar").remove();
   else {

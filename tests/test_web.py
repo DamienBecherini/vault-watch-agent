@@ -1,5 +1,6 @@
 """The web interface drives the same graph: start a run, review, then decline to publish, all through the API."""
 
+import json
 import time
 
 import pytest
@@ -115,6 +116,36 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
     assert act("open").json()["open"] == 1
     thread = c.post("/api/fix", json={"text": finding, "verification": vid}, headers=ACT).json()["thread"]
     assert c.get(f"/api/verifications/{vid}").json()["handled"][finding]["thread"] == thread  # linked to its fix run
+
+
+def test_the_review_says_when_the_rest_of_a_free_run_would_be_billed(client, monkeypatch):
+    c, watch = client
+    monkeypatch.setenv("VAULT_WATCH_ENGINE", "api")  # the settings now name a billed engine
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=ACT).json()["thread"]
+    wait(c, thread)
+    view = c.get(f"/api/runs/{thread}").json()
+    assert view["pause"]["step"] == "review"
+    assert view["billed_next"] is True  # the fake model costs nothing: as a subscription would
+
+
+def test_a_check_a_stopped_server_left_unfinished_can_be_handled_and_deleted(client, setup):  # noqa: F811
+    c, home = client[0], setup[0].home
+    verifs = home / "verifications"
+    verifs.mkdir(parents=True, exist_ok=True)
+    (verifs / "verif-2026-11-17-194034").mkdir()
+    (verifs / "verif-2026-11-17-194034.json").write_text(json.dumps({
+        "id": "verif-2026-11-17-194034", "started": 1.0, "checks": ["sources", "coherence"], "asked": ["sources", "coherence"],
+        "results": {"sources": {"ok": False, "summary": "1 not answering", "findings": ["a dead link"]}},
+        "cost": 0.0, "done": False}), encoding="utf-8")
+    v = c.get("/api/verifications/verif-2026-11-17-194034").json()
+    assert v["interrupted"] and not v["running"] and v["missing"] == ["coherence"] and v["status"] == "to-handle"
+    r = c.post("/api/verifications/verif-2026-11-17-194034/leads", json={"findings": ["a dead link"], "status": "dismissed"},
+               headers=ACT)
+    assert r.status_code == 200 and r.json() == {"open": 0, "fix": 0, "dismissed": 1}  # was a 409 « still running »
+    assert c.post("/api/verifications/verif-2026-11-17-194034/delete", json={}, headers=ACT).json() == {
+        "deleted": "verif-2026-11-17-194034"}
+    assert not (verifs / "verif-2026-11-17-194034.json").exists() and not (verifs / "verif-2026-11-17-194034").exists()
+    assert c.get("/api/verifications/verif-2026-11-17-194034").status_code == 404
 
 
 def test_a_notification_says_what_waits_for_the_human(setup, tmp_path):  # noqa: F811

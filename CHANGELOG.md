@@ -3,6 +3,18 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- A check of the guide that a stopped server left unfinished could not be handled: dismissing its leads or sending
+  them to a fix run answered « the check is still running », for ever. Its leads are now handled like those of a
+  finished check; the page says it was interrupted and which checks it did not reach; a check can be deleted.
+- Replace, do not pile up (C2): the steps that write a correction (proposals of a watch, fix runs) are told to state
+  the current fact in place of the old one, the history staying in Git; an old value is kept only when the reader
+  needs it to act. The cross-check already judged it. This changes the prompts of every guide.
+- The review page warns when a run made so far without a bill (a subscription, a local model) would continue on a
+  billed engine, because the settings changed or another server resumes it. Seen on 19 November 2026: a fix run
+  started on Claude Code had its translation billed to the API (0.16 $), the settings naming the API.
+
 ## 1.0.0 (2026-11-19)
 
 M5: stable. The manifest, `watch.json`, the engine protocol and the settings are frozen at version 1

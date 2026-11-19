@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sqlite3
 import threading
 import time
@@ -508,9 +509,13 @@ def create_app(settings: Settings) -> FastAPI:
         pending = [i.value for t in snapshot.tasks for i in t.interrupts]
         items = {i["id"]: {"id": i["id"], "title": i["title"], "url": i["url"]} for i in v.get("items", [])}
         decisions = v.get("decisions", [])
+        usage = v.get("usage", [])
         return {
             **summary(thread),
             "pause": pending[0] if pending else None,
+            # Made so far without a bill (a subscription, a local model) while the settings now name a billed
+            # engine: the steps left (the translation) would be billed. The review page says so before the click.
+            "billed_next": bool(usage) and not any(u.get("cost_usd") for u in usage) and billing_now() == "token",
             "job": {"action": job.action, "started": job.started, "events": job.events, "done": job.done,
                     "error": job.error} if job else None,
             "triage": {a: sum(1 for d in decisions if d["action"] == a) for a in ("correct", "addition", "drop")},
@@ -663,6 +668,10 @@ def create_app(settings: Settings) -> FastAPI:
         data = json.loads(path.read_text(encoding="utf-8"))
         job = jobs.get(data["id"])
         data["running"] = bool(job and not job.done)
+        # Stopped before its last check (the server was closed meanwhile): what it found stays usable, the checks
+        # it did not reach are listed, and nothing will ever finish it.
+        data["interrupted"] = not data.get("done") and not data["running"]
+        data["missing"] = [c for c in data.get("checks", []) if c not in data["results"]] if data["interrupted"] else []
         # The check being run: the last one started (the page marks it « running » instead of « waiting »)
         started = [e["node"][6:] for e in (job.events if data["running"] else []) if e.get("node", "").startswith("start:")]
         data["current"] = started[-1] if started else ""
@@ -693,12 +702,17 @@ def create_app(settings: Settings) -> FastAPI:
             raise HTTPException(404, f"no verification {vid}")
         return path
 
+    def busy(vid: str) -> bool:
+        job = jobs.get(vid)
+        return bool(job and not job.done)
+
     def mark(vid: str, findings: list[str], entry: dict | None) -> None:
-        """Record what became of findings (None: back to open). Not while the check still writes its file."""
+        """Record what became of findings (None: back to open). Not while the check still writes its file: a job
+        of this server is running it. A check a stopped server left unfinished is handled like a finished one."""
         path = verif_path(vid)
         with lock:
             data = json.loads(path.read_text(encoding="utf-8"))
-            if not data.get("done"):
+            if busy(vid):
                 raise HTTPException(409, "the check is still running")
             handled = data.setdefault("handled", {})
             for f in findings:
@@ -712,6 +726,17 @@ def create_app(settings: Settings) -> FastAPI:
     def verif_handle(vid: str, body: Handle):
         mark(vid, body.findings, {"status": "dismissed"} if body.status == "dismissed" else None)
         return verif_view(verif_path(vid))["counts"]
+
+    @app.post("/api/verifications/{vid}/delete")
+    def verif_delete(vid: str):
+        """Removes a check and its working files; the fix runs it started stay. Not while it runs."""
+        path = verif_path(vid)
+        if busy(vid):
+            raise HTTPException(409, "the check is still running")
+        with lock:
+            path.unlink()
+            shutil.rmtree(verifs / vid, ignore_errors=True)
+        return {"deleted": vid}
 
     @app.get("/api/verifications/options")
     def verif_options():

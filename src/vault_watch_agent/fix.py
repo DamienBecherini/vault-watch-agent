@@ -28,6 +28,7 @@ For each one:
 - If it is right, propose the smallest corrections that make the guide true and consistent: every page that
   states the wrong fact, with the figure, sentence or table row fixed. Recompute numbers yourself (show the
   formula in the rationale) and keep them consistent with the pages that are already right.
+- <<REPLACE>>
 
 Corrections follow the guide's style: <<LANG>>, same Markdown, wiki links [[...]] and footnote markers kept,
 dated wording for facts that move. `current` is copied verbatim from one page, short; `item_ids` lists the

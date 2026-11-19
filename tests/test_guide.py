@@ -306,3 +306,12 @@ def test_the_changes_page_must_be_a_page_the_watch_can_write(tmp_path):
         parse(minimal(content={"readonly": ["*.md"]}, watch={"changes_page": "log.md"}), tmp_path)
     with pytest.raises(GuideError, match="no such file"):
         parse(minimal(watch={"changes_page": "missing.md"}), tmp_path)
+
+
+def test_the_steps_that_write_a_correction_are_told_to_replace_not_pile_up(tmp_path):
+    from vault_watch_agent import fix, prompts
+
+    (tmp_path / "vault-watch.toml").write_text('schema = 1\n[guide]\nname = "G"\n[content]\nlanguage = "en"\n',
+                                               encoding="utf-8")
+    for text in (prompts.propose(tmp_path), prompts.fill(fix.SYSTEM, tmp_path)):
+        assert "Replace, do not pile up" in text and "the history stays in Git" in text

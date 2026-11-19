@@ -32,7 +32,7 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
 - [x] **C1. Whole French vault in context, with prompt caching** (done as the cross-check node). ≈ 2 $ to write the cache, ≈ 0.08 $ per call
   after; the model sees every page concerned, footnotes and cross-page inconsistencies. Vector RAG only
   becomes useful past the context budget. Re-run B1 to compare.
-- [ ] **C2. Replace, do not pile up.** A page states the current fact; a correction replaces the old one,
+- [x] **C2. Replace, do not pile up** (2026-11-19, `prompts.REPLACE` in the proposals and the fix runs). A page states the current fact; a correction replaces the old one,
   history stays in Git and in the source note. Say it in the instructions.
 - [ ] **C3. Web verification when cached notes are empty** (vLLM 0.33 and Mistral Large 4 had none), with a
   web fetch tool limited to tier A domains; also re-checks the watchlist claims past their date (12 today).
@@ -492,7 +492,10 @@ the most value is M0, M1, prices, M3, then M4.
 
 Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
 
-- [ ] **First real run on the subscription.** No full run has used the Claude Code engine yet. Watch #77 of the
+- [x] **First real run on the subscription** (2026-11-19: fix run `fix-2026-11-19`, 8 reported points, 30
+  corrections in 6 minutes, 2 Opus calls reading 4.9 M tokens of which 4.0 M from the cache, 8.95 $ at list price,
+  nothing billed; its translation went to the API, 0.16 $, because the settings named it: the review now warns).
+  Before that: No full run has used the Claude Code engine yet. Watch #77 of the
   guide (urgent, one advisory) is a small first one: look at `/usage` in Claude Code after the cross-check, which
   reads the whole guide (about 430 k tokens) on Opus, against the limits of a Pro plan.
 - [ ] **Web reading of Claude Code is less exact than the API's.** Its WebFetch has a small model (Haiku) read the
