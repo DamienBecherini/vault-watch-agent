@@ -46,7 +46,7 @@ your go-ahead, and the pull request is merged by you.
 ## Quick start
 
 ```bash
-pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.0.1
+pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.1.0
 
 cd my-guide                 # the root of the guide's git repository
 vault-watch init            # writes vault-watch.toml from what the folder shows; read it, adjust it

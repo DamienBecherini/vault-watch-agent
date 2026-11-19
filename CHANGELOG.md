@@ -3,7 +3,10 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.1.0 (2026-11-19)
+
+The sources of the watch, questioned over time: what each one brings (1.0.1), whether it is still there and still
+fits the guide, and pages watched for what no feed publishes.
 
 - Watched pages: a feed of type `page` reads a page at each watch (a price list, a compatibility table) and tells
   when it no longer says what it said, with what is gone and what is new as the item's notes. `watch`, a regular
@@ -20,6 +23,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   180 days is said, never proposed for removal. GitHub is asked with the token of `gh` when the environment has
   none. First check of the IA on-prem guide: 63 sources in 12 seconds, 58 fine, 5 quiet for more than 180 days
   (exo, Aider, Khoj, two Hugging Face publishers), 25 proposals.
+- The Sources page follows the pull requests it opened: a merged one takes its proposals away and brings the list
+  up to date, a closed one gives them back to decide; the title counts what is left. A group of proposals, or all
+  of them, is ticked in one click. First pull request made from the page on the IA on-prem guide: 21 sources
+  added, no other line of its feeds file touched; one of them (the advisories of Arize Phoenix) brought a critical
+  advisory of 9 November 2026 that no source followed.
 - Correction of the 1.0.1 notes below: Aider's feed is not broken. GitHub's releases.atom also lists tags, and
   Aider's last one is of 12 February 2026: the project is quiet, which the check now says.
 

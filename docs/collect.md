@@ -196,7 +196,7 @@ permissions:
   actions: read   # for watched pages: the previous watch is read from its run
 jobs:
   watch:
-    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.0.1
+    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.1.0
     with:
       days: 8
 ```
