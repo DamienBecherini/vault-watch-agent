@@ -34,6 +34,9 @@ const TEXTS = {
       }),
       insurance: "faille de sécurité : se juge sur sa santé, jamais sur son rendement",
       removed: n => `${n} source(s) présentes dans les veilles ne sont plus dans la liste :`,
+      all: n => `Toutes (${n})`, filterHelp: "Clique un état pour ne voir que lui (plusieurs possibles), un titre de colonne pour trier.",
+      shown: (n, total) => n === total ? `${total} sources` : `${n} source(s) affichée(s) sur ${total}`,
+      sortBy: c => `Trier par « ${c} » (un second clic inverse)`, defaultSort: "Tri par défaut",
       count: (n, label) => `${n} ${label}`,
     },
     links: ["Guide", "Dépôt du guide", "Code de l'agent", "Claude API"],
@@ -167,6 +170,9 @@ const TEXTS = {
       }),
       insurance: "security advisories: judged on its health, never on its yield",
       removed: n => `${n} source(s) found in the watches are no longer in the list:`,
+      all: n => `All (${n})`, filterHelp: "Click a state to see it alone (several can be chosen), a column title to sort.",
+      shown: (n, total) => n === total ? `${total} sources` : `${n} source(s) shown out of ${total}`,
+      sortBy: c => `Sort by « ${c} » (a second click reverses)`, defaultSort: "Default order",
       count: (n, label) => `${n} ${label}`,
     },
     links: ["Guide", "Guide repository", "Agent code", "Claude API"],
@@ -770,24 +776,46 @@ function viewReport() {
 // --- Sources of the watch ----------------------------------------------------------------------------
 const SOURCE_ORDER = ["error", "noise", "silent", "leads", "quiet", "useful"];  // what to look at first
 const SOURCE_CLASS = { error: "error", noise: "attention", silent: "attention", leads: "neutral", quiet: "neutral", useful: "ok" };
+// The columns, in the order of T.sources.columns: the field each one sorts by, and whether it is a number
+const SOURCE_COLUMNS = [["id"], ["type"], ["last_item"], ["collected", true], ["kept", true], ["judged", true], ["useful", true],
+  ["proposed", true], ["accepted", true], ["verdict"]];
+// The reader's choices, kept while the page is open: the column sorted (none: what to look at first), its
+// direction, the states shown (none: all)
+const SOURCES_VIEW = { sort: "", dir: 1, states: new Set() };
+
+function sortSources(feeds) {
+  const { sort, dir } = SOURCES_VIEW, number = (SOURCE_COLUMNS.find(c => c[0] === sort) || [])[1];
+  const first = (a, b) => SOURCE_ORDER.indexOf(a.verdict) - SOURCE_ORDER.indexOf(b.verdict);
+  const compare = !sort ? (a, b) => first(a, b) || b.collected - a.collected
+    : sort === "verdict" ? (a, b) => dir * first(a, b)
+    : number ? (a, b) => dir * (a[sort] - b[sort])
+    // A source without a date stays at the bottom in both directions: it has nothing to compare
+    : (a, b) => !a[sort] !== !b[sort] ? (a[sort] ? -1 : 1) : dir * String(a[sort]).localeCompare(String(b[sort]));
+  return feeds.slice().sort((a, b) => compare(a, b) || a.id.localeCompare(b.id));
+}
 
 async function viewSources() {
   const s = await api("/api/sources"), S = T.sources;
   if (location.hash.slice(1) !== "/sources") return;  // left the page meanwhile
   if (!s.file) { page.innerHTML = `<h1>${S.title}</h1><p class="subtitle">${S.none}</p>`; return; }
-  const rules = S.rules(s.noise_min, s.noise_share);
+  const rules = S.rules(s.noise_min, s.noise_share), view = SOURCES_VIEW;
   const by = v => s.feeds.filter(f => f.verdict === v);
   const cell = n => `<td class="number">${n || ""}</td>`;
-  const rows = s.feeds.slice().sort((a, b) => SOURCE_ORDER.indexOf(a.verdict) - SOURCE_ORDER.indexOf(b.verdict)
-    || b.collected - a.collected || a.id.localeCompare(b.id));
-  page.innerHTML = `
+  const draw = () => {
+    const shown = sortSources(s.feeds.filter(f => !view.states.size || view.states.has(f.verdict)));
+    const arrow = key => view.sort !== key ? "" : view.dir > 0 ? " ▲" : " ▼";
+    page.innerHTML = `
     <h1>${S.title}</h1>
     <p class="subtitle">${s.period.watches ? S.intro(s.period, s.runs, esc(s.file)) : S.noHistory}</p>
-    <ul class="small cfg-list">${SOURCE_ORDER.filter(v => by(v).length).map(v =>
-      `<li><span class="badge ${SOURCE_CLASS[v]}">${S.count(by(v).length, S.verdicts[v])}</span> ${rules[v]}</li>`).join("")}</ul>
+    <ul class="small cfg-list">
+      <li><button class="badge neutral${view.states.size ? " dim" : ""}" data-state="" aria-pressed="${!view.states.size}">${S.all(s.feeds.length)}</button> ${S.filterHelp}</li>
+      ${SOURCE_ORDER.filter(v => by(v).length).map(v => `<li><button class="badge ${SOURCE_CLASS[v]}${view.states.size && !view.states.has(v) ? " dim" : ""}"
+        data-state="${v}" aria-pressed="${view.states.has(v)}">${S.count(by(v).length, S.verdicts[v])}</button> ${rules[v]}</li>`).join("")}</ul>
+    <p class="muted small">${S.shown(shown.length, s.feeds.length)}${view.sort ? ` · <button class="small-button" id="default-sort">${S.defaultSort}</button>` : ""}</p>
     <div class="card"><table>
-      <thead><tr>${S.columns.map((c, i) => `<th${i > 2 && i < 9 ? ' class="number"' : ""}>${c}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map(f => `<tr>
+      <thead><tr>${S.columns.map((c, i) => { const [key, number] = SOURCE_COLUMNS[i]; return `<th${number ? ' class="number"' : ""}${
+        view.sort === key ? ` aria-sort="${view.dir > 0 ? "ascending" : "descending"}"` : ""}><button class="sort" data-sort="${key}" title="${esc(S.sortBy(c))}">${c}${arrow(key)}</button></th>`; }).join("")}</tr></thead>
+      <tbody>${shown.map(f => `<tr>
         <td><b>${esc(f.id)}</b><div class="muted small">${f.url ? extLink(f.url, esc(f.target)) : esc(f.target)}</div></td>
         <td class="small">${esc(f.type)}${f.tier ? ` · ${esc(f.tier)}` : ""}</td>
         <td class="small">${esc(f.last_item) || "—"}</td>
@@ -797,6 +825,23 @@ async function viewSources() {
     </table></div>
     <p class="muted small">${S.help.join(" ")} 🛡 ${S.insurance}.</p>
     ${s.removed.length ? `<p class="muted small">${S.removed(s.removed.length)} ${s.removed.map(r => `<code>${esc(r.id)}</code> (${r.items})`).join(", ")}</p>` : ""}`;
+    // A state: shown alone, or with the others already chosen; « all » clears the choice
+    page.querySelectorAll("[data-state]").forEach(b => b.onclick = () => {
+      const v = b.dataset.state;
+      if (!v) view.states.clear(); else if (view.states.has(v)) view.states.delete(v); else view.states.add(v);
+      draw();
+    });
+    // A column: a first click sorts it (numbers from the largest, texts from A), a second one turns it round
+    page.querySelectorAll("[data-sort]").forEach(b => b.onclick = () => {
+      const key = b.dataset.sort, number = SOURCE_COLUMNS.find(c => c[0] === key)[1];
+      view.dir = view.sort === key ? -view.dir : number ? -1 : 1;
+      view.sort = key;
+      draw();
+      page.querySelector(`[data-sort="${key}"]`)?.focus();  // the keyboard stays on the column
+    });
+    if ($("#default-sort")) $("#default-sort").onclick = () => { view.sort = ""; view.dir = 1; draw(); };
+  };
+  draw();
 }
 
 async function viewCosts() {

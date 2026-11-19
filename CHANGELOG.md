@@ -12,6 +12,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   A run's items now keep the feed they come from. First reading on the IA on-prem guide (6 watches, 25 September
   to 16 November 2026, 63 feeds): 7 feeds led to an accepted correction, all of them releases or advisories of a
   tool; 16 gave no item, among them the releases of Aider, whose last GitHub release is of August 2025.
+  The table sorts by any column (a click on its title, a second one reverses) and filters by state (one or
+  several).
 - A check of the guide that a stopped server left unfinished could not be handled: dismissing its leads or sending
   them to a fix run answered « the check is still running », for ever. Its leads are now handled like those of a
   finished check; the page says it was interrupted and which checks it did not reach; a check can be deleted.
