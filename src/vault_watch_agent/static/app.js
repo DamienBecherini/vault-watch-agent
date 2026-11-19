@@ -40,7 +40,7 @@ const TEXTS = {
       probe: { unreachable: "ne répond pas", archived: "dépôt archivé", moved: r => `déplacé vers ${r}`, empty: "ne liste rien",
         stale: d => `rien depuis le ${d}` },
       staleNote: days => `Une source qui n'a rien publié depuis ${days} jours n'est pas proposée au retrait : un outil qui ne bouge plus est une information sur le sujet du guide, c'est la page qui le recommande qu'il faut regarder.`,
-      proposals: n => `Propositions (${n})`, noProposals: "Aucun changement à proposer.",
+      proposals: (n, open) => `Propositions : ${n} à décider${open ? `, ${open} dans une pull request ouverte` : ""}`, noProposals: "Aucun changement à proposer.",
       groups: { remove: "Retirer", change: "Modifier", add: "Ajouter : cités dans le guide, suivis par aucune source", advisories: "Ajouter : failles de sécurité d'outils déjà suivis pour leurs versions" },
       why: {
         unreachable: p => `la source ne répond pas (${p.error})`, archived: () => "le dépôt est archivé",
@@ -50,7 +50,7 @@ const TEXTS = {
         cited: p => `cité dans ${p.pages} pages (${p.examples.join(", ")})`,
         "no-advisories": p => `suivi pour ses versions (${p.of}), pas pour ses failles`,
       },
-      recommended: "un fait tranche", applied: "appliquée",
+      recommended: "un fait tranche", applied: "dans la PR",
       apply: (n, repo) => repo ? `Ouvrir une pull request avec ${n} changement(s)` : `Créer une branche avec ${n} changement(s)`,
       appliedTo: (branch, pr) => pr ? `Pull request ouverte : ${pr}` : `Changements sur la branche ${branch} (guide sans dépôt : à fusionner à la main).`,
       all: n => `Toutes (${n})`, filterHelp: "Clique un état pour ne voir que lui (plusieurs possibles), un titre de colonne pour trier.",
@@ -195,7 +195,7 @@ const TEXTS = {
       probe: { unreachable: "does not answer", archived: "repository archived", moved: r => `moved to ${r}`, empty: "lists nothing",
         stale: d => `nothing since ${d}` },
       staleNote: days => `A source that has published nothing for ${days} days is not proposed for removal: a tool that stopped moving is a fact about the guide's subject, the page that recommends it is what to look at.`,
-      proposals: n => `Proposals (${n})`, noProposals: "No change to propose.",
+      proposals: (n, open) => `Proposals: ${n} to decide${open ? `, ${open} in an open pull request` : ""}`, noProposals: "No change to propose.",
       groups: { remove: "Remove", change: "Change", add: "Add: cited in the guide, followed by no source", advisories: "Add: security advisories of tools already followed for their releases" },
       why: {
         unreachable: p => `the source does not answer (${p.error})`, archived: () => "the repository is archived",
@@ -205,7 +205,7 @@ const TEXTS = {
         cited: p => `cited in ${p.pages} pages (${p.examples.join(", ")})`,
         "no-advisories": p => `followed for its releases (${p.of}), not for its advisories`,
       },
-      recommended: "settled by a fact", applied: "applied",
+      recommended: "settled by a fact", applied: "in the PR",
       apply: (n, repo) => repo ? `Open a pull request with ${n} change(s)` : `Create a branch with ${n} change(s)`,
       appliedTo: (branch, pr) => pr ? `Pull request opened: ${pr}` : `Changes on the branch ${branch} (a guide without a repository: merge it by hand).`,
       all: n => `All (${n})`, filterHelp: "Click a state to see it alone (several can be chosen), a column title to sort.",
@@ -865,7 +865,7 @@ async function viewSources() {
     ["remove", check.proposals.filter(p => p.action === "remove")], ["change", check.proposals.filter(p => p.action === "change")],
     ["add", check.proposals.filter(p => p.action === "add" && p.why !== "no-advisories")],
     ["advisories", check.proposals.filter(p => p.why === "no-advisories")]].filter(([, list]) => list.length) : [];
-  const last = check?.applied?.at(-1);
+  const last = check?.applied?.filter(a => !a.state).at(-1);  // the pull request (or branch) still to merge
   const draw = () => {
     const shown = sortSources(s.feeds.filter(f => !view.states.size || view.states.has(f.verdict)));
     const arrow = key => view.sort !== key ? "" : view.dir > 0 ? " ▲" : " ▼";
@@ -875,7 +875,7 @@ async function viewSources() {
     <p><button class="primary" id="check"${busy ? " disabled" : ""}>${busy ? S.checking(s.checking.done, s.checking.total) : S.check}</button>
       <span class="muted small">${check ? S.checked(new Date(check.checked).toLocaleString(lang)) : S.neverChecked} ${S.checkHelp}</span></p>
     ${s.checking.error ? `<p class="error-text">${esc(s.checking.error)}</p>` : ""}
-    ${check ? `<h2>${S.proposals(check.proposals.length)}</h2>
+    ${check ? `<h2>${S.proposals(check.proposals.filter(p => !p.applied).length, check.proposals.filter(p => p.applied).length)}</h2>
       ${last ? `<p class="small">${S.appliedTo(esc(last.branch), last.pr_url ? extLink(last.pr_url, esc(last.pr_url)) : "")}</p>` : ""}
       ${groups.length ? groups.map(([g, list]) => `<details class="card foldable"${g === "advisories" ? "" : " open"}>
         <summary class="header"><b>${S.groups[g]}</b> <span class="badge neutral">${list.length}</span>${

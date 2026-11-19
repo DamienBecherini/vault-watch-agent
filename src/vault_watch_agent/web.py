@@ -692,16 +692,53 @@ def create_app(settings: Settings) -> FastAPI:
         except (OSError, ValueError):
             return None
 
+    def settle(check: dict) -> dict:
+        """What became of the pull requests opened from the page. Merged: their proposals are done, and the copy
+        of the guide the page reads is brought up to date (the list now holds the change). Closed without a
+        merge: their proposals are to decide again. Read from the forge until it is one or the other."""
+        moved = False
+        for done in check.get("applied", []):
+            if not done.get("pr_url") or done.get("state") in ("merged", "closed"):
+                continue
+            state = pr_state(done["pr_url"])
+            if state not in ("merged", "closed"):
+                continue
+            done["state"], moved = state, True
+            for p in check["proposals"]:
+                if p["id"] in done["ids"]:
+                    if state == "merged":
+                        p["merged"] = True
+                    else:
+                        p.pop("applied", None)
+            if state == "merged":
+                try:
+                    vault.reading_copy(settings.vault, settings.home)
+                except RuntimeError:  # offline: the next check of the sources does it
+                    pass
+        if moved:
+            with lock:
+                write_json(check_file, check)
+        return check
+
+    def merged_guide():
+        """The guide as merged, for the list of its feeds: the copy the checks keep up to date, else its folder."""
+        guide = vault.guide_of(settings.vault)
+        copy = settings.home / "worktrees" / f"read-{guide.base_branch}"
+        return vault.guide_of(copy) if (copy / ".git").exists() and (copy / guide.watch.feeds).is_file() else guide
+
     @app.get("/api/sources")
     def sources_view():
-        data = sources.summary(vault.guide_of(settings.vault), settings.home, watch_outcomes())
         job, check = jobs.get(CHECK), last_check()
+        if check:
+            check = settle(check)
+        data = sources.summary(merged_guide(), settings.home, watch_outcomes())
         known = {f["id"] for f in data["feeds"]}
         if check:  # what each source answered, beside what it brought
             for f in data["feeds"]:
                 f["probe"] = check["probes"].get(f["id"])
-            # A proposal about a feed the file no longer lists (the pull request was merged since) is done
-            check["proposals"] = [p for p in check["proposals"] if p["action"] == "add" or p["feed"]["id"] in known]
+            # Done: merged, or about a feed the list no longer holds (removed) or already holds (added) since
+            check["proposals"] = [p for p in check["proposals"] if not p.get("merged")
+                                  and ((p["feed"]["id"] in known) != (p["action"] == "add") or p.get("applied"))]
         data["check"] = check
         data["checking"] = {"running": bool(job and not job.done), "done": len(job.events) if job else 0,
                             "total": len(data["feeds"]), "error": job.error if job else ""}

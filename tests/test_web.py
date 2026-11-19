@@ -363,10 +363,13 @@ def test_a_guide_whose_watches_are_files_lists_them_and_starts_from_one(sample_g
     assert c.post("/api/analyses", json={"watch": "vault-watch.toml"}, headers=ACT).status_code == 400
 
 
-def test_the_sources_page_shows_the_last_check_and_applies_what_is_chosen(client, setup, monkeypatch):  # noqa: F811
+def test_the_sources_page_shows_the_last_check_and_applies_what_is_chosen(setup, tmp_path, monkeypatch):  # noqa: F811
     from vault_watch_agent import sourcecheck
 
-    c, home = client[0], setup[0].home
+    deps, home, states = setup[0], setup[0].home, {}
+    c = TestClient(create_app(Settings(vault=deps.vault, home=home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [],
+                                       pr_state=lambda url: states.get(url, "open"))))
     assert c.get("/api/sources").json()["check"] is None
     assert c.post("/api/sources/apply", json={"ids": ["S1"]}, headers=ACT).status_code == 400  # nothing was checked
     proposals = [{"id": "S1", "action": "add", "why": "cited", "recommended": False, "pages": 2, "examples": ["a.md"],
@@ -389,3 +392,8 @@ def test_the_sources_page_shows_the_last_check_and_applies_what_is_chosen(client
     check = c.get("/api/sources").json()["check"]
     assert check["proposals"][0]["applied"]["pr_url"].endswith("/9") and check["applied"][0]["ids"] == ["S1"]
     assert c.post("/api/sources/apply", json={"ids": ["S1"]}, headers=ACT).status_code == 400  # already applied
+    # The pull request is merged on the forge: its proposals are done, and no longer listed
+    assert c.get("/api/sources").json()["check"]["applied"][0].get("state") is None  # still open: asked again each time
+    states["https://forge.example/pulls/9"] = "merged"
+    after = c.get("/api/sources").json()["check"]
+    assert after["proposals"] == [] and after["applied"][0]["state"] == "merged"
