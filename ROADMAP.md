@@ -404,6 +404,17 @@ Done 2026-11-18, published as 0.6.0.
   have written a line anyway: `03-outils/depuis.md` was not among the excerpts, so it had no text to replace. That
   is the second gap above, seen in a run: a target page must reach the proposal step whatever the keywords say.
   No correction, so no cross-check: the first point stays to be seen.
+  The first two gaps closed the same day: `[content] readonly` and `[watch] changes_page` (`b21ae7a`); the prompts
+  of the IA on-prem guide, which declares neither, are byte for byte those of 0.6.1. Second run (2.81 $): one
+  dated line in the changes page, which the cross-check tightened (only an instance shared with other accounts is
+  exposed), applied on the local branch and merged by hand; no edit proposed on the 127 read-only pages. The
+  cross-check also noticed two real errors of the guide's generated pages (a tool attached to the wrong
+  testimonial, a chronology given as a fact), fixed in the guide's sources.
+  Cost: the cross-check read the whole guide, 461 k tokens: as large as the IA on-prem guide, 55 % of it the
+  testimonial pages, and French full of wiki links tokenizes at about 2.3 characters a token. The guide now
+  excludes the testimonials (about 210 k tokens). A read-only page is still read by the cross-check: a guide that
+  wants it read only by the proposals has to exclude it; whether `readonly` should also mean « not in the
+  cross-check » is to decide before the freeze.
 - **T5.2 Freeze.** Manifest schema 1, `watch.json` schema 1, engine protocol 1: a change after that is a new
   schema number with a migration. The settings file gets its own number and its migrations.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes
