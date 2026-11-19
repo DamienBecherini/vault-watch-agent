@@ -415,7 +415,9 @@ Done 2026-11-18, published as 0.6.0.
   testimonial pages, and French full of wiki links tokenizes at about 2.3 characters a token. The guide now
   excludes the testimonials (about 210 k tokens). A read-only page is still read by the cross-check: a guide that
   wants it read only by the proposals has to exclude it; whether `readonly` should also mean « not in the
-  cross-check » is to decide before the freeze.
+  cross-check » is to decide before the freeze. Decided 2026-11-19 (the maintainer): no, the cross-check keeps
+  its full reading, coherence first; a guide that wants a lighter run excludes pages. Moving tags: dropped at
+  pre-triage since `882aa4a`, `exclude` documented.
 - **T5.2 Freeze.** Manifest schema 1, `watch.json` schema 1, engine protocol 1: a change after that is a new
   schema number with a migration. The settings file gets its own number and its migrations.
 - **T5.3 What a newcomer reads.** README rewritten around "your guide, your model" (the IA on-prem guide becomes
