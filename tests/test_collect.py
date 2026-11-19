@@ -240,3 +240,13 @@ def test_the_interface_collects_a_watch_when_the_guide_says_so(sample_guide, tmp
     assert made["kind"] == "feeds" and made["thread"].startswith("watch-")
     assert [w["thread"] for w in c.get("/api/watches").json()] == [made["thread"]]
     assert c.get("/api/runs").json() == []  # its runs will count under the watch, not in "other runs"
+
+
+def test_a_moving_tag_is_dropped_the_real_release_kept():
+    """n8n publishes `stable`, `latest` and `v1` as releases beside n8n@3.3.0: the moving ones say nothing new."""
+    c, feed = collector(), {"id": "n8n", "type": "github-releases", "repo": "n8n-io/n8n"}
+    for tag in ("stable", "latest", "v1", "next"):
+        item = {"title": f"n8n-io/n8n {tag}", "url": f"https://github.com/n8n-io/n8n/releases/tag/{tag}"}
+        assert c.triage(feed, item)[:2] == ("drop", "moving tag")
+    real = {"title": "n8n-io/n8n n8n@3.3.0", "url": "https://github.com/n8n-io/n8n/releases/tag/n8n%403.3.0"}
+    assert c.triage(feed, real)[0] == "keep"

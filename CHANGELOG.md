@@ -10,6 +10,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   every prompt is told. `[watch] changes_page`, a page where a watch records changes as dated lines: every proposal
   step sees it whole, whatever the keywords found. `doctor` lists both. Found on the second real guide (T5.1).
 - The workflows use the actions that run on Node 24 (`setup-python@v7`, `checkout@v7`).
+- `vault-watch collect`: a moving tag published as a release (`stable`, `latest`, `next`, `v1`…) is dropped at
+  pre-triage, the real release kept; `docs/collect.md` says that `exclude` matches « owner/repo title ». The IA
+  on-prem guide's collection is unchanged (166 items, 104 kept, both versions).
 
 ## 0.6.1 (2026-11-18)
 

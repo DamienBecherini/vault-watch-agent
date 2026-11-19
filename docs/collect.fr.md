@@ -71,7 +71,7 @@ Le guide d'exemple en a un complet : [`examples/sample-guide/feeds.json`](../exa
 | `query`, `minStars`, `maxAgeDays`, `limit` | `github-search` | Les dépôts jeunes qui ont vite pris : la recherche, les étoiles (500), l'âge en jours (30), le nombre (10). |
 | `limit` | `huggingface-trending` | Combien de modèles en vogue lire (40) ; ceux des éditeurs déjà suivis sont laissés de côté. |
 | `keywords` | tous | Ne garder que les éléments dont le titre ou le résumé contient l'un de ces mots, cherché en début de mot (`IA` ne trouve pas « Debian »). |
-| `exclude` | tous | Une expression régulière : les éléments dont le titre y correspond sont laissés de côté. |
+| `exclude` | tous | Une expression régulière : les éléments dont le titre y correspond sont laissés de côté. Le titre d'un élément GitHub commence par le dépôt : `owner/repo v2.3.0`, `owner/repo GHSA-…`. Les étiquettes mobiles (`stable`, `latest`, `next`, `v1`…) sont de toute façon écartées par le pré-tri. |
 | `minLevel` | versions, étiquettes | `major`, `minor` (par défaut) ou `patch` : les versions plus petites sont écartées. |
 | `collapse` | versions, étiquettes | `true` pour un projet qui publie une version par commit : les versions de la fenêtre deviennent une seule ligne de routine. |
 | `discovery` | tous | `true` : le flux cherche ce que le guide ne couvre pas encore. Ses éléments vont dans la section `discovery`, et un élément compte selon son âge (`maxAgeDays`, 45), pas selon la fenêtre. |

@@ -71,7 +71,7 @@ The sample guide has a complete one: [`examples/sample-guide/feeds.json`](../exa
 | `query`, `minStars`, `maxAgeDays`, `limit` | `github-search` | Young repositories that gained traction: the search, the stars (500), the age in days (30), the number (10). |
 | `limit` | `huggingface-trending` | How many trending models to read (40); publishers already followed are left out. |
 | `keywords` | any | Keep only the items whose title or summary has one of these words, matched at the start of a word (`IA` does not match « Debian »). |
-| `exclude` | any | A regular expression: items whose title matches are left out. |
+| `exclude` | any | A regular expression: items whose title matches are left out. The title of a GitHub item starts with the repository: `owner/repo v2.3.0`, `owner/repo GHSA-…`. Moving tags (`stable`, `latest`, `next`, `v1`…) are dropped by the pre-triage anyway. |
 | `minLevel` | releases, tags | `major`, `minor` (default) or `patch`: smaller releases are dropped. |
 | `collapse` | releases, tags | `true` for a project that publishes a build per commit: the window's releases become a single routine line. |
 | `discovery` | any | `true`: the feed looks for what the guide does not cover yet. Its items go in the `discovery` section, and an item counts by its age (`maxAgeDays`, 45), not by the window. |

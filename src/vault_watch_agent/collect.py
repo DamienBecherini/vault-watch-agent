@@ -177,6 +177,8 @@ def _hf_summary(m: dict) -> str:
 
 RESCUE = re.compile(r"\b(security|CVE-\d{4}|GHSA-|vulnerab)", re.I)
 PRE = re.compile(r"(^|[^a-z])(rc\d*|alpha|beta|dev\d*|nightly|preview|canary|snapshot)([^a-z]|$)|^proto-", re.I)
+# A tag moved from release to release (n8n publishes stable, latest and v1 as releases): the real one is there too.
+MOVING = re.compile(r"^(stable|latest|next|edge|current|v?\d+)$", re.I)
 QUANT = re.compile(r"[-_.](gguf|awq|gptq|fp8|fp4|nvfp4|mxfp4|int4|int8|w4a16|w8a8|mlx|bnb|4bit|8bit|exl[23]|onnx)\b", re.I)
 VERSION = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?(?:\.(\d+))?")
 FIXES = re.compile(r"\d+\.\d+(?:\.\d+)*")
@@ -368,6 +370,8 @@ class Collector:
             tag_name = unquote(parts[1]) if len(parts) > 1 else ""
             if PRE.search(tag_name):
                 return "drop", "pre-release", False
+            if MOVING.match(tag_name):
+                return "drop", "moving tag", False
             if feed.get("collapse"):
                 return ("keep", "notes mention a security fix", False) if rescued else ("drop", "routine build", False)
             level = release_level(tag_name)
