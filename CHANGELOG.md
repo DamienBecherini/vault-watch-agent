@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## 1.3.0 (not released)
+## 1.3.0 (2026-11-20)
 
 Look for what is new: what a reader would look for in the guide and not find. A watch follows the sources it
 already knows, and what it sets aside as a possible addition is never written. [docs/news.md](docs/news.md).

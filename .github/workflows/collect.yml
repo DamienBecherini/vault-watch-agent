@@ -16,7 +16,7 @@ name: Collect a watch
 #     actions: read      # only for watched pages (feeds of type "page"): the previous watch is read from its run
 #   jobs:
 #     watch:
-#       uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.2.0
+#       uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.3.0
 #       with:
 #         days: 8
 on:
@@ -53,7 +53,7 @@ on:
       agent_ref:
         description: "Version of vault-watch-agent to install (a tag, a branch or a commit)"
         type: string
-        default: "v1.2.0"
+        default: "v1.3.0"
     outputs:
       kept:
         description: "Items kept by the pre-triage"
