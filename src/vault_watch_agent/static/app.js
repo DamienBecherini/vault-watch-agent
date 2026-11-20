@@ -114,6 +114,8 @@ const TEXTS = {
       chapters: c => `Chapitres à explorer, un appel par chapitre coché (chacun : ${c}) :`,
       ideaLink: "Tu as déjà une idée ou une information précise ? Fais-la vérifier et écrire directement, sans recherche de pistes.",
       dig: "creuser (un appel pour cette seule piste)",
+      leadsAdd: "Une piste est une question à vérifier, pas une modification : rien n'est encore écrit. Le passage encadré est ce que le guide dit aujourd'hui (en surligné, la phrase visée ; les lignes voisines donnent le contexte). Pour chaque piste cochée, la passe d'ajouts lit les sources, puis propose de corriger ce qui est dépassé ou d'ajouter ce qui manque, dans toutes les pages concernées. Tu relis ces propositions avant qu'elles s'appliquent.",
+      onlyFree: "Seulement les gratuits",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
@@ -189,6 +191,7 @@ const TEXTS = {
     leads: n => `Pistes d'ajout (${n}, non rédigées)`, none: "Aucune.", nothing: "Rien.",
     noticed: n => `Remarqué ailleurs dans le guide (${n})`,
     noticedHelp: "Pour les corriger : « Signaler une erreur », en copiant les lignes utiles.",
+    excerptNow: "Le guide dit aujourd'hui",
     excerptMissing: "extrait introuvable dans la page", excerptApprox: "passage le plus proche, pas une citation exacte",
     claims: n => `Affirmations à revérifier (${n})`,
     report: "Rapport complet (Markdown)",
@@ -342,6 +345,8 @@ const TEXTS = {
       chapters: c => `Chapters to explore, one call per chapter ticked (each: ${c}):`,
       ideaLink: "You already have an idea or a precise piece of news? Have it checked and written straight away, without a search for leads.",
       dig: "dig deeper (a call for this lead alone)",
+      leadsAdd: "A lead is a question to check, not a change: nothing is written yet. The framed passage is what the guide says today (highlighted: the sentence concerned; the lines around give the context). For each lead ticked, the addition run reads the sources, then proposes to correct what is out of date or to add what is missing, in every page concerned. You review these proposals before they apply.",
+      onlyFree: "Only the free ones",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
@@ -416,6 +421,7 @@ const TEXTS = {
     leads: n => `Addition leads (${n}, not drafted)`, none: "None.", nothing: "Nothing.",
     noticed: n => `Noticed elsewhere in the guide (${n})`,
     noticedHelp: "To fix them: « Report an error », with the relevant lines.",
+    excerptNow: "The guide says today",
     excerptMissing: "excerpt not found in the page", excerptApprox: "closest passage, not an exact quote",
     claims: n => `Claims due for re-check (${n})`,
     report: "Full report (Markdown)",
@@ -938,7 +944,7 @@ function excerpts(list) {
     l.parts ? `${esc(l.parts[0])}<mark>${esc(l.parts[1])}</mark>${esc(l.parts[2])}` : esc(l.text)}</span></div>`;
   return `<div class="excerpts">${list.map(e => e.match === "missing"
     ? `<div class="excerpt muted small"><code>${esc(e.page)}</code> · ${T.excerptMissing}</div>`
-    : `<div class="excerpt"><div class="muted small"><code>${esc(e.page)}:${e.line}</code>${e.match === "approx" ? ` · ${T.excerptApprox}` : ""}</div>
+    : `<div class="excerpt"><div class="muted small">${T.excerptNow} · <code>${esc(e.page)}:${e.line}</code>${e.match === "approx" ? ` · ${T.excerptApprox}` : ""}</div>
         <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(row).join("")}</div></div>`).join("")}</div>`;
 }
 
@@ -1100,6 +1106,9 @@ async function viewChecks() {
     ${pending.length ? `<h2>${V.toHandleTitle}</h2>${pending.map(checkCard).join("")}` : ""}
     <details class="new-check"${pending.length ? "" : " open"}><summary><h2>${V.newCheck}</h2></summary>
     ${remaining ? `<p class="attention-text">${V.warning(remaining)}</p>` : ""}
+    <p class="tick-row"><button type="button" class="small-button" data-tick-checks="all">${V.tickAll}</button>
+      <button type="button" class="small-button" data-tick-checks="none">${V.untickAll}</button>
+      <button type="button" class="small-button" data-tick-checks="free">${V.onlyFree}</button></p>
     ${options.map(o => `<div class="card check-card"><label class="option">
       <input type="checkbox" data-check="${o.id}" ${(kept ? kept.checks.has(o.id) : !o.model) ? "checked" : ""}>
       <div>
@@ -1135,6 +1144,13 @@ async function viewChecks() {
   };
   const chapters = () => [...page.querySelectorAll("[data-chapter]")].filter(c => c.checked).map(c => c.dataset.chapter);
   boxes.forEach(c => c.onchange = total);
+  // All the checks, none, or the free ones (the default: those that call no model)
+  const isFree = new Set(options.filter(o => !o.model).map(o => o.id));
+  page.querySelectorAll("[data-tick-checks]").forEach(b => b.onclick = () => {
+    const which = b.dataset.tickChecks;
+    boxes.forEach(c => { c.checked = which === "all" || (which === "free" && isFree.has(c.dataset.check)); });
+    total();
+  });
   page.querySelectorAll("[data-chapter]").forEach(c => c.onchange = total);
   bindSteps(page, () => {
     CHECK_FORM = { checks: new Set(boxes.filter(c => c.checked).map(c => c.dataset.check)), chapters: new Set(chapters()) };
@@ -1188,7 +1204,7 @@ async function viewCheck(id) {
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<p class="muted small">${V.leadsAdd}</p>` : ""}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
     <div class="bar">

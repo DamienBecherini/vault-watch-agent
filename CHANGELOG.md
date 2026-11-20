@@ -79,6 +79,12 @@ already knows, and what it sets aside as a possible addition is never written. [
   finished or rejected has a quieter frame instead of a faded text (a faded note fell under 3:1); small buttons and
   the box of a correction are easier to aim at. Measured on every screen, light and dark: every text at 4.5:1 or
   more against what is behind it.
+- The leads of a check read as what they are. The passage shown under a finding is what the guide says today: it
+  is labelled so and highlighted in yellow (it had the green of an added line, and read as a proposed addition);
+  the leads of « What is new » say that nothing is written yet and that the run may correct what is out of date as
+  well as add. « Check the guide » has « Tick all », « Untick all » and « Only the free ones » above its checks.
+  The estimate of the leads is set on a first real run (2.28 $ for 28 leads on the IA on-prem guide: ≈ 2.40 $
+  announced, it was 2.80).
 - The lists scale with the runs kept: the home page reads the state of a run only when it has moved (one line of
   the database per run otherwise), shows the 20 newest runs outside the watches and offers the older ones;
   « Check the guide » offers the verifications older than the 20 newest, which no screen listed before.

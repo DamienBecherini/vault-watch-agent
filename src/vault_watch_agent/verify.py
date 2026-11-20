@@ -55,7 +55,7 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # and what the web returned so far at the input price: a claim checked on the web read 46 k tokens of sources on
 # 17/11/2026); then the cross-check of a watch (the guide written to its own cache, read three times, and each
 # source opened again), and the mirror of each page touched.
-NEWS_OUT = 40_000
+NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 ADD_ROUNDS_EACH = 4  # readings of the cached guide per lead, by the proposals
 ADD_WEB_IN_EACH = 46_000  # tokens of web pages read per lead, by the proposals

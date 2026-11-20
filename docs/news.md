@@ -125,12 +125,12 @@ much more than several short ones. Every call reads the whole guide. On the Clau
 to the prompt cache and the others read it from there; with another engine the calls follow one another.
 
 The estimates below are for the IA on-prem guide (129 pages, about 430 000 tokens) with Opus 5.5 for the leads,
-the additions and the cross-check. They are not measured yet: the constants are counted high and will be set
+the additions and the cross-check. Unless said otherwise they are not measured yet: the constants are counted high and will be set
 on the first real runs.
 
 | | Estimate |
 | :-- | :-- |
-| The leads, from the guide | ≈ 2.80 $ |
+| The leads, from the guide | ≈ 2.40 $ (2.28 $ measured on 2026-11-20 for 28 leads) |
 | The leads, from the web | ≈ 2 $, plus ≈ 4.75 $ per chapter explored |
 | An addition run | ≈ 4.40 $, plus ≈ 0.75 $ per lead kept, or ≈ 4.90 $ for a lead dug deeper |
 

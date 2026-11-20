@@ -129,12 +129,12 @@ donc un long appel coûte bien plus que plusieurs courts. Chaque appel lit tout 
 premier appel l'écrit dans le cache et les autres le lisent là ; avec un autre moteur, les appels se suivent.
 
 Les estimations ci-dessous valent pour le guide IA on-prem (129 pages, environ 430 000 tokens), avec Opus 5.5
-pour les pistes, les ajouts et la relecture croisée. Elles ne sont pas encore mesurées : les constantes sont
+pour les pistes, les ajouts et la relecture croisée. Sauf mention, elles ne sont pas encore mesurées : les constantes sont
 comptées large et seront réglées sur les premiers passages réels.
 
 | | Estimation |
 | :-- | :-- |
-| Les pistes, depuis le guide | ≈ 2,80 $ |
+| Les pistes, depuis le guide | ≈ 2,40 $ (2,28 $ mesurés le 20/11/2026 pour 28 pistes) |
 | Les pistes, depuis le web | ≈ 2 $, plus ≈ 4,75 $ par chapitre exploré |
 | Un passage d'ajouts | ≈ 4,40 $, plus ≈ 0,75 $ par piste gardée, ou ≈ 4,90 $ pour une piste creusée |
 

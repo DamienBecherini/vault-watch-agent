@@ -3,7 +3,7 @@
 :root {
   --bg: #f6f7f9; --card: #ffffff; --text: #1d2433; --muted: #5d6678; --border: #dde1e8; --field-border: #7d8494;
   --accent: #2f5bd3; --accent-text: #ffffff; --ok: #1a6b43; --attention: #a65f00; --error: #b3261e;
-  --minus: #fde8e7; --minus-strong: #f6c1bd; --plus: #e3f4ea; --plus-strong: #b5e2c6;
+  --minus: #fde8e7; --minus-strong: #f6c1bd; --plus: #e3f4ea; --plus-strong: #b5e2c6; --mark: #ffe8a3;
   --radius: 10px;
   color-scheme: light dark;
 }
@@ -12,14 +12,14 @@
   :root:not([data-theme="light"]) {
     --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --border: #2c3341; --field-border: #6a7385;
     --accent: #7c9cff; --accent-text: #0d1220; --ok: #5cc98f; --attention: #f0b154; --error: #ff8a80;
-    --minus: #3a1f22; --minus-strong: #6b2a2f; --plus: #17321f; --plus-strong: #24573a;
+    --minus: #3a1f22; --minus-strong: #6b2a2f; --plus: #17321f; --plus-strong: #24573a; --mark: #5a4708;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --border: #2c3341; --field-border: #6a7385;
   --accent: #7c9cff; --accent-text: #0d1220; --ok: #5cc98f; --attention: #f0b154; --error: #ff8a80;
-  --minus: #3a1f22; --minus-strong: #6b2a2f; --plus: #17321f; --plus-strong: #24573a;
+  --minus: #3a1f22; --minus-strong: #6b2a2f; --plus: #17321f; --plus-strong: #24573a; --mark: #5a4708;
 }
 /* Palettes (Theme window, themes.js): data-palette on <html> is the palette of the mode shown, set by boot.js; the same
    block colours the preview of each palette (.swatch). Greys and accent change; the colours of the states (ok,
@@ -241,14 +241,15 @@ details.foldable > summary { list-style: none; display: flex; gap: 8px; align-it
 details.foldable > summary::-webkit-details-marker { display: none; }
 details.foldable > summary::before { content: "▸"; color: var(--muted); } details.foldable[open] > summary::before { content: "▾"; }
 details.foldable:not([open]) { padding-bottom: 16px; } details.foldable[open] > summary { margin-bottom: 8px; }
-/* The passage a finding is about, as found in the page */
+.tick-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+/* The passage a finding is about, as found in the page: what the guide says today, so never the green of an addition */
 .excerpts { margin: 6px 0 4px; display: grid; gap: 6px; }
 ul.leads .excerpts { margin-left: calc(2.2em + 30px); }
 .lines { background: var(--bg); border-radius: 8px; padding: 6px 0; font-size: 14px; overflow-wrap: anywhere; }
 .lines > div { display: grid; grid-template-columns: 3.2em 1fr; gap: 8px; padding: 1px 10px 1px 0; color: var(--muted); }
 .lines > div.target { color: var(--text); box-shadow: inset 3px 0 var(--accent); }
 .lines .n { text-align: right; font-variant-numeric: tabular-nums; opacity: .7; }
-.lines mark { background: var(--plus-strong); color: inherit; border-radius: 3px; padding: 0 1px; }
+.lines mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1px; }
 /* Header: the gear of the Settings (its drawing has no size of its own) */
 button.icon[data-tool="settings"] svg { width: 18px; height: 18px; }
 /* Settings (settings.js), after the Settings of dl-sub-dub: the categories at the left, one page each */
