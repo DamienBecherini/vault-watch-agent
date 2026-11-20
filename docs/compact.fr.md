@@ -114,14 +114,19 @@ Les estimations affichées avant chaque partie suivent le prix du modèle de cha
 | | Claude Opus 5.5 | Claude Fable 5.2 sur les deux étapes de compactage |
 | :-- | --: | --: |
 | Le rapport | ≈ 3,4 $ | ≈ 6,7 $ (mesuré le 20/11/2026 : 6,28 $, 48 k tokens écrits à l'effort `high`) |
-| Un passage d'allègements, 10 pistes | ≈ 7,2 $ | ≈ 10,8 $ |
-| Un passage d'allègements, 30 pistes | ≈ 12,2 $ | ≈ 18,5 $ |
+| Un passage d'allègements, 10 pistes | ≈ 7,4 $ | ≈ 11,3 $ |
+| Un passage d'allègements, 30 pistes | ≈ 13,1 $ | ≈ 20,4 $ (mesuré le 20/11/2026 : 17,79 $ avant les miroirs) |
 
 Un passage paie le guide deux fois, quelles que soient les pistes : écrit dans le cache par ses propositions, puis
 par sa relecture croisée, qui tourne sur son propre modèle avec une autre question (environ 4,7 $ ici avec
 Opus 5.5 pour les deux, 6,9 $ avec Fable 5.2 pour les propositions). Puis une part par piste : ce qu'écrivent les
-propositions, et le miroir de chaque page touchée. Les chiffres d'un passage sont des estimations, comptées
-large, à remplacer par des mesures après les premiers passages réels.
+propositions, et le miroir de chaque page touchée.
+
+Le passage mesuré le 20/11/2026 (30 pistes, Fable 5.2 à l'effort `high` pour les propositions, Opus 5.5 pour la
+relecture croisée) : quatre appels de propositions ont écrit 250 k tokens, entre 39 k et 93 k chacun, et seul le
+premier a payé l'écriture du guide (14,73 $ en tout) ; la relecture croisée a coûté 3,06 $. Il a proposé 195
+allègements dans 39 pages, dont 40 notes retirées par le programme, pour 32 Ko de moins sur 891 Ko. Les autres
+chiffres sont des estimations.
 
 Ce qu'un modèle réfléchit est facturé comme de la sortie et compte dans la limite de ce qu'un appel peut écrire.
 Le rapport liste au plus 30 pistes pour que sa réponse reste loin de cette limite ; une réponse coupée à la limite

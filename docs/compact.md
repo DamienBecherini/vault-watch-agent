@@ -108,13 +108,18 @@ The estimates shown before each part follow the price of the model of each step.
 | | Claude Opus 5.5 | Claude Fable 5.2 on the two compaction steps |
 | :-- | --: | --: |
 | The report | ≈ 3.4 $ | ≈ 6.7 $ (measured on 20/11/2026: 6.28 $, 48 k tokens written at effort `high`) |
-| A run of trims, 10 findings | ≈ 7.2 $ | ≈ 10.8 $ |
-| A run of trims, 30 findings | ≈ 12.2 $ | ≈ 18.5 $ |
+| A run of trims, 10 findings | ≈ 7.4 $ | ≈ 11.3 $ |
+| A run of trims, 30 findings | ≈ 13.1 $ | ≈ 20.4 $ (measured on 20/11/2026: 17.79 $ before the mirrors) |
 
 A run pays for the guide twice, whatever the findings: written to the cache by its proposals, then by its
 cross-check, which runs on its own model with another question (about 4.7 $ here with Opus 5.5 on both, 6.9 $
 with Fable 5.2 on the proposals). Then a share per finding: what the proposals write, and the mirror of each page
-touched. The figures of a run are estimates, counted high, to be replaced by measures after the first real runs.
+touched.
+
+The run measured on 20/11/2026 (30 findings, Fable 5.2 at effort `high` for the proposals, Opus 5.5 for the
+cross-check): four calls of proposals wrote 250 k tokens, between 39 k and 93 k each, and only the first one paid
+for writing the guide (14.73 $ in all); the cross-check cost 3.06 $. It proposed 195 trims in 39 pages, 40 of them
+notes removed by the program, for 32 KB less out of 891 KB. The other figures are estimates.
 
 What a model thinks is billed as output and counts in the limit of what one call may write. The report lists at
 most 30 findings so that its answer stays far from that limit; an answer cut at the limit is billed and lost, which

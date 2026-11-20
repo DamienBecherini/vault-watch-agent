@@ -39,10 +39,14 @@ COMPACTION_OUT = 60_000
 # A compaction run: its proposals write the guide to the cache once and read it in each of their calls (about one
 # call per eight findings), then write the trims of each finding; then one cross-check of the whole guide on its
 # own model, and the mirror of each page touched. Counted for the Claude API; an engine whose proposals read only
-# the pages the findings name (compact.propose) pays less. Not measured yet.
+# the pages the findings name (compact.propose) pays less. Measured once (20/11/2026, the IA on-prem guide, 30
+# findings, Fable 5.2 at effort high then Opus 5.5): 4 calls of proposals wrote 250 k tokens (39 to 93 k each) and
+# only the first one wrote the cache; the cross-check read 58 k tokens of trims and wrote 34 k; 17.79 $ before the
+# mirrors, which are still an estimate.
 COMPACT_PER_CALL = 8  # findings per call of the proposals
-COMPACT_OUT_EACH = 7_000  # proposals, thinking included
-CROSS_OUT, CROSS_OUT_EACH = 20_000, 800
+COMPACT_OUT_EACH = 8_500  # proposals, thinking included
+CROSS_IN_EACH = 2_000  # the trims of a finding, read by the cross-check
+CROSS_OUT, CROSS_OUT_EACH = 10_000, 800
 MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one page and a half per finding
 HEAVIEST = 15  # pages kept in the result of the size check: those over their budget, then the heaviest
 
@@ -129,7 +133,7 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                         "usd": _usd(of("compact"), cache_write=fr, table=table)
                         + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, table=table),
                         "usd_each": _usd(of("compact"), cache_read=fr // COMPACT_PER_CALL, tokens_out=COMPACT_OUT_EACH, table=table)
-                        + _usd(of("crosscheck"), tokens_out=CROSS_OUT_EACH, table=table)
+                        + _usd(of("crosscheck"), tokens_in=CROSS_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
                         + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                            if vault.guide_of(vault_dir).mirrors else 0.0)},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
