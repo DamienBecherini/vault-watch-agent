@@ -15,12 +15,13 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import compact, inputs, prompts, quotes, reading, sizes, steps, vault
+from . import compact, inputs, news, prompts, quotes, reading, sizes, steps, vault
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -48,6 +49,17 @@ COMPACT_OUT_EACH = 8_500  # proposals, thinking included
 CROSS_IN_EACH = 2_000  # the trims of a finding, read by the cross-check
 CROSS_OUT, CROSS_OUT_EACH = 10_000, 800
 MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one page and a half per finding
+# « Look for what is new » (news.py), not measured yet (the constants are counted high, like the others). The leads:
+# one call that reads the whole guide and writes at most thirty leads. An addition run: its proposals write the
+# guide to the cache once, then each lead costs a few rounds of search (each round reads the guide from the cache,
+# and what the web returned so far at the input price: a claim checked on the web read 46 k tokens of sources on
+# 17/11/2026); then the cross-check of a watch (the guide written to its own cache, read three times, and each
+# source opened again), and the mirror of each page touched.
+NEWS_OUT = 40_000
+ADD_ROUNDS_EACH = 4  # readings of the cached guide per lead, by the proposals
+ADD_WEB_IN_EACH = 46_000  # tokens of web pages read per lead, by the proposals
+ADD_OUT_EACH = 5_000
+ADD_CROSS_READS, ADD_CROSS_WEB_IN_EACH = 3, 15_000
 HEAVIEST = 15  # pages kept in the result of the size check at least: the flagged ones (all of them), then the heaviest
 
 
@@ -136,6 +148,19 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                         + _usd(of("crosscheck"), tokens_in=CROSS_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
                         + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                            if vault.guide_of(vault_dir).mirrors else 0.0)},
+        "news": {"tokens": fr + NEWS_OUT, "usd": _usd(of("news"), tokens_out=NEWS_OUT, cache_write=fr, table=table),
+                 "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est vérifié ni modifié".replace(",", " "),
+                              f"{fr:,} tokens of pages, read whole; nothing is verified or edited")},
+        # Not a check: the run the leads of « news » go to. `usd`: whatever the leads (the guide written to the cache
+        # by the proposals, then the cross-check); `usd_each`: per lead sent to the run
+        "add-run": {"tokens": 2 * fr + CROSS_OUT,
+                    "usd": _usd(of("add"), cache_write=fr, table=table)
+                    + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, cache_read=ADD_CROSS_READS * fr, table=table),
+                    "usd_each": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH,
+                                     cache_read=ADD_ROUNDS_EACH * fr, table=table)
+                    + _usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
+                    + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
+                       if vault.guide_of(vault_dir).mirrors else 0.0)},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
@@ -323,6 +348,21 @@ def run_compaction(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict
             **_findings(vault_dir, compact.Trims(findings=kept), compact.line), "usage": usages, "reading": plan.summary()}
 
 
+def run_news(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
+    """What a reader would look for and not find (news.LEADS): the model reads the whole guide and what past watches
+    set aside, verifies nothing and edits nothing. The leads the editor keeps go to an addition run (news.propose),
+    which checks each one on the web."""
+    seen = news.candidates(news.reports_of(work), date.today())
+    plan = reading.plan(vault_dir, llm, step="news")
+    system = prompts.fill(news.LEADS.replace("<<MAX>>", str(news.MAX_LEADS)), vault_dir)
+    found, usages = _read_guide(vault_dir, llm, plan, system, f"{news.listing(seen)}\n\nList the leads.", news.Leads, "news")
+    guide = vault.guide_of(vault_dir)
+    kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))][:news.MAX_LEADS]
+    by = "" if plan.mode == "whole" else f" ({plan.note})"
+    return {"ok": not kept, "summary": f"{len(kept)} leads, {len(seen)} item(s) set aside by past watches read{by}",
+            **_findings(vault_dir, news.Leads(findings=kept), news.line), "usage": usages, "reading": plan.summary()}
+
+
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     findings, found, usages = [], {}, []
     guide = vault.guide_of(vault_dir)
@@ -435,10 +475,21 @@ CHECKS = [
                  "pages, history piled up beside the current fact, sections longer than what they say. The leads you "
                  "keep go to a compaction run, reviewed like a correction."},
           MODEL, needs=("sizes",), fix_mode="compact"),
+    Check("news", {"fr": "Nouveautés : ce qu'un lecteur chercherait et ne trouve pas",
+                   "en": "What is new: what a reader would look for and not find"},
+          {"fr": "Claude lit toutes les pages d'un coup, avec ce que les veilles ont mis de côté sans l'écrire, et liste "
+                 "des pistes sans rien vérifier ni modifier : ce que le guide présente comme actuel et qui a sans doute "
+                 "évolué, les sujets qu'un lecteur attendrait et qu'aucune page ne couvre. Les pistes gardées partent dans "
+                 "une passe d'ajouts, qui vérifie chacune sur le web puis propose où l'écrire, relue comme une correction.",
+           "en": "Claude reads every page at once, with what the watches set aside without writing it, and lists leads "
+                 "without verifying or editing anything: what the guide presents as current and has probably moved on, "
+                 "the subjects a reader would expect and no page covers. The leads you keep go to an addition run, which "
+                 "checks each one on the web then proposes where to write it, reviewed like a correction."},
+          MODEL, fix_mode="add"),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,
            "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks, "sizes": run_sizes,
-           "compaction": run_compaction}
+           "compaction": run_compaction, "news": run_news}
 BY_ID = {c.id: c for c in CHECKS}
 
 

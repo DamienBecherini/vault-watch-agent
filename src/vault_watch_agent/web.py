@@ -39,7 +39,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import compact, costs, fix, forge, inputs, llm, prices, sourcecheck, sources, steps, vault, verify
+from . import compact, costs, fix, forge, inputs, llm, news, prices, sourcecheck, sources, steps, vault, verify
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
 
@@ -66,6 +66,18 @@ def write_json(path: Path, data: dict) -> None:
         try:
             os.replace(partial, path)
             return
+        except PermissionError:
+            if attempt == 39:
+                raise
+            time.sleep(0.05)
+
+
+def read_json(path: Path):
+    """Reads a file `write_json` may be putting in place at that moment: Windows refuses to open it during the swap
+    (PermissionError), tried again for a moment. A file that is not there is still an error at once."""
+    for attempt in range(40):
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
         except PermissionError:
             if attempt == 39:
                 raise
@@ -121,8 +133,9 @@ class Publish(BaseModel):
 class Report(BaseModel):
     text: str  # one reported error per line
     verification: str | None = None  # the check these findings come from, to mark them as sent
-    # translation: fix the mirror pages against the source ones; compact: trims for what weighs (compact.py)
-    mode: Literal["fix", "translation", "compact"] = "fix"
+    # translation: fix the mirror pages against the source ones; compact: trims for what weighs (compact.py);
+    # add: what is new, checked on the web and written where it belongs (news.py)
+    mode: Literal["fix", "translation", "compact", "add"] = "fix"
 
 
 class Handle(BaseModel):
@@ -638,12 +651,12 @@ def create_app(settings: Settings) -> FastAPI:
         if not findings:
             raise HTTPException(400, "no error reported")
         existing = set(threads()) | set(jobs)  # a run just started has no checkpoint yet
-        base = f"{'compact' if body.mode == 'compact' else 'fix'}-{date.today().isoformat()}"
+        base = f"{body.mode if body.mode in ('compact', 'add') else 'fix'}-{date.today().isoformat()}"
         thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100))) if t not in existing)
         # Findings of a check keep the passages found when it ran; a line typed by hand has none
         excerpts = {}
         if body.verification:
-            results = json.loads(verif_path(body.verification).read_text(encoding="utf-8"))["results"]
+            results = read_json(verif_path(body.verification))["results"]
             excerpts = {f: e for r in results.values() for f, e in r.get("excerpts", {}).items() if f in findings}
 
         def work(graph, job: Job):
@@ -655,6 +668,9 @@ def create_app(settings: Settings) -> FastAPI:
                 label = "translation divergences reported in the interface"
             elif body.mode == "compact":
                 items, proposal, usage = compact.propose(guide, findings, deps.llm, excerpts)
+                label = thread
+            elif body.mode == "add":
+                items, proposal, usage = news.propose(guide, findings, deps.llm, excerpts)
                 label = thread
             else:
                 items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
@@ -701,7 +717,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     def last_check() -> dict | None:
         try:
-            return json.loads(check_file.read_text(encoding="utf-8"))
+            return read_json(check_file)
         except (OSError, ValueError):
             return None
 
@@ -828,7 +844,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     def verif_view(path: Path) -> dict:
         """The verification with what became of its findings: open, sent to a fix run, or dismissed."""
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = read_json(path)
         job = jobs.get(data["id"])
         data["running"] = bool(job and not job.done)
         # Stopped before its last check (the server was closed meanwhile): what it found stays usable, the checks
@@ -874,7 +890,7 @@ def create_app(settings: Settings) -> FastAPI:
         of this server is running it. A check a stopped server left unfinished is handled like a finished one."""
         path = verif_path(vid)
         with lock:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = read_json(path)
             if busy(vid):
                 raise HTTPException(409, "the check is still running")
             handled = data.setdefault("handled", {})
@@ -905,7 +921,7 @@ def create_app(settings: Settings) -> FastAPI:
     def verif_options():
         known = {}
         for p in verif_files():  # counts from the last checks that measured them, for the paid follow-ups
-            r = json.loads(p.read_text(encoding="utf-8")).get("results", {})
+            r = read_json(p).get("results", {})
             if "dead" not in known and "sources" in r:
                 known["dead"] = len(r["sources"].get("dead", []))
             if "claims" not in known and "freshness" in r:

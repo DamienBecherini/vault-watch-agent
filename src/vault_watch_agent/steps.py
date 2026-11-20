@@ -31,6 +31,8 @@ STEPS: dict[str, Step] = {s.id: s for s in (
     Step("coherence", "reasoning", "high", ("whole_guide",)),
     Step("compaction", "reasoning", "high", ("whole_guide",)),  # the report: what weighs in the guide
     Step("compact", "reasoning", "high"),  # the trims for the findings kept: the pages they name, in several calls
+    Step("news", "reasoning", "high", ("whole_guide",)),  # the leads: what a reader would look for and not find
+    Step("add", "reasoning", "high", ("web", "whole_guide")),  # the leads kept, checked on the web and written
     Step("claims", "reasoning", "high", ("web",)),
     Step("deadlinks", "reasoning", "medium", ("web",)),
     Step("mirror", "translator", "medium"),
@@ -46,7 +48,7 @@ def effort(step: str) -> str:
 
 # The first word of a call's `node` (its label in the journal) -> its step. « verify <check> » names its check.
 NODES = {"triage": "triage", "propose": "proposals", "crosscheck": "crosscheck", "sweep": "crosscheck", "fix": "fix",
-         "compact": "compact", "mirror": "mirror", "judge": "judge"}
+         "compact": "compact", "add": "add", "mirror": "mirror", "judge": "judge"}
 
 
 def of_node(node: str) -> str:

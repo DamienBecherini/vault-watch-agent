@@ -190,8 +190,6 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
       that follows reads the whole guide, and the code lists what no page states any more. The findings that name
       no page of the guide (a line typed by hand) then go together with the whole guide.
     A call that fails leaves its findings without a trim, said in their outcome; the others go on."""
-    client = llm.for_step("compact") if hasattr(llm, "for_step") else llm
-    shared = bool(getattr(client, "signals_start", False)) and reading.plan(vault_dir, llm, step="compact").mode == "whole"
     texts = {p.relative_to(vault_dir).as_posix(): vault.read(p).replace("\r", "") for p in vault.pages(vault_dir)}
     pages = [named(f, set(texts)) for f in findings]
     size = {p: len(t.encode("utf-8")) for p, t in texts.items()}
@@ -200,17 +198,40 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
     without = [i for i, ps in enumerate(pages) if not ps]
     if without:
         groups.append(without)
+    return in_calls(vault_dir, findings, llm, excerpts, groups, pages=pages, texts=texts, step="compact",
+                    system=PROPOSE, web=False, what=("Findings", "finding"))
+
+
+def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None,
+             groups: list[list[int]], *, pages: list[list[str]], texts: dict[str, str], step: str, system: str,
+             web: bool, what: tuple[str, str], whole: bool = False,
+             above: dict[str, str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+    """The proposals of a run made in several calls: (items, proposals, usages), one proposal and one usage per call.
+    `groups`: the findings of each call, by index; `pages`: the pages each finding names; `system`: the instructions,
+    with <<ABOVE>> where they say what the call reads (`above`, by default `ABOVE`); `step`: the step, which names
+    the calls.
+    What a call reads:
+    - the whole guide, cached, when the engine says when its answer begins (the Claude API) and the guide fits the
+      model: one call leads and writes the cache, the others start once it has begun to answer (`_after_the_first`);
+    - with another engine, the whole guide all the same when `whole` is asked and it fits, one call after the other
+      (an engine that caches reads it again; a local model takes one call at a time anyway);
+    - else the pages the findings of the call name, whole, with the question; a group that names none reads the guide.
+    A call that fails leaves its findings without a proposal, said in their outcome; the others go on."""
+    client = llm.for_step(step) if hasattr(llm, "for_step") else llm
+    fits = reading.plan(vault_dir, llm, step=step).mode == "whole"
+    shared = bool(getattr(client, "signals_start", False)) and fits
+    everything = shared or (whole and fits)
 
     def one(n: int, started=None) -> tuple[list[dict], dict, dict | None]:
         group = groups[n]
         ids, lines = [f"F{i + 1}" for i in group], [findings[i] for i in group]
-        given = [] if shared else sorted({p for i in group for p in pages[i]})
+        given = [] if everything else sorted({p for i in group for p in pages[i]})
         context = "<pages>\n" + "\n".join(f'<page path="{p}">\n{texts[p]}\n</page>' for p in given) + "\n</pages>"
         try:
-            return fix.propose(vault_dir, lines, llm, system=PROPOSE.replace("<<ABOVE>>", ABOVE["pages" if given else "guide"]),
-                               effort=steps.effort("compact"), web=False,
-                               node="compact" if len(groups) == 1 else f"compact {n + 1}/{len(groups)}",
-                               excerpts=excerpts, what=("Findings", "finding"), ids=ids,
+            return fix.propose(vault_dir, lines, llm, system=system.replace("<<ABOVE>>", (above or ABOVE)["pages" if given else "guide"]),
+                               effort=steps.effort(step), web=web,
+                               node=step if len(groups) == 1 else f"{step} {n + 1}/{len(groups)}",
+                               excerpts=excerpts, what=what, ids=ids,
                                context=context if given else None, cached=not given, started=started)
         except ModelError as e:
             failed = {"item_ids": ids, "corrections": [], "error": str(e),
@@ -221,6 +242,8 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
         results = [one(0)]
     elif shared:
         results = _after_the_first(len(groups), one)
+    elif everything:
+        results = [one(n) for n in range(len(groups))]
     else:
         with ThreadPoolExecutor(max_workers=PARALLEL) as pool:
             results = list(pool.map(one, range(len(groups))))

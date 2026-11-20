@@ -81,9 +81,12 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
     `feeds.json`. A source quiet for 180 days is said, never proposed for removal.
   - [x] **A « watched page » feed type** (2026-11-19, `type: "page"` in `collect.py`, state in the watch's `pages`): a page whose change is an event (a price list the guide cites). The
     Lambda prices of 16 November 2026 were not seen by any feed; the maintainer reported them by hand.
-  - [ ] **« Look for what is new »** (E4, then D1 to D4): a run that reads the whole guide and the web and lists
-    what a reader would expect and does not find, the cost announced before. After the compaction (M6), decided on
-    2026-11-20: this run reads the whole guide and adds to it, so the guide is trimmed first.
+  - [x] **« Look for what is new »** (2026-11-20, `news.py`, on dev for 1.3.0; [docs/news.md](docs/news.md)): a check
+    reads the whole guide and what past watches set aside, and lists what a reader would expect and does not find
+    (leads: nothing verified); the leads kept go to an addition run, which checks each one on the web and writes it
+    where it belongs. This is E4 in its first form. Still to do: the first real run on the IA on-prem guide
+    (billed) to set the estimates; a new page written by the run (today it says one is needed); D1 to D4 below
+    (enrichment without a model, candidates grouped and kept over time).
 
 ## Phase F — publication and interface
 
@@ -510,7 +513,8 @@ Built on 2026-11-20 (dev), docs in [docs/compact.md](docs/compact.md):
 - T6.4: done in 1.0.1 (C2).
 - T6.5: on demand, from « Check the guide », with its estimate; the size check says when.
 
-Still to do before the release: the real report and a real compaction run on the IA on-prem guide (billed).
+Done on 2026-11-20: the real report (30 findings) and a real compaction run on the IA on-prem guide (193 trims in
+78 pages, 32 KB of 891; the guide's pull request 91), released as 1.2.0.
 
 Done when: a compaction run on the IA on-prem guide (several months of watches) gives a report the editor finds
 right, and the trims chosen from it are merged with the guide's checks passing. Try it there first: the

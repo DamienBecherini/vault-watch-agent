@@ -150,7 +150,8 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
                   thread: str = "", mode: str = "fix") -> dict:
     """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch.
     `mode` "translation" skips the cross-check against the whole guide; "compact" is a compaction run (compact.py):
-    trims instead of corrections, its own cross-check, its own branch.
+    trims instead of corrections, its own cross-check, its own branch; "add" is an addition run (news.py): what is
+    new, checked on the web, on its own branch.
     `proposal`, `usage`: one of each, or the list of a run whose proposals took several calls."""
     today = date.today().isoformat()
     proposals = proposal if isinstance(proposal, list) else [proposal]
@@ -160,6 +161,13 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
             "source": f"what weighs in the guide ({label})", "issue": None, "as_of": today, "mode": mode,
             "title": f"chore(content): reviewed trims of the guide ({label})",
             "branch_name": f"compact/{thread or f'guide-{today}'}",
+            "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": proposals, "usage": usages,
+        }
+    if mode == "add":
+        return {
+            "source": f"what a reader would look for and not find ({label})", "issue": None, "as_of": today, "mode": mode,
+            "title": f"feat(content): reviewed additions to the guide ({label})",
+            "branch_name": f"feat/{thread or f'additions-{today}'}",
             "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": proposals, "usage": usages,
         }
     kind = "fix(i18n): reviewed translation fixes" if mode == "translation" else "fix(content): reviewed corrections"

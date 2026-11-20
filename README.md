@@ -15,7 +15,7 @@
 
 **English** · [Français](README.fr.md)
 
-[Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+[Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
 
 </div>
 
@@ -104,7 +104,9 @@ Two more kinds of run use the same review and pull request: a **fix run** turns 
 check's) into checked corrections, and a **check of the guide**, on demand, looks for what is wrong or
 inconsistent in the whole guide. A **compaction run** keeps the guide from growing heavy: a watch only adds, so a
 check lists what is repeated, piled up or longer than it needs, and the trims you keep are reviewed like corrections
-([Compaction](docs/compact.md)).
+([Compaction](docs/compact.md)). An **addition run** looks for what no source of the watch announces: a check lists
+what a reader would look for and not find, and each lead you keep is checked on the web, then written where it
+belongs ([What is new](docs/news.md)).
 
 ## Principles
 
@@ -247,7 +249,8 @@ src/vault_watch_agent/
   forge.py       GitHub (gh) and Gitea (API): issues, artifacts, pull requests
   watches.py     where the watches come from; collect.py the agent's own collection; inputs.py the watch format
   crosscheck.py  whole-guide cross-check; fix.py fix runs; verify.py checks of the guide; evaluate.py replays
-  sizes.py       what each page weighs against its budget; compact.py compaction: what weighs, the trims
+  sizes.py       what each page weighs and gained; compact.py compaction: what weighs, the trims
+  news.py        what a reader would look for and not find: the leads, the additions checked on the web
   prompts.py     system prompts, from the guide's brief and translation policy
   config.py      the user's settings; prices.py, costs.py what the calls cost
   onboard.py     init and doctor; cli.py the command line; web.py the server, static/ its page (no build step)

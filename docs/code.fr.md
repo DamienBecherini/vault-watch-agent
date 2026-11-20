@@ -27,6 +27,7 @@ flowchart TB
     fix["fix.py<br/><i>erreurs signalées → corrections</i>"]
     verify["verify.py<br/><i>vérification à la demande</i>"]
     compact["compact.py<br/><i>ce qui pèse, les allègements</i>"]
+    news["news.py<br/><i>nouveautés : pistes, ajouts</i>"]
     evaluate["evaluate.py<br/><i>rejeu + juge</i>"]
   end
   subgraph steps["Aides du graphe"]
@@ -47,7 +48,8 @@ flowchart TB
   cli --> graphpy & fix & evaluate
   web --> graphpy & fix & verify
   graphpy --> crosscheck & prompts & quotes
-  verify --> quotes & compact
+  verify --> quotes & compact & news
+  news --> compact
   graphpy --> compact
   steps ==> state & llm & vault & inputs & costs & notify
   llm --> config
@@ -73,13 +75,14 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `graph.py` | 655 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
 | `collect.py` | 568 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
 | `llm.py` | 506 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
-| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
+| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / news / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
 | `verify.py` | 417 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
 | `guide.py` | 352 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
 | `onboard.py` | 335 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
 | `openai_compat.py` | 323 | Le moteur compatible OpenAI (llama.cpp, vLLM, Ollama, un service hébergé) : sortie structurée, boucle des outils web, usage et coût |
 | `vault.py` | 353 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
 | `compact.py` | 214 | Compactage : les consignes du rapport, des allègements et de leur relecture croisée ; les notes qu'un allègement laisse sans phrase retirées avec lui, un allègement qui laisserait une phrase citer une note retirée refusé |
+| `news.py` | 192 | Chercher les nouveautés : la consigne des pistes, ce que les veilles passées ont mis de côté (lu dans leurs rapports), les ajouts pour les pistes gardées, quelques-unes par appel avec le web (`compact.in_calls` fait les appels) |
 | `crosscheck.py` | 264 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
 | `webtools.py` | 234 | Recherche web (SearXNG) et lecture de pages pour les moteurs sans web propre ; adresses publiques seulement |
 | `forge.py` | 223 | Issues, artefacts et pull requests derrière une interface `Forge` : GitHub (par `gh`) et Gitea (son API REST, un jeton par référence) ; `for_guide` prend celle du manifeste |

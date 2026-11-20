@@ -76,9 +76,9 @@ const TEXTS = {
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       claims: "Affirmations à revérifier", pagesDue: "Pages à revoir", log: "Journal",
-      // by: the ticked leads per kind of run (fix, translation, compact); one run per kind
+      // by: the ticked leads per kind of run (fix, translation, compact, add); one run per kind
       createFix: (by, c, runs = {}) => {
-        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"]].filter(k => by[k[0]]);
+        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"], ["add", "ajouts", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
         return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2])})`).join(", ")}`
           : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
       },
@@ -247,7 +247,7 @@ const TEXTS = {
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
       createFix: (by, c, runs = {}) => {
-        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"]].filter(k => by[k[0]]);
+        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"], ["add", "addition", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
         return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2])})`).join(", ")}`
           : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
       },
@@ -794,9 +794,14 @@ async function viewCheck(id) {
     const ok = ticked().filter(c => c.dataset.fixable === "true"), n = ok.length, e = ticked().length;
     const by = {};
     ok.forEach(c => { by[c.dataset.mode] = (by[c.dataset.mode] || 0) + 1; });
-    // A compaction run: its cross-check, plus a share per finding, priced with the models of the Settings
-    const o = options.find(o => o.id === "compaction") || {}, run = o.run_usd ? o.run_usd + (o.run_usd_each || 0) * (by.compact || 0) : 0;
-    $("#fix").textContent = V.createFix(by, cost, { compact: run ? `≈ ${dollars(run)}` : "" }); $("#fix").disabled = n === 0 || v.running;
+    // A compaction run, an addition run: what it costs whatever its leads, plus a share per lead, priced with the
+    // models of the Settings (the check that gives the leads carries the estimate of the run they go to)
+    const runOf = (check, leads) => {
+      const o = options.find(o => o.id === check) || {};
+      return o.run_usd ? `≈ ${dollars(o.run_usd + (o.run_usd_each || 0) * leads)}` : "";
+    };
+    $("#fix").textContent = V.createFix(by, cost, { compact: runOf("compaction", by.compact || 0), add: runOf("news", by.add || 0) });
+    $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };
   boxes.forEach(c => c.onchange = count);
@@ -820,9 +825,9 @@ async function viewCheck(id) {
     $("#dismiss").onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed");
     $("#fix").onclick = async () => {
       $("#fix").disabled = true;
-      // One run per mode: content fixes, translation fixes and trims do not take the same path
+      // One run per mode: content fixes, translation fixes, trims and additions do not take the same path
       const threads = [];
-      for (const mode of ["fix", "translation", "compact"]) {
+      for (const mode of ["fix", "translation", "compact", "add"]) {
         const text = ticked().filter(c => c.dataset.fixable === "true" && c.dataset.mode === mode).map(c => c.dataset.lead).join("\n");
         if (text) threads.push((await api("/api/fix", { text, verification: id, mode })).thread);
       }

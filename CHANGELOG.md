@@ -3,6 +3,33 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 1.3.0 (not released)
+
+Look for what is new: what a reader would look for in the guide and not find. A watch follows the sources it
+already knows, and what it sets aside as a possible addition is never written. [docs/news.md](docs/news.md).
+
+- The leads: the check « What is new: what a reader would look for and not find » of « Check the guide » (or
+  `vault-watch news`, which says its cost and asks first). One call reads the whole guide, without the web, and
+  lists at most 30 leads: what the guide presents as current and has probably moved on, the subjects a reader
+  would expect and no page covers, and the items past watches set aside as possible additions (read from the
+  reports of the runs kept on the machine, the last 120 days, no model). A lead is a question: nothing is verified
+  and nothing is edited. The guide's own threshold for additions (its brief) is given to the model.
+- The additions: the leads kept go to an addition run (`vault-watch fix <thread> --findings … --add`). Each lead is
+  checked on primary sources on the web, then written where a reader would look for it, corrected where the guide
+  states something superseded, or left with its reason; a subject that needs a page of its own is said, the page
+  is not written. Four leads per call (a round of search re-reads what the call gathered, so short calls cost
+  less), every call with the whole guide: cached and shared on the Claude API, one call after the other elsewhere.
+  Then the cross-check of a watch, the review, the mirrors, the guide's audits and the pull request, on a branch
+  `feat/<thread>`.
+- Two steps more in the Settings (the leads, the additions), each of which can run on a model of its own. The
+  button that creates an addition run shows an estimate that follows the leads ticked. The estimates are not
+  measured yet.
+- `prompts.fill` knows two markers more: `<<TODAY>>` and `<<BRIEF>>` (the guide's contract, put last).
+  `compact.in_calls` is the part of the compaction proposals that makes several calls, now shared.
+- Fixed: on Windows a page of the interface could fail to read a check or the sources file at the instant the
+  server was putting a new version in place (a test failed about once in twenty runs); the reads now wait for
+  the swap, as the writes did.
+
 ## 1.2.0 (2026-11-20)
 
 Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-prem guide went from 572 KB to

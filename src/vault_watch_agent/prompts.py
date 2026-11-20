@@ -6,6 +6,7 @@ and proposals, the translation policy (`[rules] translation_policy`) for the mir
 role and the output of each node.
 """
 
+from datetime import date
 from pathlib import Path
 
 from .guide import Guide, language_name
@@ -40,18 +41,22 @@ def editing(g: Guide) -> str:
 
 def fill(text: str, vault: Path, mirror: str | None = None) -> str:
     """A prompt written with markers, for the guide at `vault`: <<GUIDE>> (the guide in a few words), <<LANG>> (the
-    language of its pages), <<REPLACE>> (the rule « replace, do not pile up »), and for a translation <<MIRROR>> (the
-    mirror's language) and <<MIRROR_DIR>> (its folder)."""
+    language of its pages), <<REPLACE>> (the rule « replace, do not pile up »), <<TODAY>> (the date), <<BRIEF>> (the
+    guide's contract, put last whatever the place of the marker), and for a translation <<MIRROR>> (the mirror's
+    language) and <<MIRROR_DIR>> (its folder)."""
     g = guide_of(vault)
     lang = language_name(g.language)
     about = f", about {g.description}" if g.description else ""
     text = text.replace("<<GUIDE>>", f"a guide written in {lang}, « {g.name} »{about}").replace("<<LANG>>", lang)
-    text = text.replace("<<REPLACE>>", REPLACE)
+    text = text.replace("<<REPLACE>>", REPLACE).replace("<<TODAY>>", date.today().isoformat())
+    brief = "<<BRIEF>>" in text  # added after the check below: a guide's contract may hold anything
+    text = text.replace("<<BRIEF>>", "")
     if mirror:
         text = text.replace("<<MIRROR>>", language_name(mirror)).replace("<<MIRROR_DIR>>", g.mirrors[mirror])
     assert "<<" not in text, text[text.index("<<"):][:40]
     rules = editing(g).strip()
-    return f"{text}\n\n{rules}" if rules else text
+    filled = f"{text}\n\n{rules}" if rules else text
+    return filled + (_contract(g, g.brief, DEFAULT_BRIEF) if brief else "")
 
 
 def _contract(g: Guide, path: Path | None, default: Path) -> str:

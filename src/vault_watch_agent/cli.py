@@ -9,6 +9,7 @@
     vault-watch resume <thread> --publish yes  # second pause: push + pull request
     vault-watch status <thread>
     vault-watch collect --json watch.json      # a watch from the guide's feeds.json (no model), Markdown on stdout
+    vault-watch news                           # what a reader would look for and not find: leads, nothing edited
 
 The run is checkpointed in SQLite: each command is a separate process, and a
 paused run waits as long as needed.
@@ -252,8 +253,6 @@ def compact_command(args) -> None:
     """What the guide weighs, page by page (no model). With --report: what could be trimmed, one model call that
     reads the whole guide and edits nothing; its cost is said first, and asked for unless --yes. The findings go
     to a file, one per line: the lines kept there make a compaction run (`fix <thread> --findings … --compact`)."""
-    from datetime import date
-
     from . import sizes
 
     print(sizes.table(sizes.report(VAULT)))
@@ -261,6 +260,27 @@ def compact_command(args) -> None:
         print("\nvault-watch: `compact --report` lists what could be trimmed (one model call that reads the whole guide).",
               file=sys.stderr)
         return
+    from . import verify
+
+    _paid_check(args, "compaction", "compact", "The report", "--compact",
+                lambda work, llm: verify.run_compaction(VAULT, work, {"sizes": verify.run_sizes(VAULT, work, {}, None)}, llm))
+
+
+def news_command(args) -> None:
+    """What a reader would look for in the guide and not find: one model call that reads the whole guide and what
+    past watches set aside, verifies nothing and edits nothing; its cost is said first, and asked for unless --yes.
+    The leads go to a file, one per line: the lines kept there make an addition run (`fix <thread> --findings … --add`),
+    which checks each one on the web."""
+    from . import verify
+
+    _paid_check(args, "news", "add", "The list of leads", "--add", lambda work, llm: verify.run_news(VAULT, work, {}, llm))
+
+
+def _paid_check(args, check: str, prefix: str, what: str, flag: str, run) -> None:
+    """A check that reads the whole guide, from the command line: its estimate, the question, the call
+    (`run(work, llm)`), the findings to a file and how to send those kept to a run (`fix <thread> --findings … <flag>`)."""
+    from datetime import date
+
     from . import config, verify
     from .llm import create
 
@@ -268,20 +288,20 @@ def compact_command(args) -> None:
     table = Prices.of_home(CONFIG_HOME, settings)
     llm = create("reasoning", JOURNAL, settings, table)
     apart = {step: own["model"] for step, own in settings["steps"].items() if own.get("model")}
-    estimate = verify.estimates(VAULT, {}, settings["models"], table, apart)["compaction"]
+    estimate = verify.estimates(VAULT, {}, settings["models"], table, apart)[check]
     billing = llm.capabilities().billing if hasattr(llm, "capabilities") else "token"
     paid = {"subscription": "taken from the subscription, not billed", "none": "a local model, not billed"}.get(
         billing, f"≈ {estimate['usd']:.2f} $")
-    print(f"\nThe report reads the whole guide (≈ {estimate['tokens']:,} tokens): {paid}.")
+    print(f"\n{what} reads the whole guide (≈ {estimate['tokens']:,} tokens): {paid}.")
     if not (args.yes or _confirm("Run it? [y/N] ")):
         print("vault-watch: nothing run.")
         return
     today = date.today().isoformat()
-    llm.run, llm.kind = f"compact-{today}", "verify"
+    llm.run, llm.kind = f"{prefix}-{today}", "verify"
     work = HOME / "reports"
     work.mkdir(parents=True, exist_ok=True)
-    result = verify.run_compaction(VAULT, work, {"sizes": verify.run_sizes(VAULT, work, {}, None)}, llm)
-    out = args.out or work / f"compact-{today}.txt"
+    result = run(work, llm)
+    out = args.out or work / f"{prefix}-{today}.txt"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(f"{f}\n" for f in result["findings"]), encoding="utf-8")
     for n, finding in enumerate(result["findings"], start=1):
@@ -289,7 +309,7 @@ def compact_command(args) -> None:
     cost = sum(u.get("cost_usd", 0) for u in result.get("usage", []))
     print(f"\nvault-watch: {result['summary']} (≈ {cost:.2f} $): {out}")
     if result["findings"]:
-        print(f"Keep in that file the lines to act on, then: vault-watch fix compact-{today} --findings {out} --compact")
+        print(f"Keep in that file the lines to act on, then: vault-watch fix {prefix}-{today} --findings {out} {flag}")
 
 
 def make_deps(thread: str, kind: str) -> Deps:
@@ -372,6 +392,13 @@ def main(argv: list[str] | None = None) -> None:
                       help="translation divergences: fix the mirror pages against the source ones (no web, no cross-check)")
     kind.add_argument("--compact", action="store_true",
                       help="findings of `compact --report`: trims instead of corrections (no web, their own cross-check)")
+    kind.add_argument("--add", action="store_true",
+                      help="leads of `news`: each one checked on the web, then written where it belongs")
+    nw = sub.add_parser("news", help="what a reader would look for in the guide and not find: a list of leads, nothing "
+                        "verified or edited (one model call that reads the whole guide)")
+    nw.add_argument("--out", type=Path, help="where to write the leads, one per line (default: reports/ of the guide's "
+                    "working folder)")
+    nw.add_argument("--yes", action="store_true", help="run the model call without asking")
     cp = sub.add_parser("compact", help="what the guide weighs, page by page (no model); --report lists what could be trimmed")
     cp.add_argument("--report", action="store_true", help="one model call reads the whole guide and lists what weighs; "
                     "nothing is edited")
@@ -426,6 +453,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "compact":
         HOME.mkdir(parents=True, exist_ok=True)
         compact_command(args)
+        return
+    if args.cmd == "news":
+        HOME.mkdir(parents=True, exist_ok=True)
+        news_command(args)
         return
     if args.cmd == "costs":
         from . import costs
@@ -484,9 +515,13 @@ def main(argv: list[str] | None = None) -> None:
                 from . import compact
 
                 items, proposal, usage = compact.propose(VAULT, findings, deps.llm, excerpts)
+            elif args.add:
+                from . import news
+
+                items, proposal, usage = news.propose(VAULT, findings, deps.llm, excerpts)
             else:
                 items, proposal, usage = fix.propose(VAULT, findings, deps.llm, excerpts=excerpts)
-            mode = "translation" if args.translation else "compact" if args.compact else "fix"
+            mode = "translation" if args.translation else "compact" if args.compact else "add" if args.add else "fix"
             # Enter the graph as if the proposals had just been made: numbering, cross-check, review…
             graph.update_state(config, fix.initial_state(label, items, proposal, usage, thread, mode), as_node="propose")
             graph.invoke(None, config)
