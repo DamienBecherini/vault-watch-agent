@@ -23,6 +23,7 @@ guide.working_folder); the settings are shared.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -299,6 +300,17 @@ def news_command(args) -> None:
                 run, each=("usd_chapter", len(chapters)))
 
 
+@contextlib.contextmanager
+def _tidied(db: Path):
+    """After a command that ran or resumed a run: the checkpoints nothing reads any more are removed (store.py)."""
+    try:
+        yield
+    finally:
+        from . import store
+
+        store.tidy(db)
+
+
 def chapters_command(args) -> None:
     """The chapters of the guide as the agent has them; --propose: a model's split from the outline of the guide
     (its cost said first, asked for unless --yes), printed as the lines of the manifest, written there with --write;
@@ -564,7 +576,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     HOME.mkdir(parents=True, exist_ok=True)
-    with SqliteSaver.from_conn_string(str(HOME / "checkpoints.sqlite")) as saver:
+    with _tidied(HOME / "checkpoints.sqlite"), SqliteSaver.from_conn_string(str(HOME / "checkpoints.sqlite")) as saver:
         # The model client is created lazily so `status` works without an API key.
         from . import config
         from .llm import create

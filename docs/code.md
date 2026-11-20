@@ -95,6 +95,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `inputs.py` | 121 | The watch as the contract says (`check_watch`), its kept items, its artifact; the guide's scripts; freshness claims due |
 | `prompts.py` | 119 | System prompts built from the guide's own editorial brief and translation policy |
 | `state.py` | 117 | `WatchState` and the Pydantic schemas the model must answer with |
+| `store.py` | 53 | The runs database kept light: only the last checkpoint of each run stays, the space is given back to the disk |
 | `chapters.py` | 357 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
 | `reading.py` | 99 | How the guide is read: whole in one call, or chapter by chapter when it does not fit the model's window |
 | `costs.py` | 87 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |

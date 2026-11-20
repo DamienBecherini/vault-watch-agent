@@ -191,9 +191,9 @@ def test_settings_keep_a_reference_to_the_key_never_the_key(client, monkeypatch)
     assert c.get("/api/info").json()["engine"] == "claude-code"
     from vault_watch_agent import __version__
     assert c.get("/api/info").json()["version"] == c.get("/api/health").json()["version"] == __version__
-    # What « Give my opinion » may attach: the system and Python; no address for a mail until one is set in the code
+    # What « Give my opinion » may attach (the system and Python), and where its mail goes
     about = c.get("/api/info").json()
-    assert about["system"] and about["python"] and about["feedback_email"] == ""
+    assert about["system"] and about["python"] and about["feedback_email"].startswith("vault-watch@")
 
     plain = c.post("/api/settings", json={"engine": "api", "key": "sk-ant-api03-plain"}, headers=ACT)
     assert plain.status_code == 400 and "never the key itself" in plain.json()["detail"]

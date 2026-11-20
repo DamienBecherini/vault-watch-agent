@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, llm, news, prices, sourcecheck, sources, steps, vault, verify
+from . import compact, costs, fix, forge, inputs, llm, news, prices, sourcecheck, sources, steps, store, vault, verify
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
@@ -50,7 +50,7 @@ STATIC = Path(__file__).parent / "static"
 AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 # Where « Give my opinion » sends a mail (the reader's own mail program does; no account needed). Empty: the window
 # offers the issue and the copy only.
-FEEDBACK_EMAIL = ""
+FEEDBACK_EMAIL = "vault-watch@damien.becherini.fr"
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
          "apply", "mirror", "audits", "links", "publish"]
@@ -193,6 +193,7 @@ def create_app(settings: Settings) -> FastAPI:
     cfg_home = settings.config_home or settings.home  # the user's settings
     db = settings.home / "checkpoints.sqlite"
     saver = SqliteSaver(sqlite3.connect(db, check_same_thread=False))
+    store.tidy(db)  # the copies of past runs that nothing reads any more (again each time a run pauses or ends)
     jobs: dict[str, Job] = {}
     lock = threading.Lock()
     app = FastAPI(title="vault-watch", docs_url=None, redoc_url=None)
@@ -293,6 +294,7 @@ def create_app(settings: Settings) -> FastAPI:
             finally:
                 job.done = True
                 app.state.last_activity = time.time()
+                store.tidy(db)  # paused or over: only its last checkpoint is needed from here
                 try:
                     announce(job)
                 except Exception:  # a notification never breaks a run

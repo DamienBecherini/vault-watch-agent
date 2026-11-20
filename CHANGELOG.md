@@ -66,9 +66,14 @@ already knows, and what it sets aside as a possible addition is never written. [
 - « Give my opinion », a button of the header with its icon (and of the footer): a note out of five, a kind
   (opinion, bug, idea), a message, all optional. The agent sends nothing: the reader opens an issue of the agent's
   repository with the form filled in (`.github/ISSUE_TEMPLATE/feedback.yml`; public, a GitHub account), or copies
-  the text; sending by e-mail, without an account, is offered once an address is set (`web.FEEDBACK_EMAIL`, empty
-  in this version). What is sent is shown first: the version always, the system, Python, the engine and the kind of
-  screen when a box is ticked, never anything of the guide. A security flaw has its own link, to the private report.
+  the text, or sends a mail from their own mail program, without an account (`web.FEEDBACK_EMAIL`). What is sent
+  is shown first: the version always, the system, Python, the engine and the kind of screen when a box is ticked,
+  never anything of the guide. A fourth kind, « a security flaw », never opens a public issue: its button opens
+  the private report of the repository (the message copied, to paste there), and the mail stays.
+- The runs kept on the machine stay light (`store.py`): LangGraph writes the whole state of a run after each step,
+  and only the last copy is ever read. The copies before it are removed when a run pauses or ends, when a command
+  that runs one ends and when the server starts, and the space is given back to the disk. On the IA on-prem guide:
+  26 runs, 45.6 MB before, 5.1 MB after, every run shown as before, and a paused run goes on from where it waits.
 - Accessibility of the interface: the text is 16 px (it was 15), what goes with it 14 px at least (the footer was
   12, notes 13), short labels 13 px (there were some at 11 and 12); the keyboard always shows where it is; what is
   finished or rejected has a quieter frame instead of a faded text (a faded note fell under 3:1); small buttons and
