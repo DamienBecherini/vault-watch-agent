@@ -295,6 +295,9 @@ ABOVE = {"guide": "The whole guide is above, one <page> per file.",
                  "(in `event`, or in no_change_reason when you edit nothing) instead of guessing what it says: the "
                  "review that follows reads every page, and completes or corrects."}
 CONTEXTS = ("guide", "pages")  # what each call of an addition run reads: the whole guide, or the lead's pages and the plan
+# The default since the run of 2026-11-20 that compared them: half the price, and every place that stated the older
+# values was reached (the cross-check, which reads every page, wrote those the calls had not seen)
+CONTEXT = "pages"
 
 _NEEDS_PAGE = re.compile(r"^\W*needs a page\W*", re.I)
 
@@ -343,7 +346,7 @@ def batches(pages: list[list[str]], most: int = PER_CALL) -> list[list[int]]:
 
 
 def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None = None,
-            deep: set[str] | list[str] | None = None, context: str = "guide") -> tuple[list[dict], list[dict], list[dict]]:
+            deep: set[str] | list[str] | None = None, context: str = CONTEXT) -> tuple[list[dict], list[dict], list[dict]]:
     """The additions for the leads the editor kept: (items, proposals, usages), one proposal and one usage per call.
     Every call reads the whole guide when it fits the model (`compact.in_calls`: cached and shared on the Claude
     API, one call after the other elsewhere) and the web. A call that fails leaves its leads without an addition,

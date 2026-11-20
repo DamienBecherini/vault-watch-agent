@@ -151,7 +151,8 @@ pas moins qu'une autre (16 à 25 tours de recherche, chacun relisant le guide de
 pages, une piste a coûté de 0,40 à 1,30 $.
 
 **Ce que lit l'appel de chaque piste** se choisit à la création du passage (une liste au-dessus du bouton sur la
-page des pistes ; `--context guide` ou `--context pages` en ligne de commande ; tout le guide par défaut).
+page des pistes ; `--context pages` ou `--context guide` en ligne de commande ; les pages de la piste et le plan
+par défaut).
 
 - *Tout le guide* : l'appel voit chaque page. Le plus sûr, et le plus cher.
 - *Les pages de la piste et le plan du guide* : l'appel lit les pages que la piste nomme, celles qu'elle demande

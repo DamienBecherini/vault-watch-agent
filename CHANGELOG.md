@@ -31,7 +31,7 @@ already knows, and what it sets aside as a possible addition is never written. [
 - A lead can be dug deeper (a box beside it; `!` at the start of its line on the command line): its call in the
   addition run is asked for a fuller look, on several independent sources and several pages if need be.
 - What each lead's call reads is chosen when an addition run is created (a list on the leads page, `--context` on
-  the command line): the whole guide (the default), or the pages the lead names and the plan of the guide (every
+  the command line): the whole guide, or (the default) the pages the lead names and the plan of the guide (every
   page with its path, weight, title and headings), 50 to 90 KB instead of 830 on the IA on-prem guide, cached for
   that call alone. A lead now says which pages to read: the call that lists the leads has the whole guide before
   it, and names after « Read also: » up to six pages one must have read to write the lead well. A lead that names

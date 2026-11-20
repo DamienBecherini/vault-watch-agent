@@ -145,7 +145,7 @@ class Report(BaseModel):
     mode: Literal["fix", "translation", "compact", "add"] = "fix"
     deep: list[str] = []  # an addition run: the leads to dig deeper, each in a call of its own (news.propose)
     # an addition run: what each call reads, the whole guide or its lead's pages and the plan of the guide
-    context: Literal["guide", "pages"] = "guide"
+    context: Literal["guide", "pages"] = news.CONTEXT
     steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
 
 

@@ -765,8 +765,8 @@ function drawWatches(watches, others) {
 // A help bubble: a « ? » that says what the thing beside it is, on hover, on keyboard focus and on a tap
 // What each call of an addition run reads: the whole guide, or its lead's pages and the plan (the reader's choice,
 // kept in this browser). A lead that names no page (« [Missing] no page yet: … ») reads the guide either way.
-let ADD_CONTEXT = "guide";
-try { if (localStorage.getItem("vault-watch-add-context") === "pages") ADD_CONTEXT = "pages"; } catch { /* private window */ }
+let ADD_CONTEXT = "pages";
+try { if (localStorage.getItem("vault-watch-add-context") === "guide") ADD_CONTEXT = "guide"; } catch { /* private window */ }
 const NO_PAGE = /^\[[^\]]+\] no page yet:/;
 const tip = text => `<button type="button" class="tip" data-tip="${esc(text)}" aria-label="${esc(text)}">?</button>`;
 // The bubble stays inside the window: its width and its place follow where the « ? » is
@@ -1227,7 +1227,7 @@ async function viewCheck(id) {
     <div class="bar">
       <details class="run-steps" id="run-steps-box" hidden><summary>${T.perStep.title}</summary><div id="run-steps"></div></details>
       <label class="add-context small" id="add-context-box" hidden>${V.context}
-        <select id="add-context"><option value="guide">${V.contextGuide}</option><option value="pages">${V.contextPages}</option></select>${tip(V.contextTip)}</label>
+        <select id="add-context"><option value="pages">${V.contextPages}</option><option value="guide">${V.contextGuide}</option></select>${tip(V.contextTip)}</label>
       <button id="all">${V.tickAll}</button><button id="nothing">${V.untickAll}</button>
       <button id="dismiss"></button>
       <button class="primary" id="fix"></button>

@@ -222,7 +222,7 @@ def test_every_call_reads_the_whole_guide_and_the_web(setup):
             return ClusterProposal(outcomes=[ItemOutcome(item_id=i, event="", no_change_reason="nothing new") for i in ids],
                                    corrections=[]), {"node": node, "cost_usd": 1.0}
 
-    items, proposals, usages = news.propose(deps.vault, leads, Api())
+    items, proposals, usages = news.propose(deps.vault, leads, Api(), context="guide")
     # One call leads and writes the cache; the four others start together once it has begun to answer
     assert order[0] == ("add 1/5", True, False) and sorted(order[1:]) == [(f"add {n}/5", False, True) for n in range(2, 6)]
     assert [i["id"] for i in items] == ["F1", "F2", "F3", "F4", "F5"] and [p["item_ids"] for p in proposals] == [[f"F{n}"] for n in range(1, 6)]
@@ -238,7 +238,7 @@ def test_every_call_reads_the_whole_guide_and_the_web(setup):
             return ClusterProposal(outcomes=[ItemOutcome(item_id=i, event="", no_change_reason="-") for i in ids],
                                    corrections=[]), {"node": node, "cost_usd": 1.0}
 
-    news.propose(deps.vault, leads, Other())
+    news.propose(deps.vault, leads, Other(), context="guide")
     assert seen == [f"add {n}/5" for n in range(1, 6)]
     state = fix.initial_state("add-2026-11-20", items, proposals, usages, "add-2026-11-20", "add")
     assert state["mode"] == "add" and state["branch_name"] == "feat/add-2026-11-20"
@@ -419,8 +419,11 @@ def test_a_call_reads_its_pages_and_the_plan_when_asked(setup):
     assert sorted([seen["F3"][2], seen["F4"][2]]) == [False, True] and not seen["F1"][2] and not seen["F2"][2]
 
     seen.clear()
-    news.propose(deps.vault, leads[:2], Api())  # by default: the whole guide, shared
+    news.propose(deps.vault, leads[:2], Api(), context="guide")  # when asked: the whole guide, shared
     assert all(context.startswith("<guide>") for context, _, _ in seen.values())
+    seen.clear()
+    news.propose(deps.vault, leads[:2], Api())  # by default: the lead's pages and the plan
+    assert news.CONTEXT == "pages" and all(context.startswith("<plan>") for context, _, _ in seen.values())
     with pytest.raises(ValueError, match="context"):
         news.propose(deps.vault, leads[:1], Api(), context="summary")
 

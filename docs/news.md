@@ -146,7 +146,7 @@ version is not cheaper than another with the whole guide (16 to 25 rounds of sea
 from the cache); with its own pages a lead cost 0.40 to 1.30 $.
 
 **What each lead's call reads** is chosen when the run is created (a list above the button on the leads page;
-`--context guide` or `--context pages` on the command line; the whole guide by default).
+`--context pages` or `--context guide` on the command line; the lead's pages and the plan by default).
 
 - *The whole guide*: the call sees every page. The safest, and the most expensive.
 - *The lead's pages and the plan of the guide*: the call reads the pages the lead names, those it asks to read,
