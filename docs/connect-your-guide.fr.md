@@ -212,8 +212,9 @@ Trois façons d'écrire ces tables, toutes relues par vous avant d'atteindre le 
   `vault-watch chapters --propose`. Un appel lit le plan du guide (le chemin, le poids, le titre et les intertitres
   de chaque page, pas son texte : environ un vingtième du guide) et propose des chapitres, avec ceux à ne pas
   explorer par défaut et une phrase de raisons pour chacun. Son coût est dit d'abord. L'appel n'écrit rien.
-- **À la main sur la même page** : ajouter, renommer, déplacer des chemins, « Partir du découpage actuel » ;
-  « Voir le résultat » montre les chapitres obtenus, avec leur poids, avant tout enregistrement.
+- **À la main sur la même page** : ajouter, renommer, déplacer des chemins, ou « Reprendre le découpage actuel »
+  pour ajuster ce qui existe. Les chapitres obtenus, avec leur poids, sont recalculés après chaque modification,
+  avant tout enregistrement.
 - **À la main dans le manifeste.**
 
 Enregistrer depuis la page écrit le manifeste sur une branche du guide (`chore/chapters-<date>`) et ouvre une

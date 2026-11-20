@@ -424,3 +424,16 @@ header.narrow .header-end { margin-left: 0; justify-content: space-between; }
 /* Easy to aim at: 24 px at least for a link that stands alone and for the box that decides a correction */
 footer a { display: inline-block; padding: 4px 0; }
 .correction .header input[type="checkbox"] { width: 22px; height: 22px; margin: 1px; }
+
+/* A help bubble (app.js tip): a « ? » beside what it explains; its text shows on hover, on keyboard focus and on a tap.
+   placeTip keeps it inside the window (--tip-left, --tip-width) and puts it below near the top of the page. */
+.tip { position: relative; display: inline-grid; place-items: center; width: 24px; height: 24px; min-height: 0; padding: 0; margin: 0 4px;
+  border-radius: 50%; border: 1px solid var(--field-border); background: none; color: var(--muted); font-size: 13px; font-weight: 700;
+  line-height: 1; cursor: help; vertical-align: middle; flex: none; }
+.tip:hover, .tip:focus-visible { color: var(--accent); border-color: var(--accent); }
+.tip:hover::after, .tip:focus::after { content: attr(data-tip); box-sizing: border-box; position: absolute; z-index: 30; bottom: calc(100% + 8px);
+  left: var(--tip-left, -8px); width: var(--tip-width, 360px); padding: 10px 12px; border-radius: 8px;
+  background: var(--card); color: var(--text); border: 1px solid var(--accent); font-size: 14px; font-weight: 400; line-height: 1.45;
+  text-align: left; white-space: normal; text-transform: none; letter-spacing: 0; box-shadow: 0 8px 24px rgb(0 0 0 / .25); pointer-events: none; }
+.tip.below:hover::after, .tip.below:focus::after { bottom: auto; top: calc(100% + 8px); }
+.card.updating { opacity: .6; }   /* the result being computed again: for half a second, not a state to read */

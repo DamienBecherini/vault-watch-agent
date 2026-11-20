@@ -206,8 +206,8 @@ Three ways to write these tables, all reviewed by you before they reach the guid
   `vault-watch chapters --propose`. One call reads the outline of the guide (the path, weight, title and headings
   of each page, not its text: about a twentieth of the guide) and proposes chapters, with those not to explore by
   default and a sentence of reasons for each. Its cost is said first. Nothing is written by the call.
-- **By hand on the same page**: add, rename, move paths, « Start from the current split »; « See the result »
-  shows the chapters it gives, with their weight, before anything is saved.
+- **By hand on the same page**: add, rename, move paths, or « Take the current split » to adjust what is there.
+  The chapters it gives, with their weight, are shown again after each change, before anything is saved.
 - **By hand in the manifest.**
 
 Saving from the page writes the manifest on a branch of the guide (`chore/chapters-<date>`) and opens a pull

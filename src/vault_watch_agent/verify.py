@@ -56,7 +56,7 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # 17/11/2026); then the cross-check of a watch (the guide written to its own cache, read three times, and each
 # source opened again), and the mirror of each page touched.
 NEWS_OUT = 40_000
-CHAPTERS_OUT = 6_000  # the split of the guide into chapters: its answer, thinking included (not measured)
+CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 ADD_ROUNDS_EACH = 4  # readings of the cached guide per lead, by the proposals
 ADD_WEB_IN_EACH = 46_000  # tokens of web pages read per lead, by the proposals
 ADD_OUT_EACH = 5_000
@@ -205,8 +205,9 @@ def chapters_usd(vault_dir: Path, model: str, table=None) -> float:
     """What a model's split of the guide costs (chapters.propose): the outline of the guide read, a short answer."""
     from . import chapters
 
-    tokens = int(len(chapters.outline(vault_dir).encode("utf-8")) / BYTES_PER_TOKEN)
-    return _usd(model, tokens_in=tokens, tokens_out=CHAPTERS_OUT, table=table)
+    # The outline is given as context, which the engine writes to its cache (20 346 tokens measured for 38 KB)
+    tokens = int(len(chapters.outline(vault_dir).encode("utf-8")) / BYTES_PER_TOKEN * reading.MARGIN)
+    return _usd(model, cache_write=tokens, tokens_out=CHAPTERS_OUT, table=table)
 
 
 # ---------------------------------------------------------------------------

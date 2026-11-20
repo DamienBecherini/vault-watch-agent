@@ -69,19 +69,29 @@ const TEXTS = {
     chapters: {
       title: "Chapitres",
       intro: "L'agent travaille chapitre par chapitre à trois endroits : l'exploration du web (un appel payant par chapitre), le contrôle des traductions (un appel par chapitre) et la lecture du guide quand il ne tient pas dans la fenêtre du modèle. Un chapitre réunit les pages qu'un lecteur consulterait ensemble et qu'une même actualité ferait changer.",
-      now: "Découpage actuel", sourceAuto: "règle automatique", sourceManifest: "déclaré dans le manifeste du guide",
+      now: "1. Le découpage actuel", sourceAuto: "règle automatique", sourceManifest: "déclaré dans le manifeste du guide",
       autoHelp: (big, small) => `Pour les pages qu'aucun chapitre déclaré ne prend, la règle automatique fait un chapitre par dossier de premier niveau, découpe un dossier de plus de ${big} Ko (par sous-dossier, sinon par tranches de pages) et réunit ceux de moins de ${small} Ko.`,
       cols: ["Chapitre", "Pages", "Poids", "Exploré par défaut", "Origine"],
       declared: "manifeste", auto: "automatique", yes: "oui", no: "non", kb: n => `${n} Ko`,
-      change: "Modifier le découpage",
+      change: "2. Préparer un nouveau découpage",
+      changeHelp: "Deux façons, qui se combinent : demander une proposition à un modèle puis l'ajuster à la main, ou tout écrire à la main. Rien n'est enregistré avant l'étape 3.",
       askTitle: "Demander un découpage à un modèle",
       askWhat: "Le modèle lit le plan du guide (chemin, poids, titre et intertitres de chaque page, pas le texte) et propose des chapitres, avec ceux à ne pas explorer par défaut (un lexique, les pages sur le projet). Rien n'est écrit : tu relis et tu ajustes ci-dessous.",
       ask: c => `Proposer un découpage · ${c}`, asking: "Le modèle lit le plan du guide…",
       asked: c => `Proposition reçue (${c}). Relis-la, ajuste-la, puis enregistre.`,
-      byHand: "À la main ou après une proposition", fromNow: "Partir du découpage actuel", add: "Ajouter un chapitre", remove: "Retirer",
+      byHand: "Les chapitres du nouveau découpage", fromNow: "Reprendre le découpage actuel", add: "Ajouter un chapitre", remove: "Retirer",
       name: "Nom", paths: "Chemins, un par ligne : un dossier terminé par /, un motif avec * ou **, ou une page", explore: "exploré par défaut",
       pathsHelp: "Une page va au premier chapitre qui la prend. Les pages qu'aucun chapitre ne prend suivent la règle automatique.",
-      preview: "Voir le résultat", result: "Ce que ça donnerait",
+      result: "3. Vérifier et enregistrer",
+      resultHelp: "Ce tableau se met à jour tout seul à chaque modification de l'étape 2 : il montre les chapitres que ton découpage donnerait, avec leur poids. Rien n'est écrit tant que tu n'as pas cliqué sur le bouton en dessous.",
+      resultEmpty: "Ajoute un chapitre à l'étape 2, ou demande une proposition, pour voir ici ce que ça donne.", updating: "Calcul en cours…",
+      tips: {
+        explore: "Coché : ce chapitre est proposé d'office quand tu lances l'exploration du web (un appel payant par chapitre). Décoché : il reste disponible, mais c'est à toi de le cocher ce jour-là. À décocher pour un lexique ou des pages sur le projet, où le web n'apporte rien de neuf.",
+        paths: "Exemples : 02-materiel/ prend tout le dossier ; 03-stack/*.md les pages placées directement dans ce dossier ; **/faq.md toutes les pages nommées faq.md ; 00-index.md une seule page.",
+        origin: "« manifeste » : un chapitre que tu as déclaré dans le manifeste du guide. « automatique » : un chapitre formé par la règle automatique avec les pages rangées nulle part.",
+        fromNow: "Recopie à l'étape 2 les chapitres du tableau de l'étape 1, pour les ajuster à la main au lieu de partir de zéro. Remplace ce qui est en cours d'édition.",
+        backAuto: "Retire du manifeste tous les chapitres déclarés (par une pull request) : la règle automatique regroupe alors toutes les pages.",
+      },
       save: forge => `Ouvrir la pull request sur ${forge}`, saveLocal: "Créer la branche",
       saveHelp: (manifest, base) => `Le découpage est écrit dans ${manifest}, sur une branche à part ; il s'applique une fois fusionné dans ${base}.`,
       needs: v => `Avant de fusionner : un manifeste qui déclare des chapitres demande l'agent ${v} ou plus récent partout où le guide est lu, y compris le workflow qui collecte sa veille. Un agent plus ancien refuse le manifeste.`,
@@ -287,19 +297,29 @@ const TEXTS = {
     chapters: {
       title: "Chapters",
       intro: "The agent works chapter by chapter in three places: the exploration of the web (one paid call per chapter), the check of the translations (one call per chapter) and the reading of the guide when it does not fit in the model's window. A chapter gathers the pages a reader would look up together and that the same news would change.",
-      now: "Current split", sourceAuto: "automatic rule", sourceManifest: "declared in the guide's manifest",
+      now: "1. The current split", sourceAuto: "automatic rule", sourceManifest: "declared in the guide's manifest",
       autoHelp: (big, small) => `For the pages no declared chapter takes, the automatic rule makes one chapter per top folder, splits a folder heavier than ${big} KB (by subfolder, else in slices of pages) and gathers those lighter than ${small} KB.`,
       cols: ["Chapter", "Pages", "Weight", "Explored by default", "From"],
       declared: "manifest", auto: "automatic", yes: "yes", no: "no", kb: n => `${n} KB`,
-      change: "Change the split",
+      change: "2. Prepare a new split",
+      changeHelp: "Two ways, which combine: ask a model for a proposal then adjust it by hand, or write everything by hand. Nothing is saved before step 3.",
       askTitle: "Ask a model for a split",
       askWhat: "The model reads the outline of the guide (path, weight, title and headings of each page, not the text) and proposes chapters, with those not to explore by default (a glossary, the pages about the project). Nothing is written: you review and adjust below.",
       ask: c => `Propose a split · ${c}`, asking: "The model reads the outline of the guide…",
       asked: c => `Proposal received (${c}). Review it, adjust it, then save.`,
-      byHand: "By hand, or after a proposal", fromNow: "Start from the current split", add: "Add a chapter", remove: "Remove",
+      byHand: "The chapters of the new split", fromNow: "Take the current split", add: "Add a chapter", remove: "Remove",
       name: "Name", paths: "Paths, one per line: a folder ending with /, a pattern with * or **, or a page", explore: "explored by default",
       pathsHelp: "A page goes to the first chapter that takes it. The pages no chapter takes follow the automatic rule.",
-      preview: "See the result", result: "What it would give",
+      result: "3. Check and save",
+      resultHelp: "This table updates by itself after each change of step 2: it shows the chapters your split would give, with their weight. Nothing is written until you click the button below.",
+      resultEmpty: "Add a chapter in step 2, or ask for a proposal, to see here what it gives.", updating: "Computing…",
+      tips: {
+        explore: "Ticked: this chapter is offered by default when you start the exploration of the web (one paid call per chapter). Unticked: it stays available, but you tick it yourself that day. Untick it for a glossary or pages about the project, where the web brings nothing new.",
+        paths: "Examples: 02-hardware/ takes the whole folder; 03-stack/*.md the pages directly in that folder; **/faq.md every page named faq.md; 00-index.md one page.",
+        origin: "« manifest »: a chapter you declared in the guide's manifest. « automatic »: a chapter the automatic rule made with the pages put nowhere.",
+        fromNow: "Copies the chapters of the table of step 1 into step 2, to adjust them by hand instead of starting from nothing. Replaces what is being edited.",
+        backAuto: "Removes every declared chapter from the manifest (through a pull request): the automatic rule then groups all the pages.",
+      },
       save: forge => `Open the pull request on ${forge}`, saveLocal: "Create the branch",
       saveHelp: (manifest, base) => `The split is written to ${manifest}, on a branch of its own; it applies once merged into ${base}.`,
       needs: v => `Before you merge: a manifest that declares chapters needs the agent ${v} or newer wherever the guide is read, the workflow that collects its watch included. An older agent refuses the manifest.`,
@@ -726,13 +746,29 @@ function drawWatches(watches, others) {
 }
 
 // --- The chapters of the guide: seen, proposed by a model, edited by hand, declared in the manifest ---------
-let CH_EDIT = null;   // what is being edited: {rows: [{name, paths, explore}], why: {name: reason}, result, said}
+// A help bubble: a « ? » that says what the thing beside it is, on hover, on keyboard focus and on a tap
+const tip = text => `<button type="button" class="tip" data-tip="${esc(text)}" aria-label="${esc(text)}">?</button>`;
+// The bubble stays inside the window: its width and its place follow where the « ? » is
+const placeTip = e => {
+  const t = e.target instanceof Element ? e.target.closest(".tip") : null;
+  if (!t) return;
+  const zoom = window.textZoom?.get() || 1, room = window.innerWidth / zoom, width = Math.min(360, room - 32);
+  const left = t.getBoundingClientRect().left / zoom;
+  t.style.setProperty("--tip-width", `${width}px`);
+  t.style.setProperty("--tip-left", `${-8 - Math.max(0, left - 8 + width - (room - 16))}px`);
+  t.classList.toggle("below", t.getBoundingClientRect().top / zoom < 170);
+};
+document.addEventListener("pointerover", placeTip);
+document.addEventListener("focusin", placeTip);
+
+let CH_EDIT = null;   // what is being edited: {rows: [{name, paths, explore}], why: {name: reason}, result, error, said, done}
+let chaptersTimer = 0;
 async function viewChapters() {
   await loadSteps();
   const d = await api(`/api/chapters${stepsQuery()}`), C = T.chapters;
   if (!CH_EDIT) CH_EDIT = { rows: d.chapters.filter(c => c.declared).map(c => ({ name: c.name, paths: c.paths, explore: c.explore })), why: {} };
   const E = CH_EDIT;
-  const table = (rows, why) => `<div class="scroll-x"><table class="chapters"><thead><tr>${C.cols.map((c, i) => `<th${i === 1 || i === 2 ? ' class="num"' : ""}>${c}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>
+  const table = (rows, why) => `<div class="scroll-x"><table class="chapters"><thead><tr>${C.cols.map((c, i) => `<th${i === 1 || i === 2 ? ' class="num"' : ""}>${c}${i === 3 ? tip(C.tips.explore) : i === 4 ? tip(C.tips.origin) : ""}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>
       <td><b>${esc(r.name)}</b><div class="muted small">${esc(r.first)}${r.pages > 1 ? ` … ${esc(r.last)}` : ""}</div>${why?.[r.name] ? `<div class="small">${esc(why[r.name])}</div>` : ""}</td>
       <td class="num">${r.pages}</td><td class="num">${C.kb(Math.round(r.kb))}</td>
       <td>${r.explore ? C.yes : `<b>${C.no}</b>`}</td><td class="muted">${r.declared ? C.declared : C.auto}</td></tr>`).join("")}</tbody></table></div>`;
@@ -747,6 +783,7 @@ async function viewChapters() {
     <h2>${C.now} <span class="badge neutral">${d.source === "manifest" ? C.sourceManifest : C.sourceAuto}</span></h2>
     <div class="card">${table(d.chapters)}${notes(d.notes)}<p class="muted small">${C.autoHelp(d.big_kb, d.small_kb)}</p></div>
     <h2>${C.change}</h2>
+    <p class="muted">${C.changeHelp}</p>
     <div class="card check-card"><div class="option-text">
         <div class="header"><b>${C.askTitle}</b> <span class="badge attention">${costOf("chapters", `≈ ${dollars(d.usd)}`)}</span></div>
         <p class="muted small">${C.askWhat}</p>
@@ -757,39 +794,65 @@ async function viewChapters() {
     <div id="rows">${E.rows.map((r, i) => `<div class="card chapter-row" data-row="${i}">
       <div class="chapter-fields">
         <label class="small">${C.name}<input type="text" data-f="name" value="${esc(r.name)}" maxlength="80"></label>
-        <label class="small">${C.paths}<textarea data-f="paths" rows="${Math.min(8, Math.max(2, r.paths.length))}" spellcheck="false">${esc(r.paths.join("\n"))}</textarea></label>
+        <label class="small"><span>${C.paths}${tip(C.tips.paths)}</span><textarea data-f="paths" rows="${Math.min(8, Math.max(2, r.paths.length))}" spellcheck="false">${esc(r.paths.join("\n"))}</textarea></label>
       </div>
       ${E.why[r.name] ? `<p class="muted small">${esc(E.why[r.name])}</p>` : ""}
-      <div class="actions"><label class="small"><input type="checkbox" data-f="explore" ${r.explore ? "checked" : ""}> ${C.explore}</label>
+      <div class="actions"><label class="small"><input type="checkbox" data-f="explore" ${r.explore ? "checked" : ""}> ${C.explore}</label>${tip(C.tips.explore)}
         <span class="spacer"></span><button type="button" class="small-button danger" data-remove="${i}">${C.remove}</button></div>
     </div>`).join("") || `<p class="muted">${C.empty}</p>`}</div>
-    <p class="actions"><button type="button" id="add-row">${C.add}</button><button type="button" id="from-now">${C.fromNow}</button>
-      <span class="spacer"></span><button type="button" class="primary" id="preview"${E.rows.length ? "" : " disabled"}>${C.preview}</button></p>
-    <p class="error-text small" id="edit-error"></p>
-    <div id="result"${E.result ? "" : " hidden"}>${E.result ? `<h2>${C.result}</h2>
-      <div class="card">${table(E.result.chapters, E.why)}${notes(E.result.notes)}
-        <details><summary class="small">${C.toml}</summary><pre class="toml">${esc(E.result.toml)}</pre>
-          <button type="button" class="small-button" id="copy-toml">${C.copy}</button></details></div>
-      <p class="muted small">${d.from_manifest ? C.saveHelp(d.manifest, d.base) : C.noManifest}</p>
-      ${d.from_manifest && E.rows.length ? `<p class="small attention-text">${C.needs(d.needs)}</p>` : ""}
-      <p><button type="button" class="primary" id="save"${canSave ? "" : " disabled"}>${d.has_repo ? C.save(d.forge) : C.saveLocal}</button></p>` : ""}</div>
-    ${d.source === "manifest" ? `<p><button type="button" class="small-button" id="back-auto"${canSave ? "" : " disabled"}>${C.backAuto}</button></p>` : ""}`;
+    <p class="actions"><button type="button" id="add-row">${C.add}</button>
+      <span><button type="button" id="from-now">${C.fromNow}</button>${tip(C.tips.fromNow)}</span></p>
+    <h2>${C.result}</h2>
+    <p class="muted">${C.resultHelp}</p>
+    <div id="result"></div>
+    ${d.source === "manifest" ? `<p><button type="button" class="small-button" id="back-auto"${canSave ? "" : " disabled"}>${C.backAuto}</button>${tip(C.tips.backAuto)}</p>` : ""}`;
   const read = () => [...page.querySelectorAll("[data-row]")].map(row => ({
     name: row.querySelector("[data-f=name]").value.trim(),
     paths: row.querySelector("[data-f=paths]").value.split("\n").map(p => p.trim()).filter(Boolean),
     explore: row.querySelector("[data-f=explore]").checked }));
   const keep = () => { E.rows = read(); };
   const failed = (where, e) => { $(where).textContent = e.message; };
-  // What was typed since the last result: the result no longer says what would be saved
-  $("#rows").oninput = () => { E.result = null; $("#result").hidden = true; };
+  // Step 3 is drawn by itself: what the chapters of step 2 would give, then the button that saves it
+  const drawResult = busy => {
+    const r = E.result;
+    $("#result").innerHTML = !E.rows.length ? `<p class="muted">${C.resultEmpty}</p>`
+      : E.error ? `<p class="error-text" role="status">${esc(E.error)}</p>`
+      : !r ? `<p class="muted" role="status">${C.updating}</p>`
+      : `<div class="card${busy ? " updating" : ""}">${table(r.chapters, E.why)}${notes(r.notes)}
+        <details><summary class="small">${C.toml}</summary><pre class="toml">${esc(r.toml)}</pre>
+          <button type="button" class="small-button" id="copy-toml">${C.copy}</button></details></div>
+      <p class="muted small">${d.from_manifest ? C.saveHelp(d.manifest, d.base) : C.noManifest}</p>
+      ${d.from_manifest ? `<p class="small attention-text">${C.needs(d.needs)}</p>` : ""}
+      <p><button type="button" class="primary" id="save"${canSave && !busy ? "" : " disabled"}>${d.has_repo ? C.save(d.forge) : C.saveLocal}</button>
+        <span class="error-text small" id="save-error"></span></p>`;
+    if ($("#save")) $("#save").onclick = () => save(E.rows, $("#save"));
+    if ($("#copy-toml")) $("#copy-toml").onclick = async () => {
+      try { await navigator.clipboard.writeText(E.result.toml); $("#copy-toml").textContent = C.copied; } catch { /* no clipboard: the text is selectable */ }
+    };
+  };
+  const compute = async () => {   // asked again after each change; an answer that comes after a newer change is dropped
+    const rows = E.rows, asked = JSON.stringify(rows);
+    if (!rows.length) { E.result = null; E.error = ""; drawResult(); return; }
+    try {
+      const result = await api("/api/chapters/preview", { chapters: rows });
+      if (JSON.stringify(E.rows) !== asked) return;
+      E.result = result; E.error = "";
+    } catch (e) {
+      if (JSON.stringify(E.rows) !== asked) return;
+      E.result = null; E.error = e.message;
+    }
+    if (location.hash === "#/chapters") drawResult();
+  };
+  const changed = () => {   // typed: the result follows, half a second after the last key
+    keep();
+    drawResult(true);
+    clearTimeout(chaptersTimer);
+    chaptersTimer = setTimeout(compute, 500);
+  };
+  $("#rows").oninput = changed;
   $("#add-row").onclick = () => { keep(); E.rows.push({ name: "", paths: [], explore: true }); E.result = null; viewChapters(); };
   $("#from-now").onclick = () => { CH_EDIT = { rows: d.chapters.map(c => ({ name: c.name, paths: c.cover, explore: c.explore })), why: {} }; viewChapters(); };
   page.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => { keep(); E.rows.splice(Number(b.dataset.remove), 1); E.result = null; viewChapters(); });
-  $("#preview").onclick = async () => {
-    keep();
-    try { E.result = await api("/api/chapters/preview", { chapters: E.rows }); E.said = ""; viewChapters(); }
-    catch (e) { failed("#edit-error", e); }
-  };
   $("#ask").onclick = async () => {
     const b = $("#ask");
     b.disabled = true;
@@ -807,14 +870,12 @@ async function viewChapters() {
       const done = await api("/api/chapters", { chapters });
       CH_EDIT = { rows: chapters, why: {}, done: true, said: done.pr_url ? `${C.saved} ${extLink(done.pr_url, "pull request ↗")}` : esc(C.savedLocal(done.branch, done.base)) };
       viewChapters();
-    } catch (e) { button.disabled = false; failed("#edit-error", e); }
+    } catch (e) { button.disabled = false; ($("#save-error") || $("#ask-error")).textContent = e.message; }
   };
-  if ($("#save")) $("#save").onclick = () => { keep(); save(E.rows, $("#save")); };
   if ($("#back-auto")) $("#back-auto").onclick = () => save([], $("#back-auto"));
-  if ($("#copy-toml")) $("#copy-toml").onclick = async () => {
-    try { await navigator.clipboard.writeText(E.result.toml); $("#copy-toml").textContent = C.copied; } catch { /* no clipboard: the text is selectable */ }
-  };
   bindSteps(page, () => { keep(); viewChapters(); });
+  drawResult();
+  if (E.rows.length && !E.result && !E.error) compute();
 }
 
 // --- One run ---------------------------------------------------------------------------------------
