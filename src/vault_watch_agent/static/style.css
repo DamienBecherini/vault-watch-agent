@@ -387,8 +387,10 @@ header.compact button.feedback { padding: 5px 7px; } header.compact button.feedb
 #feedback-dialog fieldset { border: 0; padding: 0; margin: 16px 0 0; min-width: 0; }   /* min-width: its choices wrap on a narrow window */ #feedback-dialog legend, label.field { font-weight: 600; padding: 0; margin: 16px 0 6px; display: block; }
 .stars { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; } .stars legend { flex-basis: 100%; }
 .stars label { cursor: pointer; line-height: 1; border-radius: 6px; } .stars input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.stars .star { display: inline-grid; place-items: center; width: 40px; height: 40px; font-size: 30px; color: var(--field-border); }
-.stars .star.on { color: var(--attention); } .stars label:hover .star { color: var(--attention); }
+/* Not chosen: an outline; chosen: a full star (the shape says it, not the colour alone) */
+.stars .star { display: inline-grid; place-items: center; width: 40px; height: 40px; font-size: 30px; color: transparent;
+  -webkit-text-stroke: 1.5px var(--field-border); }
+.stars .star.on, .stars label:hover .star { color: var(--attention); -webkit-text-stroke: 1.5px var(--attention); }
 .stars label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .stars-said { margin: 0 8px; }
 #feedback-dialog textarea { min-height: 120px; } #feedback-dialog .check { margin-top: 12px; font-size: 15px; }
