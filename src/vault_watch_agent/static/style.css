@@ -384,7 +384,7 @@ button.feedback svg { flex: none; fill: none; stroke: currentColor; stroke-width
 button.feedback.quiet { color: inherit; border-color: var(--border); background: transparent; font-weight: 500; padding: 4px 10px; }
 header.compact button.feedback { padding: 5px 7px; } header.compact button.feedback span { display: none; }
 #feedback-dialog { width: min(640px, 94vw); }
-#feedback-dialog fieldset { border: 0; padding: 0; margin: 16px 0 0; } #feedback-dialog legend, label.field { font-weight: 600; padding: 0; margin: 16px 0 6px; display: block; }
+#feedback-dialog fieldset { border: 0; padding: 0; margin: 16px 0 0; min-width: 0; }   /* min-width: its choices wrap on a narrow window */ #feedback-dialog legend, label.field { font-weight: 600; padding: 0; margin: 16px 0 6px; display: block; }
 .stars { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; } .stars legend { flex-basis: 100%; }
 .stars label { cursor: pointer; line-height: 1; border-radius: 6px; } .stars input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .stars .star { display: inline-grid; place-items: center; width: 40px; height: 40px; font-size: 30px; color: var(--field-border); }
