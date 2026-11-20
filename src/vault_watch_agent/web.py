@@ -17,6 +17,7 @@ and the Host header must be local (no DNS rebinding).
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -316,15 +317,58 @@ def create_app(settings: Settings) -> FastAPI:
             return "nothing-applied"
         return "not-published"
 
-    pr_states: dict[str, str] = {}  # merged and closed are final, open is read again
+    # What the forge says, kept so that a page does not wait for it at every display (each question is a call to
+    # `gh` over the network, half a second or more). The state of a pull request: merged and closed are final and
+    # written to the disk (a server just started does not ask again for every past run); open is asked again, at
+    # most once in FORGE_FRESH seconds. The list of the watch issues: kept FORGE_FRESH seconds too. The tests give
+    # their own answers (settings.pr_state, settings.list_issues): nothing is kept then, each call asks.
+    FORGE_FRESH = 20
+    pr_file = settings.home / "pr-states.json"
+    try:
+        pr_states: dict[str, str] = {u: s for u, s in json.loads(pr_file.read_text(encoding="utf-8")).items()
+                                     if s in ("merged", "closed")}
+    except (OSError, ValueError, AttributeError):
+        pr_states = {}
+    pr_asked: dict[str, float] = {}
+
+    def pr_due(url: str) -> bool:
+        if pr_states.get(url) in ("merged", "closed"):
+            return False
+        return settings.pr_state is not None or time.time() - pr_asked.get(url, 0) > FORGE_FRESH
 
     def pr_state(url: str) -> str:
-        if pr_states.get(url) not in ("merged", "closed"):
+        if pr_due(url):
             try:
                 pr_states[url] = (settings.pr_state or gh_pr_state)(url)
             except Exception:  # gh missing or offline: the run still shows as published
                 return ""
-        return pr_states[url]
+            pr_asked[url] = time.time()
+            if pr_states[url] in ("merged", "closed"):
+                try:
+                    settings.home.mkdir(parents=True, exist_ok=True)
+                    write_json(pr_file, {u: s for u, s in pr_states.items() if s in ("merged", "closed")})
+                except OSError:
+                    pass  # asked again after the next start, nothing more
+        return pr_states.get(url, "")
+
+    def warm(names: list[str]) -> None:
+        """Asks the forge at once, side by side, for the pull requests of these runs whose state may have moved: a
+        page that lists ten runs waits for one answer, not ten in a row."""
+        urls = {viewer.get_state(config(t)).values.get("pr_url") for t in names}
+        due = [u for u in urls if u and pr_due(u)]
+        if len(due) > 1:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(pr_state, due))
+
+    listed: dict = {}  # the watches of the forge: {"at": when asked, "found": the list}
+
+    def list_watches() -> list[dict]:
+        src = watch_source()
+        if src.kind != "issue" or settings.list_issues is not None:
+            return src.list()  # files of the machine, or the list of a test: read each time
+        if time.time() - listed.get("at", 0) > FORGE_FRESH:
+            listed.update(found=src.list(), at=time.time())
+        return listed["found"]
 
     def summary(thread: str) -> dict:
         snapshot = viewer.get_state(config(thread))
@@ -551,7 +595,8 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/watches")
     def watches():
-        found, known = watch_source().list(), threads()
+        found, known = list_watches(), threads()
+        warm(known)
         return [{**w, "run": run_of(w, known)} for w in found]
 
     @app.get("/api/runs")
@@ -559,6 +604,7 @@ def create_app(settings: Settings) -> FastAPI:
         """Runs that are not a watch's (fix runs, files of another folder), newest first."""
         src = watch_source()
         mine = {w["thread"] for w in src.list()} if src.kind in ("file", "feeds") else set()
+        warm(threads())
         return [summary(t) for t in threads()
                 if not re.fullmatch(r"issue-\d+[a-z]?", t) and re.sub(r"[a-z]$", "", t) not in mine and t not in mine]
 

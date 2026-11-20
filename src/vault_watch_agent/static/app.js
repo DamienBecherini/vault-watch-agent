@@ -186,7 +186,7 @@ const TEXTS = {
     ideaDeep: "Creuser chaque sujet : un appel par sujet, plus de recherches, plus cher",
     ideaLimit: "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
     steps: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
-      reset: "comme les Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
+      cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
       restUnbilled: "le reste non facturé",
       effort: e => ({ low: "effort faible", medium: "effort moyen", high: "effort élevé", xhigh: "effort très élevé", max: "effort maximal" })[e] || e,
       names: { fix: "Corrections", "fix-translation": "Corrections de traduction", compact: "Allègements", add: "Ajouts", crosscheck: "Relecture croisée", mirror: "Miroirs" },
@@ -374,7 +374,7 @@ const TEXTS = {
     ideaDeep: "Dig into each subject: one call per subject, more searches, more expensive",
     ideaLimit: "Limit: the addition run never writes a new page. It says which ones would be needed.",
     steps: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
-      reset: "as in the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
+      cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
       restUnbilled: "the rest not billed",
       effort: e => ({ low: "low effort", medium: "medium effort", high: "high effort", xhigh: "very high effort", max: "maximum effort" })[e] || e,
       names: { fix: "Corrections", "fix-translation": "Translation fixes", compact: "Trims", add: "Additions", crosscheck: "Cross-check", mirror: "Mirrors" },
@@ -452,14 +452,14 @@ function stepLine(step, name = "") {
   return `<div class="step-line small" data-step-line="${step}">
     <span class="muted">${name ? `${esc(name)}${T.colon}` : ""}${esc(s.engine_label)} · ${esc(s.model || "?")} · ${T.steps.effort(s.effort)}</span>
     ${OWN[step] ? `<span class="badge attention">${T.steps.once}</span>` : ""}
-    ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}">${T.steps.change}</button>`}
+    ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.steps.edit : T.steps.change}">${OWN[step] ? T.steps.edit : T.steps.change}</button>`}
+    ${OWN[step] && !STEPS.forced ? `<button type="button" class="small-button" data-step-reset="${step}">${T.steps.reset}</button>` : ""}
     <span class="step-fields" data-step-fields="${step}" hidden>
       <select data-f="engine" aria-label="${T.steps.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
       <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.steps.modelOfRole)}" aria-label="${T.steps.model}" spellcheck="false">
       <datalist id="models-${step}"></datalist>
       <select data-f="effort" aria-label="${T.steps.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.steps.effort(e)}</option>`).join("")}</select>
       <button type="button" class="small-button" data-step-ok="${step}">${T.steps.apply}</button>
-      ${OWN[step] ? `<button type="button" class="small-button" data-step-reset="${step}">${T.steps.reset}</button>` : ""}
     </span></div>`;
 }
 // The buttons of the lines above, inside `root`; `redraw` draws the screen again once a choice is made
@@ -474,6 +474,7 @@ function bindSteps(root, redraw) {
   root.querySelectorAll("[data-step-edit]").forEach(b => b.onclick = () => {
     const f = fields(b.dataset.stepEdit);
     f.hidden = !f.hidden;
+    b.textContent = f.hidden ? b.dataset.closed : T.steps.cancel;  // the button says what it does now
     if (!f.hidden) models(b.dataset.stepEdit);
   });
   root.querySelectorAll("[data-step-fields]").forEach(f => f.querySelector("[data-f=engine]").onchange = () => {
@@ -549,8 +550,23 @@ async function route() {
 addEventListener("hashchange", route);
 
 // --- Watches ---------------------------------------------------------------------------------------
+let HOME = null;  // the last answer shown on the home page: drawn at once on the way back, then refreshed
 async function viewWatches() {
-  const [watches, others] = await Promise.all([api("/api/watches"), api("/api/runs")]);
+  const load = () => Promise.all([api("/api/watches"), api("/api/runs")]);
+  if (HOME) {
+    drawWatches(...HOME);
+    const shown = JSON.stringify(HOME), at = location.hash;
+    load().then(fresh => {  // still on this page, and something moved: drawn again
+      HOME = fresh;
+      if (location.hash === at && JSON.stringify(fresh) !== shown) drawWatches(...fresh);
+    }).catch(() => {});
+    return;
+  }
+  HOME = await load();
+  drawWatches(...HOME);
+}
+
+function drawWatches(watches, others) {
   page.innerHTML = `
     <h1>${T.watches}</h1>
     <p class="subtitle">${info?.watch_source === "feeds" ? T.collectIntro : T.watchesIntro()}</p>
@@ -583,7 +599,7 @@ async function viewWatches() {
   if (collect) collect.onclick = async () => {
     collect.disabled = true;
     collect.textContent = T.collecting;
-    try { await api("/api/collect", {}); await viewWatches(); }
+    try { await api("/api/collect", {}); HOME = null; await viewWatches(); }
     catch (e) { collect.disabled = false; collect.textContent = T.collectNow; collect.insertAdjacentHTML("afterend", ` <span class="error-text">${esc(e.message)}</span>`); }
   };
   page.querySelectorAll("[data-analyse]").forEach(b => b.onclick = async () => {
@@ -814,7 +830,7 @@ async function viewChecks() {
     ${pending.length ? `<h2>${V.toHandleTitle}</h2>${pending.map(checkCard).join("")}` : ""}
     <details class="new-check"${pending.length ? "" : " open"}><summary><h2>${V.newCheck}</h2></summary>
     ${remaining ? `<p class="attention-text">${V.warning(remaining)}</p>` : ""}
-    ${options.map(o => `<label class="card option">
+    ${options.map(o => `<div class="card check-card"><label class="option">
       <input type="checkbox" data-check="${o.id}" ${(kept ? kept.checks.has(o.id) : !o.model) ? "checked" : ""}>
       <div>
         <div class="header"><b>${esc(o.title[lang])}</b>
@@ -823,10 +839,10 @@ async function viewChecks() {
         <p class="muted small">${esc(o.what[lang])}</p>
         ${o.limit ? `<p class="small attention-text">${esc(o.limit[lang])}</p>` : ""}
         <p class="muted small">${esc(o.note[lang])}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
-      </div></label>${o.model ? `<div class="step-under">${stepLine(o.id)}</div>` : ""}${o.chapters ? `<div class="card chapters" data-chapters-of="${o.id}" hidden>
+      </div></label>${o.model ? `<div class="card-foot">${stepLine(o.id)}</div>` : ""}${o.chapters ? `<div class="card-foot chapters" data-chapters-of="${o.id}" hidden>
         <p class="muted small">${V.chapters(costOf(o.id, `≈ ${dollars(o.usd_chapter || 0)}`))}</p>
         ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" ${!kept || kept.chapters.has(c.id) ? "checked" : ""}> ${esc(c.id)} <span class="muted small">(${c.pages})</span></label>`).join("")}
-      </div>` : ""}`).join("")}
+      </div>` : ""}</div>`).join("")}
     <p><button class="primary" id="start"></button></p>
     </details>
     <h2>${V.history}</h2>

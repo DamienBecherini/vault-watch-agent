@@ -44,6 +44,10 @@ already knows, and what it sets aside as a possible addition is never written. [
   step and how it is paid, with « change for this time ». The choice is kept with the run (`runs/<thread>.json`
   in the guide's working folder), so the steps that come after a pause follow it; the Settings are not touched.
   The estimates follow it. `GET /api/steps` says how each step would run.
+- The home page no longer waits for the forge at every display: the state of a merged or closed pull request is
+  kept on the disk, the open ones and the list of watch issues are asked again at most every 20 seconds and side by
+  side, and the page draws what it showed last before it refreshes. Measured on the IA on-prem guide: 1.7 s for
+  the first display after a start, 15 ms after.
 - Three steps more in the Settings (the leads, the exploration, the additions), each of which can run on a model
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
   The estimates are not measured yet.
