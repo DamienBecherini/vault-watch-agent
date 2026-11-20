@@ -26,6 +26,7 @@ flowchart TB
     graphpy["graph.py<br/><i>le graphe LangGraph</i>"]
     fix["fix.py<br/><i>erreurs signalées → corrections</i>"]
     verify["verify.py<br/><i>vérification à la demande</i>"]
+    compact["compact.py<br/><i>ce qui pèse, les allègements</i>"]
     evaluate["evaluate.py<br/><i>rejeu + juge</i>"]
   end
   subgraph steps["Aides du graphe"]
@@ -46,7 +47,8 @@ flowchart TB
   cli --> graphpy & fix & evaluate
   web --> graphpy & fix & verify
   graphpy --> crosscheck & prompts & quotes
-  verify --> quotes
+  verify --> quotes & compact
+  graphpy --> compact
   steps ==> state & llm & vault & inputs & costs & notify
   llm --> config
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
@@ -68,22 +70,24 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
 | `web.py` | 807 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
-| `graph.py` | 624 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
+| `graph.py` | 655 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
 | `collect.py` | 568 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
 | `llm.py` | 506 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
-| `cli.py` | 436 | `vault-watch init / doctor / run / resume / fix / eval / collect / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
-| `verify.py` | 365 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
-| `guide.py` | 342 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
+| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
+| `verify.py` | 417 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
+| `guide.py` | 352 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
 | `onboard.py` | 335 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
 | `openai_compat.py` | 323 | Le moteur compatible OpenAI (llama.cpp, vLLM, Ollama, un service hébergé) : sortie structurée, boucle des outils web, usage et coût |
-| `vault.py` | 295 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification, balayage des restes |
+| `vault.py` | 353 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
+| `compact.py` | 214 | Compactage : les consignes du rapport, des allègements et de leur relecture croisée ; les notes qu'un allègement laisse sans phrase retirées avec lui, un allègement qui laisserait une phrase citer une note retirée refusé |
 | `crosscheck.py` | 264 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
 | `webtools.py` | 234 | Recherche web (SearXNG) et lecture de pages pour les moteurs sans web propre ; adresses publiques seulement |
 | `forge.py` | 223 | Issues, artefacts et pull requests derrière une interface `Forge` : GitHub (par `gh`) et Gitea (son API REST, un jeton par référence) ; `for_guide` prend celle du manifeste |
 | `config.py` | 185 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
 | `prices.py` | 182 | Le prix d'un modèle et son origine : celui de l'utilisateur, une liste téléchargée, les valeurs par défaut |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
-| `fix.py` | 150 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
+| `sizes.py` | 157 | Le poids de chaque page face à son budget, ses sections les plus lourdes, la croissance du guide lue dans Git ; sans modèle |
+| `fix.py` | 162 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
 | `evaluate.py` | 148 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
 | `watches.py` | 139 | D'où viennent les veilles (`[watch] source`) : issues GitHub, fichiers `watch.json`, collecte de l'agent, aucune |
 | `inputs.py` | 121 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |

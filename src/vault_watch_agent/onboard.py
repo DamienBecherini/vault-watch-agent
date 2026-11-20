@@ -243,6 +243,11 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
                         f"no page matches {', '.join(guide.readonly)} ([content] readonly)"))
     if guide.watch.changes_page:
         out.append(Line("ok", "changes page", f"{guide.watch.changes_page}: every proposal step sees it"))
+    if pages:  # where the guide grew heavy: a warning, never a failure (`vault-watch compact` shows the pages)
+        from . import sizes
+
+        weight = sizes.report(root)
+        out.append(Line("warn" if weight["over"] else "ok", "size", sizes.summary(weight)))
 
     top = _git(root, "rev-parse", "--show-toplevel")
     if not top:

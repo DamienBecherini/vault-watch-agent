@@ -107,10 +107,11 @@ def _by_chapter(text: str, chapter: str) -> str:
     return text.replace("The whole guide is above, one <page> per file.", CHAPTER.format(chapter=chapter), 1)
 
 
-def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: "reading.Plan | None" = None) -> tuple[CrossCheck, dict, list[str]]:
+def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: "reading.Plan | None" = None,
+        system: str = "", web: bool = True) -> tuple[CrossCheck, dict, list[str]]:
     """The cross-check: the whole guide in one call, or chapter by chapter when `plan` says it does not fit."""
     if plan is not None and plan.mode == "chapters":
-        return _run_by_chapter(vault_dir, corrections, llm)
+        return _run_by_chapter(vault_dir, corrections, llm, system or SYSTEM, web)
     listing = "\n\n".join(
         f"<correction id=\"{c['id']}\" page=\"{c['page']}\" severity=\"{c['severity']}\" group=\"{c['group']}\">\n"
         f"<current>\n{c['current']}\n</current>\n<proposed>\n{c['proposed']}\n</proposed>\n"
@@ -118,8 +119,8 @@ def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: "reading.Plan 
         for c in corrections
     )
     result, usage = llm.parse(
-        system=prompts.fill(SYSTEM, vault_dir), prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort=steps.effort("crosscheck"),
-        node="crosscheck", context=_guide(vault_dir), web=True,
+        system=prompts.fill(system or SYSTEM, vault_dir), prompt=f"Proposed corrections:\n\n{listing}", schema=CrossCheck, effort=steps.effort("crosscheck"),
+        node="crosscheck", context=_guide(vault_dir), web=web,
     )
     checks = [vault.check(vault_dir, e.page, e.current) for e in result.consistency_edits]
     return result, usage, checks
@@ -138,7 +139,8 @@ def _listing(corrections: list[dict]) -> str:
     )
 
 
-def _run_by_chapter(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple[CrossCheck, dict, list[str]]:
+def _run_by_chapter(vault_dir: Path, corrections: list[dict], llm: LLM, system: str = SYSTEM,
+                    web: bool = True) -> tuple[CrossCheck, dict, list[str]]:
     """One call per chapter, with that chapter and the pages the corrections change. A correction keeps the verdict
     of the call that holds its page's chapter; the edits and findings of every call are kept, each edit once."""
     touched = sorted({vault_dir / c["page"] for c in corrections if (vault_dir / c["page"]).is_file()})
@@ -149,9 +151,9 @@ def _run_by_chapter(vault_dir: Path, corrections: list[dict], llm: LLM) -> tuple
     for chapter, pages in reading.chapters(vault_dir).items():
         own = {p.relative_to(vault_dir).as_posix() for p in pages}
         result, usage = llm.parse(
-            system=_by_chapter(prompts.fill(SYSTEM, vault_dir), chapter),
+            system=_by_chapter(prompts.fill(system, vault_dir), chapter),
             prompt=f"Proposed corrections:\n\n{_listing(corrections)}", schema=CrossCheck, effort=steps.effort("crosscheck"),
-            node=f"crosscheck {chapter}", context=_guide(vault_dir, sorted(set(pages) | set(touched))), web=True)
+            node=f"crosscheck {chapter}", context=_guide(vault_dir, sorted(set(pages) | set(touched))), web=web)
         usages.append(usage)
         page_of = {c["id"]: c["page"] for c in corrections}
         reviews.update({r.id: r for r in result.reviews if page_of.get(r.id) in own})

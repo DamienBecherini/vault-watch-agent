@@ -53,10 +53,12 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 
 ## Phase E — keep the vault and the sources in shape
 
-- [ ] **E1. Size budget per page, checked in CI** (e.g. 20 KB for a solution sheet, 35 KB for a reference
-  page), warning first.
-- [ ] **E2. Quarterly compaction graph.** Proposes shorter versions of sections over budget and removes
-  advisories fixed more than six months ago below the version floor; human-reviewed diff as always.
+- [x] **E1. Size budget per page** (2026-11-20, `sizes.py`, M6): `[budget] page_kb` and `[budget.pages]` in the
+  manifest (30 KB by default), a warning of `doctor`, of `vault-watch compact` and of the « Size of the pages »
+  check, never a failure. Not checked in CI: a page over its budget is where to look, not an error.
+- [x] **E2. Compaction** (2026-11-20, `compact.py`, M6): a check lists what is repeated, piled-up history or longer
+  than it needs; the findings kept go to a compaction run, reviewed like corrections. On demand rather than on a
+  timer: the size check says when.
 - [x] **E3. Feed coverage audit** (2026-11-19, in « Check the sources »). Every tool with a solution sheet has a release feed and an advisory feed
   (today advisories cover 9 tools out of about 25; Liquid AI, Microsoft, AllenAI, Aleph Alpha are not followed).
 - [ ] **E4. Gap-driven discovery, quarterly.** With the whole vault in context, list what an SME on-prem AI
@@ -78,7 +80,8 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   - [x] **A « watched page » feed type** (2026-11-19, `type: "page"` in `collect.py`, state in the watch's `pages`): a page whose change is an event (a price list the guide cites). The
     Lambda prices of 16 November 2026 were not seen by any feed; the maintainer reported them by hand.
   - [ ] **« Look for what is new »** (E4, then D1 to D4): a run that reads the whole guide and the web and lists
-    what a reader would expect and does not find, the cost announced before.
+    what a reader would expect and does not find, the cost announced before. After the compaction (M6), decided on
+    2026-11-20: this run reads the whole guide and adds to it, so the guide is trimmed first.
 
 ## Phase F — publication and interface
 
@@ -128,7 +131,7 @@ true, the version is tagged, and `main` receives it (work happens on the `dev` b
 | M3. Any watch | 0.5.0 | Get a watch without writing a collector |
 | M4. Any model | 0.6.0 | Run the steps on an OpenAI-compatible model, local ones included |
 | M5. Stable | 1.0.0 | Rely on the manifest and the engine protocol not changing under them |
-| M6. Compaction | 1.1.0 | Keep a guide from growing heavy: redundancies, piled-up history and long sections found and trimmed, reviewed like corrections |
+| M6. Compaction | 1.2.0 | Keep a guide from growing heavy: redundancies, piled-up history and long sections found and trimmed, reviewed like corrections |
 
 ### Decisions to take first
 
@@ -458,7 +461,7 @@ Done 2026-11-18, published as 0.6.0.
 
 Done when: someone who is not the author connects a guide by following the docs alone.
 
-### M6. Compaction (1.1.0)
+### M6. Compaction (1.2.0)
 
 A watch only adds: « since » notes, footnotes stacked on footnotes, one warning copied into three pages, versions
 kept « for the record ». Over months a guide grows heavy without anyone deciding it. Runs of their own, apart from
@@ -480,6 +483,24 @@ and C2 below. After M5: a new function, not a change of format.
 - **T6.4 Replace, do not pile up (C2), at the source.** The proposal step of a watch is told to replace the old
   fact rather than add a « since » note beside it, history staying in Git: less to compact later.
 - **T6.5 Rhythm.** Quarterly or on demand (a « Compact » action in the interface), the cost announced before.
+
+Built on 2026-11-20 (dev), docs in [docs/compact.md](docs/compact.md):
+
+- T6.1: `sizes.py`, `[budget] page_kb` and `[budget.pages]`; `vault-watch compact` (the table), a line of `doctor`,
+  the check « Size of the pages »; the growth over 90 days read from Git. First reading of the IA on-prem guide:
+  129 pages, 891 KB, +56 % in 90 days (572 KB on 22 August 2026), 3 pages over 30 KB, and in almost every heavy
+  page the heaviest section is its references.
+- T6.2: the check « Compaction: what makes the guide heavy » (`compact.REPORT`, run by `verify.py`; from the
+  command line `vault-watch compact --report`): findings « repeated », « history », « long », each with its
+  passages; findings about read-only pages alone are left out.
+- T6.3: a compaction run (`compact.propose`, mode `compact` of the graph; `vault-watch fix … --compact`): trims
+  as corrections, a cross-check written for them (nothing lost, still readable), no web, no sweep. The code
+  removes the note a trim leaves without a sentence, refuses a trim that leaves a sentence citing a removed note,
+  removes a passage whole without leaving a hole, and lists under each trim the values no page states any more.
+- T6.4: done in 1.0.1 (C2).
+- T6.5: on demand, from « Check the guide », with its estimate; the size check says when.
+
+Still to do before the release: the real report and a real compaction run on the IA on-prem guide (billed).
 
 Done when: a compaction run on the IA on-prem guide (several months of watches) gives a report the editor finds
 right, and the trims chosen from it are merged with the guide's checks passing. Try it there first: the

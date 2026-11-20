@@ -1,0 +1,214 @@
+"""Compaction: keep a guide from growing heavy.
+
+A watch only adds: « since » notes, footnotes stacked on footnotes, one warning copied into three pages, versions
+kept « for the record ». Compaction is a run of its own, apart from the watches, in three parts:
+
+1. the sizes (`sizes.py`, no model): each page against its budget, where the weight is;
+2. the report (`REPORT`, one call that reads the whole guide, run as a check of `verify.py`): what is repeated,
+   what is piled-up history, which sections are longer than what they say. It edits nothing;
+3. the trims (`propose`): for the findings the editor keeps, targeted edits (current text, proposed text, reason),
+   which enter the graph like the corrections of a fix run: cross-check (`CROSSCHECK`: nothing lost), review,
+   mirrors, the guide's audits, pull request.
+
+What the code checks itself, because a model must not be trusted with it: a note left without a sentence citing
+it is removed with the trim (`with_orphan_notes`), a trim that would leave a sentence citing a removed note is
+refused (`mark_dangling`), and each trim lists the values that no page states any more once it applies
+(`vault.lost`).
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+from . import fix, quotes, steps, vault
+from .llm import LLM
+
+REPORT = """You look for what makes <<GUIDE>> heavier than it needs to be. The whole guide is above, one <page> per
+file. A guide kept up to date by a watch only grows: notes are added beside older ones, the same warning is copied
+into several pages, superseded versions stay « for the record ». List what a careful editor would trim, the
+heaviest first:
+- repeated: the same fact, explanation, warning or table stated at length in several pages. Say in `keep_in` which
+  page should keep the full statement (the page whose subject it is); the others shorten it and link there. A short
+  reminder that links to the full statement is not a repetition, and neither is a figure two pages both need.
+- history: what is superseded and still stands beside the current fact: successive « since » or « previously »
+  notes, versions or prices kept for the record, advisories fixed long ago in versions below the minimum the guide
+  now requires, « new in » remarks about releases that are no longer new.
+- long: a section that takes much more room than what it says needs. Say what makes it long (an introduction that
+  restates the page, a list that repeats the table beside it, examples that add nothing). The heaviest pages are
+  listed below with their heaviest sections: look there first.
+Do not report an error of fact or a contradiction (another check does), style, or a missing topic. Never propose
+to remove the only statement of a fact, a caveat or a source. Skip what would save less than a sentence or two.
+Each finding names the pages, quotes the passages, and says what to trim and where the reader still finds the
+information, so that someone who has not read the guide can act on it. Write the findings in English."""
+
+EXCERPTS = ("\nIn `excerpts`, copy each passage in question verbatim from its page (one sentence or one table row; "
+            "for a repetition, one from each page): the reviewer reads it without opening the page.")
+
+KINDS = {"repeated": "Repeated", "history": "History", "long": "Long"}
+
+
+class Trim(BaseModel):
+    kind: Literal["repeated", "history", "long"]
+    pages: list[str] = Field(description="Vault-relative paths of the pages concerned; for a repetition, every page "
+                             "that states it, the one that keeps it included.")
+    problem: str = Field(description="One self-contained line, in English: what weighs, quoting the passages, what "
+                         "to trim and where the reader still finds the information.")
+    keep_in: str = Field(default="", description="For a repetition: the page that keeps the full statement.")
+    excerpts: list[quotes.Quote] = Field(default_factory=list)
+
+
+class Trims(BaseModel):
+    findings: list[Trim]
+
+
+def line(t: Trim) -> str:
+    """A finding as the one line the editor keeps, dismisses or sends to a compaction run."""
+    keep = f" Keep the full statement in {t.keep_in}." if t.keep_in and t.keep_in not in t.problem else ""
+    return f"[{KINDS[t.kind]}] {', '.join(t.pages)}: {t.problem}{keep}"
+
+
+PROPOSE = """You trim <<GUIDE>> so that it weighs less without saying less. The whole guide is above, one <page> per
+file. Each finding (F1…) names something that makes the guide heavy: the same fact stated at length in several
+pages, history piled up beside the current fact, a section longer than what it says needs.
+
+For each one:
+- Check it against the guide above. If it is wrong, or the passage is needed where it is (a page a reader lands on
+  directly must still tell them what they need to act), give an outcome with no_change_reason.
+- Otherwise propose targeted edits, never a page or a section rewritten whole:
+  - a repetition: the page the finding names keeps the full statement, with its source and footnote; in the other
+    pages, shorten the passage to what that page needs and link to the page that keeps it, written the way the
+    guide links its pages. Do not remove a repetition without leaving that link, unless the text around already
+    links there.
+  - piled-up history: state the current fact and remove what is superseded (« previously » and « since » notes,
+    versions kept for the record, advisories fixed long ago in versions below the minimum the guide now requires).
+    Keep an old value only when the reader needs it to act (a version below which a flaw applies, a migration from
+    the old behaviour).
+  - a long section: remove what repeats, restates the page or duplicates the table beside it; keep every fact,
+    figure, caveat and source.
+- Never remove the only statement of a fact, a figure, a caveat or a source. Move it (two edits with the same
+  `group`: one removes it here, the other adds it where it belongs) or leave it.
+- Footnotes: when an edit removes the last sentence that cites a note, the program removes that note's definition
+  itself; never leave a sentence citing a note you remove. A fact that moves to another page takes its note with
+  it, defined there under a marker that page does not use yet.
+- No new fact and no rewording for style: every `proposed` says the same as its `current`, or less.
+
+`current` is copied verbatim from one page and occurs once in it: a sentence, a list item, a table row or a short
+paragraph (several edits for a longer passage). `proposed` replaces it, in <<LANG>> and in the page's style; leave
+it empty to remove `current` whole. `item_ids` lists the findings the edit answers. `source_url` is the path of the
+page where the reader still finds the information (the edited page itself for history and length). `severity` is
+Minor. `rationale` says in one line what goes and where the reader still finds it. Edits that only make sense
+together share a `group` label. One outcome per finding."""
+
+CROSSCHECK = """You review trims proposed for <<GUIDE>>.
+The whole guide is above, one <page> per file. Each trim removes or shortens a passage so that the guide weighs
+less without saying less. For each one, judge it against the guide:
+- nothing lost: every fact, figure, caveat and source the removed text carried is still stated once all the trims
+  apply (in the page its rationale names), or was history a reader no longer needs to act. Two trims must not
+  remove both statements of the same thing.
+- still readable: the page reads on at that place (no sentence left pointing at what is gone, no list or table left
+  broken, no heading left without content), and a link that replaces a repetition points to a page that exists,
+  written like the guide's other links.
+- worth it: the page is lighter and no less useful to a reader who lands on it directly.
+
+Verdict keep, revise (give the full revised <<LANG>> text that would replace `current`) or reject. Reject a trim
+that removes the only statement of something a reader needs; revise one that is right but cuts a word too many
+or leaves a broken sentence.
+Then list the other passages that must change so the guide stays consistent once the trims apply (a sentence that
+refers to the removed section, a summary that announces it). Quote `current` verbatim from one page, short, give
+the <<LANG>> replacement in the page's own style, and put in `related_to` the ids of the trims that require it. Only
+list what the trims make wrong, not other improvements. The program removes by itself the definition of a note no
+sentence cites any more: do not list it. Finally, note in one line each any contradiction or factual doubt you
+noticed elsewhere in the guide while reading, without proposing a fix, and copy the passages in question verbatim
+into its `excerpts`."""
+
+
+def propose(vault_dir: Path, findings: list[str], llm: LLM,
+            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
+    """The trims for the findings the editor kept: same output as `fix.propose`, without the web (everything a trim
+    needs is in the guide)."""
+    return fix.propose(vault_dir, findings, llm, system=PROPOSE, effort=steps.effort("compact"), web=False,
+                       node="compact", excerpts=excerpts, what=("Findings", "finding"))
+
+
+# -- what the code checks itself: footnotes ------------------------------------------------------------------
+NOTE_DEF = re.compile(r"^\[\^([^\]]+)\]:", re.M)
+
+
+def _notes(text: str) -> tuple[set[str], set[str]]:
+    """(the notes cited in the text, the notes defined in it)."""
+    return set(vault._FOOTNOTE_MARK.findall(text)), set(NOTE_DEF.findall(text))
+
+
+def _by_group(vault_dir: Path, corrections: list[dict]) -> dict[tuple[str, str], list[dict]]:
+    """The valid edits of the source pages, per (group, page): a group is applied whole."""
+    out: dict[tuple[str, str], list[dict]] = {}
+    for c in corrections:
+        if c["check"] == "ok" and not vault.in_mirror(vault_dir, c["page"]):
+            out.setdefault((c.get("group") or c["id"], c["page"]), []).append(c)
+    return out
+
+
+def _both(vault_dir: Path, page: str, edits: list[dict]) -> tuple[str, str]:
+    """The page as it is, and as it would be with `edits` applied."""
+    before = vault.read(vault_dir / page).replace("\r\n", "\n")
+    after = before
+    for c in edits:
+        after = vault.replaced(after, c["current"], c["proposed"])
+    return before, after
+
+
+def _definition(text: str, note: str) -> str:
+    """The definition of a note as it is in the page: its line and the indented lines that continue it."""
+    m = re.search(rf"^\[\^{re.escape(note)}\]:.*(?:\n(?:    |\t).*)*", text, re.M)
+    return m.group(0) if m else ""
+
+
+def with_orphan_notes(vault_dir: Path, corrections: list[dict]) -> list[dict]:
+    """The corrections, plus the removal of each note definition that a group leaves without a sentence citing it
+    (in the same group: accepted or refused with the trim that orphans it). Seen per group: a note that two groups
+    orphan together stays, which is harmless."""
+    out = list(corrections)
+    n = len(out)
+    handled = {(c["page"], note) for c in out for note in NOTE_DEF.findall(c["current"])}
+    for (group, page), edits in _by_group(vault_dir, corrections).items():
+        before, after = _both(vault_dir, page, edits)
+        (cited_b, defined_b), (cited_a, defined_a) = _notes(before), _notes(after)
+        for note in sorted((defined_a - cited_a) - (defined_b - cited_b)):
+            current = _definition(after, note)
+            if not current or (page, note) in handled:
+                continue
+            handled.add((page, note))
+            n += 1
+            ref = edits[0]
+            out.append({
+                "id": f"C{n}", "item_id": ref["item_id"], "item_ids": ref["item_ids"], "proposal": ref["proposal"],
+                "page": page, "current": current, "proposed": "", "source_url": ref["source_url"],
+                "severity": "Minor", "group": group, "check": vault.check(vault_dir, page, current),
+                "rationale": f"Note [^{note}] is no longer cited once {', '.join(c['id'] for c in edits)} "
+                             f"{'applies' if len(edits) == 1 else 'apply'}.",
+                "review": "added by the program: a note no sentence cites any more", "auto": True,
+            })
+    return out
+
+
+def mark_dangling(vault_dir: Path, corrections: list[dict]) -> None:
+    """Refuse the edits of a group that would leave a sentence citing a note whose definition is gone."""
+    for (_, page), edits in _by_group(vault_dir, corrections).items():
+        before, after = _both(vault_dir, page, edits)
+        (cited_b, defined_b), (cited_a, defined_a) = _notes(before), _notes(after)
+        dangling = (cited_a - defined_a) - (cited_b - defined_b)
+        if not dangling:
+            continue
+        guilty = [c for c in edits if set(NOTE_DEF.findall(c["current"])) & dangling] or edits
+        for c in guilty:
+            c["check"] = "leaves " + ", ".join(f"[^{n}]" for n in sorted(dangling)) + " cited without its note"
+
+
+def weight(vault_dir: Path, pages: list[str]) -> int:
+    """Bytes of the given pages (line breaks as \\n), for the pull request: what the trims saved."""
+    return sum(len(vault.read(vault_dir / p).replace("\r\n", "\n").encode("utf-8")) for p in pages
+               if (vault_dir / p).is_file())

@@ -17,7 +17,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import crosscheck, forge, inputs, prompts, quotes, reading, steps, vault
+from . import compact, crosscheck, forge, inputs, prompts, quotes, reading, steps, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -158,7 +158,10 @@ def build(deps: Deps, checkpointer=None):
         for c in corrections:
             key = f"{c['proposal']}/{c['group']}" if c.get("group") else c["id"]
             c["group"] = first.setdefault(key, c["id"])
-        mark_conflicts(deps.vault, corrections)
+        trims = state.get("mode") == "compact"
+        if trims:  # a note the trims leave without a sentence citing it goes with them
+            corrections = compact.with_orphan_notes(deps.vault, corrections)
+        mark_conflicts(deps.vault, corrections, trims)
         return {"corrections": corrections}
 
     # -- crosscheck: every correction re-read against the whole French vault -----
@@ -167,6 +170,17 @@ def build(deps: Deps, checkpointer=None):
         if not deps.crosscheck or not corrections or state.get("mode") == "translation":
             return {}
         plan = reading.plan(deps.vault, deps.llm)  # the whole guide in one call, or chapter by chapter
+        if state.get("mode") == "compact":
+            # Trims: judged on what they lose, without the web; no sweep (a repetition removed leaves its values
+            # elsewhere on purpose), and the notes the revised trims orphan are removed with them
+            corrections = [c for c in corrections if not c.get("auto")]  # the program's own removals: computed again below
+            result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm, plan,
+                                                   system=compact.CROSSCHECK, web=False)
+            amended = compact.with_orphan_notes(deps.vault, crosscheck.amend(corrections, result, checks))
+            mark_conflicts(deps.vault, amended, True)
+            findings, excerpts = crosscheck.noticed(deps.vault, result)
+            return {"corrections": amended, "findings": findings, "finding_excerpts": excerpts, "usage": [usage],
+                    "leftovers": [], "reading": plan.summary()}
         result, usage, checks = crosscheck.run(deps.vault, corrections, deps.llm, plan)
         amended = crosscheck.amend(corrections, result, checks)
         mark_conflicts(deps.vault, amended)
@@ -191,7 +205,10 @@ def build(deps: Deps, checkpointer=None):
         path = deps.home / "reports" / name
         path.parent.mkdir(parents=True, exist_ok=True)
         corrections = state.get("corrections", [])
-        if state.get("mode") != "translation":
+        if state.get("mode") == "compact":  # what each trim removes that no page states any more
+            gone = vault.lost(deps.vault, corrections)
+            corrections = [{**c, "lost": gone.get(c["id"], [])} for c in corrections]
+        elif state.get("mode") != "translation":
             unsourced = vault.unsourced_versions(deps.vault, corrections)
             corrections = [{**c, "warning": unsourced.get(c["id"], "")} for c in corrections]
         path.write_text(render_report(state, sorted_proposals(state), corrections), encoding="utf-8")
@@ -238,10 +255,12 @@ def build(deps: Deps, checkpointer=None):
             with vault._GIT:  # not while another run syncs main or resets the reading copy
                 git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
         chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
+        pages = sorted({c["page"] for c in chosen})
+        before = compact.weight(worktree, pages)
         for c in chosen:
             if not vault.date_bump_only(c["current"], c["proposed"], vault.guide_of(worktree).modified_field):  # apply bumps it
                 vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
-        pages = sorted({c["page"] for c in chosen})
+        weight = {"before": before, "after": compact.weight(worktree, pages)}  # what the edits weigh (shown for trims)
         floors = vault.guide_of(worktree).version_floors
         if floors and (worktree / floors.script).is_file():
             try:  # the guide's own script follows the minimum versions its pages now state
@@ -253,7 +272,7 @@ def build(deps: Deps, checkpointer=None):
         summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
         git("commit", "-m", pr_title(state),
             "-m", summary, cwd=worktree)
-        return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen]}
+        return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen], "weight": weight}
 
     # -- mirror (the pages of each mirror of the manifest follow the edits of the source) ---------------
     def mirror(state: WatchState) -> dict:
@@ -274,6 +293,9 @@ def build(deps: Deps, checkpointer=None):
             )
             prompt = (f"Page `{en}` of the {language_name(code)} mirror:\n\n<mirror_page>\n{vault.read(wt / en)}\n"
                       f"</mirror_page>\n\nEdits of the {language_name(guide.language)} page:\n\n{edits}")
+            if any(not c["proposed"].strip() for c in chosen if c["page"] == page):  # a trim that removes a passage
+                prompt += ("\n\nAn edit whose new text is empty removes the passage: give the matching passage of the "
+                           "mirror page as `current` and leave `proposed` empty.")
             result, u = translator.parse(
                 system=prompts.mirror(wt, code), prompt=prompt, schema=MirrorResult, effort=steps.effort("mirror"),
                 node=f"mirror {en}",
@@ -440,9 +462,10 @@ def clusters(evidence: dict[str, list[dict]], terms: dict[str, list[str]] | None
 FOOTNOTE_DEF = re.compile(r"^\[\^([^\]]+)\]:", re.M)
 
 
-def mark_unsafe(corrections: list[dict]) -> None:
+def mark_unsafe(corrections: list[dict], trims: bool = False) -> None:
     """Refuse an edit that changes nothing, or that deletes a footnote definition its group does not put back
-    elsewhere (a "move" done as a deletion left a dangling [^11] in fix-2026-11-08-6)."""
+    elsewhere (a "move" done as a deletion left a dangling [^11] in fix-2026-11-08-6). `trims`: a compaction run
+    removes definitions on purpose; what it must not do is checked on the page itself (compact.mark_dangling)."""
     added: dict[str, set[str]] = {}
     for c in corrections:
         added.setdefault(c.get("group") or c["id"], set()).update(FOOTNOTE_DEF.findall(c["proposed"]))
@@ -452,14 +475,16 @@ def mark_unsafe(corrections: list[dict]) -> None:
         if c["current"].strip() == c["proposed"].strip():
             c["check"] = "no change"
             continue
-        lost = set(FOOTNOTE_DEF.findall(c["current"])) - added[c.get("group") or c["id"]]
+        lost = set() if trims else set(FOOTNOTE_DEF.findall(c["current"])) - added[c.get("group") or c["id"]]
         if lost:
             c["check"] = "drops footnote " + ", ".join(f"[^{n}]" for n in sorted(lost))
 
 
-def mark_conflicts(vault_dir: Path, corrections: list[dict]) -> None:
+def mark_conflicts(vault_dir: Path, corrections: list[dict], trims: bool = False) -> None:
     """Two corrections that edit overlapping text of a page cannot both apply: the later one is refused."""
-    mark_unsafe(corrections)
+    mark_unsafe(corrections, trims)
+    if trims:
+        compact.mark_dangling(vault_dir, corrections)
     spans: dict[str, list[tuple[int, int, str]]] = {}
     for c in corrections:
         if c["check"] != "ok":
@@ -520,6 +545,7 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
             "",
             *([f"Cross-check: {c['review']}", ""] if c.get("review") else []),
             *([f"⚠️ Source: {c['warning']}.", ""] if c.get("warning") else []),
+            *([f"⚠️ No page states any more: {', '.join(c['lost'])}.", ""] if c.get("lost") else []),
             "Current:",
             "",
             *[f"> {line}" for line in c["current"].splitlines()],
@@ -600,11 +626,16 @@ def pr_body(state: WatchState) -> str:
     reported = [i for i in state.get("items", []) if i.get("domain") == "fix" and i["id"] in used]
     errors = "".join(f"- {i['id']}: {i['title']}\n" + "".join(f"{line}\n" for line in quotes.markdown(i.get("excerpts", [])))
                      for i in reported)
+    trims = state.get("mode") == "compact"
+    w = state.get("weight") or {}
+    saved = (f"The pages changed weigh {w['before'] / 1024:.1f} KB before and {w['after'] / 1024:.1f} KB after "
+             f"({(w['after'] - w['before']) / 1024:+.1f} KB), mirrors not counted.\n\n" if trims and w.get("before") else "")
     return (
-        f"Corrections from {state['source']}, reviewed before apply.\n\n"
-        "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
+        (f"Trims of {state['source']}, reviewed before apply: the guide weighs less and says no less.\n\n{saved}" if trims else
+         f"Corrections from {state['source']}, reviewed before apply.\n\n")
+        + "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
-        + (f"Reported errors:\n\n{errors}\n" if errors else "")
+        + (f"{'What weighed' if trims else 'Reported errors'}:\n\n{errors}\n" if errors else "")
         + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
             state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
         f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"

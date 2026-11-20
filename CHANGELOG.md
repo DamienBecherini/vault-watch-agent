@@ -3,6 +3,30 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 1.2.0 (not released)
+
+Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-prem guide went from 572 KB to
+891 KB in 90 days. [docs/compact.md](docs/compact.md).
+
+- Sizes (`sizes.py`, no model): each page against its budget, its heaviest sections, what its footnotes weigh, and
+  what the guide gained in 90 days, read from Git. The budget is `[budget] page_kb` in the manifest (30 KB by
+  default) and `[budget.pages]` for the pages of a folder: two optional keys, an addition to schema 1. Shown by
+  `vault-watch compact`, by a line of `doctor` and by the check « Size of the pages »; a page over its budget is a
+  warning, never a failure, and a read-only page is never flagged.
+- The report: the check « Compaction: what makes the guide heavy » of « Check the guide » (or
+  `vault-watch compact --report`, which says its cost and asks first). One call reads the whole guide, with its
+  heaviest pages named, and lists what is repeated in several pages (and which page should keep it), what is
+  piled-up history, and which sections are longer than what they say. It edits nothing.
+- The trims: the findings kept go to a compaction run (`vault-watch fix <thread> --findings … --compact`), which
+  proposes targeted edits and takes the path of any run: a cross-check written for trims (is anything lost, does
+  the page still read on), the review, the mirrors, the guide's audits, the pull request, on a branch
+  `compact/<thread>`. No web, no sweep. The pull request says what the changed pages weighed before and after.
+- What the code checks itself: a passage removed whole leaves no hole (a table keeps its rows, a paragraph does not
+  leave two blank lines; this holds for every run); the definition of a note that a trim leaves without a sentence
+  citing it is removed with it; a trim that would leave a sentence citing a removed note cannot be applied; and
+  each trim lists the versions, advisory ids, amounts and links that no page states any more once the trims apply.
+- Two steps more in the Settings (the report, the trims), with their effort.
+
 ## 1.1.0 (2026-11-19)
 
 The sources of the watch, questioned over time: what each one brings (1.0.1), whether it is still there and still

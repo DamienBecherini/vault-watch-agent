@@ -39,7 +39,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
-from . import costs, fix, forge, inputs, llm, prices, sourcecheck, sources, steps, vault, verify
+from . import compact, costs, fix, forge, inputs, llm, prices, sourcecheck, sources, steps, vault, verify
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
 
@@ -121,7 +121,8 @@ class Publish(BaseModel):
 class Report(BaseModel):
     text: str  # one reported error per line
     verification: str | None = None  # the check these findings come from, to mark them as sent
-    mode: Literal["fix", "translation"] = "fix"  # translation: fix the English pages against the French ones
+    # translation: fix the mirror pages against the source ones; compact: trims for what weighs (compact.py)
+    mode: Literal["fix", "translation", "compact"] = "fix"
 
 
 class Handle(BaseModel):
@@ -531,6 +532,7 @@ def create_app(settings: Settings) -> FastAPI:
             "finding_excerpts": v.get("finding_excerpts", {}),
             "leftovers": v.get("leftovers", []),
             "reading": v.get("reading"),  # whole guide or by chapter (reading.Plan.summary)
+            "mode": v.get("mode", ""), "weight": v.get("weight"),  # a compaction run: what the trims saved
             "claims_due": v.get("claims_due", []),
             "usage": usage_line(v.get("usage", [])),
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
@@ -629,7 +631,7 @@ def create_app(settings: Settings) -> FastAPI:
         if not findings:
             raise HTTPException(400, "no error reported")
         existing = set(threads()) | set(jobs)  # a run just started has no checkpoint yet
-        base = f"fix-{date.today().isoformat()}"
+        base = f"{'compact' if body.mode == 'compact' else 'fix'}-{date.today().isoformat()}"
         thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100))) if t not in existing)
         # Findings of a check keep the passages found when it ran; a line typed by hand has none
         excerpts = {}
@@ -644,6 +646,9 @@ def create_app(settings: Settings) -> FastAPI:
                 items, proposal, usage = fix.propose_translation(guide, findings, deps.translator or deps.llm,
                                                                  excerpts)
                 label = "translation divergences reported in the interface"
+            elif body.mode == "compact":
+                items, proposal, usage = compact.propose(guide, findings, deps.llm, excerpts)
+                label = thread
             else:
                 items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
                 label = "errors reported in the interface"

@@ -277,16 +277,74 @@ def _reading_copy(vault: Path, home: Path, base: str) -> Path:
     return copy
 
 
+def replaced(text: str, current: str, proposed: str) -> str:
+    """`text` (line breaks as \\n) with `current` replaced by `proposed`. An empty `proposed` removes the passage
+    cleanly: lines removed whole go with their line break (a table keeps its rows together, a list its items), a
+    paragraph removed whole does not leave two blank lines, a sentence removed inside a line no double space."""
+    current, proposed = current.replace("\r\n", "\n"), proposed.replace("\r\n", "\n")
+    if proposed.strip():
+        return text.replace(current, proposed)
+    start = text.find(current)
+    if start < 0:
+        return text
+    end = start + len(current)
+    before, after = text[:start], text[end:]
+    if (not before or before.endswith("\n")) and (not after or after.startswith("\n")):
+        after = after[1:]  # whole lines: their line break goes too
+        if before.endswith("\n\n") and after.startswith("\n"):
+            after = after[1:]
+    elif before.endswith(" ") and after.startswith(" "):
+        after = after[1:]
+    return before + after
+
+
+_FULL_VERSION = re.compile(r"(?<![\w.])v?(\d+(?:\.\d+)+)(?:\.x|rc\d+)?(?!\w)")
+_URL = re.compile(r"https?://[^\s<>\[\]()\"'|]+")
+_ADVISORY = re.compile(r"\b(?:CVE-\d{4}-\d{3,}|GHSA(?:-[0-9a-z]{4}){3})\b")
+_AMOUNT = re.compile(r"(?<![\w.,])(\d+(?:[.,]\d+)?)\s?(%|€|\$|k€|M€|[GMTk]o|[GMTK]i?B|k?Wh?|ms|tokens?/s|tok/s|t/s)(?!\w)")
+
+
+def _facts(text: str) -> set[str]:
+    """What a passage states that can be looked for elsewhere: versions (whole: 0.33.1 is not 0.33.0), advisory
+    ids, URLs, amounts with their unit (« 3,19 $ », « 48 Go »), package variants and flags."""
+    return ({m[1] for m in _FULL_VERSION.finditer(text)} | set(_ADVISORY.findall(text))
+            | {u.rstrip(".,;:") for u in _URL.findall(text)} | {f"{n} {unit}" for n, unit in _AMOUNT.findall(text)}
+            | set(_IDENTIFIER.findall(text)) | set(_FLAG.findall(text)))
+
+
+def lost(vault: Path, corrections: list[dict]) -> dict[str, list[str]]:
+    """Per correction, the values it removes (in its `current`, not in its `proposed`) that no page of the guide
+    states any more once every valid correction applies. For a trim: a repetition removed leaves the value in the
+    page that keeps it, and is not listed; the only statement of a version, a price or a source is. A signal for
+    the reviewer, not a refusal: history is removed on purpose."""
+    valid = _valid_source(vault, corrections)
+    by_page: dict[str, list[dict]] = {}
+    for c in valid:
+        by_page.setdefault(c["page"], []).append(c)
+    kept: set[str] = set()
+    for path in french_pages(vault):
+        text = read(path).replace("\r\n", "\n")
+        for c in by_page.get(path.relative_to(vault).as_posix(), []):
+            text = replaced(text, c["current"], c["proposed"])
+        kept |= _facts(text)
+    out = {}
+    for c in valid:
+        gone = sorted(_facts(c["current"]) - _facts(c["proposed"]) - kept)
+        if gone:
+            out[c["id"]] = gone
+    return out
+
+
 def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> None:
     """Replace the single occurrence and bump the modified date of the front matter (the manifest's
-    `modified_field`; none when the guide has no such field)."""
+    `modified_field`; none when the guide has no such field). An empty `proposed` removes the passage (`replaced`)."""
     path = vault / page
     text = read(path)
     crlf = "\r\n" in text
     text = text.replace("\r\n", "\n")
     if text.count(current) != 1:
         raise ValueError(f"{page}: the quoted text is no longer unique or present")
-    text = text.replace(current, proposed)
+    text = replaced(text, current, proposed)
     fm = FRONTMATTER.match(text)
     field = guide_of(vault).modified_field
     if fm and field and _date_line(field).search(fm.group(0)):

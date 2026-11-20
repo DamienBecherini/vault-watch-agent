@@ -26,6 +26,7 @@ flowchart TB
     graphpy["graph.py<br/><i>the LangGraph graph</i>"]
     fix["fix.py<br/><i>reported errors → corrections</i>"]
     verify["verify.py<br/><i>on-demand check</i>"]
+    compact["compact.py<br/><i>what weighs, the trims</i>"]
     evaluate["evaluate.py<br/><i>replay + judge</i>"]
   end
   subgraph steps["Graph helpers"]
@@ -46,7 +47,8 @@ flowchart TB
   cli --> graphpy & fix & evaluate
   web --> graphpy & fix & verify
   graphpy --> crosscheck & prompts & quotes
-  verify --> quotes
+  verify --> quotes & compact
+  graphpy --> compact
   steps ==> state & llm & vault & inputs & costs & notify
   llm --> config
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
@@ -67,22 +69,24 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | Module | Lines | Role |
 | :-- | --: | :-- |
 | `web.py` | 807 | `create_app(settings)`: REST routes, server-sent events, background jobs, the user's settings, the notices of the page, the static page |
-| `graph.py` | 624 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
+| `graph.py` | 655 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
 | `collect.py` | 568 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
 | `llm.py` | 506 | The engines (API, Claude Code on a subscription, the OpenAI-compatible one, and those of other packages, `EngineKind`, protocol 1): structured output, prompt caching, web search and fetch, capabilities, cost journal |
-| `cli.py` | 436 | `vault-watch init / doctor / run / resume / fix / eval / collect / prices / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
-| `verify.py` | 365 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
-| `guide.py` | 342 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
+| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / prices / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
+| `verify.py` | 417 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
+| `guide.py` | 352 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
 | `onboard.py` | 335 | `init` (a manifest from what a repository shows) and `doctor` (what will run, what is missing) |
 | `openai_compat.py` | 323 | The OpenAI-compatible engine (llama.cpp, vLLM, Ollama, a hosted service): structured output, the web tools loop, usage and cost |
-| `vault.py` | 295 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit, leftovers sweep |
+| `vault.py` | 353 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit (a passage removed whole leaves no hole), leftovers sweep, the values no page states any more |
+| `compact.py` | 214 | Compaction: the prompts of the report, of the trims and of their cross-check; the notes a trim orphans removed with it, a trim that would leave a sentence citing a removed note refused |
 | `crosscheck.py` | 264 | Second reading of the corrections with the whole guide cached in context (or chapter by chapter), then the sweep |
 | `webtools.py` | 234 | Web search (SearXNG) and page reading for the engines without a web of their own; public addresses only |
 | `forge.py` | 223 | Issues, artifacts and pull requests behind a `Forge` interface: GitHub (through `gh`) and Gitea (its REST API, a token by reference); `for_guide` picks the manifest's |
 | `config.py` | 185 | The user's settings (`settings.json`): engine, models, prices, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
 | `prices.py` | 182 | The price of a model and its origin: the user's, a fetched list, the defaults |
 | `quotes.py` | 158 | Locates the passage a finding talks about: exact match, else the closest window of lines on normalised text |
-| `fix.py` | 150 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
+| `sizes.py` | 157 | What each page weighs against its budget, its heaviest sections, the guide's growth read from Git; no model |
+| `fix.py` | 162 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
 | `evaluate.py` | 148 | Hunks of the human's merged diff vs. the agent's proposals, matched by a judge model |
 | `watches.py` | 139 | Where the watches come from (`[watch] source`): GitHub issues, `watch.json` files, the agent's own collection, none |
 | `inputs.py` | 121 | The watch as the contract says (`check_watch`), its kept items, its artifact; the guide's scripts; freshness claims due |

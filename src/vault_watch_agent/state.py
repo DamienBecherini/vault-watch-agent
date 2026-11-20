@@ -98,7 +98,8 @@ class WatchState(TypedDict, total=False):
     usage: Annotated[list[dict], operator.add]
     reading: dict  # how the cross-check read the guide: whole or by chapter (reading.Plan.summary)
     # Review
-    mode: str  # "translation" for a fix run on English pages (no cross-check); absent otherwise
+    mode: str  # "translation": a fix run on mirror pages (no cross-check); "compact": trims (compact.py); else absent
+    weight: dict  # bytes of the changed pages before and after apply: {before, after} (shown for trims)
     corrections: list[dict]  # numbered C1, C2… with their deterministic check
     findings: list[str]  # doubts the cross-check noticed elsewhere in the vault, not proposed
     finding_excerpts: dict[str, list[dict]]  # finding -> the passages it is about, found in the pages (quotes.locate)

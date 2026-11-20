@@ -45,8 +45,10 @@ def _passages(item: dict) -> str:
 
 def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM, context: str | None = None,
             effort: str = "", web: bool = True, node: str = "fix",
-            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
-    """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request."""
+            excerpts: dict[str, list[dict]] | None = None,
+            what: tuple[str, str] = ("Reported errors", "error")) -> tuple[list[dict], dict, dict]:
+    """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request.
+    `what`: how the findings are called in the prompt (its heading, the tag of each one)."""
     if "<<" in system:  # written with the markers of prompts.fill
         system = prompts.fill(system, vault_dir)
     items = [
@@ -54,9 +56,10 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
          "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, [])}
         for n, f in enumerate(findings, start=1)
     ]
-    listing = "\n".join(f"<error id=\"{i['id']}\">{i['title']}{_passages(i)}</error>" for i in items)
+    heading, tag = what
+    listing = "\n".join(f"<{tag} id=\"{i['id']}\">{i['title']}{_passages(i)}</{tag}>" for i in items)
     result, usage = llm.parse(
-        system=system, prompt=f"Reported errors:\n\n{listing}", schema=ClusterProposal, effort=effort or steps.effort("fix"),
+        system=system, prompt=f"{heading}:\n\n{listing}", schema=ClusterProposal, effort=effort or steps.effort("fix"),
         node=node, context=context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=web,
     )
     ids = [i["id"] for i in items]
@@ -132,8 +135,16 @@ def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,
 def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "",
                   mode: str = "fix") -> dict:
     """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch.
-    `mode` "translation" skips the cross-check against the whole guide."""
+    `mode` "translation" skips the cross-check against the whole guide; "compact" is a compaction run (compact.py):
+    trims instead of corrections, its own cross-check, its own branch."""
     today = date.today().isoformat()
+    if mode == "compact":
+        return {
+            "source": f"what weighs in the guide ({label})", "issue": None, "as_of": today, "mode": mode,
+            "title": f"chore(content): reviewed trims of the guide ({label})",
+            "branch_name": f"compact/{thread or f'guide-{today}'}",
+            "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": [proposal], "usage": [usage],
+        }
     kind = "fix(i18n): reviewed translation fixes" if mode == "translation" else "fix(content): reviewed corrections"
     return {
         "source": f"errors reported in the vault ({label})",

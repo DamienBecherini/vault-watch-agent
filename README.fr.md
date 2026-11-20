@@ -15,7 +15,7 @@
 
 [English](README.md) · **Français**
 
-[Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Sécurité](docs/security.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md) · [Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
+[Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Compactage](docs/compact.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Sécurité](docs/security.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md) · [Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
 
 </div>
 
@@ -103,7 +103,10 @@ flowchart TD
 
 Deux autres sortes de passage passent par la même relecture et la même pull request : un **passage de correction**
 transforme des erreurs signalées (par un lecteur, par une vérification) en corrections contrôlées, et une
-**vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide.
+**vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide. Un **passage de
+compactage** empêche le guide de s'alourdir : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est
+répété, empilé ou plus long que nécessaire, et les allègements que vous gardez sont relus comme des corrections
+([Compactage](docs/compact.fr.md)).
 
 ## Principes
 
@@ -252,6 +255,7 @@ src/vault_watch_agent/
   forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
   watches.py     d'où viennent les veilles ; collect.py la collecte de l'agent ; inputs.py le format de la veille
   crosscheck.py  relecture croisée ; fix.py passages de correction ; verify.py vérifications ; evaluate.py rejeux
+  sizes.py       le poids de chaque page face à son budget ; compact.py compactage : ce qui pèse, les allègements
   prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
   config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
   onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, static/ sa page (sans build)

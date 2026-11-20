@@ -20,7 +20,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import inputs, prompts, quotes, reading, steps, vault
+from . import compact, inputs, prompts, quotes, reading, sizes, steps, vault
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -31,6 +31,8 @@ COHERENCE_OUT = 27_000  # output tokens of the whole-guide read
 CLAIM_USD = 0.21  # one watchlist claim checked on the web
 DEAD_LINK_USD = 0.27  # one dead source: find where it moved
 OUTPUT_PER_CHAPTER = 3_000
+COMPACTION_OUT = 20_000  # output tokens of the compaction report (an estimate until a first run measures it)
+HEAVIEST = 15  # pages kept in the result of the size check: those over their budget, then the heaviest
 
 
 class Finding(BaseModel):
@@ -101,6 +103,10 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         "audits": {"tokens": 0, "usd": 0.0, "note": note("≈ 10 s", "≈ 10 s")},
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
         "freshness": {"tokens": 0, "usd": 0.0, "note": note("≈ 5 s", "≈ 5 s")},
+        "sizes": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 s", "≈ 2 s")},
+        "compaction": {"tokens": fr + COMPACTION_OUT, "usd": _usd(reasoning, tokens_out=COMPACTION_OUT, cache_write=fr, table=table),
+                       "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est modifié".replace(",", " "),
+                                    f"{fr:,} tokens of pages, read whole; nothing is edited")},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(reasoning, tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
@@ -225,33 +231,65 @@ def _line(f: Finding) -> str:
     return f"[{f.severity}] {', '.join(f.pages)}: {f.problem}"
 
 
-def _findings(vault_dir: Path, result: Findings) -> dict:
+def _findings(vault_dir: Path, result: Findings, line: Callable = _line) -> dict:
     """The findings as lines (what the human keeps, dismisses or sends to a fix run), and per line the passages
     found in the pages."""
-    return {"findings": [_line(f) for f in result.findings],
-            "excerpts": {_line(f): quotes.locate_all(vault_dir, f.excerpts) for f in result.findings if f.excerpts}}
+    return {"findings": [line(f) for f in result.findings],
+            "excerpts": {line(f): quotes.locate_all(vault_dir, f.excerpts) for f in result.findings if f.excerpts}}
+
+
+def _read_guide(vault_dir: Path, llm: LLM, plan: "reading.Plan", system: str, prompt: str, schema: type,
+                step: str) -> tuple[list, list[dict]]:
+    """The findings of a check that reads the whole guide, and the usage of its calls: one call, or one per chapter
+    when the guide does not fit in the model's window (what spans two chapters is then missed, said in the summary)."""
+    if plan.mode == "whole":
+        result, usage = llm.parse(system=system, prompt=prompt, schema=schema, effort=steps.effort(step),
+                                  node=f"verify {step}", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
+        return list(result.findings), [usage]
+    found, usages = [], []
+    for chapter, pages in reading.chapters(vault_dir).items():
+        part, usage = llm.parse(system=system.replace("The whole guide is above", f"One chapter of the guide ({chapter}) is above", 1),
+                                prompt=prompt, schema=schema, effort=steps.effort(step), node=f"verify {step} {chapter}",
+                                context=f"<guide>\n{reading.corpus_of(vault_dir, pages)}\n</guide>")
+        found += part.findings
+        usages.append(usage)
+    return found, usages
 
 
 def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     plan = reading.plan(vault_dir, llm)
-    system = prompts.fill(COHERENCE, vault_dir) + EXCERPTS
-    if plan.mode == "whole":
-        result, usage = llm.parse(system=system, prompt="List the findings.", schema=Findings, effort=steps.effort("coherence"),
-                                  node="verify coherence", context=f"<guide>\n{vault.corpus(vault_dir)}\n</guide>")
-        usages = [usage]
-    else:  # one call per chapter: contradictions within a chapter only, said in the summary
-        found, usages = [], []
-        for chapter, pages in reading.chapters(vault_dir).items():
-            part, usage = llm.parse(system=system.replace("The whole guide is above", f"One chapter of the guide ({chapter}) is above", 1),
-                                    prompt="List the findings.", schema=Findings, effort=steps.effort("coherence"),
-                                    node=f"verify coherence {chapter}",
-                                    context=f"<guide>\n{reading.corpus_of(vault_dir, pages)}\n</guide>")
-            found += part.findings
-            usages.append(usage)
-        result = Findings(findings=found)
+    found, usages = _read_guide(vault_dir, llm, plan, prompts.fill(COHERENCE, vault_dir) + EXCERPTS,
+                                "List the findings.", Findings, "coherence")
     by = "" if plan.mode == "whole" else f" ({plan.note})"
-    return {"ok": not result.findings, "summary": f"{len(result.findings)} findings{by}", **_findings(vault_dir, result),
+    return {"ok": not found, "summary": f"{len(found)} findings{by}", **_findings(vault_dir, Findings(findings=found)),
             "usage": usages, "reading": plan.summary()}
+
+
+def run_sizes(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
+    """What each page weighs against its budget (sizes.py): no model. A page over its budget is a warning."""
+    rep = sizes.report(vault_dir)
+    over = [r for r in rep["pages"] if r["over"]]
+    shown = over + [r for r in rep["pages"] if not r["over"]][:max(0, HEAVIEST - len(over))]
+    return {"ok": not over, "summary": sizes.summary(rep), "findings": [],
+            "sizes": {"total": rep["total"], "pages": len(rep["pages"]), "over": len(over), "heaviest": shown,
+                      "chapters": rep["chapters"], "growth": rep["growth"]}}
+
+
+def run_compaction(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
+    """What makes the guide heavy (compact.REPORT): the model reads it whole, with the heaviest pages named, and
+    edits nothing. The findings the editor keeps go to a compaction run (compact.propose)."""
+    heaviest = results["sizes"]["sizes"]["heaviest"]
+    listing = "\n".join(f"- {sizes.describe(r)}{' — over its budget' if r['over'] else ''}"
+                        f"{' — read-only' if r['readonly'] else ''}" for r in heaviest)
+    plan = reading.plan(vault_dir, llm)
+    found, usages = _read_guide(vault_dir, llm, plan, prompts.fill(compact.REPORT, vault_dir) + compact.EXCERPTS,
+                                f"The heaviest pages:\n{listing}\n\nList the findings.", compact.Trims, "compaction")
+    guide = vault.guide_of(vault_dir)
+    kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]  # nothing to edit there
+    skipped = f", {len(found) - len(kept)} about read-only pages left out" if len(kept) < len(found) else ""
+    by = "" if plan.mode == "whole" else f" ({plan.note})"
+    return {"ok": not kept, "summary": f"{len(kept)} findings{skipped}{by}",
+            **_findings(vault_dir, compact.Trims(findings=kept), compact.line), "usage": usages, "reading": plan.summary()}
 
 
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
@@ -351,9 +389,23 @@ CHECKS = [
           {"fr": "Pour chaque source morte, Claude cherche où la page a déménagé ou une source équivalente.",
            "en": "For each dead source, Claude looks for where the page moved or an equivalent source."},
           MODEL, needs=("sources",)),
+    Check("sizes", {"fr": "Taille des pages", "en": "Size of the pages"},
+          {"fr": "Chaque page face à son budget ([budget] du manifeste, 30 Ko par défaut), ses sections les plus lourdes, "
+                 "et ce que le guide a pris en 90 jours. Un dépassement est un avertissement, jamais un échec.",
+           "en": "Each page against its budget ([budget] of the manifest, 30 KB by default), its heaviest sections, and "
+                 "what the guide gained in 90 days. A page over its budget is a warning, never a failure."}, None),
+    Check("compaction", {"fr": "Compactage : ce qui alourdit le guide", "en": "Compaction: what makes the guide heavy"},
+          {"fr": "Claude lit toutes les pages d'un coup et liste, sans rien modifier : le même fait répété dans plusieurs "
+                 "pages, l'historique empilé à côté du fait courant, les sections plus longues que ce qu'elles disent. Les "
+                 "pistes gardées partent dans une passe de compactage, relue comme une correction.",
+           "en": "Claude reads every page at once and lists, without editing anything: the same fact repeated in several "
+                 "pages, history piled up beside the current fact, sections longer than what they say. The leads you "
+                 "keep go to a compaction run, reviewed like a correction."},
+          MODEL, needs=("sizes",), fix_mode="compact"),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,
-           "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks}
+           "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks, "sizes": run_sizes,
+           "compaction": run_compaction}
 BY_ID = {c.id: c for c in CHECKS}
 
 

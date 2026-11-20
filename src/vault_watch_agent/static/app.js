@@ -8,6 +8,9 @@ const $ = s => document.querySelector(s);
 const page = $("#page");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const dollars = n => `${(n ?? 0).toFixed(2)} $`;
+// A size in KB (« Ko » in French), one decimal under 10
+const kb = n => `${(n / 1024).toLocaleString(lang, { maximumFractionDigits: Math.abs(n) < 10240 ? 1 : 0 })} ${lang === "fr" ? "Ko" : "KB"}`;
+const signedKb = n => `${n > 0 ? "+" : ""}${kb(n)}`;
 const extLink = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>`;
 let source = null;  // EventSource of the run being followed
 
@@ -70,9 +73,16 @@ const TEXTS = {
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       claims: "Affirmations à revérifier", pagesDue: "Pages à revoir", log: "Journal",
-      createFix: (n, t, c) => t === n && n ? `Créer une passe traduction avec ${n} piste(s) · ${c("< 1 $")}`
-        : t ? `Créer 2 passes : ${n - t} piste(s) en fix (${c("≈ 6-8 $")}), ${t} en traduction (${c("< 1 $")})`
-        : `Créer une passe fix avec ${n} piste(s) · ${c("≈ 6-8 $")}`, tickAll: "Tout cocher", untickAll: "Tout décocher",
+      // by: the ticked leads per kind of run (fix, translation, compact); one run per kind
+      createFix: (by, c) => {
+        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", "≈ 3-6 $"]].filter(k => by[k[0]]);
+        return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2])})`).join(", ")}`
+          : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
+      },
+      heaviest: "Pages les plus lourdes", perChapter: "Par chapitre", over: "au-dessus du budget", newPage: "nouvelle page",
+      readonly: "lecture seule", notes: (n, w) => `${n} notes de bas de page (${w})`, pagesWord: "page(s)",
+      growth: g => `Le guide pesait ${kb(g.bytes)} le ${g.date} : ${signedKb(g.added)} en ${g.days} jours${g.new_pages ? `, dont ${g.new_pages} nouvelle(s) page(s)` : ""}.`,
+      tickAll: "Tout cocher", untickAll: "Tout décocher",
       cost: c => `Coût : ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
         : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
@@ -117,6 +127,8 @@ const TEXTS = {
     applyId: id => `Appliquer ${id}`,
     crossCheck: "Relecture globale", from: "D'après", colon: " : ",
     byChapter: (t, b) => `Relecture globale chapitre par chapitre : le guide (≈ ${t.toLocaleString("fr")} tokens) dépasse ce qu'un appel du modèle peut lire (${b.toLocaleString("fr")}). Une contradiction entre deux chapitres peut échapper.`,
+    lostValues: "Plus aucune page ne le dit ensuite", removedWhole: "(passage supprimé)",
+    weight: w => `Les pages modifiées pèsent ${kb(w.before)} avant et ${kb(w.after)} après (${signedKb(w.after - w.before)}), miroirs non comptés.`,
     sourceMissing: "Source à vérifier", leftovers: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
@@ -225,9 +237,15 @@ const TEXTS = {
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
-      createFix: (n, t, c) => t === n && n ? `Create a translation run with ${n} point(s) · ${c("< 1 $")}`
-        : t ? `Create 2 runs: ${n - t} point(s) as a fix (${c("≈ 6-8 $")}), ${t} as a translation run (${c("< 1 $")})`
-        : `Create a fix run with ${n} point(s) · ${c("≈ 6-8 $")}`, tickAll: "Tick all", untickAll: "Untick all",
+      createFix: (by, c) => {
+        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", "≈ 3-6 $"]].filter(k => by[k[0]]);
+        return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2])})`).join(", ")}`
+          : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
+      },
+      heaviest: "Heaviest pages", perChapter: "Per chapter", over: "over its budget", newPage: "new page",
+      readonly: "read-only", notes: (n, w) => `${n} footnotes (${w})`, pagesWord: "page(s)",
+      growth: g => `The guide weighed ${kb(g.bytes)} on ${g.date}: ${signedKb(g.added)} in ${g.days} days${g.new_pages ? `, ${g.new_pages} new page(s) among it` : ""}.`,
+      tickAll: "Tick all", untickAll: "Untick all",
       cost: c => `Cost: ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
         : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
@@ -272,6 +290,8 @@ const TEXTS = {
     applyId: id => `Apply ${id}`,
     crossCheck: "Cross-check", from: "From", colon: ": ",
     byChapter: (t, b) => `Cross-check chapter by chapter: the guide (≈ ${t.toLocaleString("en")} tokens) exceeds what one call of the model can read (${b.toLocaleString("en")}). A contradiction between two chapters can be missed.`,
+    lostValues: "No page states it any more", removedWhole: "(passage removed)",
+    weight: w => `The pages changed weigh ${kb(w.before)} before and ${kb(w.after)} after (${signedKb(w.after - w.before)}), mirrors not counted.`,
     sourceMissing: "Source to check", leftovers: n => `Removed values still present, left as they are (${n})`,
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
@@ -532,8 +552,9 @@ function correctionCard(c, r) {
       <p>${esc(c.rationale)}</p>
       ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${esc(c.review)}</p>` : ""}
       ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${esc(c.warning)}</p>` : ""}
+      ${c.lost?.length ? `<p class="small">⚠️ ${T.lostValues}${T.colon}${esc(c.lost.join(", "))}</p>` : ""}
       <div class="diff before" lang="fr">${before}</div>
-      <div class="diff after" lang="fr">${after}</div>
+      <div class="diff after" lang="fr">${after || `<span class="muted">${T.removedWhole}</span>`}</div>
       <div class="muted small">${T.from} ${sources || "—"}${c.source_url ? ` · ${extLink(c.source_url, "source")}` : ""}</div>
     </div>
   </div>`;
@@ -601,6 +622,7 @@ async function viewPublish(r, title) {
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.publishFigures[i]}</div>`).join("")}</div>
     <div class="card">
       <p>${T.branchReady(esc(p.branch))}</p>
+      ${r.mode === "compact" && r.weight?.before ? `<p>${T.weight(r.weight)}</p>` : ""}
       ${p.audit_ok !== false ? "" : `<p class="error-text">${T.auditsRed}</p><pre>${esc(r.audit_log)}</pre>`}
       ${p.mirror_problems.length ? `<p><b>${T.translation}</b></p><ul>${p.mirror_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${p.link_problems.length ? `<p><b>${T.linksTitle}</b> ${T.linksNew}</p><ul>${p.link_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">${linksChecked ? T.linksOk : T.linksNotChecked}</p>`}
@@ -731,6 +753,7 @@ async function viewCheck(id) {
           ${list(V.blocked, (r.blocked || []).map(d => `${extLink(d.url, esc(d.url))} (${esc(d.pages.join(", "))})`))}
           ${list(V.claims, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
+          ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
@@ -756,7 +779,9 @@ async function viewCheck(id) {
   const ticked = () => boxes.filter(c => c.checked);
   const count = () => {
     const ok = ticked().filter(c => c.dataset.fixable === "true"), n = ok.length, e = ticked().length;
-    $("#fix").textContent = V.createFix(n, ok.filter(c => c.dataset.mode === "translation").length, cost); $("#fix").disabled = n === 0 || v.running;
+    const by = {};
+    ok.forEach(c => { by[c.dataset.mode] = (by[c.dataset.mode] || 0) + 1; });
+    $("#fix").textContent = V.createFix(by, cost); $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };
   boxes.forEach(c => c.onchange = count);
@@ -780,9 +805,9 @@ async function viewCheck(id) {
     $("#dismiss").onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed");
     $("#fix").onclick = async () => {
       $("#fix").disabled = true;
-      // One run per mode: content fixes and translation fixes do not take the same path
+      // One run per mode: content fixes, translation fixes and trims do not take the same path
       const threads = [];
-      for (const mode of ["fix", "translation"]) {
+      for (const mode of ["fix", "translation", "compact"]) {
         const text = ticked().filter(c => c.dataset.fixable === "true" && c.dataset.mode === mode).map(c => c.dataset.lead).join("\n");
         if (text) threads.push((await api("/api/fix", { text, verification: id, mode })).thread);
       }
@@ -790,6 +815,20 @@ async function viewCheck(id) {
     };
   }
   if (v.running) followTimer = setTimeout(() => viewCheck(id).catch(() => {}), 3000);
+}
+
+// The size check: what the guide gained, its heaviest pages (those over their budget first), the weight per chapter
+function sizesBlock(s) {
+  const V = T.verif;
+  const grew = p => !("before" in p) ? "" : p.before == null ? ` · ${V.newPage}` : p.bytes !== p.before ? ` · ${signedKb(p.bytes - p.before)}` : "";
+  const row = p => `<li><code>${esc(p.page)}</code> — <b>${kb(p.bytes)}</b> / ${kb(p.budget * 1024)}${grew(p)}${p.readonly ? ` · ${V.readonly}` : ""}${
+    p.over ? ` <span class="badge attention">${V.over}</span>` : ""}
+    <div class="muted small">${[...p.sections.map(x => `${esc(x.title)} ${kb(x.bytes)}`),
+      ...(p.footnotes.count ? [V.notes(p.footnotes.count, kb(p.footnotes.bytes))] : [])].join(" · ")}</div></li>`;
+  return `${s.growth ? `<p class="small">${V.growth(s.growth)}</p>` : ""}
+    <details${s.over ? " open" : ""}><summary>${V.heaviest} (${s.heaviest.length})</summary><ul>${s.heaviest.map(row).join("")}</ul></details>
+    <details><summary>${V.perChapter} (${s.chapters.length})</summary><ul>${s.chapters.map(c =>
+      `<li><code>${esc(c.chapter)}</code> — ${kb(c.bytes)}, ${c.pages} ${V.pagesWord}</li>`).join("")}</ul></details>`;
 }
 
 const FOLDS = {};  // check cards folded or opened by the reader, by verification/check, kept across refreshes

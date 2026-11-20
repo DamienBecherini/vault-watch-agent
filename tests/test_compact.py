@@ -1,0 +1,359 @@
+"""Compaction: the report of what weighs, the trims as a run of the graph, and what the code checks itself
+(passages removed cleanly, notes left without a sentence, values no page states any more)."""
+
+import subprocess
+import time
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
+
+from vault_watch_agent import compact, fix, vault, verify
+from vault_watch_agent.crosscheck import CorrectionReview, CrossCheck
+from vault_watch_agent.graph import Deps, build, pr_body
+from vault_watch_agent.quotes import Quote
+from vault_watch_agent.state import ClusterProposal, Correction, ItemOutcome, MirrorEdit, MirrorResult
+
+MANIFEST = """schema = 1
+[guide]
+name = "Test"
+[content]
+language = "fr"
+mirrors = { en = "en/" }
+modified_field = "last_modified"
+readonly = ["projet/**"]
+[budget]
+page_kb = 1
+"""
+
+PADDING = "Un moteur d'inférence sert un modèle sur le réseau. " * 20  # the page is over its budget of 1 KB
+
+ENGINES = """---
+title: Moteurs
+last_modified: "2026-06-10"
+---
+
+# Moteurs
+
+PADDING
+
+vLLM 0.33 est la version minimale recommandée[^1].
+
+Auparavant, la version 0.31.2 suffisait[^2].
+
+Le port 8000 doit rester fermé, voir la page sécurité.
+
+| Outil | Version |
+| :-- | :-- |
+| vLLM | 0.33 |
+| Ancien | 0.29 |
+
+[^1]: vLLM, notes de version 0.33, https://example.org/vllm-033.
+[^2]: vLLM, notes de version 0.31.2, https://example.org/vllm-031.
+""".replace("PADDING", PADDING)
+
+ENGINES_EN = """---
+title: Engines
+last_modified: "2026-06-10"
+---
+
+# Engines
+
+vLLM 0.33 is the recommended minimum version[^1].
+
+Previously, version 0.31.2 was enough[^2].
+
+Port 8000 must stay closed, see the security page.
+
+| Tool | Version |
+| :-- | :-- |
+| vLLM | 0.33 |
+| Old | 0.29 |
+
+[^1]: vLLM, 0.33 release notes, https://example.org/vllm-033.
+[^2]: vLLM, 0.31.2 release notes, https://example.org/vllm-031.
+"""
+
+SECURITY = """---
+title: Sécurité
+last_modified: "2026-06-10"
+---
+
+# Sécurité
+
+vLLM 0.33 est la version minimale recommandée, car elle corrige une faille.
+
+N'exposez jamais le port 8000 sans authentification.
+"""
+
+SECURITY_EN = """---
+title: Security
+last_modified: "2026-06-10"
+---
+
+# Security
+
+vLLM 0.33 is the recommended minimum version, because it fixes a flaw.
+
+Never expose port 8000 without authentication.
+"""
+
+FINDINGS = ["[History] 03-stack/engines.md: « Auparavant, la version 0.31.2 suffisait » is superseded by the 0.33 floor.",
+            "[Repeated] 03-stack/engines.md, 06-ops/security.md: the 0.33 floor is stated twice. Keep the full "
+            "statement in 03-stack/engines.md."]
+
+
+def trim(current, proposed, items, page="03-stack/engines.md", group=""):
+    return Correction(item_ids=items, page=page, current=current, proposed=proposed, source_url="03-stack/engines.md",
+                      severity="Minor", rationale="superseded", group=group)
+
+
+class FakeLLM:
+    def __init__(self):
+        self.calls, self.prompts = [], {}
+
+    def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
+        self.calls.append(node)
+        self.prompts[node] = (system, prompt)
+        usage = {"node": node, "model": "fake", "input": 10, "output": 5, "cache_read": 0}
+        if schema is compact.Trims:
+            assert not web and '<page path="03-stack/engines.md">' in context and "en/03-stack" not in context
+            return compact.Trims(findings=[
+                compact.Trim(kind="history", pages=["03-stack/engines.md"], problem="the 0.31.2 note is superseded.",
+                             excerpts=[Quote(page="03-stack/engines.md", quote="Auparavant, la version 0.31.2 suffisait[^2].")]),
+                compact.Trim(kind="repeated", pages=["03-stack/engines.md", "06-ops/security.md"],
+                             problem="the 0.33 floor is stated twice.", keep_in="03-stack/engines.md"),
+                compact.Trim(kind="long", pages=["projet/changelog.md"], problem="a long history."),
+            ]), usage
+        if schema is CrossCheck:
+            assert not web and "You review trims" in system and '<page path="06-ops/security.md">' in context
+            assert 'id="C4"' in prompt and 'id="C5"' not in prompt  # the program's own removals are not judged
+            return CrossCheck(reviews=[
+                CorrectionReview(id="C1", verdict="keep", reason="history", revised=""),
+                CorrectionReview(id="C2", verdict="revise", reason="say which page",
+                                 revised="Version minimale de vLLM : voir [[03-stack/engines|Moteurs]]."),
+                CorrectionReview(id="C3", verdict="keep", reason="an old row", revised=""),
+            ], consistency_edits=[], other_findings=[]), usage
+        if schema is MirrorResult and "en/03-stack/engines.md" in prompt:
+            assert "An edit whose new text is empty removes the passage" in prompt
+            return MirrorResult(problem="", edits=[
+                MirrorEdit(current="Previously, version 0.31.2 was enough[^2].", proposed=""),
+                MirrorEdit(current="| Old | 0.29 |", proposed=""),
+                MirrorEdit(current="[^2]: vLLM, 0.31.2 release notes, https://example.org/vllm-031.", proposed=""),
+            ]), usage
+        if schema is MirrorResult:
+            assert "An edit whose new text is empty" not in prompt  # nothing removed whole on this page
+            return MirrorResult(problem="", edits=[
+                MirrorEdit(current="vLLM 0.33 is the recommended minimum version, because it fixes a flaw.",
+                           proposed="Minimum version of vLLM: see [[03-stack/engines|Engines]]."),
+            ]), usage
+        assert node == "compact" and not web and "Findings:" in prompt and '<finding id="F1">' in prompt
+        assert "You trim" in system and '<page path="03-stack/engines.md">' in context
+        return ClusterProposal(
+            outcomes=[ItemOutcome(item_id="F1", event="", no_change_reason=""),
+                      ItemOutcome(item_id="F2", event="", no_change_reason="")],
+            corrections=[
+                trim("Auparavant, la version 0.31.2 suffisait[^2].", "", ["F1"]),
+                trim("vLLM 0.33 est la version minimale recommandée, car elle corrige une faille.",
+                     "Version minimale de vLLM : voir la page des moteurs.", ["F2"], page="06-ops/security.md"),
+                trim("| Ancien | 0.29 |", "", ["F1"]),
+                # Removes a note a sentence still cites: refused by the program
+                trim("[^1]: vLLM, notes de version 0.33, https://example.org/vllm-033.", "", ["F1"]),
+            ],
+        ), usage
+
+
+def sh(*cmd, cwd):
+    subprocess.run(cmd, cwd=cwd, check=True, capture_output=True)
+
+
+@pytest.fixture
+def setup(tmp_path: Path):
+    repo = tmp_path / "guide"
+    for rel, text in {"vault-watch.toml": MANIFEST, "03-stack/engines.md": ENGINES, "en/03-stack/engines.md": ENGINES_EN,
+                      "06-ops/security.md": SECURITY, "en/06-ops/security.md": SECURITY_EN,
+                      "projet/changelog.md": "# Journal\n\nUne longue histoire.\n"}.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text, encoding="utf-8", newline="\n")
+    sh("git", "init", "-q", "-b", "main", cwd=repo)
+    sh("git", "config", "user.name", "t", cwd=repo)
+    sh("git", "config", "user.email", "t@t", cwd=repo)
+    sh("git", "add", ".", cwd=repo)
+    sh("git", "commit", "-qm", "init", cwd=repo)
+    llm = FakeLLM()
+    return Deps(vault=repo, home=tmp_path / "home", llm=llm, today="2026-11-20"), llm
+
+
+# -- what the code does itself ---------------------------------------------------------------------------------
+def test_a_passage_removed_whole_leaves_no_hole():
+    text = "A.\n\nB.\n\nC.\n\n| x |\n| y |\n| z |\n"
+    assert vault.replaced(text, "B.", "") == "A.\n\nC.\n\n| x |\n| y |\n| z |\n"  # a paragraph: one blank line stays
+    assert vault.replaced(text, "| y |", "") == "A.\n\nB.\n\nC.\n\n| x |\n| z |\n"  # a table row: the table holds
+    assert vault.replaced("One. Two. Three.\n", "Two. ", "") == "One. Three.\n"
+    assert vault.replaced("One. Two. Three.\n", " Two.", "") == "One. Three.\n"
+    assert vault.replaced("One. Two. Three.\n", "Two.", "") == "One. Three.\n"  # no double space left
+    assert vault.replaced(text, "B.", "B2.") == text.replace("B.", "B2.")  # a replacement is a replacement
+    assert vault.replaced("A.\n\nlast\n", "last", "") == "A.\n\n"
+
+
+def test_lost_lists_what_no_page_states_any_more(setup):
+    deps, _ = setup
+    cs = [{"id": "C1", "page": "03-stack/engines.md", "check": "ok", "proposed": "",
+           "current": "Auparavant, la version 0.31.2 suffisait[^2]."},
+          {"id": "C2", "page": "06-ops/security.md", "check": "ok", "proposed": "Voir la page des moteurs.",
+           "current": "vLLM 0.33 est la version minimale recommandée, car elle corrige une faille."}]
+    assert vault.lost(deps.vault, cs) == {}  # 0.31.2 still in its note, 0.33 still in the page that keeps it
+    cs.append({"id": "C3", "page": "03-stack/engines.md", "check": "ok", "proposed": "",
+               "current": "[^2]: vLLM, notes de version 0.31.2, https://example.org/vllm-031."})
+    assert vault.lost(deps.vault, cs) == {"C1": ["0.31.2"], "C3": ["0.31.2", "https://example.org/vllm-031"]}
+    amounts = vault._facts("3,19 $ de l'heure, 48 Go, 12 %, CVE-2026-53998, --max-model-len, 12 pages")
+    assert amounts == {"3,19 $", "48 Go", "12 %", "CVE-2026-53998", "--max-model-len"}
+
+
+def test_a_note_left_without_a_sentence_goes_with_the_trim_that_orphans_it(setup):
+    deps, _ = setup
+    base = {"item_id": "F1", "item_ids": ["F1"], "proposal": 0, "source_url": "x", "severity": "Minor", "rationale": "r"}
+    cs = [{**base, "id": "C1", "group": "C1", "page": "03-stack/engines.md", "check": "ok", "proposed": "",
+           "current": "Auparavant, la version 0.31.2 suffisait[^2]."}]
+    out = compact.with_orphan_notes(deps.vault, cs)
+    assert [(c["id"], c["group"], c["check"], c.get("auto")) for c in out] == [("C1", "C1", "ok", None), ("C2", "C1", "ok", True)]
+    assert out[1]["current"] == "[^2]: vLLM, notes de version 0.31.2, https://example.org/vllm-031." and out[1]["proposed"] == ""
+    assert compact.with_orphan_notes(deps.vault, out) == out  # once: a second pass adds nothing
+    # A sentence still citing a note whose definition goes: refused
+    bad = [{**base, "id": "C1", "group": "C1", "page": "03-stack/engines.md", "check": "ok", "proposed": "",
+            "current": "[^1]: vLLM, notes de version 0.33, https://example.org/vllm-033."}]
+    compact.mark_dangling(deps.vault, bad)
+    assert bad[0]["check"] == "leaves [^1] cited without its note"
+    compact.mark_dangling(deps.vault, out)
+    assert [c["check"] for c in out] == ["ok", "ok"]
+
+
+def test_a_finding_is_one_line_with_the_page_that_keeps_the_statement():
+    t = compact.Trim(kind="repeated", pages=["a.md", "b.md"], problem="stated twice.", keep_in="a.md")
+    assert compact.line(t) == "[Repeated] a.md, b.md: stated twice. Keep the full statement in a.md."
+    t = compact.Trim(kind="history", pages=["a.md"], problem="old note; keep a.md as it is.", keep_in="a.md")
+    assert compact.line(t) == "[History] a.md: old note; keep a.md as it is."
+
+
+# -- the report (a check of « Check the guide ») --------------------------------------------------------------------
+def test_the_report_reads_the_guide_with_its_heaviest_pages_and_edits_nothing(setup):
+    deps, llm = setup
+    results = {"sizes": verify.run_sizes(deps.vault, deps.home, {}, None)}
+    assert results["sizes"]["ok"] is False and "1 page(s) over their budget: 03-stack/engines.md" in results["sizes"]["summary"]
+    result = verify.run_compaction(deps.vault, deps.home, results, llm)
+    system, prompt = llm.prompts["verify compaction"]
+    assert "heavier than it needs to be" in system and "read-only" in system  # the manifest's read-only pages
+    assert "The heaviest pages:\n- 03-stack/engines.md: " in prompt and "over its budget" in prompt
+    assert "projet/changelog.md" in prompt and "— read-only" in prompt
+    assert result["findings"] == [
+        "[History] 03-stack/engines.md: the 0.31.2 note is superseded.",
+        "[Repeated] 03-stack/engines.md, 06-ops/security.md: the 0.33 floor is stated twice. Keep the full statement in "
+        "03-stack/engines.md."]
+    assert result["summary"] == "2 findings, 1 about read-only pages left out"
+    assert result["excerpts"][result["findings"][0]][0]["match"] == "exact"
+    assert verify.plan(["compaction"]) == ["sizes", "compaction"] and verify.BY_ID["compaction"].fix_mode == "compact"
+    estimate = verify.estimates(deps.vault, {})
+    assert estimate["sizes"]["usd"] == 0 and estimate["compaction"]["usd"] > 0
+    assert subprocess.run(["git", "status", "--porcelain"], cwd=deps.vault, capture_output=True, text=True).stdout == ""
+
+
+# -- the trims: a run of the graph ---------------------------------------------------------------------------------
+def test_a_compaction_run_trims_on_a_branch_after_the_review(setup):
+    deps, llm = setup
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "compact-test"}}
+    items, proposal, usage = compact.propose(deps.vault, FINDINGS, llm)
+    graph.update_state(config, fix.initial_state("compact-test", items, proposal, usage, "compact-test", "compact"),
+                       as_node="propose")
+    graph.invoke(None, config)
+    paused = graph.get_state(config)
+    assert paused.tasks[0].interrupts[0].value["step"] == "review"
+    assert llm.calls == ["compact", "crosscheck"]  # no sweep: a repetition removed leaves its values elsewhere
+    cs = {c["id"]: c for c in paused.values["corrections"]}
+    assert [(i, c["check"], c["group"]) for i, c in cs.items()] == [
+        ("C1", "ok", "C1"), ("C2", "ok", "C2"), ("C3", "ok", "C3"),
+        ("C4", "leaves [^1] cited without its note", "C4"), ("C5", "ok", "C1")]
+    assert cs["C5"]["current"].startswith("[^2]:") and cs["C5"]["review"].startswith("added by the program")
+    assert cs["C2"]["proposed"] == "Version minimale de vLLM : voir [[03-stack/engines|Moteurs]]."  # revised
+    assert [cs[i]["lost"] for i in cs] == [["0.31.2"], [], ["0.29"], [], ["0.31.2", "https://example.org/vllm-031"]]
+    report = Path(paused.values["report_path"]).read_text(encoding="utf-8")
+    assert "No page states any more: 0.31.2, https://example.org/vllm-031." in report
+    assert sh("git", "diff", "--quiet", cwd=deps.vault) is None  # nothing touched before the review
+
+    graph.invoke(Command(resume=["C1", "C2", "C3", "C4"]), config)  # C1 takes C5 with it; C4 cannot apply
+    state = graph.get_state(config).values
+    assert state["applied"] == ["C1", "C2", "C3", "C5"] and state["branch"] == "compact/compact-test"
+    wt = Path(state["worktree"])
+    assert (wt / "03-stack/engines.md").read_text(encoding="utf-8") == """---
+title: Moteurs
+last_modified: "2026-11-20"
+---
+
+# Moteurs
+
+PADDING
+
+vLLM 0.33 est la version minimale recommandée[^1].
+
+Le port 8000 doit rester fermé, voir la page sécurité.
+
+| Outil | Version |
+| :-- | :-- |
+| vLLM | 0.33 |
+
+[^1]: vLLM, notes de version 0.33, https://example.org/vllm-033.
+""".replace("PADDING", PADDING)
+    english =(wt / "en/03-stack/engines.md").read_text(encoding="utf-8")
+    assert "0.31.2" not in english and "| Old |" not in english and "| vLLM | 0.33 |\n\n[^1]:" in english
+    assert "see [[03-stack/engines|Engines]]" in (wt / "en/06-ops/security.md").read_text(encoding="utf-8")
+    assert state["mirrored"] == ["en/03-stack/engines.md", "en/06-ops/security.md"]
+    assert state["weight"]["after"] < state["weight"]["before"]
+    assert state["title"] == "chore(content): reviewed trims of the guide (compact-test)"
+    body = pr_body(state)
+    assert body.startswith("Trims of what weighs in the guide (compact-test), reviewed before apply")
+    assert "KB before and" in body and "What weighed:\n\n- F1: [History]" in body
+    assert "0.31.2" in ENGINES and (deps.vault / "03-stack/engines.md").read_text(encoding="utf-8") == ENGINES  # main untouched
+
+
+def test_other_runs_still_refuse_an_edit_that_drops_a_note():
+    from vault_watch_agent.graph import mark_unsafe
+
+    cs = [{"id": "C1", "group": "C1", "check": "ok", "current": "[^2]: old.", "proposed": ""}]
+    mark_unsafe(cs)
+    assert cs[0]["check"] == "drops footnote [^2]"
+    cs[0]["check"] = "ok"
+    mark_unsafe(cs, trims=True)
+    assert cs[0]["check"] == "ok"
+
+
+# -- from the interface ----------------------------------------------------------------------------------------------
+def test_the_leads_of_the_check_go_to_a_compaction_run(setup, tmp_path):
+    from vault_watch_agent.web import Settings, create_app
+
+    deps, llm = setup
+    act = {"X-Vault-Watch": "1"}
+    c = TestClient(create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
+    assert options["compaction"]["needs"] == ["sizes"] and options["sizes"]["model"] is None
+    vid = c.post("/api/verifications", json={"checks": ["compaction"]}, headers=act).json()["id"]
+    for _ in range(200):
+        v = c.get(f"/api/verifications/{vid}").json()
+        if not v["running"]:
+            break
+        time.sleep(0.05)
+    assert v["checks"] == ["sizes", "compaction"] and v["results"]["compaction"]["mode"] == "compact"
+    assert v["results"]["sizes"]["sizes"]["over"] == 1 and v["results"]["sizes"]["sizes"]["heaviest"][0]["page"] == "03-stack/engines.md"
+    leads = v["results"]["compaction"]["findings"]
+    thread = c.post("/api/fix", json={"text": "\n".join(leads), "verification": vid, "mode": "compact"}, headers=act).json()["thread"]
+    assert thread.startswith("compact-")
+    for _ in range(200):
+        run = c.get(f"/api/runs/{thread}").json()
+        if run["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert run["status"] == "review" and run["mode"] == "compact"
+    assert [x["id"] for x in run["corrections"]] == ["C1", "C2", "C3", "C4", "C5"] and run["corrections"][4]["lost"]
+    assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 2, "dismissed": 0}
