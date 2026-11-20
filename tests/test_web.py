@@ -191,6 +191,9 @@ def test_settings_keep_a_reference_to_the_key_never_the_key(client, monkeypatch)
     assert c.get("/api/info").json()["engine"] == "claude-code"
     from vault_watch_agent import __version__
     assert c.get("/api/info").json()["version"] == c.get("/api/health").json()["version"] == __version__
+    # What « Give my opinion » may attach: the system and Python; no address for a mail until one is set in the code
+    about = c.get("/api/info").json()
+    assert about["system"] and about["python"] and about["feedback_email"] == ""
 
     plain = c.post("/api/settings", json={"engine": "api", "key": "sk-ant-api03-plain"}, headers=ACT)
     assert plain.status_code == 400 and "never the key itself" in plain.json()["detail"]
@@ -231,6 +234,21 @@ def test_notices_tell_a_page_what_stopped_without_counting_as_activity(client):
     c.app.state.last_activity -= 7200
     c.get("/api/notices?since=1")  # a page left open with its bell on is not someone using it
     assert c.app.state.idle_seconds() > 7000
+
+
+def test_the_feedback_window_fills_in_the_fields_the_issue_form_has():
+    """« Give my opinion » fills the issue form in by its address: the ids it sends are the ids of the form."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    form = (root / ".github" / "ISSUE_TEMPLATE" / "feedback.yml").read_text(encoding="utf-8")
+    script = (root / "src" / "vault_watch_agent" / "static" / "feedback.js").read_text(encoding="utf-8")
+    ids = re.findall(r"^\s+id: (\w+)$", form, re.M)
+    assert ids == ["rating", "type", "message", "version", "environment"]
+    assert all(re.search(rf"out\.{i} = ", script) for i in ids) and 'template: "feedback.yml"' in script
+    assert "labels: [feedback]" in form and 'labels: "feedback"' in script
+    assert "/static/feedback.js" in (root / "src" / "vault_watch_agent" / "static" / "index.html").read_text(encoding="utf-8")
 
 
 def test_the_page_names_its_files_with_a_version(client):

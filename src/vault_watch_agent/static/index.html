@@ -15,6 +15,10 @@
       <summary><span class="guide-name" id="guide-name"></span></summary>
       <div class="menu-items" id="guide-links"></div>
     </details>
+    <button type="button" class="icon burger" id="burger" aria-expanded="false" aria-controls="header-menu">   <!-- a narrow window: everything below folds under it -->
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+    </button>
+    <div class="header-menu" id="header-menu">
     <nav>
       <a href="#/" data-nav="watches">Veilles</a>
       <a href="#/sources" data-nav="sources">Sources</a>
@@ -22,8 +26,11 @@
       <a href="#/report" data-nav="report">Signaler une erreur</a>
       <a href="#/costs" data-nav="costs">Coûts</a>
     </nav>
-    <div class="header-end">   <!-- at the right; on a narrow window it goes under the menu, still at the right -->
+    <div class="menu-more" id="menu-more"></div>   <!-- a narrow window: the links of the guide's menu and the agent's code -->
+    <div class="header-end">   <!-- at the right -->
+      <span id="feedback-slot"></span>   <!-- « Give my opinion » (feedback.js) -->
       <div class="tools" id="tools"></div>   <!-- size, mode, palettes, bell, language, Settings: app.js header() -->
+    </div>
     </div>
   </header>
   <main id="page" aria-live="polite"></main>
@@ -31,6 +38,7 @@
   <script src="/static/themes.js"></script>
   <script src="/static/notify.js"></script>
   <script src="/static/settings.js"></script>
+  <script src="/static/feedback.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

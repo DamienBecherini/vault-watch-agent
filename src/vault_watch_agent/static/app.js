@@ -64,9 +64,8 @@ const TEXTS = {
       sortBy: c => `Trier par « ${c} » (un second clic inverse)`, defaultSort: "Tri par défaut",
       count: (n, label) => `${n} ${label}`,
     },
-    menu: { site: "Site du guide", repo: forge => `Dépôt sur ${forge}`, chapters: "Chapitres", code: "Code de l'agent", feedback: "Donner mon avis",
-      open: "Liens et chapitres du guide", older: "Afficher les plus anciens",
-      report: ["Ce qui s'est passé", "Ce que j'attendais", "Comment reproduire (commande ou page, moteur)", "Version et système (remplis par la page ; retire ce que tu ne veux pas partager)", "Journal (fin de la sortie du terminal ; retire toute clé ou chemin privé)"] },
+    menu: { site: "Site du guide", repo: forge => `Dépôt sur ${forge}`, chapters: "Chapitres", code: "Code de l'agent",
+      open: "Liens et chapitres du guide", older: "Afficher les plus anciens", burger: "Menu" },
     chapters: {
       title: "Chapitres",
       intro: "L'agent travaille chapitre par chapitre à trois endroits : l'exploration du web (un appel payant par chapitre), le contrôle des traductions (un appel par chapitre) et la lecture du guide quand il ne tient pas dans la fenêtre du modèle. Un chapitre réunit les pages qu'un lecteur consulterait ensemble et qu'une même actualité ferait changer.",
@@ -283,9 +282,8 @@ const TEXTS = {
       sortBy: c => `Sort by « ${c} » (a second click reverses)`, defaultSort: "Default order",
       count: (n, label) => `${n} ${label}`,
     },
-    menu: { site: "Site of the guide", repo: forge => `Repository on ${forge}`, chapters: "Chapters", code: "Agent code", feedback: "Give my opinion",
-      open: "Links and chapters of the guide", older: "Show older ones",
-      report: ["What happened", "What I expected", "How to reproduce (command or page, engine)", "Version and system (filled by the page; remove what you do not want to share)", "Log (the end of the terminal output; remove any key or private path)"] },
+    menu: { site: "Site of the guide", repo: forge => `Repository on ${forge}`, chapters: "Chapters", code: "Agent code",
+      open: "Links and chapters of the guide", older: "Show older ones", burger: "Menu" },
     chapters: {
       title: "Chapters",
       intro: "The agent works chapter by chapter in three places: the exploration of the web (one paid call per chapter), the check of the translations (one call per chapter) and the reading of the guide when it does not fit in the model's window. A chapter gathers the pages a reader would look up together and that the same news would change.",
@@ -454,7 +452,7 @@ const TEXTS = {
     subscription: "subscription, not billed", local: "local model, not billed", provider: "billed by your provider",
   },
 };
-for (const l of ["fr", "en"]) Object.assign(TEXTS[l], { settings: SETTINGS_TEXTS[l], theme: THEME_TEXTS[l], notify: NOTIFY_TEXTS[l] });
+for (const l of ["fr", "en"]) Object.assign(TEXTS[l], { settings: SETTINGS_TEXTS[l], theme: THEME_TEXTS[l], notify: NOTIFY_TEXTS[l], feedback: FEEDBACK_TEXTS[l] });
 const savedLang = () => { try { return localStorage.getItem("vault-watch-lang"); } catch { return null; } };
 let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").startsWith("fr") ? "fr" : "en";
 let T = TEXTS[lang];
@@ -561,16 +559,20 @@ function header() {
   $("#guide-name").textContent = info?.guide || "";
   $("#guide-menu").hidden = !info;
   $("#guide-menu > summary").title = T.menu.open;
-  $("#guide-links").innerHTML = info ? [
+  const guideLinks = info ? [
     info.site && extLink(info.site, `${T.menu.site} ↗`),
     info.repo_url && extLink(info.repo_url, `${T.menu.repo(forgeName())} ↗`),
     `<a href="#/chapters">${T.menu.chapters}</a>`].filter(Boolean).join("") : "";
-  // The footer: the version, the agent's code, and a report sent as an issue of the agent's repository, with the
-  // version and the system filled in (nothing of the guide: not its name, not the run being looked at)
-  const context = info ? `vault-watch ${info.version} · ${info.system} · Python ${info.python} · ${info.engine || "?"} · ${(location.hash.match(/^#\/[a-z]*/) || ["#/"])[0]}` : "";
-  const report = T.menu.report.map((title, i) => `**${title}**\n${i === 3 ? context : ""}\n`).join("\n");
-  $("#footer").innerHTML = info?.version ? [`vault-watch ${esc(info.version)}`, extLink(info.agent, `${T.menu.code} ↗`),
-    extLink(`${info.agent}/issues/new?labels=bug&body=${encodeURIComponent(report)}`, `${T.menu.feedback} ↗`)].join(" · ") : "";
+  $("#guide-links").innerHTML = guideLinks;
+  // A narrow window: these links and the agent's code are in the one menu, under the pages (the name is then a text)
+  $("#menu-more").innerHTML = info ? guideLinks + extLink(info.agent, `${T.menu.code} ↗`) : "";
+  $("#burger").title = T.menu.burger;
+  $("#burger").setAttribute("aria-label", T.menu.burger);
+  // « Give my opinion » (feedback.js): a button of the header, and again in the footer with the version and the code
+  $("#feedback-slot").innerHTML = info ? feedbackButton() : "";
+  $("#footer").innerHTML = info?.version ? `<span>vault-watch ${esc(info.version)}</span>${extLink(info.agent, `${T.menu.code} ↗`)}${feedbackButton("quiet")}` : "";
+  bindFeedback(document);
+  fitHeader();
   document.title = info?.guide ? `vault-watch · ${info.guide}` : "vault-watch";
   // The size of the text, light or dark, the palettes (themes.js), the bell (notify.js), the language, the Settings
   const tools = $("#tools");
@@ -593,8 +595,38 @@ function header() {
 document.addEventListener("click", e => {
   const menu = $("#guide-menu");
   if (menu.open && (!menu.contains(e.target) || e.target.closest("a"))) menu.open = false;
+  if (e.target.closest("#header-menu a")) foldHeader();   // a page chosen in the folded menu: it closes
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("#guide-menu").open = false; });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  $("#guide-menu").open = false;
+  if ($("header").classList.contains("open")) { foldHeader(); $("#burger").focus(); }
+});
+
+// A narrow header (under 800 px of its own width, so the size of the text counts: boot.js zooms the page) keeps the
+// name of the agent and of the guide, and folds the rest under one button. Under 1 180 px the button « Give my
+// opinion » shows its icon alone. The width is the header's, not the window's: a media query would not see the zoom.
+function fitHeader() {
+  const head = $("header"), narrow = head.clientWidth < 800;
+  head.classList.toggle("narrow", narrow);
+  head.classList.toggle("compact", !narrow && head.clientWidth < 1180);
+  if (!narrow) head.classList.remove("open");
+  $("#burger").setAttribute("aria-expanded", String(head.classList.contains("open")));
+  // The name of the guide: a menu on a wide header, a text on a narrow one (its links are in the folded menu)
+  const name = $("#guide-menu > summary");
+  name.tabIndex = narrow ? -1 : 0;
+  if (narrow) $("#guide-menu").open = false;
+}
+function foldHeader() {
+  $("header").classList.remove("open");
+  $("#burger").setAttribute("aria-expanded", "false");
+}
+$("#burger").onclick = () => {
+  const open = $("header").classList.toggle("open");
+  $("#burger").setAttribute("aria-expanded", String(open));
+};
+$("#guide-menu > summary").addEventListener("click", e => { if ($("header").classList.contains("narrow")) e.preventDefault(); });
+new ResizeObserver(fitHeader).observe($("header"));
 
 // --- Router --------------------------------------------------------------------------------------
 async function route() {

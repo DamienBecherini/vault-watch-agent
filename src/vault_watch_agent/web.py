@@ -48,6 +48,9 @@ from .graph import Deps, build, usage_line
 
 STATIC = Path(__file__).parent / "static"
 AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
+# Where « Give my opinion » sends a mail (the reader's own mail program does; no account needed). Empty: the window
+# offers the issue and the copy only.
+FEEDBACK_EMAIL = ""
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
          "apply", "mirror", "audits", "links", "publish"]
@@ -494,7 +497,7 @@ def create_app(settings: Settings) -> FastAPI:
 
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
                 # for a report sent from the page (« Give my opinion »): nothing of the guide, nothing of the machine
-                "system": platform.system(), "python": platform.python_version(),
+                "system": platform.system(), "python": platform.python_version(), "feedback_email": FEEDBACK_EMAIL,
                 "billing": billing_now(),
                 "guide": guide.name, "watch_source": guide.watch.source, "forge": forge.get().name,
                 "repo_url": forge_repo_url(),

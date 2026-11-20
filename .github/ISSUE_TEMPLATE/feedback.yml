@@ -1,0 +1,56 @@
+name: Feedback
+description: Rate the agent, say what you think of it, report a bug or suggest an idea.
+title: "[Feedback] "
+labels: [feedback]
+# The ids and the values offered are stable: the page « Give my opinion » of the agent fills this form in by its
+# address (src/vault_watch_agent/static/feedback.js). Rating and type are text fields, not lists: GitHub fills in
+# only text fields from the address.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time. **Everything is optional**: one piece of information is enough.
+        This issue is public: write nothing about your guide that you would not publish.
+        A security flaw does not belong here: report it privately from the Security tab (« Report a vulnerability »).
+
+  - type: input
+    id: rating
+    attributes:
+      label: Rating
+      description: "Your overall note, from 1 to 5: « ★★★★★ 5/5 », « ★★★★☆ 4/5 »… (or simply 4, 4/5). Leave empty not to rate."
+      placeholder: "★★★★☆ 4/5"
+    validations:
+      required: false
+
+  - type: input
+    id: type
+    attributes:
+      label: Type
+      description: "« Opinion », « Bug » or « Idea »."
+      placeholder: "Opinion"
+    validations:
+      required: false
+
+  - type: textarea
+    id: message
+    attributes:
+      label: Message
+      description: Your opinion, the bug (what you did, what happened, what you expected) or your idea.
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version of the agent (page footer, or `/api/health`).
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: System (Windows, Linux, macOS), Python, engine (Claude Code, API, another one).
+    validations:
+      required: false

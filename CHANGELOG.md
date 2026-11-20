@@ -60,8 +60,20 @@ already knows, and what it sets aside as a possible addition is never written. [
   becomes two chapters and the root pages join the project pages. The exploration, the check of the translations
   and the reading by chapter follow. `vault-watch chapters` lists them; `doctor` has a line for them.
 - The header: the guide's name is a menu (its site, its repository, its chapters) instead of a row of links; the
-  agent's code is in the footer, with « Give my opinion », which opens an issue of the agent's repository with the
-  version and the system filled in (nothing of the guide). The link to the Claude API console is gone.
+  agent's code is in the footer. The link to the Claude API console is gone. Under 800 px of its own width (the
+  size of the text counts), the header keeps the agent and the name of the guide and folds everything else under
+  one button: the pages, the guide's links, the agent's code, the tools.
+- « Give my opinion », a button of the header with its icon (and of the footer): a note out of five, a kind
+  (opinion, bug, idea), a message, all optional. The agent sends nothing: the reader opens an issue of the agent's
+  repository with the form filled in (`.github/ISSUE_TEMPLATE/feedback.yml`; public, a GitHub account), or copies
+  the text; sending by e-mail, without an account, is offered once an address is set (`web.FEEDBACK_EMAIL`, empty
+  in this version). What is sent is shown first: the version always, the system, Python, the engine and the kind of
+  screen when a box is ticked, never anything of the guide. A security flaw has its own link, to the private report.
+- Accessibility of the interface: the text is 16 px (it was 15), what goes with it 14 px at least (the footer was
+  12, notes 13), short labels 13 px (there were some at 11 and 12); the keyboard always shows where it is; what is
+  finished or rejected has a quieter frame instead of a faded text (a faded note fell under 3:1); small buttons and
+  the box of a correction are easier to aim at. Measured on every screen, light and dark: every text at 4.5:1 or
+  more against what is behind it.
 - The lists scale with the runs kept: the home page reads the state of a run only when it has moved (one line of
   the database per run otherwise), shows the 20 newest runs outside the watches and offers the older ones;
   « Check the guide » offers the verifications older than the 20 newest, which no screen listed before.
