@@ -129,6 +129,7 @@ const TEXTS = {
     byChapter: (t, b) => `Relecture globale chapitre par chapitre : le guide (≈ ${t.toLocaleString("fr")} tokens) dépasse ce qu'un appel du modèle peut lire (${b.toLocaleString("fr")}). Une contradiction entre deux chapitres peut échapper.`,
     lostValues: "Plus aucune page ne le dit ensuite", removedWhole: "(passage supprimé)",
     weight: w => `Les pages modifiées pèsent ${kb(w.before)} avant et ${kb(w.after)} après (${signedKb(w.after - w.before)}), miroirs non comptés.`,
+    weightMost: "Le plus :",
     sourceMissing: "Source à vérifier", leftovers: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
@@ -292,6 +293,7 @@ const TEXTS = {
     byChapter: (t, b) => `Cross-check chapter by chapter: the guide (≈ ${t.toLocaleString("en")} tokens) exceeds what one call of the model can read (${b.toLocaleString("en")}). A contradiction between two chapters can be missed.`,
     lostValues: "No page states it any more", removedWhole: "(passage removed)",
     weight: w => `The pages changed weigh ${kb(w.before)} before and ${kb(w.after)} after (${signedKb(w.after - w.before)}), mirrors not counted.`,
+    weightMost: "Most:",
     sourceMissing: "Source to check", leftovers: n => `Removed values still present, left as they are (${n})`,
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
@@ -622,7 +624,7 @@ async function viewPublish(r, title) {
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.publishFigures[i]}</div>`).join("")}</div>
     <div class="card">
       <p>${T.branchReady(esc(p.branch))}</p>
-      ${r.mode === "compact" && r.weight?.before ? `<p>${T.weight(r.weight)}</p>` : ""}
+      ${r.weight?.before ? `<p>${T.weight(r.weight)}${(r.weight.pages || []).length ? ` ${T.weightMost} ${r.weight.pages.slice(0, 3).map(([p, d]) => `<code>${esc(p)}</code> ${signedKb(d)}`).join(", ")}.` : ""}</p>` : ""}
       ${p.audit_ok !== false ? "" : `<p class="error-text">${T.auditsRed}</p><pre>${esc(r.audit_log)}</pre>`}
       ${p.mirror_problems.length ? `<p><b>${T.translation}</b></p><ul>${p.mirror_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${p.link_problems.length ? `<p><b>${T.linksTitle}</b> ${T.linksNew}</p><ul>${p.link_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">${linksChecked ? T.linksOk : T.linksNotChecked}</p>`}

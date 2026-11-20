@@ -256,11 +256,15 @@ def build(deps: Deps, checkpointer=None):
                 git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
         chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
         pages = sorted({c["page"] for c in chosen})
-        before = compact.weight(worktree, pages)
+        before = {p: compact.weight(worktree, [p]) for p in pages}
         for c in chosen:
             if not vault.date_bump_only(c["current"], c["proposed"], vault.guide_of(worktree).modified_field):  # apply bumps it
                 vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
-        weight = {"before": before, "after": compact.weight(worktree, pages)}  # what the edits weigh (shown for trims)
+        # What the edits weigh, shown for every run; `pages`: the change of each page, the largest first
+        after = {p: compact.weight(worktree, [p]) for p in pages}
+        weight = {"before": sum(before.values()), "after": sum(after.values()),
+                  "pages": sorted(([p, after[p] - before[p]] for p in pages if after[p] != before[p]),
+                                  key=lambda x: (-abs(x[1]), x[0]))}
         floors = vault.guide_of(worktree).version_floors
         if floors and (worktree / floors.script).is_file():
             try:  # the guide's own script follows the minimum versions its pages now state
@@ -507,6 +511,35 @@ def _has_members(corrections: list[dict], c: dict) -> bool:
     return any(o["group"] == c["id"] and o["id"] != c["id"] for o in corrections)
 
 
+def weight_line(w: dict) -> str:
+    """What a run changes in the weight of the pages it edits (`weight` of the state): the total, then the pages
+    that change the most."""
+    line = (f"The pages changed weigh {w['before'] / 1024:.1f} KB before and {w['after'] / 1024:.1f} KB after "
+            f"({(w['after'] - w['before']) / 1024:+.1f} KB), mirrors not counted.")
+    most = [f"`{p}` {d / 1024:+.1f} KB" for p, d in (w.get("pages") or [])[:3] if abs(d) >= 512]
+    return line + (f" Most: {', '.join(most)}." if most else "")
+
+
+def expected_weight(corrections: list[dict]) -> dict:
+    """What the valid corrections would change if all were applied: {total, pages: [[page, bytes]…]}, in bytes of
+    the source pages."""
+    per: dict[str, int] = {}
+    for c in corrections:
+        if c["check"] == "ok":
+            per[c["page"]] = per.get(c["page"], 0) + len(c["proposed"].encode("utf-8")) - len(c["current"].encode("utf-8"))
+    return {"total": sum(per.values()), "pages": sorted(([p, d] for p, d in per.items() if d), key=lambda x: (-abs(x[1]), x[0]))}
+
+
+def _weight_rows(corrections: list[dict]) -> list[str]:
+    """The row of the report that says what the run would add to the pages, before the review."""
+    w = expected_weight(corrections)
+    if not w["pages"]:
+        return []
+    most = ", ".join(f"`{p}` {d / 1024:+.1f} KB" for p, d in w["pages"][:3])
+    return [f"| Weight, if every valid correction is applied | {w['total'] / 1024:+.1f} KB on {len(w['pages'])} page(s), "
+            f"mirrors not counted. Most: {most} |"]
+
+
 def render_report(state: WatchState, proposals: list[dict], corrections: list[dict]) -> str:
     items = {i["id"]: i for i in state["items"]}
     decisions = state["decisions"]
@@ -525,6 +558,7 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
         f"| Claims past « Recheck by » | {len(state.get('claims_due', []))} (listed below, not re-checked yet) |",
         *([f"| Cross-check | {state['reading']['note']} |"] if state.get("reading") else []),
         f"| Model usage | {usage_line(state.get('usage', []))} |",
+        *_weight_rows(corrections),
         "",
         "## Corrections",
         "",
@@ -628,11 +662,10 @@ def pr_body(state: WatchState) -> str:
                      for i in reported)
     trims = state.get("mode") == "compact"
     w = state.get("weight") or {}
-    saved = (f"The pages changed weigh {w['before'] / 1024:.1f} KB before and {w['after'] / 1024:.1f} KB after "
-             f"({(w['after'] - w['before']) / 1024:+.1f} KB), mirrors not counted.\n\n" if trims and w.get("before") else "")
+    saved = weight_line(w) + "\n\n" if w.get("before") else ""
     return (
         (f"Trims of {state['source']}, reviewed before apply: the guide weighs less and says no less.\n\n{saved}" if trims else
-         f"Corrections from {state['source']}, reviewed before apply.\n\n")
+         f"Corrections from {state['source']}, reviewed before apply.\n\n{saved}")
         + "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
         + (f"{'What weighed' if trims else 'Reported errors'}:\n\n{errors}\n" if errors else "")

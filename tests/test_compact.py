@@ -313,10 +313,23 @@ Le port 8000 doit rester fermé, voir la page sécurité.
     assert "see [[03-stack/engines|Engines]]" in (wt / "en/06-ops/security.md").read_text(encoding="utf-8")
     assert state["mirrored"] == ["en/03-stack/engines.md", "en/06-ops/security.md"]
     assert state["weight"]["after"] < state["weight"]["before"]
+    assert state["weight"]["pages"][0][0] == "03-stack/engines.md" and state["weight"]["pages"][0][1] < 0  # per page, largest first
+    assert sum(d for _, d in state["weight"]["pages"]) == state["weight"]["after"] - state["weight"]["before"]
+    assert "| Weight, if every valid correction is applied | -0." in report and "Most: `03-stack/engines.md`" in report
     assert state["title"] == "chore(content): reviewed trims of the guide (compact-test)"
     body = pr_body(state)
     assert body.startswith("Trims of what weighs in the guide (compact-test), reviewed before apply")
     assert "KB before and" in body and "What weighed:\n\n- F1: [History]" in body
+    from vault_watch_agent.graph import expected_weight, weight_line
+
+    # Every run says it, not only the trims: a fix run that adds to a page
+    assert pr_body({**state, "mode": "fix", "weight": {"before": 10240, "after": 12288, "pages": [["a.md", 2048]]}}).startswith(
+        "Corrections from what weighs in the guide (compact-test), reviewed before apply.\n\n"
+        "The pages changed weigh 10.0 KB before and 12.0 KB after (+2.0 KB), mirrors not counted. Most: `a.md` +2.0 KB.")
+    assert weight_line({"before": 1000, "after": 1100, "pages": [["a.md", 100]]}).endswith("mirrors not counted.")  # too small to name
+    grown = expected_weight([{"check": "ok", "page": "a.md", "current": "x", "proposed": "x" * 2049},
+                             {"check": "not found", "page": "b.md", "current": "", "proposed": "y" * 9000}])
+    assert grown == {"total": 2048, "pages": [["a.md", 2048]]}
     assert "0.31.2" in ENGINES and (deps.vault / "03-stack/engines.md").read_text(encoding="utf-8") == ENGINES  # main untouched
 
 

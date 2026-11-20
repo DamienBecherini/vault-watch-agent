@@ -34,6 +34,9 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
 - Two steps more in the Settings (the report, the trims), with their effort (`high`). The button that creates a
   compaction run shows an estimate that follows the findings ticked: the cross-check, then a share per finding,
   at the prices of the models of the Settings.
+- Every run says what it changes in the weight of the pages it edits: expected in its report, before the review
+  (« Weight, if every valid correction is applied », with the three pages that change the most), measured in its
+  pull request and on the publish screen. A watch that adds 5 KB to one page shows it before the review.
 - A step can be set apart from its role (« Models and effort », « Set a step apart »; `steps` in the settings, an
   optional key of schema 1): its own model, and its own effort taken as it is. Made for the compaction on the
   strongest model while the watches keep theirs. The calls of that step go to a client of their own (`llm.Routed`,

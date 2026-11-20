@@ -90,6 +90,13 @@ anything lost? does the page still read on at that place? does the link point to
 review card by card, the mirrors, the guide's audits, the pull request. Its branch is `compact/<thread>`, and the
 pull request says what the changed pages weighed before and after.
 
+## Between two compactions
+
+Every run, a watch or a fix run as well, says what it changes in the weight of the pages it edits: expected in its
+report before the review (« Weight, if every valid correction is applied », with the three pages that change the
+most), measured in its pull request and on the publish screen. A correction that adds a paragraph where a sentence
+would do is seen when it is proposed, not a quarter later.
+
 ## Which model
 
 The report and the trims run on the reasoning model of the Settings, at effort `high`. Deciding what can go

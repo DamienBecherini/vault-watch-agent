@@ -96,6 +96,13 @@ tout le guide (perd-on quelque chose ? la page se lit-elle encore à cet endroit
 qui existe ?), votre relecture carte par carte, les miroirs, les contrôles du guide, la pull request. Sa branche
 s'appelle `compact/<fil>`, et la pull request dit ce que pesaient les pages modifiées avant et après.
 
+## Entre deux compactages
+
+Chaque passage, une veille ou un passage de correction aussi, dit ce qu'il change au poids des pages qu'il
+modifie : attendu dans son rapport avant la relecture (« Weight, if every valid correction is applied », avec les
+trois pages qui changent le plus), mesuré dans sa pull request et sur l'écran de publication. Une correction qui
+ajoute un paragraphe là où une phrase suffirait se voit quand elle est proposée, pas un trimestre plus tard.
+
 ## Quel modèle
 
 Le rapport et les allègements tournent sur le modèle de raisonnement des Réglages, à l'effort `high`. Décider ce
