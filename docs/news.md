@@ -135,14 +135,15 @@ on the first real runs.
 | :-- | :-- |
 | The leads, from the guide | ≈ 2.40 $ (2.28 $ measured on 2026-11-20 for 28 leads) |
 | The leads, from the web | ≈ 2 $, plus ≈ 4.75 $ per chapter explored |
-| An addition run, each call with the whole guide | ≈ 4.40 $, plus ≈ 2.90 $ per lead kept, or ≈ 3.70 $ for a lead dug deeper |
-| An addition run, each call with its lead's pages and the plan | ≈ 2.40 $, plus ≈ 2.10 $ per lead kept, or ≈ 2.40 $ for a lead dug deeper (not measured yet) |
+| An addition run, each call with the whole guide | ≈ 6.30 $, plus ≈ 2.15 $ per lead kept, or ≈ 2.80 $ for a lead dug deeper |
+| An addition run, each call with its lead's pages and the plan | ≈ 4.30 $, plus ≈ 1.10 $ per lead kept, or ≈ 1.50 $ for a lead dug deeper |
 
-The addition run is set on two real runs (2026-11-20). The first: 11.01 $ for a lead about six price lists and a
-lead dug deeper, 29 edits, mirrors included. The second: 12.78 $ before the mirrors for three leads (two security
-floors to check, one subject to add), 14 edits, for 13.10 $ announced. A lead that checks one version is not
-cheaper than another: 16 to 25 rounds of search each. Most of a lead's cost is the guide read again from the cache
-at each round.
+The addition run is set on three real runs (2026-11-20). With the whole guide: 11.01 $ for a lead about six
+price lists and a lead dug deeper (29 edits), then 12.94 $ for three leads (14 edits), mirrors included. With the
+lead's pages and the plan: 8.41 $ before the mirrors for five leads (35 edits), where the whole guide would have
+been about 17 $. What does not depend on the leads is the cross-check, about 4 $ each time. A lead that checks one
+version is not cheaper than another with the whole guide (16 to 25 rounds of search, each reading the guide again
+from the cache); with its own pages a lead cost 0.40 to 1.30 $.
 
 **What each lead's call reads** is chosen when the run is created (a list above the button on the leads page;
 `--context guide` or `--context pages` on the command line; the whole guide by default).
@@ -158,6 +159,12 @@ names the pages concerned and, after « Read also: », up to six others one must
 (a page that states the same fact, the lexicon entry, a page whose advice would change). Leads listed before this
 existed name only the pages concerned. Either way the cross-check reads the whole guide afterwards: it is what
 catches a repetition or a contradiction with a page the call did not see.
+
+What the choice changes, seen on the run of five leads: the calls wrote 16 edits on the pages they were given, and
+the cross-check added 19 on four pages they had not seen (a security floor stated in eight places, the defaults a
+new version changes). Every place that stated the older values was reached. The edits the cross-check adds are
+not read again by another model: they are marked « added by the cross-check » in the review, and deserve the
+editor's eye more than the others.
 
 The steps « leads of what is new », « the web explored by chapter » and « additions checked on the web » appear in
 the Settings, where each can run on a model of its own. With an engine paid by a subscription nothing is billed,

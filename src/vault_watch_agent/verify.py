@@ -62,16 +62,21 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # took 16 rounds, 87 k and 16 k (4.07 $). The mirrors of the first run: four pages, 0.17 $.
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
-ADD_ROUNDS_EACH = 15  # readings of the cached guide per lead, by the proposals
-ADD_WEB_IN_EACH = 90_000  # tokens of web pages read per lead, by the proposals
-ADD_OUT_EACH = 16_000
+# A third run read its leads' pages and the plan instead of the guide (add-2026-11-20-3, five leads, 8.41 $ before
+# the mirrors): calls of 7 to 30 rounds, 1.5 to 16 k written, 0.42 to 1.28 $ each. Its cross-check cost what the two
+# others did (3.88 $ for five leads, 4.08 $ for two, 4.07 $ for three: 14 to 16 rounds, about 100 k of web pages and
+# 16 to 18 k written whatever the leads), and its sweep 0.34 $ (0.18 $ twice before).
+ADD_ROUNDS_EACH = 18  # readings of what the call was given (the guide, or its own pages) per lead, by the proposals
+ADD_WEB_IN_EACH = 80_000  # tokens of web pages read per lead, by the proposals
+ADD_OUT_EACH = 13_000
 ADD_DEEP_ROUNDS, ADD_DEEP_WEB_IN, ADD_DEEP_OUT = 22, 120_000, 22_000  # a lead dug deeper: more sources, more pages
-ADD_CROSS_READS = 2  # the cross-check: readings of the cached guide whatever the leads
+# The cross-check and the sweep of an addition run, whatever the leads: readings of the cached guide, web pages, output
+ADD_CROSS_READS, ADD_CROSS_WEB_IN, ADD_CROSS_OUT = 15, 100_000, 18_000
+ADD_SWEEP_IN, ADD_SWEEP_OUT = 15_000, 6_000
 # A call that reads its lead's pages and the plan of the guide instead of the whole guide (news.propose, "pages"):
 # the plan is a twentieth of the guide (38 KB of 820 on the IA on-prem guide), the pages a lead names 13 to 55 KB.
-# Not measured yet.
 PLAN_SHARE, ADD_PAGES_BYTES = 0.05, 60_000
-ADD_CROSS_ROUNDS_EACH, ADD_CROSS_WEB_IN_EACH, ADD_CROSS_OUT_EACH = 7, 55_000, 9_000  # and per lead
+ADD_CROSS_WEB_IN_EACH, ADD_CROSS_OUT_EACH = 5_000, 1_000  # the cross-check, per lead: little
 # A call that has the whole budget of searches for itself (a chapter explored, a lead dug deeper): about twenty-five
 # rounds, each reading the cached guide and what the web returned so far. Twenty searches read 638 k tokens of
 # sources on 17/11/2026 (the re-check of the dated claims).
@@ -148,10 +153,13 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
     claims, dead = known.get("claims"), known.get("dead")
     note = lambda fr_, en_: {"fr": fr_, "en": en_}  # noqa: E731
     # What follows the proposals of a lead of an addition run: its share of the cross-check, and its mirror
-    add_after = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=ADD_CROSS_OUT_EACH,
-                      cache_read=ADD_CROSS_ROUNDS_EACH * fr, table=table)
+    add_after = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=ADD_CROSS_OUT_EACH, table=table)
                  + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                     if vault.guide_of(vault_dir).mirrors else 0.0))
+    # The cross-check of an addition run (the guide written to its cache, read at each round) and the sweep after it
+    add_checked = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN, tokens_out=ADD_CROSS_OUT, cache_write=fr,
+                        cache_read=ADD_CROSS_READS * fr, table=table)
+                   + _usd(of("crosscheck"), tokens_in=ADD_SWEEP_IN, tokens_out=ADD_SWEEP_OUT, cache_read=fr, table=table))
     # What a call of the "pages" context reads, and caches: never more than the guide itself
     own = min(fr, int(PLAN_SHARE * fr + ADD_PAGES_BYTES / BYTES_PER_TOKEN))
     return {
@@ -186,8 +194,7 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         # Not a check: the run the leads of « news » go to. `usd`: whatever the leads (the guide written to the cache
         # by the proposals, then the cross-check); `usd_each`: per lead sent to the run
         "add-run": {"tokens": 2 * fr + CROSS_OUT,
-                    "usd": _usd(of("add"), cache_write=fr, table=table)
-                    + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, cache_read=ADD_CROSS_READS * fr, table=table),
+                    "usd": _usd(of("add"), cache_write=fr, table=table) + add_checked,
                     "usd_each": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH,
                                      cache_read=ADD_ROUNDS_EACH * fr, table=table) + add_after,
                     # a lead dug deeper: the same call, asked for a fuller look
@@ -195,7 +202,7 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                                      cache_read=ADD_DEEP_ROUNDS * fr, table=table) + add_after,
                     # the same run when each call reads its lead's pages and the plan (context "pages"): the
                     # proposals no longer write the guide to the cache, each call writes and reads its own pages
-                    "usd_pages": _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, cache_read=ADD_CROSS_READS * fr, table=table),
+                    "usd_pages": add_checked,
                     "usd_each_pages": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH, cache_write=own,
                                            cache_read=ADD_ROUNDS_EACH * own, table=table) + add_after,
                     "usd_deep_pages": _usd(of("add"), tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT, cache_write=own,

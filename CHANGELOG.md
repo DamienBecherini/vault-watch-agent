@@ -35,9 +35,10 @@ already knows, and what it sets aside as a possible addition is never written. [
   page with its path, weight, title and headings), 50 to 90 KB instead of 830 on the IA on-prem guide, cached for
   that call alone. A lead now says which pages to read: the call that lists the leads has the whole guide before
   it, and names after « Read also: » up to six pages one must have read to write the lead well. A lead that names
-  no page reads the whole guide all the same, and the cross-check reads every page either way. Estimated ≈ 2.40 $
-  plus ≈ 2.10 $ per lead instead of ≈ 4.40 $ plus ≈ 2.90 $, not measured yet; the button shows the price of the
-  choice.
+  no page reads the whole guide all the same, and the cross-check reads every page either way. Measured on a run
+  of five leads: 8.41 $ before the mirrors, where the whole guide would have been about 17 $; the calls wrote 16
+  edits and the cross-check added 19 on pages they had not seen, every place that stated the older values was
+  reached. The button shows the price of the choice.
 - A lead its call could not look at (the web of the call ran out, the call failed) is marked « not checked by the
   run » on its verification, with the reason and a button that puts it back among the leads to handle.
 - What an addition run does not write is said where the editor reads: the run never writes a new page, and the
@@ -104,8 +105,10 @@ already knows, and what it sets aside as a possible addition is never written. [
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
   The estimates of the leads and of an addition run are set on real runs (2026-11-20, the IA on-prem guide:
   2.28 $ for 28 leads; 11.01 $ for a lead about six price lists and a lead dug deeper, 29 edits; then 12.78 $
-  before the mirrors for three leads, 13.10 $ announced): ≈ 4.40 $ plus ≈ 2.90 $ per lead, ≈ 3.70 $ for a lead
-  dug deeper. The exploration is not measured yet.
+  for three leads; then 8.41 $ before the mirrors for five leads read with their pages and the plan): with the
+  whole guide ≈ 6.30 $ plus ≈ 2.15 $ per lead (≈ 2.80 $ dug deeper), with the lead's pages ≈ 4.30 $ plus ≈ 1.10 $
+  per lead (≈ 1.50 $ dug deeper). The cross-check costs about 4 $ whatever the leads. The exploration is not
+  measured yet.
 - Edits that write after the same passage are applied so that the first proposed ends first in the page (two
   notes added by two calls keep their order).
 - While a run applied its corrections, its last four steps were shown as « undefined »: a second block of texts
