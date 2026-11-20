@@ -228,7 +228,7 @@ const TEXTS = {
     ideaButton: "Vérifier et proposer des ajouts",
     ideaDeep: "Creuser chaque sujet : un appel par sujet, plus de recherches, plus cher",
     ideaLimit: "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
-    steps: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
+    perStep: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
       cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
       restUnbilled: "le reste non facturé",
       effort: e => ({ low: "effort faible", medium: "effort moyen", high: "effort élevé", xhigh: "effort très élevé", max: "effort maximal" })[e] || e,
@@ -459,7 +459,7 @@ const TEXTS = {
     ideaButton: "Check and propose additions",
     ideaDeep: "Dig into each subject: one call per subject, more searches, more expensive",
     ideaLimit: "Limit: the addition run never writes a new page. It says which ones would be needed.",
-    steps: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
+    perStep: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
       cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
       restUnbilled: "the rest not billed",
       effort: e => ({ low: "low effort", medium: "medium effort", high: "high effort", xhigh: "very high effort", max: "maximum effort" })[e] || e,
@@ -535,16 +535,16 @@ function stepLine(step, name = "") {
   const s = stepNow(step);
   if (!s) return "";
   return `<div class="step-line small" data-step-line="${step}">
-    <span class="muted">${name ? `${esc(name)}${T.colon}` : ""}${esc(s.engine_label)} · ${esc(s.model || "?")} · ${T.steps.effort(s.effort)}</span>
-    ${OWN[step] ? `<span class="badge attention">${T.steps.once}</span>` : ""}
-    ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.steps.edit : T.steps.change}">${OWN[step] ? T.steps.edit : T.steps.change}</button>`}
-    ${OWN[step] && !STEPS.forced ? `<button type="button" class="small-button" data-step-reset="${step}">${T.steps.reset}</button>` : ""}
+    <span class="muted">${name ? `${esc(name)}${T.colon}` : ""}${esc(s.engine_label)} · ${esc(s.model || "?")} · ${T.perStep.effort(s.effort)}</span>
+    ${OWN[step] ? `<span class="badge attention">${T.perStep.once}</span>` : ""}
+    ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.perStep.edit : T.perStep.change}">${OWN[step] ? T.perStep.edit : T.perStep.change}</button>`}
+    ${OWN[step] && !STEPS.forced ? `<button type="button" class="small-button" data-step-reset="${step}">${T.perStep.reset}</button>` : ""}
     <span class="step-fields" data-step-fields="${step}" hidden>
-      <select data-f="engine" aria-label="${T.steps.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
-      <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.steps.modelOfRole)}" aria-label="${T.steps.model}" spellcheck="false">
+      <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
+      <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.perStep.modelOfRole)}" aria-label="${T.perStep.model}" spellcheck="false">
       <datalist id="models-${step}"></datalist>
-      <select data-f="effort" aria-label="${T.steps.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.steps.effort(e)}</option>`).join("")}</select>
-      <button type="button" class="small-button" data-step-ok="${step}">${T.steps.apply}</button>
+      <select data-f="effort" aria-label="${T.perStep.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.perStep.effort(e)}</option>`).join("")}</select>
+      <button type="button" class="small-button" data-step-ok="${step}">${T.perStep.apply}</button>
     </span></div>`;
 }
 // The buttons of the lines above, inside `root`; `redraw` draws the screen again once a choice is made
@@ -559,7 +559,7 @@ function bindSteps(root, redraw) {
   root.querySelectorAll("[data-step-edit]").forEach(b => b.onclick = () => {
     const f = fields(b.dataset.stepEdit);
     f.hidden = !f.hidden;
-    b.textContent = f.hidden ? b.dataset.closed : T.steps.cancel;  // the button says what it does now
+    b.textContent = f.hidden ? b.dataset.closed : T.perStep.cancel;  // the button says what it does now
     if (!f.hidden) models(b.dataset.stepEdit);
   });
   root.querySelectorAll("[data-step-fields]").forEach(f => f.querySelector("[data-f=engine]").onchange = () => {
@@ -1141,7 +1141,7 @@ async function viewChecks() {
     const usd = billed.reduce((s, o) => s + (o.usd || 0) + (o.chapters ? (o.usd_chapter || 0) * chapters().length : 0), 0);
     // Scripts only: free. Every model check on a subscription or a local model: said. Else what the billed ones cost.
     $("#start").textContent = V.start(!paid.length ? V.free : !billed.length ? costOf(paid[0].id, "")
-      : `≈ ${dollars(usd)}${billed.length < paid.length ? ` + ${T.steps.restUnbilled}` : ""}`);
+      : `≈ ${dollars(usd)}${billed.length < paid.length ? ` + ${T.perStep.restUnbilled}` : ""}`);
     $("#start").disabled = ids.size === 0 || chosen.some(o => o.chapters && !chapters().length);
   };
   const chapters = () => [...page.querySelectorAll("[data-chapter]")].filter(c => c.checked).map(c => c.dataset.chapter);
@@ -1210,7 +1210,7 @@ async function viewCheck(id) {
       </details>`;
     }).join("")}
     <div class="bar">
-      <details class="run-steps" id="run-steps-box" hidden><summary>${T.steps.title}</summary><div id="run-steps"></div></details>
+      <details class="run-steps" id="run-steps-box" hidden><summary>${T.perStep.title}</summary><div id="run-steps"></div></details>
       <button id="all">${V.tickAll}</button><button id="nothing">${V.untickAll}</button>
       <button id="dismiss"></button>
       <button class="primary" id="fix"></button>
@@ -1250,8 +1250,8 @@ async function viewCheck(id) {
     const kinds = Object.keys(by);
     const wanted = [...kinds.map(k => MODE_STEP[k]), ...(kinds.some(k => k !== "translation") ? ["crosscheck"] : []), ...(kinds.length ? ["mirror"] : [])];
     $("#run-steps-box").hidden = !wanted.length;
-    $("#run-steps").innerHTML = (STEPS.forced ? `<p class="muted small">${T.steps.forced(STEPS.forced)}</p>` : "")
-      + wanted.map(s => stepLine(s, T.steps.names[s])).join("");
+    $("#run-steps").innerHTML = (STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : "")
+      + wanted.map(s => stepLine(s, T.perStep.names[s])).join("");
     bindSteps($("#run-steps"), count);
     $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
@@ -1331,8 +1331,8 @@ async function viewReport(idea = false) {
     ${idea ? `<p class="small attention-text">${T.ideaLimit}</p>` : ""}
     <textarea id="text" placeholder="${esc(idea ? T.ideaExample : T.reportExample)}">${esc(REPORT_TEXT)}</textarea>
     ${idea ? `<p><label class="small"><input type="checkbox" id="deep"> ${T.ideaDeep}</label></p>` : ""}
-    <details class="run-steps"${Object.keys(ownFor(wanted)).length ? " open" : ""}><summary>${T.steps.title}</summary>
-      ${STEPS.forced ? `<p class="muted small">${T.steps.forced(STEPS.forced)}</p>` : ""}${wanted.map(s => stepLine(s, T.steps.names[s])).join("")}</details>
+    <details class="run-steps"${Object.keys(ownFor(wanted)).length ? " open" : ""}><summary>${T.perStep.title}</summary>
+      ${STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : ""}${wanted.map(s => stepLine(s, T.perStep.names[s])).join("")}</details>
     <p><button class="primary" id="send">${idea ? T.ideaButton : T.reportButton}</button></p>`;
   bindSteps(page, () => { REPORT_TEXT = $("#text").value; viewReport(idea); });
   $("#send").onclick = async () => {

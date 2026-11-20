@@ -421,3 +421,23 @@ def test_the_sources_page_shows_the_last_check_and_applies_what_is_chosen(setup,
     states["https://forge.example/pulls/9"] = "merged"
     after = c.get("/api/sources").json()["check"]
     assert after["proposals"] == [] and after["applied"][0]["state"] == "merged"
+
+
+def test_the_texts_of_the_interface_name_every_step_and_write_no_key_twice():
+    """A key written twice in one object silently loses the first: on 2026-11-20 a second `steps` hid the names of
+    the steps, shown as « undefined » while a run applied its corrections."""
+    import re
+    from collections import Counter
+    from pathlib import Path
+
+    from vault_watch_agent import web
+
+    lines = (Path(web.__file__).parent / "static" / "app.js").read_text(encoding="utf-8").split("\n")
+    starts = [n for n, line in enumerate(lines) if line in ("  fr: {", "  en: {")]
+    assert len(starts) == 2
+    end = next(n for n in range(starts[1], len(lines)) if lines[n] == "};")
+    for first, last in ((starts[0], starts[1]), (starts[1], end)):
+        keys = Counter(m.group(1) for line in lines[first:last] if (m := re.match(r"    (\w+): ", line)))
+        assert len(keys) > 40 and [k for k, n in keys.items() if n > 1] == []
+        names = "\n".join(lines[first:last]).split("\n    steps: {")[1].split("\n    },")[0]
+        assert [s for s in web.STEPS if not re.search(rf'\b{s}: "', names)] == []
