@@ -84,6 +84,16 @@ def test_idle_delay_runs_from_the_end_of_the_work(client):
     assert app.state.idle_seconds() < 5
 
 
+def test_a_run_just_created_is_listed_before_its_first_checkpoint(client):
+    c, _ = client
+    assert c.get("/api/runs").json() == []
+    job = c.app.state.jobs["add-2026-11-20-3"] = Job("add-2026-11-20-3", "fix")  # its proposals are being made
+    c.app.state.jobs["verif-2026-11-20-194921"] = Job("verif-2026-11-20-194921", "verify")  # a check is not a run
+    assert [(r["thread"], r["status"]) for r in c.get("/api/runs").json()] == [("add-2026-11-20-3", "running")]
+    job.done = True  # ended without a checkpoint (its proposals failed): nothing to come back to
+    assert c.get("/api/runs").json() == []
+
+
 def test_foreign_host_is_refused(client):
     c, _ = client
     assert c.get("/api/runs", headers={"Host": "evil.example"}).status_code == 403

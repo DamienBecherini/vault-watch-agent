@@ -648,7 +648,10 @@ def create_app(settings: Settings) -> FastAPI:
         if limit > 0:
             others = others[:limit]
         warm({t: known[t] for t in others})
-        return [summary(t, known[t]) for t in others]
+        # A run just created has no checkpoint before its proposals are made, which takes minutes: listed all the
+        # same, first, so that one can come back to it (it was only reachable from its verification)
+        starting = [t for t, job in jobs.items() if job.action == "fix" and not job.done and t not in known]
+        return [summary(t) for t in starting] + [summary(t, known[t]) for t in others]
 
     @app.get("/api/runs/{thread}")
     def run_view(thread: str):
