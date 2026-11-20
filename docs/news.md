@@ -137,9 +137,11 @@ on the first real runs.
 | The leads, from the web | ≈ 2 $, plus ≈ 4.75 $ per chapter explored |
 | An addition run | ≈ 4.40 $, plus ≈ 2.90 $ per lead kept, or ≈ 3.70 $ for a lead dug deeper |
 
-The addition run is set on one real run (2026-11-20: 10.84 $ before the mirrors, for a lead about six price lists
-and a lead dug deeper, 28 edits in all). Both were heavy: a lead that checks one version should cost less, which
-is not measured yet. Most of a lead's cost is the guide read again from the cache at each round of search.
+The addition run is set on two real runs (2026-11-20). The first: 11.01 $ for a lead about six price lists and a
+lead dug deeper, 29 edits, mirrors included. The second: 12.78 $ before the mirrors for three leads (two security
+floors to check, one subject to add), 14 edits, for 13.10 $ announced. A lead that checks one version is not
+cheaper than another: 16 to 25 rounds of search each. Most of a lead's cost is the guide read again from the cache
+at each round.
 
 The steps « leads of what is new », « the web explored by chapter » and « additions checked on the web » appear in
 the Settings, where each can run on a model of its own. With an engine paid by a subscription nothing is billed,

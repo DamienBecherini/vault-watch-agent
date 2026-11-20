@@ -259,7 +259,7 @@ def build(deps: Deps, checkpointer=None):
         chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
         pages = sorted({c["page"] for c in chosen})
         before = {p: compact.weight(worktree, [p]) for p in pages}
-        for c in chosen:
+        for c in news.ordered(chosen):
             if not vault.date_bump_only(c["current"], c["proposed"], vault.guide_of(worktree).modified_field):  # apply bumps it
                 vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
         # What the edits weigh, shown for every run; `pages`: the change of each page, the largest first

@@ -94,9 +94,14 @@ already knows, and what it sets aside as a possible addition is never written. [
   « Check the guide » offers the verifications older than the 20 newest, which no screen listed before.
 - Four steps more in the Settings (the leads, the exploration, the additions, the split into chapters), each of which can run on a model
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
-  The estimates of the leads and of an addition run are set on a first real run (2026-11-20, the IA on-prem
-  guide: 2.28 $ for 28 leads; 10.84 $ before the mirrors for a lead about six price lists and a lead dug deeper,
-  28 edits): ≈ 4.40 $ plus ≈ 2.90 $ per lead, ≈ 3.70 $ for a lead dug deeper. The exploration is not measured yet.
+  The estimates of the leads and of an addition run are set on real runs (2026-11-20, the IA on-prem guide:
+  2.28 $ for 28 leads; 11.01 $ for a lead about six price lists and a lead dug deeper, 29 edits; then 12.78 $
+  before the mirrors for three leads, 13.10 $ announced): ≈ 4.40 $ plus ≈ 2.90 $ per lead, ≈ 3.70 $ for a lead
+  dug deeper. The exploration is not measured yet.
+- Edits that write after the same passage are applied so that the first proposed ends first in the page (two
+  notes added by two calls keep their order).
+- While a run applied its corrections, its last four steps were shown as « undefined »: a second block of texts
+  had taken the key of the step names (not in 1.2.0). A test refuses a key written twice.
 - The values a run removes are looked for in the text of the pages only, no longer in their front matter
   (`verified_by: "Fable 5.1"` was 33 of the 35 lines listed by the first addition run).
 - `prompts.fill` knows two markers more: `<<TODAY>>` and `<<BRIEF>>` (the guide's contract, put last).

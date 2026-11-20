@@ -369,3 +369,16 @@ def merge(vault_dir: Path, corrections: list[dict]) -> None:
 def appends(c: dict) -> bool:
     """An edit that keeps its passage and writes after it: two of them at the same place do not collide."""
     return c["proposed"].startswith(c["current"]) and len(c["proposed"]) > len(c["current"])
+
+
+def ordered(corrections: list[dict]) -> list[dict]:
+    """The order to apply edits in. Those that write after the same passage go last first: each one inserts right
+    after the passage, so the first proposed ends first in the page (note [^24], then [^25])."""
+    out, places = list(corrections), {}
+    for n, c in enumerate(corrections):
+        if appends(c):
+            places.setdefault((c["page"], c["current"]), []).append(n)
+    for at in places.values():
+        for n, m in zip(at, reversed(at)):
+            out[n] = corrections[m]
+    return out

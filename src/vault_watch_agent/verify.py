@@ -56,7 +56,10 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # touched. Measured once (add-2026-11-20, the IA on-prem guide, Opus 5.5 at effort high, 10.84 $ before the mirrors):
 # a lead about six price lists took 21 rounds, 76 k tokens of web pages and wrote 22 k (2.72 $ besides the guide
 # written to the cache); a lead dug deeper 13 rounds, 100 k and 14 k (1.88 $); the cross-check of their 28 edits
-# 14 rounds, 111 k and 18 k (4.08 $). Two heavy leads: a version to check should cost less, not measured yet.
+# 14 rounds, 111 k and 18 k (4.08 $). Measured again the same day (add-2026-11-20-2, three leads, one call each,
+# 12.78 $ before the mirrors for 13.12 $ announced): a version or a floor to check is no lighter (16, 18 and 25
+# rounds, 50 to 68 k of web pages, 8 to 13 k written: 1.82, 1.94 and 2.79 $), and the cross-check of the 13 edits
+# took 16 rounds, 87 k and 16 k (4.07 $). The mirrors of the first run: four pages, 0.17 $.
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 ADD_ROUNDS_EACH = 15  # readings of the cached guide per lead, by the proposals

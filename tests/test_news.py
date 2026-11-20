@@ -329,10 +329,12 @@ def test_what_two_calls_add_to_one_page_fits_together(setup):
     assert corrections[4]["proposed"].endswith("[^1].")  # a note of the page, cited again: not renamed
     mark_conflicts(deps.vault, corrections)
     assert [c["check"] for c in corrections] == ["ok"] * 5  # two edits that write after the same passage both apply
-    for c in corrections:
+    assert [c["id"] for c in news.ordered(corrections)] == ["C3", "C4", "C1", "C2", "C5"]  # at one place: last first
+    for c in news.ordered(corrections):
         vault.apply(deps.vault, c["page"], c["current"], c["proposed"], "2026-11-20")
     text = (deps.vault / "03-stack/engines.md").read_text(encoding="utf-8")
     assert "0.14[^2] |" in text and "0.6[^3] |" in text and text.count("[^2]: ") == 1 and text.count("[^3]: ") == 1
+    assert text.index("[^1]: ") < text.index("[^2]: ") < text.index("[^3]: ") and text.index("Ollama (voix)") < text.index("SGLang")
 
     # Two edits that rewrite the same passage still cannot both apply
     twice = [edit(1, 0, "| vLLM | 0.34 |", "| vLLM | 0.35 |"), edit(2, 1, "| vLLM | 0.34 |", "| vLLM | 0.36 |"),

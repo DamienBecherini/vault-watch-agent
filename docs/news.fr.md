@@ -141,10 +141,11 @@ comptées large et seront réglées sur les premiers passages réels.
 | Les pistes, depuis le web | ≈ 2 $, plus ≈ 4,75 $ par chapitre exploré |
 | Un passage d'ajouts | ≈ 4,40 $, plus ≈ 2,90 $ par piste gardée, ou ≈ 3,70 $ pour une piste creusée |
 
-Le passage d'ajouts est réglé sur un passage réel (20/11/2026 : 10,84 $ avant les miroirs, pour une piste sur six
-grilles de prix et une piste creusée, 28 modifications en tout). Les deux étaient lourdes : une piste qui vérifie
-une seule version devrait coûter moins, ce qui n'est pas encore mesuré. L'essentiel du coût d'une piste est le
-guide relu depuis le cache à chaque tour de recherche.
+Le passage d'ajouts est réglé sur deux passages réels (20/11/2026). Le premier : 11,01 $ pour une piste sur six
+grilles de prix et une piste creusée, 29 modifications, miroirs compris. Le second : 12,78 $ avant les miroirs
+pour trois pistes (deux planchers de sécurité à vérifier, un sujet à ajouter), 14 modifications, pour 13,10 $
+annoncés. Une piste qui vérifie une seule version ne coûte pas moins qu'une autre : 16 à 25 tours de recherche
+chacune. L'essentiel du coût d'une piste est le guide relu depuis le cache à chaque tour.
 
 Les étapes « pistes de nouveautés », « exploration du web par chapitre » et « ajouts vérifiés sur le web »
 apparaissent dans les Réglages, où chacune peut tourner sur un modèle à elle. Avec un moteur payé par un
