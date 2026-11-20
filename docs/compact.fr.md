@@ -83,17 +83,21 @@ relecture carte par carte, les miroirs, les contrôles du guide, la pull request
 
 ## Quel modèle
 
-Le rapport et les allègements tournent sur le modèle de raisonnement des Réglages, à l'effort `high` (les réglages
-« plus bas » et « plus haut » de ce rôle le décalent d'un cran). Décider ce qui peut partir sans que le guide en
-dise moins est un jugement sur tout le guide : prenez le meilleur modèle dont vous disposez et ne baissez pas
-l'effort pour ce passage. Le modèle est celui du rôle : il fait donc aussi tourner les veilles tant que vous ne
-l'avez pas remis.
+Le rapport et les allègements tournent sur le modèle de raisonnement des Réglages, à l'effort `high`. Décider ce
+qui peut partir sans que le guide en dise moins est un jugement sur tout le guide : prenez le meilleur modèle dont
+vous disposez pour ces deux étapes, et ne baissez pas leur effort.
 
-Les estimations affichées avant chaque partie suivent le prix de ce modèle. Sur le guide IA on-prem (environ
-434 k tokens), aux prix publics de novembre 2026 : environ 2,80 $ pour le rapport et 5 $ pour un passage
-d'allègements avec Claude Opus 5.5, le double avec Claude Fable 5.2. Un passage paie deux lectures du guide : ses
-propositions et sa relecture croisée ne partagent pas le cache. Ce sont des estimations, à remplacer par des
-mesures après les premiers passages réels.
+Elles peuvent avoir leur propre modèle, les veilles gardant le leur : dans les Réglages, « Modèles et effort »,
+« Régler une étape à part », choisissez un modèle (et un effort si vous le voulez fixe) pour « ce qui alourdit le
+guide » (le rapport) et « allègements proposés » (les allègements). La relecture croisée des allègements est
+l'étape « relecture croisée », commune avec les veilles : elle suit le rôle tant que vous ne la réglez pas à part
+elle aussi. Voir [Choisir un modèle](choose-a-model.fr.md#un-modèle-pour-une-seule-étape).
+
+Les estimations affichées avant chaque partie suivent le prix du modèle de chaque étape. Sur le guide IA on-prem
+(environ 434 k tokens), aux prix publics de novembre 2026 : environ 2,80 $ pour le rapport et 5 $ pour un passage
+d'allègements avec Claude Opus 5.5 ; avec Claude Fable 5.2 sur les deux étapes de compactage, environ 5,50 $ et
+7,80 $. Un passage paie deux lectures du guide : ses propositions et sa relecture croisée ne partagent pas le
+cache. Ce sont des estimations, à remplacer par des mesures après les premiers passages réels.
 
 ## Ce que le code vérifie lui-même
 

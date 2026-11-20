@@ -37,6 +37,20 @@ ses propositions avant de croire une veille qui dit « rien à changer ».
   et un fait énoncé dans deux chapitres n'est plus vu d'une seule lecture.
 - **Miroir** : traduire les passages corrigés. Un bon modèle de traduction suffit.
 
+## Un modèle pour une seule étape
+
+Les Réglages donnent un modèle et un effort à deux rôles : le raisonnement (tri, propositions, relecture croisée,
+vérifications du guide, compactage) et la traduction (le miroir, le contrôle des traductions). Une étape peut être
+réglée à part de son rôle : « Modèles et effort », puis « Régler une étape à part » sous le rôle. Elle tourne
+alors sur le modèle choisi pour elle, et à l'effort choisi pour elle s'il y en a un : cet effort s'applique tel
+quel, alors que « plus bas » et « plus haut » du rôle décalent d'un cran toutes les autres étapes. Tout le reste
+suit le rôle.
+
+L'usage pour lequel c'est fait : le [compactage](compact.fr.md) sur le modèle le plus fort, quelques fois par an,
+pendant que les veilles hebdomadaires restent sur le modèle mesuré ici. Les estimations et le journal des coûts
+suivent le modèle de chaque étape. Dans `settings.json` :
+`"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
+
 ## Ce qui a été essayé
 
 **Un modèle local sur un portable.** Qwen3.6-35B-A3B (llama.cpp, quantifié, fenêtre de 64k) sur un GPU de portable

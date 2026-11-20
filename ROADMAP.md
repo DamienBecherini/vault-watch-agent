@@ -286,6 +286,10 @@ Two independent halves; the first is small and can ship alone.
   when its model lacks something it needs.
   Moved out of 0.4.0 (decided 2026-11-18): the two roles serve the guides of today, and the criteria of M2 hold
   without it. `steps.py` (T2.6) already gives each step its role, effort and needs; this task builds on it later.
+  Done 2026-11-20 (dev, for 1.2.0), asked for with the compaction (Fable on its two steps, the watches on Opus):
+  the two roles stay, and a step can be set apart from its role with its own model and effort (`steps` in the
+  settings, `llm.Routed`). Not done: the warning when the model of a step lacks something it needs (the engine is
+  the same for every step, so today's warnings per role still hold).
 
 Done when: every price on screen says where it comes from; the IA on-prem guide runs unchanged; the sample guide
 runs "by chapter" when the window is forced small in a test, and the report says so.

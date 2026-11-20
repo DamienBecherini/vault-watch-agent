@@ -205,6 +205,13 @@ button.icon[data-tool="settings"] svg { width: 18px; height: 18px; }
 .cfg-role legend { font-weight: 600; font-size: 15px; padding: 0 6px; }
 .cfg-role select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }
 .cfg-label { font-weight: 600; font-size: 14px; }
+/* The steps of a role, each one able to take its own model and effort */
+.cfg-steps summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+.cfg-steps[open] summary { margin-bottom: 6px; }
+.cfg-step { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 1.6fr) minmax(0, 1fr); gap: 8px; align-items: center; margin-top: 6px; }
+.cfg-step-name { font-size: 14px; }
+.cfg-step select, .cfg-step input[type=text] { max-width: none; padding: 6px 8px; font-size: 14px; }
+@media (max-width: 620px) { .cfg-step { grid-template-columns: 1fr; } .cfg-step-head { display: none; } }
 .cfg-field input[type=text], .cfg-field input[type=url], .cfg-field input[type=number], .cfg-field select,
 .cfg-role input[type=text] { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border);
   background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }

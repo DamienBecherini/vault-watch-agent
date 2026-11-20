@@ -267,7 +267,8 @@ def compact_command(args) -> None:
     settings = config.load(CONFIG_HOME)
     table = Prices.of_home(CONFIG_HOME, settings)
     llm = create("reasoning", JOURNAL, settings, table)
-    estimate = verify.estimates(VAULT, {}, settings["models"], table)["compaction"]
+    apart = {step: own["model"] for step, own in settings["steps"].items() if own.get("model")}
+    estimate = verify.estimates(VAULT, {}, settings["models"], table, apart)["compaction"]
     billing = llm.capabilities().billing if hasattr(llm, "capabilities") else "token"
     paid = {"subscription": "taken from the subscription, not billed", "none": "a local model, not billed"}.get(
         billing, f"≈ {estimate['usd']:.2f} $")

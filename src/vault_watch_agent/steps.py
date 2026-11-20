@@ -44,6 +44,24 @@ def effort(step: str) -> str:
     return STEPS[step].effort
 
 
+# The first word of a call's `node` (its label in the journal) -> its step. « verify <check> » names its check.
+NODES = {"triage": "triage", "propose": "proposals", "crosscheck": "crosscheck", "sweep": "crosscheck", "fix": "fix",
+         "compact": "compact", "mirror": "mirror", "judge": "judge"}
+
+
+def of_node(node: str) -> str:
+    """The step a call belongs to, from its `node` ("crosscheck 03-stack" -> crosscheck, "verify coherence" ->
+    coherence, "fix translation" -> fix-translation); "" when it is none of them."""
+    words = node.split()
+    if not words:
+        return ""
+    if words[0] == "verify":
+        return words[1] if len(words) > 1 and words[1] in STEPS else ""
+    if words[:2] == ["fix", "translation"]:
+        return "fix-translation"
+    return NODES.get(words[0], "")
+
+
 def of_role(role: str) -> list[Step]:
     """The steps of a role shown in the Settings, in the order of a run."""
     return [s for s in STEPS.values() if s.role == role and s.shown]

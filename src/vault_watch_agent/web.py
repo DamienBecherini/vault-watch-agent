@@ -143,6 +143,7 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
     key: str = ""
     models: dict[str, str] = {}
     effort: dict[str, str] = {}
+    steps: dict[str, dict] | None = None  # the steps set apart from their role; None: keep those already set
     prices: dict[str, dict] | None = None  # None: keep the prices already set (a page that does not show them)
     engines: dict[str, dict] | None = None  # the other engines' options; None: keep those already set
 
@@ -378,7 +379,8 @@ def create_app(settings: Settings) -> FastAPI:
     def prices_view(cfg: dict) -> dict:
         """Each priced model (the ones in use first) with its rates and where they come from, and the fetched list."""
         try:
-            current = [llm.model_of(cfg, role) for role in user_settings.MODELS]
+            current = [llm.model_of(cfg, role) for role in user_settings.MODELS] + [
+                own["model"] for own in cfg["steps"].values() if own.get("model")]
         except llm.ModelError:
             current = []
         table, in_use = price_table(cfg), [m for m in dict.fromkeys(current + list(cfg["models"].values())) if m]
@@ -407,6 +409,7 @@ def create_app(settings: Settings) -> FastAPI:
                 "guide": vault.guide_of(settings.vault).summary(),  # read-only: from its manifest
                 "price_table": prices_view(cfg),
                 "choices": {"models": user_settings.MODELS, "effort": user_settings.EFFORTS,
+                            "levels": list(llm.EFFORT_LEVELS),  # what a step set apart may run at
                             "steps": {role: [{"step": step, "effort": effort,
                                               "levels": {e: llm.shift_effort(effort, llm.EFFORT_STEPS[e]) for e in user_settings.EFFORTS}}
                                              for step, effort in steps]
@@ -471,10 +474,9 @@ def create_app(settings: Settings) -> FastAPI:
     def settings_save(body: UserSettings):
         try:
             given = body.model_dump()
-            if given["prices"] is None:
-                given["prices"] = user_settings.load(cfg_home)["prices"]
-            if given["engines"] is None:
-                given["engines"] = user_settings.load(cfg_home)["engines"]
+            for kept in ("prices", "steps", "engines"):  # a page that does not show them does not erase them
+                if given[kept] is None:
+                    given[kept] = user_settings.load(cfg_home)[kept]
             return settings_view(user_settings.save(cfg_home, given))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e
@@ -885,16 +887,19 @@ def create_app(settings: Settings) -> FastAPI:
                 known["dead"] = len(r["sources"].get("dead", []))
             if "claims" not in known and "freshness" in r:
                 known["claims"] = len(r["freshness"].get("claims", []))
-        models = user_settings.load(cfg_home)["models"]  # the models of the user's settings, shown and priced
+        cfg = user_settings.load(cfg_home)
+        models = cfg["models"]  # the models of the user's settings, shown and priced
+        apart = {step: own["model"] for step, own in cfg["steps"].items() if own.get("model")}  # a step's own model
         table = price_table()
-        est = verify.estimates(settings.vault, known, models, table)
+        est = verify.estimates(settings.vault, known, models, table, apart)
         name = {verify.MODEL: models["reasoning"], verify.TRANSLATOR: models["translator"]}
         def origin(model):  # where the price of the estimate comes from, said when it is not set or fetched
             p = table.of(model) if model else None
             return "" if not model else "no price" if p is None else "" if p.origin in ("set", "fetched") else p.label
 
-        return [{"id": c.id, "title": c.title, "what": c.what, "model": name.get(c.model, c.model), "needs": list(c.needs),
-                 "fixable": c.fixable, "price_origin": origin(name.get(c.model, c.model)), **est[c.id],
+        model = lambda c: apart.get(c.id) or name.get(c.model, c.model) if c.model else None  # noqa: E731
+        return [{"id": c.id, "title": c.title, "what": c.what, "model": model(c), "needs": list(c.needs),
+                 "fixable": c.fixable, "price_origin": origin(model(c)), **est[c.id],
                  # what a run made from this check's leads costs, when the agent can estimate it (a compaction run)
                  "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd")}
                 for c in verify.CHECKS]

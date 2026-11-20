@@ -94,10 +94,13 @@ def mirror_pages(vault_dir: Path) -> list[Path]:
 english_pages = mirror_pages  # its name before manifests
 
 
-def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=None) -> dict[str, dict]:
+def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=None,
+              step_models: dict | None = None) -> dict[str, dict]:
     """{check id: {tokens, usd, note}}; `known` holds counts from the last run (dead links, claims due).
-    `models`: the models of the user's settings ({reasoning, translator}), priced instead of the defaults."""
+    `models`: the models of the user's settings ({reasoning, translator}), priced instead of the defaults;
+    `step_models`: the steps that run on a model of their own ({step: model})."""
     reasoning, translator = (models or {}).get("reasoning", MODEL), (models or {}).get("translator", TRANSLATOR)
+    of = lambda step: (step_models or {}).get(step) or (translator if steps.STEPS[step].role == "translator" else reasoning)  # noqa: E731
     fr = _tokens(vault.pages(vault_dir))
     en = _tokens(mirror_pages(vault_dir))
     chapters = len(by_chapter(vault_dir))
@@ -108,17 +111,18 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
         "freshness": {"tokens": 0, "usd": 0.0, "note": note("≈ 5 s", "≈ 5 s")},
         "sizes": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 s", "≈ 2 s")},
-        "compaction": {"tokens": fr + COMPACTION_OUT, "usd": _usd(reasoning, tokens_out=COMPACTION_OUT, cache_write=fr, table=table),
+        "compaction": {"tokens": fr + COMPACTION_OUT, "usd": _usd(of("compaction"), tokens_out=COMPACTION_OUT, cache_write=fr, table=table),
                        "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est modifié".replace(",", " "),
                                     f"{fr:,} tokens of pages, read whole; nothing is edited")},
         # Not a check: the run the compaction leads go to (shown on the button that creates it)
         "compact-run": {"tokens": 2 * fr + COMPACT_RUN_OUT,
-                        "usd": _usd(reasoning, tokens_out=COMPACT_RUN_OUT, cache_write=2 * fr, table=table)},
-        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(reasoning, tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
+                        "usd": _usd(of("compact"), tokens_out=COMPACT_RUN_OUT * 5 // 8, cache_write=fr, table=table)
+                        + _usd(of("crosscheck"), tokens_out=COMPACT_RUN_OUT * 3 // 8, cache_write=fr, table=table)},
+        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
         "translation": {"tokens": fr + en + chapters * OUTPUT_PER_CHAPTER,
-                        "usd": _usd(translator, tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER, table=table),
+                        "usd": _usd(of("translation"), tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER, table=table),
                         "note": note(f"FR + EN, {chapters} appels (un par chapitre)", f"FR + EN, {chapters} calls (one per chapter)")},
         "claims": {"tokens": None, "usd": CLAIM_USD * claims if claims is not None else None,
                    "note": note(f"{claims} affirmations dues au dernier contrôle de fraîcheur", f"{claims} claims due at the last freshness check")
@@ -264,7 +268,7 @@ def _read_guide(vault_dir: Path, llm: LLM, plan: "reading.Plan", system: str, pr
 
 
 def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
-    plan = reading.plan(vault_dir, llm)
+    plan = reading.plan(vault_dir, llm, step="coherence")
     found, usages = _read_guide(vault_dir, llm, plan, prompts.fill(COHERENCE, vault_dir) + EXCERPTS,
                                 "List the findings.", Findings, "coherence")
     by = "" if plan.mode == "whole" else f" ({plan.note})"
@@ -288,7 +292,7 @@ def run_compaction(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict
     heaviest = results["sizes"]["sizes"]["heaviest"]
     listing = "\n".join(f"- {sizes.describe(r)}{' — over its budget' if r['over'] else ''}"
                         f"{' — read-only' if r['readonly'] else ''}" for r in heaviest)
-    plan = reading.plan(vault_dir, llm)
+    plan = reading.plan(vault_dir, llm, step="compaction")
     found, usages = _read_guide(vault_dir, llm, plan, prompts.fill(compact.REPORT, vault_dir) + compact.EXCERPTS,
                                 f"The heaviest pages:\n{listing}\n\nList the findings.", compact.Trims, "compaction")
     guide = vault.guide_of(vault_dir)

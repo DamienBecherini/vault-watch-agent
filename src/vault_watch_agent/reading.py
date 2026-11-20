@@ -58,9 +58,12 @@ def chapters(vault_dir: Path) -> dict[str, list[Path]]:
     return groups
 
 
-def plan(vault_dir: Path, llm, window: int | None = None) -> Plan:
+def plan(vault_dir: Path, llm, window: int | None = None, step: str = "") -> Plan:
     """How the steps that need the whole guide will read it with `llm` (its Capabilities, when it declares them;
-    a model client without them, a test's fake for instance, reads the whole guide)."""
+    a model client without them, a test's fake for instance, reads the whole guide). `step`: the step that will
+    read, when it may run on another model than its role (llm.Routed)."""
+    if step and hasattr(llm, "for_step"):
+        llm = llm.for_step(step)
     caps = llm.capabilities() if hasattr(llm, "capabilities") else None
     window = window or (caps.context if caps else None)
     text = vault.corpus(vault_dir)

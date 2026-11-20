@@ -455,10 +455,69 @@ def create(role: str = "reasoning", journal: Path | None = None, settings: dict 
     settings and VAULT_WATCH_ENGINE say (the judge of `eval`, always the same one)."""
     settings = settings or config.check({})
     name = name or engine(settings["engine"])
-    client = engines()[name].make(role, journal, {**settings, "engine": name})
+    from . import steps
+
+    settings = {**settings, "engine": name}
+    client = engines()[name].make(role, journal, settings)
     client.effort_step = EFFORT_STEPS[settings["effort"][role]]
     client.prices = prices or Prices(settings.get("prices"))
-    return client
+    apart = {s: own for s, own in (settings.get("steps") or {}).items() if s in steps.STEPS and steps.STEPS[s].role == role}
+    if not apart:
+        return client
+    by_step, efforts = {}, {}
+    for step, own in apart.items():  # one client per step set apart: its model, and its effort taken as it is
+        other = engines()[name].make(role, journal, _with_model(settings, name, role, own["model"]) if own.get("model") else settings)
+        other.effort_step = 0 if own.get("effort") else client.effort_step
+        other.prices = client.prices
+        by_step[step] = other
+        if own.get("effort"):
+            efforts[step] = own["effort"]
+    return Routed(client, by_step, efforts)
+
+
+class Routed:
+    """The client of a role when some of its steps are set apart (`steps` of the settings): a call goes to the
+    client of its step (another model, another effort), found from its `node` (steps.of_node), or to the role's.
+    Everything else (the model, the capabilities, the token count) is the role's client's; `for_step` gives the
+    client that will run a step, for what must know its model before the call (reading.plan)."""
+
+    def __init__(self, default: Engine, by_step: dict[str, Engine], efforts: dict[str, str]):
+        self.__dict__.update(default=default, by_step=by_step, efforts=efforts)
+
+    def for_step(self, step: str) -> Engine:
+        return self.by_step.get(step, self.default)
+
+    def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
+              context: str | None = None, web: bool = False) -> tuple[T, dict]:
+        from . import steps
+
+        step = steps.of_node(node)
+        return self.for_step(step).parse(system=system, prompt=prompt, schema=schema, effort=self.efforts.get(step, effort),
+                                         node=node, context=context, web=web)
+
+    def __getattr__(self, name: str):
+        return getattr(self.default, name)
+
+    def __setattr__(self, name: str, value) -> None:  # the labels of the run (run, kind) go to every client
+        for client in (self.default, *self.by_step.values()):
+            setattr(client, name, value)
+
+
+def _with_model(settings: dict, name: str, role: str, model: str) -> dict:
+    """The settings with `model` as the model of `role`, where the engine `name` reads it: `models`, and the
+    engine's own options when they hold its models (the OpenAI-compatible server)."""
+    out = {**settings, "models": {**settings["models"], role: model}}
+    own = (settings.get("engines") or {}).get(name)
+    if isinstance(own, dict) and isinstance(own.get("models"), dict):
+        out["engines"] = {**settings["engines"], name: {**own, "models": {**own["models"], role: model}}}
+    return out
+
+
+def step_model(settings: dict, step: str) -> str:
+    """The model that runs `step`: its own (`steps` of the settings), else its role's."""
+    from . import steps
+
+    return ((settings.get("steps") or {}).get(step) or {}).get("model") or model_of(settings, steps.STEPS[step].role)
 
 
 def model_of(settings: dict, role: str) -> str:

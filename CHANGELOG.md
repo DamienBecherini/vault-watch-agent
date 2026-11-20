@@ -27,6 +27,12 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
   each trim lists the versions, advisory ids, amounts and links that no page states any more once the trims apply.
 - Two steps more in the Settings (the report, the trims), with their effort (`high`). The button that creates a
   compaction run shows an estimate computed from the price of the reasoning model of the Settings.
+- A step can be set apart from its role (« Models and effort », « Set a step apart »; `steps` in the settings, an
+  optional key of schema 1): its own model, and its own effort taken as it is. Made for the compaction on the
+  strongest model while the watches keep theirs. The calls of that step go to a client of their own (`llm.Routed`,
+  the step read from the label of the call); the estimates, the journal and the way the guide is read (whole or by
+  chapter) follow the model of the step. An agent older than 1.2.0 ignores the key, and drops it when it saves the
+  settings.
 - A request to the Claude API may now write 64 000 tokens instead of 32 000, thinking included. The whole-guide
   checks wrote 27 to 29 k on Opus 5.5 at effort high; a model that thinks more would have been cut, and a cut
   answer is billed and lost.

@@ -34,6 +34,18 @@ its proposals before trusting a watch that says « nothing to change ».
   no longer seen in one read.
 - **Mirror**: translate the corrected passages. A good translation model is enough.
 
+## A model for one step
+
+The Settings give a model and an effort to two roles: reasoning (triage, proposals, cross-check, the checks of the
+guide, the compaction) and translation (the mirror, the translation checks). A step can be set apart from its
+role: « Models and effort », then « Set a step apart » under the role. It then runs on the model chosen for it,
+and at the effort chosen for it when one is: that effort applies as it is, where the role's « lower » and
+« higher » move every other step one level. Everything else follows the role.
+
+The use this was made for: the [compaction](compact.md) on the strongest model, a few times a year, while the
+weekly watches stay on the model measured here. The estimates and the cost journal follow the model of each step.
+In `settings.json`: `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
+
 ## What was tried
 
 **A local model on a laptop.** Qwen3.6-35B-A3B (llama.cpp, quantized, 64k window) on an 8 GB laptop GPU. It runs

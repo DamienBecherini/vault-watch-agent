@@ -58,6 +58,9 @@ const SETTINGS_TEXTS = {
     effortLabel: "Effort", efforts: { lower: "Plus bas", normal: "Normal", higher: "Plus haut" },
     effortHelp: "L'effort est fixé étape par étape dans le code ; ce réglage décale chaque étape d'un cran. Plus haut : plus de réflexion, plus de tokens (et de limites d'abonnement ou de coût), plus lent.",
     stepsOf: "Ce que donne chaque étape :",
+    stepsApart: "Régler une étape à part", stepsApartCount: n => `${n} étape(s) à part`,
+    stepsApartHelp: "Une étape peut tourner sur un autre modèle que son rôle, ou à un effort fixé : par exemple le compactage sur le modèle le plus fort, les veilles inchangées. Un effort choisi ici s'applique tel quel, sans le décalage du rôle.",
+    asRole: "comme le rôle", stepModel: "Modèle", stepEffort: "Effort", stepServerHint: "comme le rôle (ou l'identifiant d'un modèle du serveur)",
     stepNames: { triage: "tri", proposals: "propositions", crosscheck: "relecture croisée", fix: "correction des erreurs signalées", coherence: "cohérence du guide", compaction: "ce qui alourdit le guide", compact: "allègements proposés",
       claims: "affirmations datées", checks: "vérifications", deadlinks: "liens morts", mirror: "miroir", translation: "contrôle des traductions", "fix-translation": "correction des traductions" },
     levels: { low: "bas", medium: "moyen", high: "élevé", xhigh: "très élevé", max: "maximal" },
@@ -147,6 +150,9 @@ const SETTINGS_TEXTS = {
     effortLabel: "Effort", efforts: { lower: "Lower", normal: "Normal", higher: "Higher" },
     effortHelp: "The effort is set step by step in the code; this setting moves every step one level. Higher: more thinking, more tokens (and more of the subscription's limits or of the cost), slower.",
     stepsOf: "What each step then runs at:",
+    stepsApart: "Set a step apart", stepsApartCount: n => `${n} step(s) set apart`,
+    stepsApartHelp: "A step can run on another model than its role, or at a set effort: the compaction on the strongest model, for instance, and the watches unchanged. An effort chosen here applies as it is, without the role's shift.",
+    asRole: "as the role", stepModel: "Model", stepEffort: "Effort", stepServerHint: "as the role (or the id of a model of the server)",
     stepNames: { triage: "triage", proposals: "proposals", crosscheck: "cross-check", fix: "fixing reported errors", coherence: "consistency of the guide", compaction: "what makes the guide heavy", compact: "trims proposed",
       claims: "dated claims", checks: "checks", deadlinks: "dead links", mirror: "mirror", translation: "translation checks", "fix-translation": "fixing translations" },
     levels: { low: "low", medium: "medium", high: "high", xhigh: "extra high", max: "max" },
@@ -276,9 +282,12 @@ function drawSettings(s, message = "") {
   const base = { ...serverDefaults, ...((s.engines || {}).openai || {}) };
   base.models = { reasoning: "", translator: "", ...(base.models || {}) };
   const draft = { engine: s.engine, key: s.key, models: { ...s.models }, effort: { ...s.effort }, prices: JSON.parse(JSON.stringify(s.prices || {})),
-                  server: JSON.parse(JSON.stringify(base)) };
+                  steps: JSON.parse(JSON.stringify(s.steps || {})), server: JSON.parse(JSON.stringify(base)) };
+  // The steps set apart, in a stable order and without the ones that set nothing
+  const apart = d => Object.keys(d.steps || {}).sort().filter(k => d.steps[k].model || d.steps[k].effort)
+    .map(k => [k, d.steps[k].model || "", d.steps[k].effort || ""]);
   const state = d => JSON.stringify([d.engine, d.key, d.models.reasoning, d.models.translator, d.effort.reasoning, d.effort.translator, d.prices,
-                                     d === draft ? d.server : base]);
+                                     d === draft ? d.server : base, apart(d)]);
   const installed = ["", ...(s.engines_installed || []).map(e => e.name)];
   const labelOf = name => S.engines[name] || esc(((s.engines_installed || []).find(e => e.name === name) || {}).label || name);
   const SV = S.server;
@@ -362,6 +371,20 @@ function drawSettings(s, message = "") {
                   ${s.choices.effort.map(e => `<label><input type="radio" name="effort-${role}" value="${e}"${e === s.effort[role] ? " checked" : ""}>${S.efforts[e]}</label>`).join("")}
                 </div>
                 <span class="muted small" data-steps="${role}"></span></div>
+              <details class="cfg-steps"${s.choices.steps[role].some(x => (s.steps || {})[x.step]) ? " open" : ""}>
+                <summary>${S.stepsApart} <span class="badge" data-apart="${role}" hidden></span></summary>
+                <p class="muted small">${S.stepsApartHelp}</p>
+                <div class="cfg-step cfg-step-head muted small"><span></span><span>${S.stepModel}</span><span>${S.stepEffort}</span></div>
+                ${s.choices.steps[role].map(x => `<div class="cfg-step">
+                  <span class="cfg-step-name">${S.stepNames[x.step] || x.step}</span>
+                  <select data-step-model="${x.step}" aria-label="${S.stepModel} · ${S.stepNames[x.step] || x.step}"></select>
+                  <input type="text" data-step-server="${x.step}" list="server-models" value="${esc(((s.steps || {})[x.step] || {}).model || "")}"
+                    placeholder="${S.stepServerHint}" aria-label="${S.stepModel} · ${S.stepNames[x.step] || x.step}" spellcheck="false" hidden>
+                  <select data-step-effort="${x.step}" aria-label="${S.stepEffort} · ${S.stepNames[x.step] || x.step}">
+                    <option value="">${S.asRole}</option>
+                    ${s.choices.levels.map(l => `<option value="${l}"${((s.steps || {})[x.step] || {}).effort === l ? " selected" : ""}>${S.levels[l]}</option>`).join("")}
+                  </select></div>`).join("")}
+              </details>
             </fieldset>`).join("")}
             <p class="muted small">${S.effortHelp}</p>
             <datalist id="server-models"></datalist>`)}
@@ -391,6 +414,8 @@ function drawSettings(s, message = "") {
     $("#server-options").hidden = !onServer;
     page.querySelectorAll("[data-role]").forEach(x => x.hidden = onServer);
     page.querySelectorAll("[data-server-role]").forEach(x => x.hidden = !onServer);
+    page.querySelectorAll("[data-step-model]").forEach(x => x.hidden = onServer);
+    page.querySelectorAll("[data-step-server]").forEach(x => x.hidden = !onServer);
     $("#models-source").hidden = onServer;   // the Claude list: not the server's (its list is under Engine)
     if (cc.subscription) {
       $("#use-claude-code").hidden = now === "claude-code";
@@ -412,13 +437,17 @@ function drawSettings(s, message = "") {
     page.querySelector('[data-dot="prices"]').hidden = JSON.stringify(draft.prices) === JSON.stringify(s.prices || {});
     drawPrices();
     page.querySelector('[data-sum="models"]').textContent = Object.keys(draft.models)
-      .map(r => `${onServer ? (draft.server.models[r] || "?") : modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ");
+      .map(r => `${onServer ? (draft.server.models[r] || "?") : modelName(draft.models[r])}${draft.effort[r] === "normal" ? "" : ` (${S.efforts[draft.effort[r]].toLowerCase()})`}`).join(" · ")
+      + (apart(draft).length ? ` · ${S.stepsApartCount(apart(draft).length)}` : "");
     const serverChanged = JSON.stringify(draft.server) !== JSON.stringify(base);
     page.querySelector('[data-dot="engine"]').hidden = draft.engine === s.engine && draft.key === s.key && !serverChanged;
-    page.querySelector('[data-dot="models"]').hidden = JSON.stringify([draft.models, draft.effort]) === JSON.stringify([s.models, s.effort]);
+    page.querySelector('[data-dot="models"]').hidden = JSON.stringify([draft.models, draft.effort, apart(draft)]) === JSON.stringify([s.models, s.effort, apart(s)]);
     for (const role of Object.keys(draft.models)) {   // each step of the role at the effort chosen
       page.querySelector(`[data-steps="${role}"]`).textContent = `${S.stepsOf} ${s.choices.steps[role]
         .map(x => `${S.stepNames[x.step] || x.step} ${S.levels[x.levels[draft.effort[role]]]}`).join(" · ")}`;
+      const own = s.choices.steps[role].filter(x => apart(draft).some(a => a[0] === x.step)).length, badge = page.querySelector(`[data-apart="${role}"]`);
+      badge.hidden = !own;
+      badge.textContent = own;
       page.querySelector(`[data-unpriced="${role}"]`).hidden = onServer || models === null || models.find(m => m.id === draft.models[role])?.priced !== false;
     }
     $("#settings-save").disabled = !changed || plainKey();
@@ -538,6 +567,16 @@ function drawSettings(s, message = "") {
   page.querySelectorAll("[data-role]").forEach(sel => sel.onchange = () => { draft.models[sel.dataset.role] = sel.value; refresh(); });
   for (const role of Object.keys(draft.effort))
     page.querySelectorAll(`[name=effort-${role}]`).forEach(r => r.onchange = () => { draft.effort[role] = r.value; refresh(); });
+  /* A step set apart: its own model, its own effort; « as the role » on both removes it from the settings. */
+  const setStep = (step, field, value) => {
+    const own = { ...(draft.steps[step] || {}), [field]: value };
+    if (!own[field]) delete own[field];
+    if (Object.keys(own).length) draft.steps[step] = own; else delete draft.steps[step];
+    refresh();
+  };
+  page.querySelectorAll("[data-step-model]").forEach(f => f.onchange = () => setStep(f.dataset.stepModel, "model", f.value));
+  page.querySelectorAll("[data-step-server]").forEach(f => f.oninput = () => setStep(f.dataset.stepServer, "model", f.value.trim()));
+  page.querySelectorAll("[data-step-effort]").forEach(f => f.onchange = () => setStep(f.dataset.stepEffort, "effort", f.value));
   /* The models of each role: the list of the API (with the key of the settings), else the ones the agent knows; the
      model chosen stays in the list even when the API does not offer it any more. */
   let models = null;
@@ -552,6 +591,14 @@ function drawSettings(s, message = "") {
         return `<option value="${esc(id)}"${id === draft.models[role] ? " selected" : ""}>${esc(m.name)}${notes ? ` (${notes})` : ""}</option>`;
       }).join("");
     }
+    page.querySelectorAll("[data-step-model]").forEach(sel => {
+      const chosen = (draft.steps[sel.dataset.stepModel] || {}).model || "";
+      const ids = [...new Set([chosen, ...list.map(m => m.id), ...Object.values(s.choices.models).flat()])].filter(Boolean);
+      sel.innerHTML = `<option value="">${S.asRole}</option>` + ids.map(id => {
+        const m = list.find(x => x.id === id) || { id, name: modelName(id), priced: true };
+        return `<option value="${esc(id)}"${id === chosen ? " selected" : ""}>${esc(m.name)}${m.priced === false ? ` (${S.unpriced})` : ""}</option>`;
+      }).join("");
+    });
     refresh();
   };
   fill([]);

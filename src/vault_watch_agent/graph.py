@@ -169,7 +169,7 @@ def build(deps: Deps, checkpointer=None):
         corrections = state.get("corrections", [])
         if not deps.crosscheck or not corrections or state.get("mode") == "translation":
             return {}
-        plan = reading.plan(deps.vault, deps.llm)  # the whole guide in one call, or chapter by chapter
+        plan = reading.plan(deps.vault, deps.llm, step="crosscheck")  # the whole guide in one call, or by chapter
         if state.get("mode") == "compact":
             # Trims: judged on what they lose, without the web; no sweep (a repetition removed leaves its values
             # elsewhere on purpose), and the notes the revised trims orphan are removed with them

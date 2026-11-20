@@ -65,7 +65,7 @@ Un `llm.EngineKind` dit à l'agent comment créer le moteur et ce qu'il propose 
 | Champ | Ce que c'est |
 | :-- | :-- |
 | `name`, `label` | Le nom dans `settings.json` (`"engine": "ollama"`) et le libellé dans les Réglages. |
-| `make(role, journal, settings)` | Le client d'un rôle (`reasoning` ou `translator`). |
+| `make(role, journal, settings)` | Le client d'un rôle (`reasoning` ou `translator`), sur le modèle que `settings` donne à ce rôle. Il est appelé une fois de plus pour chaque étape que l'utilisateur a réglée à part, avec le modèle de cette étape à la place de celui du rôle (dans `settings["models"][role]`, et dans l'option `models` de votre moteur s'il en a une). |
 | `models(settings)` | Facultatif. Les modèles qu'il propose : `[{id, name, context, priced}]`. |
 | `check(options)` | Facultatif. Il vérifie les options du moteur (`settings["engines"]["<nom>"]`), complète les valeurs par défaut et lève une erreur sur une mauvaise valeur. |
 | `model_of(settings, role)` | Le modèle d'un rôle. |

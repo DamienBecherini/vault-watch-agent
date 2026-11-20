@@ -65,7 +65,7 @@ An `llm.EngineKind` tells the agent how to make the engine and what it offers:
 | Field | What it is |
 | :-- | :-- |
 | `name`, `label` | The name in `settings.json` (`"engine": "ollama"`) and the label in the Settings. |
-| `make(role, journal, settings)` | The client of a role (`reasoning` or `translator`). |
+| `make(role, journal, settings)` | The client of a role (`reasoning` or `translator`), on the model `settings` gives that role. It is called once more for each step the user set apart, with that step's model in place of the role's (in `settings["models"][role]`, and in your engine's own `models` option when it has one). |
 | `models(settings)` | Optional. The models it offers: `[{id, name, context, priced}]`. |
 | `check(options)` | Optional. It checks the engine's options (`settings["engines"]["<name>"]`), fills the defaults and raises on a wrong one. |
 | `model_of(settings, role)` | The model of a role. |
