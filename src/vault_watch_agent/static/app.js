@@ -138,6 +138,8 @@ const TEXTS = {
     sourceMissing: "Source à vérifier", leftovers: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
+    noNewPage: "Cette passe ajoute dans les pages existantes : elle n'écrit jamais de nouvelle page.",
+    pagesToWrite: n => n ? `${n} piste(s) demanderaient une page à elles. À toi de décider de les écrire :` : "Aucune de ses pistes n'en demandait une.",
     reviewHelp: "Coche ce qui doit être appliqué. Les corrections liées (une phrase et sa note, par exemple) forment un groupe : elles se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier.",
     group: g => `Groupe ${g}`, groupLeftOut: " · écarté : un membre ne s'applique pas",
     noCorrection: "Aucune correction proposée.",
@@ -307,6 +309,8 @@ const TEXTS = {
     sourceMissing: "Source to check", leftovers: n => `Removed values still present, left as they are (${n})`,
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
+    noNewPage: "This run adds to existing pages: it never writes a new page.",
+    pagesToWrite: n => n ? `${n} lead(s) would need a page of their own. Writing them is your decision:` : "None of its leads asked for one.",
     reviewHelp: "Tick what should be applied. Related corrections (a sentence and its footnote, for instance) form a group and are ticked together. A group with a member that cannot apply is left out whole.",
     group: g => `Group ${g}`, groupLeftOut: " · left out: a member does not apply",
     noCorrection: "No correction proposed.",
@@ -582,6 +586,8 @@ function viewReview(r, title) {
   page.innerHTML = `${title}
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.reviewFigures[i]}</div>`).join("")}</div>
     ${r.reading?.mode === "chapters" ? `<p class="banner small">${T.byChapter(r.reading.tokens, r.reading.budget)}</p>` : ""}
+    ${r.mode === "add" ? `<div class="card notice"><p><strong>${T.noNewPage}</strong> ${T.pagesToWrite(r.pages_to_write.length)}</p>
+      ${r.pages_to_write.length ? `<ul>${r.pages_to_write.map(p => `<li><strong>${esc(p.id)}</strong> ${esc(p.what)}<br><span class="muted small">${esc(p.lead)}</span></li>`).join("")}</ul>` : ""}</div>` : ""}
     <h2>${T.corrections}</h2>
     <p class="muted small">${T.reviewHelp}</p>
     ${Object.entries(groups).map(([g, cs]) => cs.length > 1

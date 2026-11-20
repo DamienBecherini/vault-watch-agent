@@ -17,7 +17,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import compact, crosscheck, forge, inputs, prompts, quotes, reading, steps, vault
+from . import compact, crosscheck, forge, inputs, news, prompts, quotes, reading, steps, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -539,6 +539,17 @@ def _weight_rows(corrections: list[dict]) -> list[str]:
             f"mirrors not counted. Most: {most} |"]
 
 
+def _pages_to_write(state: WatchState) -> list[str]:
+    """An addition run: that it writes no new page, and the pages its leads would need, before anything else."""
+    if state.get("mode") != "add":
+        return []
+    found = news.pages_to_write(state)
+    return ["## New pages: not written", "",
+            f"{news.NO_NEW_PAGE} " + (f"{len(found)} lead(s) would need a page of their own, which stays your decision:"
+                                      if found else "None of its leads asked for one."), "",
+            *[f"- **{f['id']}** {f['what']} (lead: {_cell(f['lead'])})" for f in found], *([""] if found else [])]
+
+
 def render_report(state: WatchState, proposals: list[dict], corrections: list[dict]) -> str:
     items = {i["id"]: i for i in state["items"]}
     decisions = state["decisions"]
@@ -559,6 +570,7 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
         f"| Model usage | {usage_line(state.get('usage', []))} |",
         *_weight_rows(corrections),
         "",
+        *_pages_to_write(state),
         "## Corrections",
         "",
     ]
@@ -692,12 +704,19 @@ def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str
     trims = state.get("mode") == "compact"
     w = state.get("weight") or {}
     saved = weight_line(w) + "\n\n" if w.get("before") else ""
+    # An addition run writes no new page: the ones its leads would need are said first
+    pages = news.pages_to_write(state) if state.get("mode") == "add" else []
+    wanted = ("Not written: " + f"{len(pages)} subject(s) that would need a page of their own (the run adds to existing "
+              "pages only).\n\n" + "".join(f"- {p['what']}\n" for p in pages) + "\n") if pages else ""
     return (
         (f"Trims of {state['source']}, reviewed before apply: the guide weighs less and says no less.\n\n{saved}" if trims else
+         f"Additions from {state['source']}, each checked on primary sources and reviewed before apply.\n\n{saved}{wanted}"
+         if state.get("mode") == "add" else
          f"Corrections from {state['source']}, reviewed before apply.\n\n{saved}")
         + "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
-        + (f"{'What weighed' if trims else 'Reported errors'}:\n\n{errors}\n" if errors else "")
+        + (f"{'What weighed' if trims else 'Leads' if state.get('mode') == 'add' else 'Reported errors'}:\n\n{errors}\n"
+           if errors else "")
         + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
             state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
         f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"

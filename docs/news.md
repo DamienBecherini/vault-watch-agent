@@ -16,6 +16,10 @@ It has two parts. Both call the model and say their cost before they run.
 | Leads | Reads the whole guide, and what past watches set aside, and lists what to go and check. Verifies nothing, edits nothing | no |
 | Additions | For the leads you keep: checks each one on primary sources, then proposes where to write it, or says why not | yes |
 
+> **Limit.** This run adds to existing pages only: it never writes a new page. When a subject would need a page of
+> its own, it says so, at the top of the review screen, of its report and of the pull request, and leaves the
+> decision to you.
+
 ## The leads
 
 ```bash

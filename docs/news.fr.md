@@ -16,6 +16,10 @@ Il a deux parties. Les deux appellent le modèle et annoncent leur coût avant d
 | Pistes | Lit tout le guide, et ce que les veilles passées ont mis de côté, et liste ce qu'il faut aller vérifier. Ne vérifie rien, ne modifie rien | non |
 | Ajouts | Pour les pistes que vous gardez : vérifie chacune sur des sources primaires, puis propose où l'écrire, ou dit pourquoi non | oui |
 
+> **Limite.** Ce passage ajoute dans les pages existantes : il n'écrit jamais de nouvelle page. Quand un sujet
+> demanderait une page à lui, il le dit, en tête de l'écran de relecture, de son rapport et de la pull request, et
+> vous laisse décider.
+
 ## Les pistes
 
 ```bash

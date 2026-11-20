@@ -553,6 +553,8 @@ def create_app(settings: Settings) -> FastAPI:
             "leftovers": v.get("leftovers", []),
             "reading": v.get("reading"),  # whole guide or by chapter (reading.Plan.summary)
             "mode": v.get("mode", ""), "weight": v.get("weight"),  # what the edits weigh, per page (after apply)
+            # An addition run writes no new page: the ones its leads would need, shown at the top of the review
+            "pages_to_write": news.pages_to_write(v) if v.get("mode") == "add" else [],
             "claims_due": v.get("claims_due", []),
             "usage": usage_line(v.get("usage", [])),
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),

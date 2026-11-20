@@ -160,6 +160,21 @@ ABOVE = {"guide": "The whole guide is above, one <page> per file.",
                   "which you do not see: when you cannot tell whether the guide already covers a lead, say so in "
                   "its outcome (the review that follows reads every page)."}
 
+_NEEDS_PAGE = re.compile(r"^\W*needs a page\W*", re.I)
+
+
+def pages_to_write(state: dict) -> list[dict]:
+    """The leads an addition run answered « needs a page »: [{id, lead, what}]. The run never writes a new page; these
+    are shown apart, at the top of the review, of the report and of the pull request, so that they are not missed
+    among the leads without change."""
+    titles = {i["id"]: i["title"] for i in state.get("items", [])}
+    return [{"id": o["item_id"], "lead": titles.get(o["item_id"], ""), "what": _NEEDS_PAGE.sub("", o["no_change_reason"]).strip()}
+            for p in state.get("proposals", []) for o in p.get("outcomes", [])
+            if _NEEDS_PAGE.match(o.get("no_change_reason") or "")]
+
+
+NO_NEW_PAGE = "This run adds to existing pages only: it never writes a new page."
+
 PER_CALL = 4  # leads per call: each one is a few rounds of search, and each round re-reads what the call gathered
 
 

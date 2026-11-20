@@ -480,11 +480,13 @@ CHECKS = [
           {"fr": "Claude lit toutes les pages d'un coup, avec ce que les veilles ont mis de côté sans l'écrire, et liste "
                  "des pistes sans rien vérifier ni modifier : ce que le guide présente comme actuel et qui a sans doute "
                  "évolué, les sujets qu'un lecteur attendrait et qu'aucune page ne couvre. Les pistes gardées partent dans "
-                 "une passe d'ajouts, qui vérifie chacune sur le web puis propose où l'écrire, relue comme une correction.",
+                 "une passe d'ajouts, qui vérifie chacune sur le web puis propose où l'écrire, relue comme une correction. "
+                 "Limite : la passe n'écrit jamais de nouvelle page, elle signale celles qu'il faudrait.",
            "en": "Claude reads every page at once, with what the watches set aside without writing it, and lists leads "
                  "without verifying or editing anything: what the guide presents as current and has probably moved on, "
                  "the subjects a reader would expect and no page covers. The leads you keep go to an addition run, which "
-                 "checks each one on the web then proposes where to write it, reviewed like a correction."},
+                 "checks each one on the web then proposes where to write it, reviewed like a correction. Limit: the run "
+                 "never writes a new page, it says which ones would be needed."},
           MODEL, fix_mode="add"),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,

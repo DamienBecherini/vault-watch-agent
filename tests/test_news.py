@@ -263,3 +263,33 @@ def test_the_leads_of_the_check_go_to_an_addition_run(setup, tmp_path):
     assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 3, "dismissed": 0}
     report = (deps.home / "reports" / f"feat-{thread}.md").read_text(encoding="utf-8")
     assert "needs a page: the obligations, under 06-ops" in report and "| Ollama (voix) | 0.14 |" in report
+    # The run writes no new page: said before the corrections, with the page its lead would need
+    assert run["pages_to_write"] == [{"id": "F3", "lead": LEADS[2], "what": "the obligations, under 06-ops"}]
+    assert "never writes a new page" in options["news"]["what"]["en"] and "jamais de nouvelle page" in options["news"]["what"]["fr"]
+    top = report.split("## Corrections")[0]
+    assert "## New pages: not written" in top and "1 lead(s) would need a page of their own" in top
+    assert "- **F3** the obligations, under 06-ops" in top
+
+
+def test_the_pull_request_of_an_addition_run_says_what_it_did_not_write():
+    from vault_watch_agent.graph import pr_body, render_report
+
+    correction = {"id": "C1", "item_id": "F1", "item_ids": ["F1"], "page": "a.md", "severity": "Major", "group": "C1",
+                  "rationale": "new in 0.14", "source_url": "https://example.org/a", "current": "x", "proposed": "x\ny",
+                  "check": "ok", "proposal": 0}
+    state = {"mode": "add", "source": "what a reader would look for and not find (add-1)", "as_of": "2026-11-20",
+             "corrections": [correction], "applied": ["C1"], "decisions": [], "audit_ok": True, "mirrored": [], "issue": None,
+             "items": [{"id": "F1", "domain": "fix", "url": "", "title": "[Newer] a.md: check the release notes."},
+                       {"id": "F2", "domain": "fix", "url": "", "title": "[Missing] no page yet: the obligations."}],
+             "proposals": [{"item_ids": ["F1", "F2"], "corrections": [correction], "outcomes": [
+                 {"item_id": "F1", "event": "2026-10-20: 0.14", "no_change_reason": ""},
+                 {"item_id": "F2", "event": "", "no_change_reason": "« Needs a page: » the obligations, under 06-ops"}]}]}
+    body = pr_body(state)
+    assert body.startswith("Additions from what a reader would look for and not find (add-1), each checked on primary sources")
+    assert "Not written: 1 subject(s) that would need a page of their own" in body and "- the obligations, under 06-ops\n" in body
+    assert "Leads:\n\n- F1: [Newer] a.md" in body and "Reported errors" not in body
+    assert news.pages_to_write({**state, "proposals": [{"outcomes": [{"item_id": "F1", "no_change_reason": "nothing new"}]}]}) == []
+    none = render_report({**state, "proposals": [{"item_ids": ["F1"], "corrections": [correction], "outcomes": state["proposals"][0]["outcomes"][:1]}]},
+                         [], [correction])
+    assert "never writes a new page. None of its leads asked for one." in none
+    assert "## New pages" not in render_report({**state, "mode": "fix"}, state["proposals"], [correction])  # an addition run only
