@@ -159,7 +159,11 @@ In steady state, a watch with the whole-guide cross-check costs about 4 $; two a
 Writing the 400 k-token guide to the prompt cache costs about 2 $, each later call on that cache about 0.08 $: this
 is why the agent reads the whole guide instead of using a retrieval index.
 
-Those are API prices. The agent can also run on Claude Code signed in with a Claude subscription (the default
+These amounts are indicative: they are what the calls are worth at the API's list price. The author's calls went
+through the API access of his Claude subscription: he paid his subscription and nothing more. With a key billed
+per token, they are what you would pay.
+
+The agent can also run on Claude Code signed in with a Claude subscription (the default
 engine when it finds one): nothing is billed, the calls count in the limits of the subscription, and the journal
 keeps their tokens with what they would have cost on the API.
 

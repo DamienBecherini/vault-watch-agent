@@ -164,7 +164,11 @@ En régime normal, une veille avec relecture croisée de tout le guide coûte en
 par an. Écrire les 400 k tokens du guide dans le cache coûte environ 2 $, chaque appel suivant sur ce cache environ
 0,08 $ : c'est pourquoi l'agent lit tout le guide plutôt que d'utiliser un index de recherche.
 
-Ce sont des prix d'API. L'agent peut aussi passer par Claude Code connecté avec un abonnement Claude (le moteur par
+Ces montants sont indicatifs : c'est ce que valent les appels au prix public de l'API. Les appels de l'auteur sont
+passés par l'accès API de son abonnement Claude : il a payé son abonnement, rien de plus. Avec une clé facturée au
+token, c'est ce que vous paieriez.
+
+L'agent peut aussi passer par Claude Code connecté avec un abonnement Claude (le moteur par
 défaut quand il en trouve un) : rien n'est facturé, les appels comptent dans les limites de l'abonnement, et le
 journal garde leurs tokens avec ce qu'ils auraient coûté sur l'API.
 

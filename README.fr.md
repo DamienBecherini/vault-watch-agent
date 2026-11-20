@@ -46,7 +46,7 @@ avant votre feu vert, et c'est vous qui fusionnez la pull request.
 ## Démarrage rapide
 
 ```bash
-pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.3.0
+pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.3.1
 
 cd mon-guide                # la racine du dépôt git du guide
 vault-watch init            # écrit vault-watch.toml d'après ce que montre le dossier ; relisez-le, ajustez-le
@@ -229,6 +229,10 @@ La relecture croisée domine : écrire 400 k tokens dans le cache de prompt coû
 même cache environ 0,08 $. Deux veilles complètes par mois font environ 100 $ par an ; un guide deux fois plus petit
 coûte à peu près moitié moins. Avec Claude Code sur un abonnement, rien n'est facturé, mais une relecture croisée
 pèse sur les limites de l'abonnement.
+
+Ces montants sont indicatifs : c'est ce que valent les appels au prix public de l'API. Les appels de l'auteur sont
+passés par l'accès API de son abonnement Claude : il a payé son abonnement, rien de plus. Avec une clé facturée au
+token, c'est ce que vous paieriez.
 
 ## Ce que montre ce dépôt
 

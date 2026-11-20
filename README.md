@@ -46,7 +46,7 @@ your go-ahead, and the pull request is merged by you.
 ## Quick start
 
 ```bash
-pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.3.0
+pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.3.1
 
 cd my-guide                 # the root of the guide's git repository
 vault-watch init            # writes vault-watch.toml from what the folder shows; read it, adjust it
@@ -223,6 +223,10 @@ November 2026 on the API at list price, Opus 5.5 for reasoning and Sonnet 5.5 fo
 The cross-check dominates: writing 400 k tokens to the prompt cache costs about 2 $, a later call on the same cache
 about 0.08 $. Two full watches a month come to about 100 $ a year; a guide half the size costs about half. On
 Claude Code with a subscription, nothing is billed, but a cross-check weighs on the subscription's limits.
+
+These amounts are indicative: they are what the calls are worth at the API's list price. The author's calls went
+through the API access of his Claude subscription: he paid his subscription and nothing more. With a key billed
+per token, they are what you would pay.
 
 ## What this repository shows
 
