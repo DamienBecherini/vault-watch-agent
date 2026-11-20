@@ -36,6 +36,12 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
 - Two steps more in the Settings (the report, the trims), with their effort (`high`). The button that creates a
   compaction run shows an estimate that follows the findings ticked: the cross-check, then a share per finding,
   at the prices of the models of the Settings.
+- The Sources page: a proposal can be put off until the next check (« Put off », `POST /api/sources/later`): it
+  leaves the list to decide, nothing changes in the guide, and the next check proposes it again if it still holds.
+  A text filter above the table (name, repository, type, state). The table fits the page (the note « nothing
+  since » on two lines, a long address wraps in its column); when it is wider than its card, the card says so: a
+  shade on the side that hides columns, the first column stays in place, and an arrow stays at the bottom of the
+  window while the table is there.
 - A pull request with many corrections is opened: its description goes to `gh` in a file (as an argument, Windows
   refused it over 32 767 characters, before `gh` ran) and stays under what GitHub accepts (it loses, as far as
   needed, the passages under its findings, the end of its « Why » cells, then the last rows of its table). A

@@ -134,6 +134,11 @@ class Changes(BaseModel):
     ids: list[str]  # the proposals of the last source check to apply (S1, S4…)
 
 
+class Later(BaseModel):
+    ids: list[str]  # the proposals of the last source check to put off until the next one
+    on: bool = True  # False: decide them now after all
+
+
 class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
 
@@ -797,6 +802,23 @@ def create_app(settings: Settings) -> FastAPI:
             check.setdefault("applied", []).append({**done, "ids": [c["id"] for c in chosen], "t": time.time()})
             write_json(check_file, check)
         return done
+
+    @app.post("/api/sources/later")
+    def sources_later(body: Later):
+        """Put proposals off until the next check: they leave the list to decide, nothing changes in the guide. The
+        next check writes its own proposals: what is still true then comes back."""
+        with lock:
+            check = last_check()
+            chosen = [p for p in (check or {}).get("proposals", []) if p["id"] in body.ids and not p.get("applied")]
+            if not chosen:
+                raise HTTPException(400, "none of these proposals is to decide (check the sources again)")
+            for p in chosen:
+                if body.on:
+                    p["later"] = time.time()
+                else:
+                    p.pop("later", None)
+            write_json(check_file, check)
+        return {"later": [p["id"] for p in check["proposals"] if p.get("later")]}
 
     # -- health check of the guide (verify.py): one JSON file per verification ---------------------
     verifs = settings.home / "verifications"

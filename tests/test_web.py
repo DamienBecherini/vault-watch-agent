@@ -387,6 +387,12 @@ def test_the_sources_page_shows_the_last_check_and_applies_what_is_chosen(setup,
         return {"branch": "chore/watch-sources-x", "pr_url": "https://forge.example/pulls/9"}
 
     monkeypatch.setattr(sourcecheck, "publish", publish)
+    # Put off until the next check: marked, still there, and taken back at will; the guide is not touched
+    assert c.post("/api/sources/later", json={"ids": ["S1", "S9"]}, headers=ACT).json() == {"later": ["S1"]}
+    assert c.get("/api/sources").json()["check"]["proposals"][0]["later"] > 0 and not asked
+    assert c.post("/api/sources/later", json={"ids": ["S1"], "on": False}, headers=ACT).json() == {"later": []}
+    assert "later" not in c.get("/api/sources").json()["check"]["proposals"][0]
+    assert c.post("/api/sources/later", json={"ids": ["S9"]}, headers=ACT).status_code == 400
     done = c.post("/api/sources/apply", json={"ids": ["S1", "S9"]}, headers=ACT).json()
     assert done == {"branch": "chore/watch-sources-x", "pr_url": "https://forge.example/pulls/9"} and asked["ids"] == ["S1"]
     check = c.get("/api/sources").json()["check"]

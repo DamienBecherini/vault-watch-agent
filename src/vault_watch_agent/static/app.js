@@ -41,9 +41,9 @@ const TEXTS = {
       checking: (n, total) => `Vérification en cours… ${n} / ${total}`,
       checked: d => `Dernière vérification : ${d}.`, neverChecked: "Jamais vérifiées : la colonne « À la source » et les propositions viennent avec la première vérification.",
       probe: { unreachable: "ne répond pas", archived: "dépôt archivé", moved: r => `déplacé vers ${r}`, empty: "ne liste rien",
-        stale: d => `rien depuis le ${d}` },
+        stale: d => `rien depuis le<br>${d}` },
       staleNote: days => `Une source qui n'a rien publié depuis ${days} jours n'est pas proposée au retrait : un outil qui ne bouge plus est une information sur le sujet du guide, c'est la page qui le recommande qu'il faut regarder.`,
-      proposals: (n, open) => `Propositions : ${n} à décider${open ? `, ${open} dans une pull request ouverte` : ""}`, noProposals: "Aucun changement à proposer.",
+      proposals: (n, open, later) => `Propositions : ${n} à décider${open ? `, ${open} dans une pull request ouverte` : ""}${later ? `, ${later} reportée(s)` : ""}`, noProposals: "Aucun changement à proposer.",
       groups: { remove: "Retirer", change: "Modifier", add: "Ajouter : cités dans le guide, suivis par aucune source", advisories: "Ajouter : failles de sécurité d'outils déjà suivis pour leurs versions" },
       why: {
         unreachable: p => `la source ne répond pas (${p.error})`, archived: () => "le dépôt est archivé",
@@ -53,7 +53,10 @@ const TEXTS = {
         cited: p => `cité dans ${p.pages} pages (${p.examples.join(", ")})`,
         "no-advisories": p => `suivi pour ses versions (${p.of}), pas pour ses failles`,
       },
-      recommended: "un fait tranche", applied: "dans la PR",
+      recommended: "un fait tranche", applied: "dans la PR", later: "reportée", decideNow: "Décider maintenant",
+      putOff: n => `Reporter ${n} à la prochaine vérification`,
+      putOffHelp: "Reporter retire une proposition de la liste sans rien changer au guide : la prochaine vérification la proposera de nouveau si elle tient toujours.",
+      search: "Filtrer : nom, dépôt, type…", scrollLeft: "Voir les colonnes de gauche", scrollRight: "Voir les colonnes de droite",
       apply: (n, repo) => repo ? `Ouvrir une pull request avec ${n} changement(s)` : `Créer une branche avec ${n} changement(s)`,
       appliedTo: (branch, pr) => pr ? `Pull request ouverte : ${pr}` : `Changements sur la branche ${branch} (guide sans dépôt : à fusionner à la main).`,
       all: n => `Toutes (${n})`, filterHelp: "Clique un état pour ne voir que lui (plusieurs possibles), un titre de colonne pour trier.",
@@ -131,6 +134,7 @@ const TEXTS = {
     lostValues: "Plus aucune page ne le dit ensuite", removedWhole: "(passage supprimé)",
     weight: w => `Les pages modifiées pèsent ${kb(w.before)} avant et ${kb(w.after)} après (${signedKb(w.after - w.before)}), miroirs non comptés.`,
     weightMost: "Le plus :",
+    publishFailed: "La publication a échoué, rien n'est perdu, vous pouvez réessayer :",
     sourceMissing: "Source à vérifier", leftovers: n => `Valeurs retirées encore présentes, laissées telles quelles (${n})`,
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
@@ -207,9 +211,9 @@ const TEXTS = {
       checking: (n, total) => `Checking… ${n} / ${total}`,
       checked: d => `Last check: ${d}.`, neverChecked: "Never checked: the « At the source » column and the proposals come with the first check.",
       probe: { unreachable: "does not answer", archived: "repository archived", moved: r => `moved to ${r}`, empty: "lists nothing",
-        stale: d => `nothing since ${d}` },
+        stale: d => `nothing since<br>${d}` },
       staleNote: days => `A source that has published nothing for ${days} days is not proposed for removal: a tool that stopped moving is a fact about the guide's subject, the page that recommends it is what to look at.`,
-      proposals: (n, open) => `Proposals: ${n} to decide${open ? `, ${open} in an open pull request` : ""}`, noProposals: "No change to propose.",
+      proposals: (n, open, later) => `Proposals: ${n} to decide${open ? `, ${open} in an open pull request` : ""}${later ? `, ${later} put off` : ""}`, noProposals: "No change to propose.",
       groups: { remove: "Remove", change: "Change", add: "Add: cited in the guide, followed by no source", advisories: "Add: security advisories of tools already followed for their releases" },
       why: {
         unreachable: p => `the source does not answer (${p.error})`, archived: () => "the repository is archived",
@@ -219,7 +223,10 @@ const TEXTS = {
         cited: p => `cited in ${p.pages} pages (${p.examples.join(", ")})`,
         "no-advisories": p => `followed for its releases (${p.of}), not for its advisories`,
       },
-      recommended: "settled by a fact", applied: "in the PR",
+      recommended: "settled by a fact", applied: "in the PR", later: "put off", decideNow: "Decide now",
+      putOff: n => `Put ${n} off until the next check`,
+      putOffHelp: "Putting a proposal off takes it out of the list and changes nothing in the guide: the next check proposes it again if it still holds.",
+      search: "Filter: name, repository, type…", scrollLeft: "See the columns on the left", scrollRight: "See the columns on the right",
       apply: (n, repo) => repo ? `Open a pull request with ${n} change(s)` : `Create a branch with ${n} change(s)`,
       appliedTo: (branch, pr) => pr ? `Pull request opened: ${pr}` : `Changes on the branch ${branch} (a guide without a repository: merge it by hand).`,
       all: n => `All (${n})`, filterHelp: "Click a state to see it alone (several can be chosen), a column title to sort.",
@@ -296,6 +303,7 @@ const TEXTS = {
     lostValues: "No page states it any more", removedWhole: "(passage removed)",
     weight: w => `The pages changed weigh ${kb(w.before)} before and ${kb(w.after)} after (${signedKb(w.after - w.before)}), mirrors not counted.`,
     weightMost: "Most:",
+    publishFailed: "The publication failed, nothing is lost, you can try again:",
     sourceMissing: "Source to check", leftovers: n => `Removed values still present, left as they are (${n})`,
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
@@ -625,6 +633,7 @@ async function viewPublish(r, title) {
   page.innerHTML = `${title}
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.publishFigures[i]}</div>`).join("")}</div>
     <div class="card">
+      ${r.error ? `<p class="error-text"><b>${T.publishFailed}</b> ${esc(r.error)}</p>` : ""}
       <p>${T.branchReady(esc(p.branch))}</p>
       ${r.weight?.before ? `<p>${T.weight(r.weight)}${(r.weight.pages || []).length ? ` ${T.weightMost} ${r.weight.pages.slice(0, 3).map(([p, d]) => `<code>${esc(p)}</code> ${signedKb(d)}`).join(", ")}.` : ""}</p>` : ""}
       ${p.audit_ok !== false ? "" : `<p class="error-text">${T.auditsRed}</p><pre>${esc(r.audit_log)}</pre>`}
@@ -866,7 +875,28 @@ const SOURCE_COLUMNS = [["id"], ["type"], ["last_item"], ["source_last"], ["coll
   ["proposed", true], ["accepted", true], ["verdict"]];
 // The reader's choices, kept while the page is open: the column sorted (none: what to look at first), its
 // direction, the states shown (none: all)
-const SOURCES_VIEW = { sort: "", dir: 1, states: new Set() };
+const SOURCES_VIEW = { sort: "", dir: 1, states: new Set(), query: "" };
+
+// A table wider than its card: `html` in a frame that scrolls sideways and says so (a shade on the side that
+// hides columns, an arrow that stays in the window while the table is there). `wideTables` wires the frames of a page.
+const wideTable = (html, left, right) => `<div class="card wide"><div class="scroll-x">${html}</div>
+  <div class="scroll-arrows"><button type="button" data-scroll="-1" title="${esc(left)}" aria-label="${esc(left)}">‹</button>
+  <button type="button" data-scroll="1" title="${esc(right)}" aria-label="${esc(right)}">›</button></div></div>`;
+function wideTables(root) {
+  root.querySelectorAll(".card.wide").forEach(card => {
+    const box = card.querySelector(".scroll-x");
+    if (!box) return;
+    const mark = () => {
+      card.classList.toggle("can-left", box.scrollLeft > 1);
+      card.classList.toggle("can-right", box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
+    };
+    box.addEventListener("scroll", mark, { passive: true });
+    new ResizeObserver(mark).observe(box);
+    card.querySelectorAll("[data-scroll]").forEach(b => b.onclick = () =>
+      box.scrollBy({ left: Number(b.dataset.scroll) * box.clientWidth * 0.6, behavior: "smooth" }));
+    mark();
+  });
+}
 
 function sortSources(feeds) {
   const { sort, dir } = SOURCES_VIEW, number = (SOURCE_COLUMNS.find(c => c[0] === sort) || [])[1];
@@ -896,16 +926,17 @@ async function viewSources() {
     if (!p) return "—";
     const note = p.state === "ok" ? "" : p.state === "moved" ? S.probe.moved(esc(p.moved)) : p.state === "stale" ? S.probe.stale(esc(p.last))
       : S.probe[p.state] || esc(p.state);
-    return `${p.state === "stale" ? "" : esc(p.last) || "—"}${note ? `<div class="${p.state === "stale" ? "muted" : "error-text"} small">${note}</div>` : ""}`;
+    return `${p.state === "stale" ? "" : `<span class="nowrap">${esc(p.last) || "—"}</span>`}${note ? `<div class="${p.state === "stale" ? "muted" : "error-text"} small">${note}</div>` : ""}`;
   };
   const what = f => esc(f.repo || f.author || f.url || f.name || "");
   const proposal = (p, group) => {
-    const done = p.applied;
+    const done = p.applied, later = !done && p.later;
     const ticked = SOURCE_TICKS[p.id] ?? p.recommended;
-    return `<li${done ? ' class="handled"' : ""}><label>${done ? `<span class="badge ok">${S.applied}</span>`
+    return `<li${done || later ? ' class="handled"' : ""}><label>${done ? `<span class="badge ok">${S.applied}</span>`
+      : later ? `<span class="badge neutral">${S.later}</span> <button class="small-button" data-now="${p.id}">${S.decideNow}</button>`
       : `<input type="checkbox" data-proposal="${p.id}" data-group="${group}"${ticked ? " checked" : ""}>`} <span><b>${esc(p.feed.id)}</b>
       <span class="muted">(${esc(p.feed.type || "rss")}${what(p.feed) ? `, ${what(p.feed)}` : ""})</span> : ${esc(S.why[p.why](p))}${
-      p.recommended && !done ? ` <span class="badge neutral">${S.recommended}</span>` : ""}${
+      p.recommended && !done && !later ? ` <span class="badge neutral">${S.recommended}</span>` : ""}${
       done?.pr_url ? ` ${extLink(done.pr_url, "PR")}` : ""}</span></label></li>`;
   };
   const groups = check ? [
@@ -914,7 +945,9 @@ async function viewSources() {
     ["advisories", check.proposals.filter(p => p.why === "no-advisories")]].filter(([, list]) => list.length) : [];
   const last = check?.applied?.filter(a => !a.state).at(-1);  // the pull request (or branch) still to merge
   const draw = () => {
-    const shown = sortSources(s.feeds.filter(f => !view.states.size || view.states.has(f.verdict)));
+    const q = view.query.trim().toLowerCase(), open = p => !p.applied && !p.later;
+    const typed = f => !q || [f.id, f.target, f.url, f.type, f.tier, S.verdicts[f.verdict]].some(x => x && String(x).toLowerCase().includes(q));
+    const shown = sortSources(s.feeds.filter(f => (!view.states.size || view.states.has(f.verdict)) && typed(f)));
     const arrow = key => view.sort !== key ? "" : view.dir > 0 ? " ▲" : " ▼";
     page.innerHTML = `
     <h1>${S.title}</h1>
@@ -922,33 +955,35 @@ async function viewSources() {
     <p><button class="primary" id="check"${busy ? " disabled" : ""}>${busy ? S.checking(s.checking.done, s.checking.total) : S.check}</button>
       <span class="muted small">${check ? S.checked(new Date(check.checked).toLocaleString(lang)) : S.neverChecked} ${S.checkHelp}</span></p>
     ${s.checking.error ? `<p class="error-text">${esc(s.checking.error)}</p>` : ""}
-    ${check ? `<h2>${S.proposals(check.proposals.filter(p => !p.applied).length, check.proposals.filter(p => p.applied).length)}</h2>
+    ${check ? `<h2>${S.proposals(check.proposals.filter(open).length, check.proposals.filter(p => p.applied).length, check.proposals.filter(p => !p.applied && p.later).length)}</h2>
       ${last ? `<p class="small">${S.appliedTo(esc(last.branch), last.pr_url ? extLink(last.pr_url, esc(last.pr_url)) : "")}</p>` : ""}
       ${groups.length ? groups.map(([g, list]) => `<details class="card foldable"${g === "advisories" ? "" : " open"}>
         <summary class="header"><b>${S.groups[g]}</b> <span class="badge neutral">${list.length}</span>${
-          list.some(p => !p.applied) ? ` <button class="small-button" data-tick-group="${g}">${T.verif.tickCard(list.filter(p => !p.applied).length)}</button>` : ""}</summary>
+          list.some(open) ? ` <button class="small-button" data-tick-group="${g}">${T.verif.tickCard(list.filter(open).length)}</button>` : ""}</summary>
         <ul class="leads">${list.map(p => proposal(p, g)).join("")}</ul></details>`).join("") : `<p class="muted">${S.noProposals}</p>`}
       <p class="muted small">${S.staleNote(check.stale_days)}</p>
       ${view.error ? `<p class="error-text">${esc(view.error)}</p>` : ""}
-      ${check.proposals.some(p => !p.applied) ? `<div class="bar"><button id="all">${T.verif.tickAll}</button><button id="nothing">${T.verif.untickAll}</button>
-        <button class="primary" id="apply"></button></div>` : ""}` : ""}
+      ${check.proposals.some(open) ? `<div class="bar"><button id="all">${T.verif.tickAll}</button><button id="nothing">${T.verif.untickAll}</button>
+        <button id="later" title="${esc(S.putOffHelp)}"></button><button class="primary" id="apply"></button></div>
+        <p class="muted small">${S.putOffHelp}</p>` : ""}` : ""}
     <ul class="small filters">
       <li><button class="badge neutral${view.states.size ? " dim" : ""}" data-state="" aria-pressed="${!view.states.size}">${S.all(s.feeds.length)}</button> ${S.filterHelp}</li>
       ${SOURCE_ORDER.filter(v => by(v).length).map(v => `<li><button class="badge ${SOURCE_CLASS[v]}${view.states.size && !view.states.has(v) ? " dim" : ""}"
         data-state="${v}" aria-pressed="${view.states.has(v)}">${S.count(by(v).length, S.verdicts[v])}</button> ${rules[v]}</li>`).join("")}</ul>
-    <p class="muted small">${S.shown(shown.length, s.feeds.length)}${view.sort ? ` · <button class="small-button" id="default-sort">${S.defaultSort}</button>` : ""}</p>
-    <div class="card wide"><table>
+    <p class="muted small table-tools"><input type="search" id="source-filter" value="${esc(view.query)}" placeholder="${esc(S.search)}" aria-label="${esc(S.search)}">
+      <span>${S.shown(shown.length, s.feeds.length)}${view.sort ? ` · <button class="small-button" id="default-sort">${S.defaultSort}</button>` : ""}</span></p>
+    ${wideTable(`<table class="sources">
       <thead><tr>${S.columns.map((c, i) => { const [key, number] = SOURCE_COLUMNS[i]; return `<th${number ? ' class="number"' : ""}${
         view.sort === key ? ` aria-sort="${view.dir > 0 ? "ascending" : "descending"}"` : ""}><button class="sort" data-sort="${key}" title="${esc(S.sortBy(c))}">${c}${arrow(key)}</button></th>`; }).join("")}</tr></thead>
       <tbody>${shown.map(f => `<tr>
-        <td><b>${esc(f.id)}</b><div class="muted small">${f.url ? extLink(f.url, esc(f.target)) : esc(f.target)}</div></td>
+        <td class="first"><b>${esc(f.id)}</b><div class="muted small">${f.url ? extLink(f.url, esc(f.target)) : esc(f.target)}</div></td>
         <td class="small">${esc(f.type)}${f.tier ? ` · ${esc(f.tier)}` : ""}</td>
         <td class="small nowrap">${esc(f.last_item) || "—"}</td>
-        <td class="small nowrap">${answered(f)}</td>
+        <td class="small">${answered(f)}</td>
         ${cell(f.collected)}${cell(f.kept)}${cell(f.judged)}${cell(f.useful)}${cell(f.proposed)}${cell(f.accepted)}
         <td class="nowrap"><span class="badge ${SOURCE_CLASS[f.verdict]}" title="${esc(rules[f.verdict])}">${S.verdicts[f.verdict]}</span>${
           f.insurance ? ` <span class="muted small" title="${esc(S.insurance)}">🛡</span>` : ""}</td></tr>`).join("")}</tbody>
-    </table></div>
+    </table>`, S.scrollLeft, S.scrollRight)}
     <p class="muted small">${S.help.join(" ")} 🛡 ${S.insurance}.</p>
     ${s.removed.length ? `<p class="muted small">${S.removed(s.removed.length)} ${s.removed.map(r => `<code>${esc(r.id)}</code> (${r.items})`).join(", ")}</p>` : ""}`;
     // A state: shown alone, or with the others already chosen; « all » clears the choice
@@ -966,12 +1001,22 @@ async function viewSources() {
       page.querySelector(`[data-sort="${key}"]`)?.focus();  // the keyboard stays on the column
     });
     if ($("#default-sort")) $("#default-sort").onclick = () => { view.sort = ""; view.dir = 1; draw(); };
+    wideTables(page);
+    // The text typed filters as it is typed; the page is drawn again, the caret stays where it was
+    $("#source-filter").oninput = e => {
+      view.query = e.target.value;
+      const at = e.target.selectionStart;
+      draw();
+      $("#source-filter").focus();
+      $("#source-filter").setSelectionRange(at, at);
+    };
     $("#check").onclick = async () => { $("#check").disabled = true; await api("/api/sources/check", {}); viewSources(); };
     // The proposals: ticked ones go to one pull request
     const boxes = [...page.querySelectorAll("[data-proposal]")];
     const count = () => {
       const n = boxes.filter(b => b.checked).length;
       if ($("#apply")) { $("#apply").textContent = S.apply(n, s.repository); $("#apply").disabled = n === 0 || busy; }
+      if ($("#later")) { $("#later").textContent = S.putOff(n); $("#later").disabled = n === 0 || busy; }
     };
     const tick = (list, on) => { list.forEach(b => { b.checked = on; SOURCE_TICKS[b.dataset.proposal] = on; }); count(); };
     boxes.forEach(b => b.onchange = () => { SOURCE_TICKS[b.dataset.proposal] = b.checked; count(); });
@@ -983,6 +1028,18 @@ async function viewSources() {
     });
     if ($("#all")) { $("#all").onclick = () => tick(boxes, true); $("#nothing").onclick = () => tick(boxes, false); }
     count();
+    // Put off until the next check, or decide now after all: nothing changes in the guide
+    const later = async (ids, on) => {
+      try {
+        await api("/api/sources/later", { ids, on });
+        view.error = "";
+      } catch (e) {
+        view.error = e.message;
+      }
+      viewSources();
+    };
+    if ($("#later")) $("#later").onclick = () => later(boxes.filter(b => b.checked).map(b => b.dataset.proposal), true);
+    page.querySelectorAll("[data-now]").forEach(b => b.onclick = e => { e.preventDefault(); later([b.dataset.now], false); });
     if ($("#apply")) $("#apply").onclick = async () => {
       $("#apply").disabled = true;
       try {
