@@ -139,7 +139,9 @@ const TEXTS = {
       toHandleTitle: "À traiter", newCheck: "Nouvelle vérification", fixRuns: "Passes fix lancées depuis cette vérification",
       warning: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
       sent: "→ passe fix", dismissed: "écartée", reopen: "Rétablir",
-      unchecked: "pas vérifiée par la passe", resend: "Remettre à traiter", dismiss: n => `Écarter ${n} piste(s)`,
+      unchecked: "pas vérifiée par la passe", resend: "Remettre à traiter",
+      uncheckedAll: n => `${n} piste(s) envoyée(s) n'ont pas été vérifiées par leur passe : rien n'a été cherché ni modifié pour elles. Remets-les à traiter pour les renvoyer.`,
+      resendAll: n => n > 1 ? `Remettre les ${n} à traiter` : "Remettre à traiter", dismiss: n => `Écarter ${n} piste(s)`,
       interrupted: "interrompue",
       interruptedText: names => `Cette vérification s'est arrêtée avant la fin (serveur fermé pendant qu'elle tournait). Contrôles non faits : ${names}. Ce qu'elle a trouvé reste utilisable ; pour le reste, lance une nouvelle vérification.`,
       remove: "Supprimer cette vérification",
@@ -370,7 +372,9 @@ const TEXTS = {
       toHandleTitle: "To handle", newCheck: "New check", fixRuns: "Fix runs started from this check",
       warning: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
       sent: "→ fix run", dismissed: "dismissed", reopen: "Reopen",
-      unchecked: "not checked by the run", resend: "Put back to handle", dismiss: n => `Dismiss ${n} lead(s)`,
+      unchecked: "not checked by the run", resend: "Put back to handle",
+      uncheckedAll: n => `${n} lead(s) sent were not checked by their run: nothing was searched or edited for them. Put them back to handle to send them again.`,
+      resendAll: n => n > 1 ? `Put the ${n} back to handle` : "Put back to handle", dismiss: n => `Dismiss ${n} lead(s)`,
       interrupted: "interrupted",
       interruptedText: names => `This check stopped before its end (the server was closed while it ran). Checks not done: ${names}. What it found stays usable; for the rest, start a new check.`,
       remove: "Delete this check",
@@ -1196,7 +1200,8 @@ async function viewCheck(id) {
         : r.findings?.length && !r.open ? `<span class="badge ok">${V.handled}</span>`
         : `<span class="badge ${r.ok ? "ok" : "attention"}">${r.ok ? V.ok : r.open ? V.toHandle(r.open) : V.problems}</span>`;
       // Folded by default once nothing is left to do in it (all handled, or fine); the reader's choice is kept
-      const finished = r && !r.open && !r.summary?.startsWith("could not run") && (r.ok || r.findings?.length);
+      const stuck = (r?.findings || []).filter(f => v.unchecked?.[f] && v.handled[f]?.status === "fix");  // sent, not checked
+      const finished = r && !r.open && !stuck.length && !r.summary?.startsWith("could not run") && (r.ok || r.findings?.length);
       const isOpen = FOLDS[`${id}/${c}`] ?? !finished;
       return `<details class="card foldable" data-fold="${id}/${c}"${isOpen ? " open" : ""}><summary class="header"><b>${esc(titles[c] || c)}</b>${stateBadge}${r?.open ? ` <button class="small-button" data-tick-card="${c}">${V.tickCard(r.open)}</button>` : ""}</summary>
         ${r ? `<p class="muted small">${esc(r.summary)}</p>
@@ -1206,7 +1211,8 @@ async function viewCheck(id) {
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<p class="muted small">${V.leadsAdd}</p>` : ""}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<p class="muted small">${V.leadsAdd}</p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
+            <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
     <div class="bar">
@@ -1223,8 +1229,8 @@ async function viewCheck(id) {
       const run = v.runs[h.thread] || {};
       return `<li class="handled">${num} <span class="badge ok">${V.sent}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a>
         ${run.status ? badge(run.status) : ""}${run.pr_url ? ` ${extLink(run.pr_url, "PR")}` : ""} · ${esc(f)}${
-        v.unchecked?.[f] ? `<div class="unchecked"><span class="badge attention">${V.unchecked}</span> <button class="small-button" data-reopen="${esc(f)}">${V.resend}</button>
-          <span class="small">${esc(v.unchecked[f])}</span></div>` : ""}</li>`;
+        v.unchecked?.[f] ? `<div class="unchecked"><span class="badge attention">${V.unchecked}</span>
+          <span class="small">${esc(v.unchecked[f])}</span> <button type="button" class="primary" data-reopen="${esc(f)}">${V.resend}</button></div>` : ""}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
     return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span>${esc(f)}</span></label>${
@@ -1279,6 +1285,8 @@ async function viewCheck(id) {
   if ($("#remove")) $("#remove").onclick = () => confirm(V.confirmRemove)
     && api(`/api/verifications/${encodeURIComponent(id)}/delete`, {}).then(() => { location.hash = "/check"; });
   page.querySelectorAll("[data-reopen]").forEach(b => b.onclick = () => leads([b.dataset.reopen], "open"));
+  page.querySelectorAll("[data-reopen-card]").forEach(b => b.onclick = () => leads(
+    (v.results[b.dataset.reopenCard].findings || []).filter(f => v.unchecked?.[f] && v.handled[f]?.status === "fix"), "open"));
   if (!boxes.length) page.querySelector(".bar").remove();
   else {
     $("#dismiss").onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed");

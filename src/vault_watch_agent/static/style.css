@@ -232,7 +232,10 @@ ul.leads { padding-left: 0; list-style: none; } ul.leads li { margin: 6px 0; fon
 ul.leads label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; } ul.leads input { margin-top: 4px; }
 ul.leads .num { min-width: 2.2em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted, inherit); }
 ul.leads li.handled { color: var(--muted); }
-ul.leads li.handled .unchecked { margin: 4px 0 2px calc(2.2em + 30px); color: var(--text); }
+ul.leads li.handled .unchecked, .unchecked-all { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; padding: 10px 14px;
+  border: 1px solid var(--attention); border-left-width: 4px; border-radius: 8px; color: var(--text); }
+ul.leads li.handled .unchecked { margin: 6px 0 6px calc(2.2em + 30px); } .unchecked-all { margin: 0 0 12px; }
+.unchecked > span.small, .unchecked-all > span { flex: 1 1 320px; } .unchecked button, .unchecked-all button { flex: none; }
 .small-button { padding: 3px 10px; font-size: 13px; min-height: 28px; }   /* 24 px at least to aim at */
 details.new-check > summary { list-style: none; cursor: pointer; } details.new-check > summary::-webkit-details-marker { display: none; }
 details.new-check > summary h2 { display: inline-block; } details.new-check > summary h2::before { content: "▸ "; color: var(--muted); }
