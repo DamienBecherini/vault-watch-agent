@@ -94,6 +94,8 @@ vault-watch --guide ../my-guide fix add-2026-11-20 --findings leads.txt --add
 In the interface: tick the leads, then « Create an addition run »; the button shows an estimate that follows the
 number of leads ticked.
 
+![The leads of a check: each open lead with the passage of the guide it is about, the box « dig deeper », the list that chooses what each call reads, and the button with its estimate](leads.png)
+
 For each lead, the model searches the web and opens primary sources, then decides:
 
 - nothing new, nothing a primary source establishes, already covered, or below the guide's threshold: no edit,
@@ -124,12 +126,14 @@ a ceiling (20 searches, 30 pages), and leads that shared a call took it from one
 a lead about six price lists left its three neighbours unchecked. A lead its call could not look at is marked
 « not checked by the run » on the verification, with a button that puts it back among the leads to handle. What
 two calls add to the same page is put together by the program (a footnote marker both chose is renamed, two rows
-after the same row both apply). Every call reads the whole guide. On the Claude API the first call writes it to
-the prompt cache and the others read it from there; with another engine the calls follow one another.
+after the same row both apply). What a call reads of the guide is your choice (below): its lead's pages and the
+plan of the guide by default, several calls running at the same time, or the whole guide. With the whole guide on
+the Claude API, the first call writes it to the prompt cache and the others read it from there; with another
+engine those calls follow one another.
 
 The estimates below are for the IA on-prem guide (129 pages, about 430 000 tokens) with Opus 5.5 for the leads,
-the additions and the cross-check. Unless said otherwise they are not measured yet: the constants are counted high and will be set
-on the first real runs.
+the additions and the cross-check. The leads from the guide and the addition runs are set on real runs; the web
+explored by chapter has not run for real yet, and its constants are counted high.
 
 | | Estimate |
 | :-- | :-- |

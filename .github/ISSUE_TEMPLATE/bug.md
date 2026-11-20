@@ -8,7 +8,7 @@ labels: bug
 
 **What you expected**
 
-**How to reproduce** (command or page, guide used, engine: Claude Code or API)
+**How to reproduce** (command or page, guide used, engine: Claude Code, the API or an OpenAI-compatible server)
 
 **Version** (page footer or `/api/health`) and system (Windows, Linux, macOS)
 

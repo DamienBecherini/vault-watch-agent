@@ -52,8 +52,25 @@ text can achieve:
   is shown as such, never as the guide's text;
 - the agent's own web tools (for engines without a web of their own, `webtools.py`) read http and https only, and
   refuse any address that is not public: not the machine itself, the local network, or a cloud metadata address;
-- the model's answers never become commands: the only programs the agent runs are git, `gh` and the guide's own
-  checks, with arguments built by the code.
+- the model's answers never become commands: the only programs the agent runs are git, `gh`, the guide's own
+  checks and, when your settings use them, `claude` and `sops`, with arguments built by the code.
+
+## What leaves the machine
+
+There is no telemetry: the agent sends nothing about you or your guide to its author. It uses the network for:
+
+| What | To whom |
+| :-- | :-- |
+| The model calls: the instructions, the watch, the pages or the whole guide | The engine you chose |
+| Web search and page reading, on the steps that check sources | The engine's own web tools, or your SearXNG and the pages themselves |
+| The collection of a watch and the check of its sources | GitHub, Hugging Face, the feeds and the pages of `feeds.json` |
+| The links of the pages, when they are checked | The sites the guide links to |
+| Issues, artifacts, the branch and the pull request | The guide's forge: GitHub through `gh`, or your Gitea |
+| The public price list, when you ask for it in the Settings | A file of the LiteLLM repository, on GitHub |
+
+« Give my opinion » sends nothing by itself. It prepares a GitHub issue or an e-mail that you read and send
+yourself, or a text to copy. The version is in it; the system, Python, the engine and the screen are added only
+when you tick the box; nothing of the guide ever is, not its name, its pages or the run on the screen.
 
 ## The local server
 

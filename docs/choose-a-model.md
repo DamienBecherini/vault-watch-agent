@@ -37,7 +37,7 @@ its proposals before trusting a watch that says « nothing to change ».
 ## A model for one step
 
 The Settings give a model and an effort to two roles: reasoning (triage, proposals, cross-check, the checks of the
-guide, the compaction) and translation (the mirror, the translation checks). A step can be set apart from its
+guide, the compaction, what is new, the chapters) and translation (the mirror, the translation checks). A step can be set apart from its
 role: « Models and effort », then « Set a step apart » under the role. It then runs on the model chosen for it,
 and at the effort chosen for it when one is: that effort applies as it is, where the role's « lower » and
 « higher » move every other step one level. Everything else follows the role.

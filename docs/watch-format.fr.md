@@ -3,8 +3,7 @@
 # Le format d'une veille (`watch.json`)
 
 Une veille, c'est ce qui a changé dans le domaine d'un guide sur une fenêtre de quelques jours : nouvelles versions,
-avis de sécurité, nouveaux modèles, annonces. Un collecteur la rassemble (le `watch-feeds.mjs` du guide IA on-prem,
-le `vault-watch collect` de l'agent, ou ce que vous écrivez) et la remet à l'agent sous la forme d'un seul
+avis de sécurité, nouveaux modèles, annonces. Un collecteur la rassemble (le `vault-watch collect` de l'agent, ou ce que vous écrivez) et la remet à l'agent sous la forme d'un seul
 `watch.json`. Cette page est le contrat entre les deux.
 
 ```json

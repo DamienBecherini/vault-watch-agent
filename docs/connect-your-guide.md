@@ -210,6 +210,8 @@ Three ways to write these tables, all reviewed by you before they reach the guid
   The chapters it gives, with their weight, are shown again after each change, before anything is saved.
 - **By hand in the manifest.**
 
+![The Chapters page: the current split, here declared in the guide's manifest, each chapter with its pages, its weight and whether the web is explored on it by default; below, the model's proposal and the edit by hand](chapters.png)
+
 Saving from the page writes the manifest on a branch of the guide (`chore/chapters-<date>`) and opens a pull
 request when the guide has a repository; the split applies once it is merged. `vault-watch chapters --propose
 --write` puts it in the manifest of the folder instead, for you to commit. `vault-watch chapters` lists the
@@ -245,4 +247,4 @@ vault-watch run --watch-json watch.json
 ```
 
 A run calls the model: with the Claude Code engine it uses your Claude subscription, with the API engine it is
-billed to your key (see « Model engine » in the README).
+billed to your key (see « The model » in the README).

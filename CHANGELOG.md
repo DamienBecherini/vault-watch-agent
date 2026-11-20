@@ -3,6 +3,18 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- Documentation read again against 1.3.0, in both languages: the pages of the interface and the commands in the
+  README, the sizes, the modules and the tests of [docs/code.md](docs/code.md), what was produced and what it cost
+  in [docs/presentation.md](docs/presentation.md), what leaves the machine in [docs/security.md](docs/security.md).
+- New screenshots, taken on the reference guide: the review screen with the header of 1.3.0, the leads of what is
+  new, the chapters.
+- Interface, labels: « Create an addition run with n lead(s) » (it said « a addition run with n point(s) »); a
+  lead sent to a run reads « → run », whatever the kind of run (it said « → fix run » for an addition or a
+  compaction too); « dig deeper » says what it changes (several sources, more searches) now that every lead has a
+  call of its own.
+
 ## 1.3.0 (2026-11-20)
 
 Look for what is new: what a reader would look for in the guide and not find. A watch follows the sources it

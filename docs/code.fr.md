@@ -10,8 +10,8 @@
 
 ---
 
-Environ 7 000 lignes de Python dans [`src/vault_watch_agent/`](../src/vault_watch_agent/), une page statique sans étape
-de build, et des tests qui font tourner tout le graphe avec un faux modèle sur un dépôt git jetable. Commencez par
+Environ 10 500 lignes de Python dans [`src/vault_watch_agent/`](../src/vault_watch_agent/), une page statique sans étape
+de build (environ 3 500 lignes de JavaScript et de CSS), et des tests qui font tourner tout le graphe avec un faux modèle sur un dépôt git jetable. Commencez par
 [`graph.py`](../src/vault_watch_agent/graph.py) : tout le reste l'alimente ou le pilote.
 
 ## Les modules et leurs dépendances
@@ -34,6 +34,8 @@ flowchart TB
     crosscheck["crosscheck.py<br/><i>relecture sur tout le guide</i>"]
     prompts["prompts.py<br/><i>prompts système</i>"]
     quotes["quotes.py<br/><i>retrouver un passage</i>"]
+    reading["reading.py<br/><i>tout le guide, ou par chapitre</i>"]
+    chapters["chapters.py<br/><i>les chapitres</i>"]
   end
   subgraph base["Fondations, utilisées par tous"]
     state["state.py<br/><i>état + schémas de sortie</i>"]
@@ -46,8 +48,9 @@ flowchart TB
   end
   cli -->|"serve"| web
   cli --> graphpy & fix & evaluate
-  web --> graphpy & fix & verify
+  web --> graphpy & fix & verify & chapters
   graphpy --> crosscheck & prompts & quotes
+  crosscheck --> reading --> chapters
   verify --> quotes & compact & news
   news --> compact
   graphpy --> compact
@@ -71,37 +74,44 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
-| `web.py` | 807 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
-| `graph.py` | 655 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
-| `collect.py` | 568 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
-| `llm.py` | 506 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
-| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / news / prices / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
-| `verify.py` | 417 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
-| `guide.py` | 352 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
-| `onboard.py` | 335 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
+| `web.py` | 1267 | `create_app(settings)` : routes REST, server-sent events, tâches de fond, les données de chaque page (veilles, sources, vérifications, chapitres, coûts), réglages de l'utilisateur, avis pour les notifications de la page, la page statique |
+| `graph.py` | 742 | Construit le graphe (`build(deps, checkpointer)`), une fonction imbriquée par étape ; rapport, titre et texte de la PR |
+| `cli.py` | 674 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / compact / eval / prices / collect / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
+| `collect.py` | 661 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
+| `llm.py` | 653 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
+| `verify.py` | 596 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
+| `news.py` | 422 | Chercher les nouveautés : la consigne des pistes, ce que les veilles passées ont mis de côté (lu dans leurs rapports), les pistes trouvées sur le web chapitre par chapitre, les ajouts pour les pistes gardées, une piste par appel avec le web, sur les pages que la piste désigne et le plan du guide, ou sur tout le guide (`compact.in_calls` fait les appels) ; ce que deux appels ajoutent à la même page réuni |
+| `guide.py` | 407 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
+| `chapters.py` | 398 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
+| `sourcecheck.py` | 386 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
+| `compact.py` | 370 | Compactage : les consignes du rapport, des allègements et de leur relecture croisée ; les notes qu'un allègement laisse sans phrase retirées avec lui, un allègement qui laisserait une phrase citer une note retirée refusé ; `in_calls`, plusieurs appels qui partagent le guide en cache ou ne lisent que les pages qu'ils désignent |
+| `vault.py` | 357 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
+| `onboard.py` | 348 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
 | `openai_compat.py` | 323 | Le moteur compatible OpenAI (llama.cpp, vLLM, Ollama, un service hébergé) : sortie structurée, boucle des outils web, usage et coût |
-| `vault.py` | 353 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
-| `compact.py` | 214 | Compactage : les consignes du rapport, des allègements et de leur relecture croisée ; les notes qu'un allègement laisse sans phrase retirées avec lui, un allègement qui laisserait une phrase citer une note retirée refusé |
-| `news.py` | 192 | Chercher les nouveautés : la consigne des pistes, ce que les veilles passées ont mis de côté (lu dans leurs rapports), les ajouts pour les pistes gardées, quelques-unes par appel avec le web (`compact.in_calls` fait les appels) |
-| `crosscheck.py` | 264 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
+| `crosscheck.py` | 266 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
+| `config.py` | 254 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
 | `webtools.py` | 234 | Recherche web (SearXNG) et lecture de pages pour les moteurs sans web propre ; adresses publiques seulement |
-| `forge.py` | 223 | Issues, artefacts et pull requests derrière une interface `Forge` : GitHub (par `gh`) et Gitea (son API REST, un jeton par référence) ; `for_guide` prend celle du manifeste |
-| `config.py` | 185 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
+| `forge.py` | 229 | Issues, artefacts et pull requests derrière une interface `Forge` : GitHub (par `gh`) et Gitea (son API REST, un jeton par référence) ; `for_guide` prend celle du manifeste |
+| `sizes.py` | 190 | Le poids de chaque page face à son budget, ses sections les plus lourdes, la croissance du guide lue dans Git ; sans modèle |
+| `fix.py` | 187 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
 | `prices.py` | 182 | Le prix d'un modèle et son origine : celui de l'utilisateur, une liste téléchargée, les valeurs par défaut |
+| `sources.py` | 179 | Ce que chaque flux de la veille a apporté et ce qu'il en est sorti, avec un verdict par règle, d'après les veilles et les passages gardés sur la machine ; sans modèle, sans réseau |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
-| `sizes.py` | 157 | Le poids de chaque page face à son budget, ses sections les plus lourdes, la croissance du guide lue dans Git ; sans modèle |
-| `fix.py` | 162 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
 | `evaluate.py` | 148 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
-| `watches.py` | 139 | D'où viennent les veilles (`[watch] source`) : issues GitHub, fichiers `watch.json`, collecte de l'agent, aucune |
-| `inputs.py` | 121 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |
-| `prompts.py` | 119 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
-| `state.py` | 117 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
-| `store.py` | 53 | La base des passages gardée légère : seul le dernier point de contrôle de chaque passage reste, l'espace est rendu au disque |
-| `chapters.py` | 357 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
-| `reading.py` | 99 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
+| `watches.py` | 140 | D'où viennent les veilles (`[watch] source`) : issues GitHub, fichiers `watch.json`, collecte de l'agent, aucune |
+| `prompts.py` | 135 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
+| `inputs.py` | 124 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |
+| `state.py` | 118 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
+| `reading.py` | 101 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
 | `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
-| `steps.py` | 56 | Chaque étape d'un passage : son rôle, son effort, ce qu'elle demande à un moteur |
+| `steps.py` | 80 | Chaque étape qui appelle le modèle : son rôle, son effort, ce qu'elle demande à un moteur |
+| `store.py` | 53 | La base des passages gardée légère : seul le dernier point de contrôle de chaque passage reste, l'espace est rendu au disque |
 | `notify.py` | 47 | Notifications Windows de `serve --notify` |
+
+La page est du JavaScript sans outillage dans [`static/`](../src/vault_watch_agent/static/), chargé tel quel :
+`app.js` (le routeur, les textes dans les deux langues, chaque écran), `settings.js` (la fenêtre des Réglages),
+`feedback.js` (« Donner mon avis »), `themes.js` et `boot.js` (clair ou sombre, les palettes, la taille du texte,
+appliqués avant le premier affichage), `notify.js` (les notifications du navigateur).
 
 ## Le graphe, étape par étape
 
@@ -134,13 +144,13 @@ flowchart TB
 | `review` | `interrupt()` | ⏸ humain |
 | `apply` | `git worktree`, `vault.apply` |  |
 | `mirror` | `translator.parse(MirrorResult)`, `prompts.mirror` | Claude |
-| `audits` | `npm test` du guide |  |
+| `audits` | les contrôles du guide (`[checks] audits` de son manifeste) |  |
 | `links` | `link_problems` |  |
-| `publish` | `interrupt()`, `git push`, `gh pr create` | ⏸ humain |
+| `publish` | `interrupt()`, `git push`, la pull request de la forge (`forge.py`) | ⏸ humain |
 
-`build(deps, checkpointer)` reçoit une dataclass `Deps` : le chemin du guide, le modèle des étapes de raisonnement
-(`llm`), celui du miroir anglais (`translator`), l'activation de la relecture croisée, le dépôt GitHub et sa branche de
-base, la date du jour. Les étapes sont des fonctions imbriquées qui capturent `deps` : un test construit le même graphe
+`build(deps, checkpointer)` reçoit une dataclass `Deps` : le chemin du guide et son dossier de travail, le modèle des
+étapes de raisonnement (`llm`), celui des miroirs (`translator`), l'activation de la relecture croisée, le dépôt sur
+sa forge et la branche de base, la date du jour. Les étapes sont des fonctions imbriquées qui capturent `deps` : un test construit le même graphe
 avec des faux.
 
 ## L'état qui le traverse
@@ -156,6 +166,7 @@ classDiagram
     source, issue, as_of, items
     claims_due
     decisions, evidence
+    mode, reading, weight
     proposals : list ⊕
     usage : list ⊕
     corrections, findings, leftovers
@@ -235,8 +246,11 @@ flowchart LR
 ```
 
 Une passe de correction fait ses propres propositions, puis indique à LangGraph qu'elles sortent de `propose` : à partir
-de `number`, c'est le même graphe, le même rapport, la même relecture et la même pull request qu'une veille. Une
-correction de traduction met `mode = "translation"` et saute la relecture croisée du français.
+de `number`, c'est le même graphe, le même rapport, la même relecture et la même pull request qu'une veille. Le
+`mode` de l'état dit de quelle sorte de passage il s'agit, et trois autres sortes entrent de la même façon : une
+correction de traduction (`"translation"`, qui saute la relecture croisée), un passage de compactage (`"compact"`,
+des allègements proposés par `compact.py`, avec une relecture croisée écrite pour eux) et un passage d'ajouts
+(`"add"`, les pistes vérifiées sur le web par `news.py`).
 
 ## Tests
 
@@ -248,6 +262,13 @@ correction de traduction met `mode = "translation"` et saute la relecture crois�
 | [`tests/test_costs.py`](../tests/test_costs.py) | Totaux du journal des coûts |
 | [`tests/test_llm.py`](../tests/test_llm.py) | Le moteur Claude Code avec un faux `claude` : la commande lancée, ce qu'il en lit, ce qu'il refuse |
 | [`tests/test_config.py`](../tests/test_config.py) | Les réglages de l'utilisateur : valeurs par défaut, ce qui est refusé, une clé qui n'est jamais qu'une référence |
+| [`tests/test_guide.py`](../tests/test_guide.py), [`tests/test_onboard.py`](../tests/test_onboard.py) | Le manifeste : ce qu'il accepte et refuse, le dossier de travail d'un guide ; `init` et `doctor` |
+| [`tests/test_sample_guide.py`](../tests/test_sample_guide.py) | Un passage entier sur le guide d'exemple de `examples/`, avec ses erreurs placées exprès |
+| [`tests/test_engine_contract.py`](../tests/test_engine_contract.py), [`tests/test_openai_compat.py`](../tests/test_openai_compat.py) | Chaque moteur face aux mêmes réponses enregistrées ([Écrire un moteur](write-an-engine.fr.md)) ; le moteur compatible OpenAI et ses outils web |
+| [`tests/test_collect.py`](../tests/test_collect.py), [`tests/test_sources.py`](../tests/test_sources.py), [`tests/test_sourcecheck.py`](../tests/test_sourcecheck.py) | La collecte d'une veille et son pré-tri ; ce que chaque source a apporté ; le contrôle des sources |
+| [`tests/test_compact.py`](../tests/test_compact.py), [`tests/test_sizes.py`](../tests/test_sizes.py) | Le compactage : le rapport, les allègements, les notes retirées avec eux ; le poids et la croissance des pages |
+| [`tests/test_news.py`](../tests/test_news.py), [`tests/test_explore.py`](../tests/test_explore.py), [`tests/test_chapters.py`](../tests/test_chapters.py) | Les pistes, les ajouts (une piste par appel, ce que lit chaque appel, une piste restée sans vérification), le web exploré par chapitre ; les chapitres |
+| [`tests/test_forge.py`](../tests/test_forge.py) | GitHub et Gitea derrière la même interface |
 
 Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est la mesure sur de vraies veilles (résultats dans
 [`metrics/eval/`](../metrics/eval/)).
@@ -256,7 +277,7 @@ Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est
 
 1. [`state.py`](../src/vault_watch_agent/state.py) : ce qu'un passage sait à chaque étape.
 2. [`graph.py`](../src/vault_watch_agent/graph.py), `build()` : les étapes et les arêtes, puis l'étape qui vous intéresse.
-3. [`llm.py`](../src/vault_watch_agent/llm.py) : les deux moteurs, cache, outils web, journal des coûts, en 300 lignes environ.
+3. [`llm.py`](../src/vault_watch_agent/llm.py) : les moteurs, cache, outils web, journal des coûts.
 4. [`vault.py`](../src/vault_watch_agent/vault.py), `check()` et `apply()` : pourquoi le modèle ne peut pas abîmer une
    page.
 5. [`web.py`](../src/vault_watch_agent/web.py) ou [`cli.py`](../src/vault_watch_agent/cli.py) : comment les passages sont

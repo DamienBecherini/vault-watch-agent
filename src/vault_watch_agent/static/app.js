@@ -113,7 +113,7 @@ const TEXTS = {
       none: "Aucune vérification pour l'instant.", running: "En cours…", leads: n => `${n} piste(s)`,
       chapters: c => `Chapitres à explorer, un appel par chapitre coché (chacun : ${c}) :`,
       ideaLink: "Tu as déjà une idée ou une information précise ? Fais-la vérifier et écrire directement, sans recherche de pistes.",
-      dig: "creuser (un appel pour cette seule piste)",
+      dig: "creuser (plusieurs sources, plus de recherches, un peu plus cher)",
       leadsAdd: "Une piste est une question à vérifier, pas une modification : rien n'est encore écrit. Le passage encadré est ce que le guide dit aujourd'hui (en surligné, la phrase visée ; les lignes voisines donnent le contexte). Pour chaque piste cochée, la passe d'ajouts lit les sources, puis propose de corriger ce qui est dépassé ou d'ajouter ce qui manque, dans toutes les pages concernées. Tu relis ces propositions avant qu'elles s'appliquent.",
       onlyFree: "Seulement les gratuits",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
@@ -133,12 +133,12 @@ const TEXTS = {
       tickAll: "Tout cocher", untickAll: "Tout décocher",
       cost: c => `Coût : ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
-        : `${c.open} à traiter · ${c.fix} envoyée(s) en passe fix · ${c.dismissed} écartée(s)`,
+        : `${c.open} à traiter · ${c.fix} envoyée(s) à une passe · ${c.dismissed} écartée(s)`,
       toHandle: n => `${n} piste(s) à traiter`, handled: "Traitée", handle: "Traiter",
       tickCard: n => `Cocher / décocher les ${n}`,
-      toHandleTitle: "À traiter", newCheck: "Nouvelle vérification", fixRuns: "Passes fix lancées depuis cette vérification",
+      toHandleTitle: "À traiter", newCheck: "Nouvelle vérification", fixRuns: "Passes lancées depuis cette vérification",
       warning: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
-      sent: "→ passe fix", dismissed: "écartée", reopen: "Rétablir",
+      sent: "→ passe", dismissed: "écartée", reopen: "Rétablir",
       unchecked: "pas vérifiée par la passe", resend: "Remettre à traiter",
       context: "Chaque appel de piste lit", contextGuide: "tout le guide", contextPages: "les pages de la piste et le plan du guide",
       contextTip: "Tout le guide : l'appel voit chaque page. C'est le plus sûr et le plus cher, car le guide est relu à chaque tour de recherche. Les pages de la piste et le plan : l'appel lit les pages que la piste nomme ou demande de lire, plus la liste de toutes les pages avec leurs titres ; il ne modifie que ces pages. Une piste qui ne nomme aucune page lit quand même tout le guide. Dans les deux cas, la relecture croisée lit ensuite tout le guide et complète ou corrige.",
@@ -175,6 +175,9 @@ const TEXTS = {
     collectIntro: "L'agent lit les flux du guide (versions, avis de sécurité, annonces) sur les derniers jours et écarte la routine par règles, sans modèle : c'est gratuit. Tu analyses ensuite la veille obtenue.",
     collectNow: "Collecter une veille", collecting: "Lecture des flux…",
     watchUpTo: d => `Veille jusqu'au ${d}`,
+    // The server writes this line in English (graph.usage_line, also in the report): its words, said in French
+    usageLine: s => String(s || "").replace(" calls, ", " appels, ").replace(" in (", " tokens lus (dont ").replace(" from cache) / ", " du cache) / ")
+      .replace(" out, ", " écrits, ").replace("on the subscription, not billed", "sur l'abonnement, non facturés"),
     canClose: "Tu peux fermer la page : l'analyse continue sur le serveur, et l'état est enregistré à chaque étape.",
     progress: (min, cost) => `Démarré il y a ${min} min · coût de ce passage ≈ ${cost}`,
     applyId: id => `Appliquer ${id}`,
@@ -230,7 +233,7 @@ const TEXTS = {
     ideaCost: (base, each, deep) => `Compte ${base}, plus ${each} par sujet (${deep} par sujet creusé).`,
     ideaExample: "Ollama fait tourner des modèles de voix en local depuis octobre : https://ollama.com/blog/speech-models",
     ideaButton: "Vérifier et proposer des ajouts",
-    ideaDeep: "Creuser chaque sujet : un appel par sujet, plus de recherches, plus cher",
+    ideaDeep: "Creuser chaque sujet : plusieurs sources, plus de recherches, un peu plus cher",
     ideaLimit: "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
     perStep: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
       cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
@@ -349,7 +352,7 @@ const TEXTS = {
       none: "No check yet.", running: "Running…", leads: n => `${n} lead(s)`,
       chapters: c => `Chapters to explore, one call per chapter ticked (each: ${c}):`,
       ideaLink: "You already have an idea or a precise piece of news? Have it checked and written straight away, without a search for leads.",
-      dig: "dig deeper (a call for this lead alone)",
+      dig: "dig deeper (several sources, more searches, a little more expensive)",
       leadsAdd: "A lead is a question to check, not a change: nothing is written yet. The framed passage is what the guide says today (highlighted: the sentence concerned; the lines around give the context). For each lead ticked, the addition run reads the sources, then proposes to correct what is out of date or to add what is missing, in every page concerned. You review these proposals before they apply.",
       onlyFree: "Only the free ones",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
@@ -358,8 +361,8 @@ const TEXTS = {
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"], ["add", "addition", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
-        return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2], k[0])})`).join(", ")}`
-          : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
+        return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} lead(s) as ${/^a/.test(k[1]) ? "an" : "a"} ${k[1]} run (${c(k[2], k[0])})`).join(", ")}`
+          : `Create ${kinds[0]?.[0] === "add" ? "an" : "a"} ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} lead(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
       heaviest: "Heaviest pages", flaggedFirst: "Flagged pages, then the heaviest", perChapter: "Per chapter",
       over: "over its ceiling", grew: "grew much", newPage: "new page",
@@ -368,12 +371,12 @@ const TEXTS = {
       tickAll: "Tick all", untickAll: "Untick all",
       cost: c => `Cost: ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
-        : `${c.open} to handle · ${c.fix} sent to a fix run · ${c.dismissed} dismissed`,
+        : `${c.open} to handle · ${c.fix} sent to a run · ${c.dismissed} dismissed`,
       toHandle: n => `${n} lead(s) to handle`, handled: "Handled", handle: "Handle",
       tickCard: n => `Tick / untick the ${n}`,
-      toHandleTitle: "To handle", newCheck: "New check", fixRuns: "Fix runs started from this check",
+      toHandleTitle: "To handle", newCheck: "New check", fixRuns: "Runs started from this check",
       warning: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
-      sent: "→ fix run", dismissed: "dismissed", reopen: "Reopen",
+      sent: "→ run", dismissed: "dismissed", reopen: "Reopen",
       unchecked: "not checked by the run", resend: "Put back to handle",
       context: "Each lead's call reads", contextGuide: "the whole guide", contextPages: "the lead's pages and the plan of the guide",
       contextTip: "The whole guide: the call sees every page. It is the safest and the most expensive, since the guide is read again at each round of search. The lead's pages and the plan: the call reads the pages the lead names or asks to read, and the list of every page with its headings; it edits these pages only. A lead that names no page reads the whole guide all the same. Either way, the cross-check then reads the whole guide and completes or corrects.",
@@ -410,6 +413,7 @@ const TEXTS = {
     collectIntro: "The agent reads the guide's feeds (releases, security advisories, announcements) over the last days and drops the routine by rules, without a model: it is free. You then analyse the watch it gives.",
     collectNow: "Collect a watch", collecting: "Reading the feeds…",
     watchUpTo: d => `Watch up to ${d}`,
+    usageLine: s => String(s || "").replace(" in (", " tokens in (").replace(" out, ", " tokens out, "),
     canClose: "You can close the page: the analysis goes on in the server, and the state is saved after each step.",
     progress: (min, cost) => `Started ${min} min ago · cost of this run ≈ ${cost}`,
     applyId: id => `Apply ${id}`,
@@ -462,10 +466,10 @@ const TEXTS = {
     reportTitle: "Report an error or suggest a subject",
     reportKinds: { fix: "An error to fix", add: "An idea or a piece of news to dig into" },
     ideaIntro: "One subject per line: what you saw, or what you think is missing, with an address if you have one. The agent checks each subject on primary sources, with the whole guide in context, then proposes where to write it; you review as for a watch. Nothing before: no search for leads.",
-    ideaCost: (base, each, deep) => `About ${base}, plus ${each} per subject (${deep} per subject dug deeper).`,
+    ideaCost: (base, each, deep) => `Count ${base}, plus ${each} per subject (${deep} per subject dug deeper).`,
     ideaExample: "Ollama has run speech models locally since October: https://ollama.com/blog/speech-models",
     ideaButton: "Check and propose additions",
-    ideaDeep: "Dig into each subject: one call per subject, more searches, more expensive",
+    ideaDeep: "Dig deeper into each subject: several sources, more searches, a little more expensive",
     ideaLimit: "Limit: the addition run never writes a new page. It says which ones would be needed.",
     perStep: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
       cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
@@ -903,7 +907,7 @@ async function viewChapters() {
 async function viewRun(thread) {
   const r = await api(`/api/runs/${encodeURIComponent(thread)}`);
   const title = `<h1>${esc(r.source || thread)} ${badge(r.status)}</h1>
-    <p class="subtitle">${r.as_of ? `${T.watchUpTo(r.as_of)} · ` : ""}${esc(r.usage)}</p>`;
+    <p class="subtitle">${r.as_of ? `${T.watchUpTo(r.as_of)} · ` : ""}${esc(T.usageLine(r.usage))}</p>`;
   if (r.status === "running") return viewRunning(r, title);
   if (r.status === "review") return viewReview(r, title);
   if (r.status === "publish") return viewPublish(r, title);

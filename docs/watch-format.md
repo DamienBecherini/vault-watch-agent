@@ -3,8 +3,7 @@
 # The watch format (`watch.json`)
 
 A watch is what changed in the field of a guide over a window of days: releases, security advisories, new models,
-news. A collector gathers it (the IA on-prem guide's `watch-feeds.mjs`, the agent's own `vault-watch collect`, or
-anything you write) and hands it to the agent as one `watch.json`. This page is the contract between the two.
+news. A collector gathers it (the agent's own `vault-watch collect`, or anything you write) and hands it to the agent as one `watch.json`. This page is the contract between the two.
 
 ```json
 {

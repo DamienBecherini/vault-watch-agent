@@ -146,13 +146,30 @@ vault-watch serve --idle-exit 3600    # stops after 1 h without a visit or a run
 vault-watch serve --notify en         # Windows notification when a run waits for you, ends or fails
 ```
 
-One screen per step: the list of watches with their status, a run in progress (each finished step streamed to the
-page), the review (one card per correction with a word-level diff, its sources and the cross-check's verdict), the
-publish step (checks, link problems, the diff of the branch), then the pull request. Other pages show what each source of the watch
-brought and what became of it ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)), report errors to
-fix, check the whole guide on demand with an estimate of its cost, and show what the upkeep costs. The interface is
-in English or French. A run started here can be resumed from the command line, and the reverse. The server listens
-on 127.0.0.1 only ([Security](docs/security.md)).
+One screen per step of a run: a run in progress (each finished step streamed to the page), the review (one card per
+correction with a word-level diff, its sources and the cross-check's verdict), the publish step (checks, link
+problems, the diff of the branch), then the pull request. Around them:
+
+| Page | What it is for |
+| :-- | :-- |
+| Watches | The watches with their status, a button to analyse one, and the other runs (fix, compaction, additions) |
+| Sources | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
+| Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run |
+| Report or suggest | Errors to fix, or an idea or a piece of news to check and write |
+| Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand ([`[[chapter]]`](docs/connect-your-guide.md#chapter)) |
+| Costs | What the upkeep costs, by month and by run |
+| Settings | The gear: engine, model and effort of each role or of one step, prices and where they come from, what the guide provides |
+| Give my opinion | A note, a bug, an idea: you send it yourself, as a GitHub issue or an e-mail; the agent sends nothing |
+
+![The leads of what is new: each lead with the passage of the guide it is about, a box to dig deeper, what each call reads, and the estimate of the run](docs/leads.png)
+
+*The leads of « what is new » on the reference guide: three are ticked, the button says what the addition run would
+cost.*
+
+Every screen that starts a paid step says what it will cost and what will run it (engine, model, effort) before
+the click. The interface is in English or French, light or dark, with palettes and a text size of your choice. A
+run started here can be resumed from the command line, and the reverse. The server listens on 127.0.0.1 only
+([Security](docs/security.md)).
 
 ## The command line
 
@@ -163,6 +180,9 @@ vault-watch resume <run> --publish yes      # push the branch and open the pull 
 vault-watch status <run>
 vault-watch fix <run> --findings errors.txt # reported errors → checked corrections, same review and PR
 vault-watch collect --json watch.json       # the watch from the guide's feeds, no model
+vault-watch compact                         # what each page weighs and gained, no model; --report: what to trim
+vault-watch news                            # leads: what a reader would look for and not find; --explore: the web
+vault-watch chapters                        # the chapters the agent works on; --propose: a model's split
 vault-watch costs --by month                # or year, run, step
 vault-watch --guide ../other-guide doctor   # any command on another guide
 ```
@@ -175,9 +195,11 @@ in English, whose biweekly watch is collected by a GitHub workflow. It is the gu
 below. A second guide, private, written in French only and hosted on a self-hosted Gitea, checked that the manifest
 and the forges work on a guide the agent was not written for.
 
-**Produced.** Twelve pull requests of the guide made by the agent and merged after review, for example
-[#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a watch) and
-[#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections from a check of the whole guide).
+**Produced.** Nineteen pull requests of the guide made by the agent and merged after review (as of 20 November
+2026), for example [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a watch),
+[#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections from a check of the whole guide),
+[#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) (a compaction) and
+[#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) (additions checked on the web).
 
 **Evaluated.** `vault-watch eval` replays a past watch on the guide as it was and has a judge model (always Claude)
 match each proposal with the diff the human merged ([`metrics/eval/`](metrics/eval/)). On 18 November 2026 the
@@ -191,10 +213,12 @@ November 2026 on the API at list price, Opus 5.5 for reasoning and Sonnet 5.5 fo
 | Run | Cost |
 | :-- | --: |
 | Watch with excerpts only (81 items kept, 8 corrections) | 0.90 $ |
-| Full watch with the whole-guide cross-check | 3.80 – 4.40 $ |
+| Full watch with the whole-guide cross-check | 2.95 – 4.45 $ |
 | Fix run on reported errors | 5.60 – 8.15 $ |
 | Translation-only fix run (Sonnet) | 0.35 $ |
-| On-demand check of the guide | 7.25 $ |
+| On-demand check of the guide (audits, links, consistency, translations, dated claims) | 7.25 – 10.85 $ |
+| Compaction: the report, then a run of trims on 30 findings (Fable 5.2 on these two steps) | 6.28 $, then 18.87 $ |
+| What is new: the leads, then an addition run on 2 to 5 leads | 2.28 $, then 8.70 – 12.95 $ |
 
 The cross-check dominates: writing 400 k tokens to the prompt cache costs about 2 $, a later call on the same cache
 about 0.08 $. Two full watches a month come to about 100 $ a year; a guide half the size costs about half. On
@@ -212,7 +236,7 @@ Claude Code with a subscription, nothing is billed, but a cross-check weighs on 
 | `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | A fix run makes its own proposals, then enters the graph as if `propose` had run |
 | `stream(stream_mode="updates")` | `web.py` | Each finished step is pushed to the page (server-sent events) |
 
-Every model call answers into a Pydantic model (structured output). 193 tests (pytest) run the whole graph against
+Every model call answers into a Pydantic model (structured output). More than 270 tests (pytest) run the whole graph against
 a fake model and a throwaway git repository; an engine contract checks any engine. How the modules fit together:
 [docs/code.md](docs/code.md).
 
@@ -248,14 +272,19 @@ src/vault_watch_agent/
   state.py       graph state and the structured outputs the model must answer with (Pydantic)
   guide.py       the guide as its manifest describes it (vault-watch.toml)
   vault.py       pages: search, exact-quote check, apply an edit, the whole guide for the cross-check
+  chapters.py    the chapters of a guide; reading.py the guide read whole, or chapter by chapter
   llm.py         the engines (Claude API, Claude Code, plug-ins); openai_compat.py the OpenAI-compatible one
+  webtools.py    web search and page reading for the engines without a web of their own
+  steps.py       each step that calls the model: its role, its effort, what it needs
   forge.py       GitHub (gh) and Gitea (API): issues, artifacts, pull requests
   watches.py     where the watches come from; collect.py the agent's own collection; inputs.py the watch format
+  sources.py     what each source of the watch brought; sourcecheck.py the sources themselves, checked
   crosscheck.py  whole-guide cross-check; fix.py fix runs; verify.py checks of the guide; evaluate.py replays
   sizes.py       what each page weighs and gained; compact.py compaction: what weighs, the trims
   news.py        what a reader would look for and not find: the leads, the additions checked on the web
   prompts.py     system prompts, from the guide's brief and translation policy
   config.py      the user's settings; prices.py, costs.py what the calls cost
+  store.py       the runs database kept light; notify.py desktop notifications
   onboard.py     init and doctor; cli.py the command line; web.py the server, static/ its page (no build step)
 tests/           fake model, throwaway git repository, engine contract
 examples/        a sample guide and its manifest

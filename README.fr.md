@@ -149,12 +149,30 @@ vault-watch serve --idle-exit 3600    # s'arrête après 1 h sans visite ni anal
 vault-watch serve --notify fr         # notification Windows quand un passage vous attend, se termine ou échoue
 ```
 
-Un écran par étape : la liste des veilles avec leur état, un passage en cours (chaque étape terminée envoyée à la
-page), la relecture (une carte par correction avec un diff mot à mot, ses sources et le verdict de la relecture
-croisée), l'étape de publication (contrôles, liens en défaut, le diff de la branche), puis la pull request. D'autres
-pages montrent ce que chaque source de la veille a apporté et ce qu'il en est sorti ([quelles sources méritent leur place](docs/collect.fr.md#quelles-sources-méritent-leur-place)), signalent des erreurs à corriger, vérifient tout le guide à la demande avec une estimation de son coût, et
-montrent ce que coûte l'entretien. L'interface est en français ou en anglais. Un passage lancé ici peut être repris
-en ligne de commande, et l'inverse. Le serveur n'écoute que sur 127.0.0.1 ([Sécurité](docs/security.fr.md)).
+Un écran par étape d'un passage : un passage en cours (chaque étape terminée envoyée à la page), la relecture (une
+carte par correction avec un diff mot à mot, ses sources et le verdict de la relecture croisée), l'étape de
+publication (contrôles, liens en défaut, le diff de la branche), puis la pull request. Autour :
+
+| Page | À quoi elle sert |
+| :-- | :-- |
+| Veilles | Les veilles avec leur état, un bouton pour en analyser une, et les autres passages (correction, compactage, ajouts) |
+| Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/collect.fr.md#quelles-sources-méritent-leur-place)) |
+| Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage |
+| Signaler ou proposer | Des erreurs à corriger, ou une idée ou une nouvelle à vérifier et à écrire |
+| Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main ([`[[chapter]]`](docs/connect-your-guide.fr.md#chapter)) |
+| Coûts | Ce que coûte l'entretien, par mois et par passage |
+| Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
+| Donner mon avis | Une note, un bug, une idée : vous l'envoyez vous-même, par une issue GitHub ou un e-mail ; l'agent n'envoie rien |
+
+![Les pistes de nouveautés : chaque piste avec le passage du guide qu'elle concerne, une case pour creuser, ce que lit chaque appel, et l'estimation du passage](docs/leads.fr.png)
+
+*Les pistes de « nouveautés » sur le guide de référence : trois sont cochées, le bouton dit ce que coûterait le
+passage d'ajouts.*
+
+Chaque écran qui lance une étape payante dit ce qu'elle coûtera et ce qui la fera tourner (moteur, modèle, effort)
+avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
+au choix. Un passage lancé ici peut être repris en ligne de commande, et l'inverse. Le serveur n'écoute que sur
+127.0.0.1 ([Sécurité](docs/security.fr.md)).
 
 ## La ligne de commande
 
@@ -165,6 +183,9 @@ vault-watch resume <passage> --publish yes  # pousse la branche et ouvre la pull
 vault-watch status <passage>
 vault-watch fix <passage> --findings erreurs.txt  # erreurs signalées → corrections contrôlées, même relecture et PR
 vault-watch collect --json watch.json       # la veille depuis les flux du guide, sans modèle
+vault-watch compact                         # ce que pèse et a pris chaque page, sans modèle ; --report : quoi alléger
+vault-watch news                            # pistes : ce qu'un lecteur chercherait et ne trouve pas ; --explore : le web
+vault-watch chapters                        # les chapitres sur lesquels l'agent travaille ; --propose : un modèle les propose
 vault-watch costs --by month                # ou year, run, step
 vault-watch --guide ../autre-guide doctor   # n'importe quelle commande sur un autre guide
 ```
@@ -177,10 +198,11 @@ copie anglaise, dont la veille de quinzaine est collectée par un workflow GitHu
 sont mesurés ci-dessous. Un second guide, privé, en français seulement et hébergé sur un Gitea auto-hébergé, a
 vérifié que le manifeste et les forges fonctionnent sur un guide pour lequel l'agent n'a pas été écrit.
 
-**Produit.** Douze pull requests du guide faites par l'agent et fusionnées après relecture, par exemple
-[#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une veille) et
+**Produit.** Dix-neuf pull requests du guide faites par l'agent et fusionnées après relecture (au 20 novembre
+2026), par exemple [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une veille),
 [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections issues d'une vérification de tout
-le guide).
+le guide), [#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) (un compactage) et
+[#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) (des ajouts vérifiés sur le web).
 
 **Évalué.** `vault-watch eval` rejoue une veille passée sur le guide tel qu'il était et fait apparier par un modèle
 juge (toujours Claude) chaque proposition avec le diff fusionné par l'humain ([`metrics/eval/`](metrics/eval/)). Le
@@ -196,10 +218,12 @@ abonnement (0 facturé, et ce qu'ils auraient coûté sur l'API). Mesuré en nov
 | Passage | Coût |
 | :-- | --: |
 | Veille avec extraits seulement (81 éléments gardés, 8 corrections) | 0,90 $ |
-| Veille complète avec la relecture croisée de tout le guide | 3,80 – 4,40 $ |
+| Veille complète avec la relecture croisée de tout le guide | 2,95 – 4,45 $ |
 | Passage de correction sur des erreurs signalées | 5,60 – 8,15 $ |
 | Passage de correction de la traduction seule (Sonnet) | 0,35 $ |
-| Vérification du guide à la demande | 7,25 $ |
+| Vérification du guide à la demande (audits, liens, cohérence, traductions, affirmations datées) | 7,25 – 10,85 $ |
+| Compactage : le rapport, puis un passage d'allègements sur 30 constats (Fable 5.2 sur ces deux étapes) | 6,28 $, puis 18,87 $ |
+| Nouveautés : les pistes, puis un passage d'ajouts sur 2 à 5 pistes | 2,28 $, puis 8,70 – 12,95 $ |
 
 La relecture croisée domine : écrire 400 k tokens dans le cache de prompt coûte environ 2 $, un appel suivant sur le
 même cache environ 0,08 $. Deux veilles complètes par mois font environ 100 $ par an ; un guide deux fois plus petit
@@ -218,7 +242,7 @@ pèse sur les limites de l'abonnement.
 | `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Un passage de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné |
 | `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
 
-Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). 193 tests (pytest) font tourner tout le
+Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 270 tests (pytest) font tourner tout le
 graphe avec un faux modèle et un dépôt git jetable ; un contrat de moteur vérifie n'importe quel moteur. Comment les
 modules s'emboîtent : [docs/code.fr.md](docs/code.fr.md).
 
@@ -257,14 +281,19 @@ src/vault_watch_agent/
   state.py       état du graphe et sorties structurées imposées au modèle (Pydantic)
   guide.py       le guide tel que son manifeste le décrit (vault-watch.toml)
   vault.py       les pages : recherche, contrôle de citation exacte, application d'une modification, tout le guide
+  chapters.py    les chapitres d'un guide ; reading.py le guide lu en entier, ou chapitre par chapitre
   llm.py         les moteurs (API Claude, Claude Code, extensions) ; openai_compat.py celui compatible OpenAI
+  webtools.py    recherche web et lecture de pages pour les moteurs qui n'ont pas de web à eux
+  steps.py       chaque étape qui appelle le modèle : son rôle, son effort, ce dont elle a besoin
   forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
   watches.py     d'où viennent les veilles ; collect.py la collecte de l'agent ; inputs.py le format de la veille
+  sources.py     ce que chaque source de la veille a apporté ; sourcecheck.py les sources elles-mêmes, contrôlées
   crosscheck.py  relecture croisée ; fix.py passages de correction ; verify.py vérifications ; evaluate.py rejeux
   sizes.py       ce que pèse chaque page et ce qu'elle a pris ; compact.py compactage : ce qui pèse, les allègements
   news.py        ce qu'un lecteur chercherait et ne trouve pas : les pistes, les ajouts vérifiés sur le web
   prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
   config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
+  store.py       la base des passages gardée légère ; notify.py les notifications du bureau
   onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, static/ sa page (sans build)
 tests/           faux modèle, dépôt git jetable, contrat de moteur
 examples/        un guide d'exemple et son manifeste

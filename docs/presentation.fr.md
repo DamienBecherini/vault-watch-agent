@@ -18,8 +18,9 @@ version de vLLM change une option, un avis de sécurité relève la version mini
 Le guide fait environ 400 k tokens en français, avec un miroir anglais, et un seul numéro de version périmé sur une page
 contredit cinq pages justes ailleurs.
 
-Le guide **collecte** déjà ce qui a changé (un script déterministe et un workflow GitHub : versions, avis de sécurité,
-Hugging Face, flux des éditeurs). Cet agent fait la partie qui demande du jugement : **quelle page cela rend-il fausse,
+Ce qui a changé est **collecté** sans modèle (la commande `collect` de l'agent, lancée par un workflow GitHub du
+guide : versions, avis de sécurité, Hugging Face, flux des éditeurs, pages surveillées comme les grilles de prix).
+L'agent fait ensuite la partie qui demande du jugement : **quelle page cela rend-il fausse,
 que doit-elle dire à la place, et sur quelle source ?** Puis il attend un humain.
 
 ## La boucle complète
@@ -56,12 +57,18 @@ flowchart LR
   class human person
 ```
 
-En plus de la veille de quinzaine, deux autres entrées réutilisent le même graphe et la même relecture :
+En plus de la veille de quinzaine, quatre autres entrées réutilisent le même graphe et la même relecture :
 
 - **Passes de correction** : les erreurs signalées par un lecteur, par une relecture croisée ou par la page « Vérifier le
   guide » deviennent des corrections.
 - **Vérification du guide à la demande** : contrôles gratuits (structure, liens morts, fraîcheur) et contrôles payants,
   avec une estimation du coût avant de les lancer.
+- **Passages de compactage** : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est répété, empilé ou
+  plus long que nécessaire, et les allègements que l'éditeur garde sont relus comme des corrections
+  ([Compactage](compact.fr.md)).
+- **Passages d'ajouts** : ce qu'aucune source de la veille n'annonce. Un contrôle liste ce qu'un lecteur chercherait
+  et ne trouve pas, et chaque piste que l'éditeur garde est vérifiée sur le web, puis écrite là où elle a sa place
+  ([Nouveautés](news.fr.md)).
 
 ## Le graphe de l'agent
 
@@ -80,7 +87,7 @@ flowchart TD
   crosscheck --> report --> review{{"⏸ relecture humaine"}}
   review -->|"acceptées"| apply["apply<br/><i>worktree git</i>"]
   review -->|"aucune"| stop((fin))
-  apply --> mirror["mirror<br/><i>pages anglaises</i>"] --> audits["audits<br/><i>npm test du guide</i>"]
+  apply --> mirror["mirror<br/><i>pages anglaises</i>"] --> audits["audits<br/><i>contrôles du guide</i>"]
   audits --> links["links<br/><i>liens externes</i>"] --> publish{{"⏸ push + PR ?"}}
   publish --> stop
   classDef pause fill:#fff4d6,stroke:#a65f00,color:#3d2a00
@@ -120,30 +127,36 @@ plus tard, depuis la page web ou la ligne de commande, dans un autre processus.
 
 ## Ce qu'il a produit
 
-Douze pull requests du guide, toutes relues et fusionnées, du 8 au 17 novembre 2026 :
+Dix-neuf pull requests du guide, toutes relues et fusionnées, du 8 au 20 novembre 2026 :
 
 | Type | Pull requests | Contenu |
 | :-- | :-- | :-- |
-| Veilles | [#51](https://github.com/DamienBecherini/ia-on-prem-vault/pull/51), [#53](https://github.com/DamienBecherini/ia-on-prem-vault/pull/53), [#72](https://github.com/DamienBecherini/ia-on-prem-vault/pull/72), [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) | Corrections issues des veilles du 26 octobre, des 2, 9 et 16 novembre (vLLM 0.33.0 minimum, CUDA 13 seulement) |
-| Passes de correction | [#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54), [#55](https://github.com/DamienBecherini/ia-on-prem-vault/pull/55), [#57](https://github.com/DamienBecherini/ia-on-prem-vault/pull/57), [#58](https://github.com/DamienBecherini/ia-on-prem-vault/pull/58), [#59](https://github.com/DamienBecherini/ia-on-prem-vault/pull/59), [#61](https://github.com/DamienBecherini/ia-on-prem-vault/pull/61), [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) | Erreurs trouvées par les relectures croisées, les vérifications à la demande et la vérification de tout le guide |
+| Veilles | [#51](https://github.com/DamienBecherini/ia-on-prem-vault/pull/51), [#53](https://github.com/DamienBecherini/ia-on-prem-vault/pull/53), [#72](https://github.com/DamienBecherini/ia-on-prem-vault/pull/72), [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78), [#100](https://github.com/DamienBecherini/ia-on-prem-vault/pull/100) | Corrections issues des veilles du 26 octobre, des 2, 9, 16 et 19 novembre (vLLM 0.33.0 minimum, CUDA 13 seulement) |
+| Passes de correction | [#54](https://github.com/DamienBecherini/ia-on-prem-vault/pull/54), [#55](https://github.com/DamienBecherini/ia-on-prem-vault/pull/55), [#57](https://github.com/DamienBecherini/ia-on-prem-vault/pull/57), [#58](https://github.com/DamienBecherini/ia-on-prem-vault/pull/58), [#59](https://github.com/DamienBecherini/ia-on-prem-vault/pull/59), [#61](https://github.com/DamienBecherini/ia-on-prem-vault/pull/61), [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79), [#86](https://github.com/DamienBecherini/ia-on-prem-vault/pull/86) | Erreurs trouvées par les relectures croisées, les vérifications à la demande et la vérification de tout le guide |
 | Traduction | [#60](https://github.com/DamienBecherini/ia-on-prem-vault/pull/60) | Pages anglaises corrigées d'après le français |
+| Compactage | [#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) | Des allègements dans 39 pages et leurs miroirs : répétitions raccourcies, historique empilé retiré, 31 Ko de moins dans les pages françaises |
+| Ajouts | [#96](https://github.com/DamienBecherini/ia-on-prem-vault/pull/96), [#97](https://github.com/DamienBecherini/ia-on-prem-vault/pull/97), [#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) | Ce qu'aucune source de la veille n'annonçait : versions et prix plus récents, sujets manquants, chacun vérifié sur le web |
+| Sources de la veille | [#88](https://github.com/DamienBecherini/ia-on-prem-vault/pull/88) | 21 flux ajoutés après un contrôle des sources (des outils que le guide cite et qu'aucun flux ne suivait) |
 
 Sur le rejeu des veilles passées, aucune proposition arrivée à la relecture n'était fausse ; les oublis sont analysés
-dans le [README](../README.fr.md).
+dans le [README](../README.fr.md#le-guide-de-référence).
 
 ## Ce qu'il coûte
 
 Chaque appel au modèle est noté dans [`metrics/usage.jsonl`](../metrics/usage.jsonl), au prix catalogue. Le journal au
-17 novembre 2026 (99 $, surtout dépensés le jour de la mise en route et pour la première vérification de tout le
-guide) :
+20 novembre 2026 (192 $ : 99 $ jusqu'au 17 novembre, surtout le jour de la mise en route et pour la première
+vérification de tout le guide, puis le premier compactage et les premiers ajouts, lancés plusieurs fois chacun pour
+les régler) :
 
 ```mermaid
 pie showData
   title Journal des coûts par type de passage (USD)
-  "Passes de correction" : 45.88
-  "Veilles" : 21.34
-  "Vérification du guide" : 18.08
-  "Rejeux d'évaluation" : 10.09
+  "Passes de correction" : 47.35
+  "Compactage" : 35.43
+  "Vérifications du guide" : 33.68
+  "Ajouts" : 32.67
+  "Veilles" : 25.88
+  "Rejeux d'évaluation" : 13.60
   "Relectures croisées seules" : 3.50
 ```
 
@@ -162,26 +175,29 @@ flowchart LR
   A["A. Boucler sur<br/>une vraie veille"]:::done --> B["B. Mesurer<br/>(rejeu des veilles)"]:::done
   B --> C["C. Corrections<br/>(tout le guide en contexte)"]:::done
   C --> F["F. Publication<br/>et interface web"]:::done
-  F --> G["G. N'importe quel guide,<br/>n'importe quel modèle"]:::now
-  G --> D["D. Découverte<br/>(nouveaux modèles et outils)"]:::next
+  F --> G["G. N'importe quel guide,<br/>n'importe quel modèle"]:::done
+  G --> D["D. Découverte<br/>(nouveaux modèles et outils)"]:::now
   D --> E["E. Entretien des pages<br/>et des sources"]:::next
   classDef done fill:#e3f3e8,stroke:#2f7d4f,color:#123d22
   classDef now fill:#fdf3dc,stroke:#b07a12,color:#4a3305
   classDef next fill:#f3f4f6,stroke:#8a96a0,color:#2b3a42,stroke-dasharray:4 3
 ```
 
-La phase G est en cours : l'agent a été écrit pour ce seul guide, il apprend à tenir n'importe quel guide en
-Markdown, décrit par un manifeste qui lui est propre ([Brancher son guide](connect-your-guide.fr.md)), avec un choix
-de modèles et des prix dont l'origine est affichée ([le plan](modular-plan.md), en anglais). Les phases A, B, C et F
-sont faites ; la phase E l'est en partie (liens vérifiés avant publication, vérification à la
-demande). La découverte (phase D) vient ensuite : aujourd'hui, les ajouts sont listés comme pistes dans le rapport et
-laissés à l'éditeur. Détails et mesures : [ROADMAP.md](../ROADMAP.md) (en anglais).
+La phase G est faite : écrit pour ce seul guide, l'agent tient maintenant n'importe quel guide en Markdown, décrit
+par un manifeste qui lui est propre ([Brancher son guide](connect-your-guide.fr.md)), avec un choix de modèles et
+des prix dont l'origine est affichée ([le plan](modular-plan.md), en anglais). Les phases A, B, C et F sont faites
+aussi ; la phase E l'est en partie (liens vérifiés avant publication, vérification à la demande, sources de la
+veille contrôlées, compactage). La découverte (phase D) a commencé : depuis la 1.3.0, un passage d'ajouts écrit,
+après relecture, ce qu'apporte une recherche de pistes ou l'éditeur ([Nouveautés](news.fr.md)) ; il reste à suivre
+des candidats dans le temps, d'une veille à l'autre. Détails et mesures : [ROADMAP.md](../ROADMAP.md) (en anglais).
 
 ## Pour aller plus loin
 
 - [README](../README.fr.md) : utilisation (interface web et ligne de commande), fonctions de LangGraph utilisées, choix
   de conception, limites.
 - [Brancher son guide](connect-your-guide.fr.md) : le manifeste d'un guide, `vault-watch init` et `doctor`.
+- [Collecter une veille](collect.fr.md), [Compactage](compact.fr.md), [Nouveautés](news.fr.md) : la veille sans
+  modèle, et les deux passages à côté d'elle.
 - [Structure du code](code.fr.md) : modules, état du graphe, appels au modèle, pause et reprise.
 - [ROADMAP.md](../ROADMAP.md) : phases, mesures, suite.
 - Le guide : [site](https://ia-on-prem.damien.becherini.fr/) · [dépôt](https://github.com/DamienBecherini/ia-on-prem-vault).

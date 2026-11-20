@@ -1,6 +1,8 @@
 # Plan: from one guide to a modular agent
 
-Status: proposal of 2026-11-17, nothing of it is built. The work, task by task, is in
+Status: proposal of 2026-11-17, built since: the milestones M0 to M5 of phase G (0.2.0 to 1.0.0, 2026-11-17 to
+2026-11-19) follow it. It is kept as it was written, as the record of why the agent is shaped this way; what the
+agent does today is in the [README](../README.md) and the pages it links. The work, task by task, is in
 [phase G of ROADMAP.md](../ROADMAP.md#phase-g--a-modular-agent). This page answers one question: what has to change for someone
 else to run this agent on their own guide, with the model of their choice, and trust the costs it shows.
 

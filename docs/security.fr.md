@@ -55,7 +55,27 @@ limite ce qu'un tel texte peut obtenir :
   et refusent toute adresse qui n'est pas publique : ni la machine elle-même, ni le réseau local, ni une adresse
   de métadonnées d'un cloud ;
 - les réponses du modèle ne deviennent jamais des commandes : les seuls programmes que l'agent lance sont git,
-  `gh` et les contrôles du guide, avec des arguments construits par le code.
+  `gh`, les contrôles du guide et, quand vos réglages s'en servent, `claude` et `sops`, avec des arguments
+  construits par le code.
+
+## Ce qui sort de la machine
+
+Il n'y a pas de télémétrie : l'agent n'envoie rien sur vous ni sur votre guide à son auteur. Il se sert du réseau
+pour :
+
+| Quoi | Vers qui |
+| :-- | :-- |
+| Les appels au modèle : les consignes, la veille, les pages ou tout le guide | Le moteur que vous avez choisi |
+| La recherche web et la lecture de pages, aux étapes qui vérifient des sources | Les outils web du moteur, ou votre SearXNG et les pages elles-mêmes |
+| La collecte d'une veille et le contrôle de ses sources | GitHub, Hugging Face, les flux et les pages de `feeds.json` |
+| Les liens des pages, quand ils sont vérifiés | Les sites vers lesquels le guide renvoie |
+| Les issues, les artefacts, la branche et la pull request | La forge du guide : GitHub par `gh`, ou votre Gitea |
+| La liste publique des prix, quand vous la demandez dans les Réglages | Un fichier du dépôt LiteLLM, sur GitHub |
+
+« Donner mon avis » n'envoie rien de lui-même. Il prépare une issue GitHub ou un e-mail que vous relisez et
+envoyez vous-même, ou un texte à copier. La version y figure ; le système, Python, le moteur et l'écran ne
+s'ajoutent que si vous cochez la case ; rien du guide n'y est jamais, ni son nom, ni ses pages, ni le passage
+affiché.
 
 ## Le serveur local
 

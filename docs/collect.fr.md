@@ -224,8 +224,10 @@ Aucune issue n'est ouverte quand rien n'est retenu.
 
 ## Le collecteur du guide IA on-premise
 
-`vault-watch collect` est un portage de `scripts/watch-feeds.mjs` du guide IA on-premise. Il a les mêmes types de
-flux et les mêmes règles, et son résultat a le même format. Sur les 63 flux de ce guide et sur la même fenêtre, les
-deux donnent les mêmes éléments avec le même tri, les mêmes notes et les mêmes urgences (comparaison du 18 novembre
-2026 : 172 éléments, 105 retenus depuis le 3 novembre ; 455 éléments, 241 retenus depuis le 1er juin). Un guide
-peut garder son propre collecteur : l'agent ne lit que le `watch.json`.
+`vault-watch collect` est un portage du collecteur qu'avait le guide IA on-premise, `scripts/watch-feeds.mjs` : les
+mêmes types de flux, les mêmes règles, le même format de résultat. Avant que le guide ne change, les deux ont tourné
+sur ses 63 flux et sur la même fenêtre, et ont donné les mêmes éléments avec le même tri, les mêmes notes et les
+mêmes urgences (comparaison du 18 novembre 2026 : 172 éléments, 105 retenus depuis le 3 novembre ; 455 éléments, 241
+retenus depuis le 1er juin). Depuis le 19 novembre 2026, le workflow hebdomadaire du guide appelle le workflow
+réutilisable ci-dessus, et son script a disparu. Un guide peut garder son propre collecteur : l'agent ne lit que le
+`watch.json`.

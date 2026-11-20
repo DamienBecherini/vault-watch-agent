@@ -218,8 +218,9 @@ No issue is opened when nothing is kept.
 
 ## The IA on-prem guide's collector
 
-`vault-watch collect` is a port of `scripts/watch-feeds.mjs` of the IA on-prem guide. It has the same feed types and
-the same rules, and its output has the same format. On that guide's 63 feeds, over the same window, both give the
-same items with the same triage, the same notes and the same urgencies (compared on 18 November 2026: 172 items, 105
-kept since 3 November; 455 items, 241 kept since 1 June). A guide can keep its own collector: the agent only reads
-the `watch.json`.
+`vault-watch collect` was ported from the collector the IA on-prem guide had, `scripts/watch-feeds.mjs`: the same
+feed types, the same rules, the same output format. Before the guide changed over, both were run on its 63 feeds
+over the same window and gave the same items with the same triage, the same notes and the same urgencies (compared
+on 18 November 2026: 172 items, 105 kept since 3 November; 455 items, 241 kept since 1 June). Since 19 November
+2026 the guide's weekly workflow calls the reusable workflow above, and its script is gone. A guide can keep its
+own collector: the agent only reads the `watch.json`.

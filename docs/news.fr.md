@@ -97,6 +97,8 @@ vault-watch --guide ../mon-guide fix add-2026-11-20 --findings pistes.txt --add
 Dans l'interface : cochez les pistes, puis « Créer une passe ajouts » ; le bouton affiche une estimation qui suit
 le nombre de pistes cochées.
 
+![Les pistes d'une vérification : chaque piste ouverte avec le passage du guide qu'elle concerne, la case « creuser », la liste qui choisit ce que lit chaque appel, et le bouton avec son estimation](leads.fr.png)
+
 Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires, puis décide :
 
 - rien de nouveau, rien qu'une source primaire établisse, déjà couvert, ou sous le seuil du guide : aucune
@@ -128,12 +130,14 @@ passage réel, une piste sur six grilles de prix a laissé ses trois voisines sa
 appel n'a pas pu regarder est marquée « pas vérifiée par la passe » sur la vérification, avec un bouton qui la
 remet parmi les pistes à traiter. Ce que deux appels ajoutent à la même page est assemblé par le programme (un
 numéro de note choisi par les deux est renommé, deux lignes ajoutées après la même ligne s'appliquent toutes les
-deux). Chaque appel lit tout le guide. Sur l'API Claude, le premier appel l'écrit dans le cache et les autres le
-lisent là ; avec un autre moteur, les appels se suivent.
+deux). Ce qu'un appel lit du guide se choisit (plus bas) : les pages de sa piste et le plan du guide par défaut,
+plusieurs appels tournant en même temps, ou tout le guide. Avec tout le guide sur l'API Claude, le premier appel
+l'écrit dans le cache et les autres le lisent là ; avec un autre moteur, ces appels se suivent.
 
 Les estimations ci-dessous valent pour le guide IA on-prem (129 pages, environ 430 000 tokens), avec Opus 5.5
-pour les pistes, les ajouts et la relecture croisée. Sauf mention, elles ne sont pas encore mesurées : les constantes sont
-comptées large et seront réglées sur les premiers passages réels.
+pour les pistes, les ajouts et la relecture croisée. Les pistes depuis le guide et les passages d'ajouts sont
+réglés sur des passages réels ; le web exploré par chapitre n'a pas encore tourné pour de vrai, et ses constantes
+sont comptées large.
 
 | | Estimation |
 | :-- | :-- |
