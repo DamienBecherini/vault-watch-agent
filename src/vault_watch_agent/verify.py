@@ -36,10 +36,11 @@ OUTPUT_PER_CHAPTER = 3_000
 # run 21 to 30 k and 12 to 15 k; the first compaction report on Fable 5.2 at effort high wrote more than 64 000
 # (20/11/2026, cut at the limit of the time), then 48 459 once the report was held to 30 findings.
 COMPACTION_OUT = 60_000
-# A compaction run: per finding, the proposals read its share of the pages (the 30 findings of the first report
-# named 44 pages, given in 4 calls: as many bytes as the whole guide) and write its trims; then one cross-check of
-# the whole guide, and the mirror of each page touched. Not measured yet.
-COMPACT_FINDINGS = 30  # findings whose pages weigh the guide once
+# A compaction run: its proposals write the guide to the cache once and read it in each of their calls (about one
+# call per eight findings), then write the trims of each finding; then one cross-check of the whole guide on its
+# own model, and the mirror of each page touched. Counted for the Claude API; an engine whose proposals read only
+# the pages the findings name (compact.propose) pays less. Not measured yet.
+COMPACT_PER_CALL = 8  # findings per call of the proposals
 COMPACT_OUT_EACH = 7_000  # proposals, thinking included
 CROSS_OUT, CROSS_OUT_EACH = 20_000, 800
 MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one page and a half per finding
@@ -86,9 +87,9 @@ def _tokens(paths: list[Path]) -> int:
     return int(sum(p.stat().st_size for p in paths) / BYTES_PER_TOKEN)
 
 
-def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0, table=None) -> float:
-    p_in, p_out, _, p_write = price_of(model, table) or (0.0, 0.0, 0.0, 0.0)  # a model without a known price: 0, said in the Settings
-    return (tokens_in * p_in + tokens_out * p_out + cache_write * p_write) / 1e6
+def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0, table=None, cache_read: int = 0) -> float:
+    p_in, p_out, p_read, p_write = price_of(model, table) or (0.0, 0.0, 0.0, 0.0)  # a model without a known price: 0, said in the Settings
+    return (tokens_in * p_in + tokens_out * p_out + cache_write * p_write + cache_read * p_read) / 1e6
 
 
 def mirror_pages(vault_dir: Path) -> list[Path]:
@@ -122,10 +123,12 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                        "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est modifié".replace(",", " "),
                                     f"{fr:,} tokens of pages, read whole; nothing is edited")},
         # Not a check: the run the compaction leads go to (shown on the button that creates it)
-        # `usd`: whatever the findings (the cross-check); `usd_each`: per finding sent to the run
-        "compact-run": {"tokens": fr + CROSS_OUT,
-                        "usd": _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, table=table),
-                        "usd_each": _usd(of("compact"), tokens_in=fr // COMPACT_FINDINGS, tokens_out=COMPACT_OUT_EACH, table=table)
+        # `usd`: whatever the findings (the guide written to the cache by the proposals, then by the cross-check);
+        # `usd_each`: per finding sent to the run
+        "compact-run": {"tokens": 2 * fr + CROSS_OUT,
+                        "usd": _usd(of("compact"), cache_write=fr, table=table)
+                        + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, table=table),
+                        "usd_each": _usd(of("compact"), cache_read=fr // COMPACT_PER_CALL, tokens_out=COMPACT_OUT_EACH, table=table)
                         + _usd(of("crosscheck"), tokens_out=CROSS_OUT_EACH, table=table)
                         + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                            if vault.guide_of(vault_dir).mirrors else 0.0)},

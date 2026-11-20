@@ -57,12 +57,13 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
             effort: str = "", web: bool = True, node: str = "fix",
             excerpts: dict[str, list[dict]] | None = None,
             what: tuple[str, str] = ("Reported errors", "error"), ids: list[str] | None = None,
-            cached: bool = True) -> tuple[list[dict], dict, dict]:
+            cached: bool = True, started=None) -> tuple[list[dict], dict, dict]:
     """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request.
     `what`: how the findings are called in the prompt (its heading, the tag of each one).
     `ids`: the ids of the findings when the caller numbers them (a run made of several calls).
     `cached`: False when no other call reads the same `context`: it then goes with the question, at the plain
-    input price (writing it to the prompt cache costs more)."""
+    input price (writing it to the prompt cache costs more).
+    `started`: called when the answer begins, for an engine that says so (`signals_start`)."""
     if "<<" in system:  # written with the markers of prompts.fill
         system = prompts.fill(system, vault_dir)
     items = items_of(findings, excerpts, ids)
@@ -73,7 +74,7 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
         context, prompt = None, f"{context}\n\n{prompt}"
     result, usage = llm.parse(
         system=system, prompt=prompt, schema=ClusterProposal, effort=effort or steps.effort("fix"),
-        node=node, context=context, web=web,
+        node=node, context=context, web=web, **({"started": started} if started else {}),
     )
     ids = [i["id"] for i in items]
     corrections = [

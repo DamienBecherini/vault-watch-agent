@@ -170,11 +170,16 @@ class Claude(_Journal):
         # Reads ANTHROPIC_API_KEY from the environment (injected by sops, never stored here).
         self.client = client or anthropic.Anthropic()
 
+    signals_start = True  # `parse` takes `started` (optional, outside the engine protocol)
+
     def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
-              context: str | None = None, web: bool = False) -> tuple[T, dict]:
+              context: str | None = None, web: bool = False,
+              started: Callable[[], None] | None = None) -> tuple[T, dict]:
         """`context` (the whole vault, for instance) goes first and is cached, so the next calls
         within five minutes read it at the cache price instead of the full input price.
-        `web` lets the model search the web and open sources (server-side tools run by the API)."""
+        `web` lets the model search the web and open sources (server-side tools run by the API).
+        `started` is called once the answer has begun: the cache of `context` can then be read, so calls that
+        share it are started after that, not together (each would pay for writing it)."""
         effort = shift_effort(effort, self.effort_step)
         blocks = system
         if context:
@@ -203,6 +208,12 @@ class Claude(_Journal):
                 **extra,
             ) as stream:
                 try:
+                    if started:
+                        for event in stream:  # the first content: the answer has begun, the cache is written
+                            if getattr(event, "type", "").startswith("content_block"):
+                                break
+                        started()
+                        started = None
                     message = stream.get_final_message()
                 except ValidationError as e:
                     # The SDK reads the JSON when its block ends: an answer cut at the limit is not JSON. The call is
@@ -515,12 +526,12 @@ class Routed:
         return self.by_step.get(step, self.default)
 
     def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
-              context: str | None = None, web: bool = False) -> tuple[T, dict]:
+              context: str | None = None, web: bool = False, **more) -> tuple[T, dict]:
         from . import steps
 
         step = steps.of_node(node)
         return self.for_step(step).parse(system=system, prompt=prompt, schema=schema, effort=self.efforts.get(step, effort),
-                                         node=node, context=context, web=web)
+                                         node=node, context=context, web=web, **more)
 
     def __getattr__(self, name: str):
         return getattr(self.default, name)

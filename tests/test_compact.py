@@ -373,6 +373,39 @@ def test_a_run_takes_several_calls_and_goes_on_when_one_fails(setup, monkeypatch
         compact.propose(deps.vault, FINDINGS, Down())
 
 
+def test_on_the_claude_api_every_call_reads_the_guide_the_first_one_cached(setup, monkeypatch):
+    import threading
+
+    from vault_watch_agent.llm import ModelError
+
+    deps, _ = setup
+    monkeypatch.setattr(compact, "BATCH_LOAD", 2)  # one finding per call
+    findings = [FINDINGS[0], FINDINGS[1], FINDINGS[0].replace("0.31.2", "0.31"), FINDINGS[1] + " Again."]
+    lock, order, leader_begun = threading.Lock(), [], threading.Event()
+
+    class Api:
+        signals_start = True  # as llm.Claude: `started` is called when the answer begins
+
+        def parse(self, *, system, prompt, schema, effort, node, context=None, web=False, started=None):
+            assert "The whole guide is above" in system and context.startswith("<guide>") and "projet/changelog.md" in context
+            with lock:
+                order.append((node, started is not None, leader_begun.is_set()))
+            if node == "compact 1/4":  # the first leader fails before it answers: the next one leads
+                raise ModelError("overloaded")
+            if started:
+                leader_begun.set()
+                started()
+            n = prompt.split('<finding id="')[1].split('"')[0]
+            return ClusterProposal(outcomes=[ItemOutcome(item_id=n, event="", no_change_reason="kept")], corrections=[]), \
+                {"node": node, "cost_usd": 1.0}
+
+    items, proposals, usages = compact.propose(deps.vault, findings, Api())
+    assert order[0] == ("compact 1/4", True, False) and order[1] == ("compact 2/4", True, False)
+    assert sorted(order[2:]) == [("compact 3/4", False, True), ("compact 4/4", False, True)]  # after the leader began
+    assert [p["item_ids"] for p in proposals] == [["F1"], ["F2"], ["F3"], ["F4"]] and len(usages) == 3
+    assert "overloaded" in proposals[0]["outcomes"][0]["no_change_reason"]
+
+
 def test_other_runs_still_refuse_an_edit_that_drops_a_note():
     from vault_watch_agent.graph import mark_unsafe
 

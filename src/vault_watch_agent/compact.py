@@ -19,13 +19,14 @@ refused (`mark_dangling`), and each trim lists the values that no page states an
 from __future__ import annotations
 
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import fix, quotes, steps, vault
+from . import fix, quotes, reading, steps, vault
 from .llm import LLM, ModelError
 
 REPORT = """You look for what makes <<GUIDE>> heavier than it needs to be. The whole guide is above, one <page> per
@@ -75,10 +76,9 @@ def line(t: Trim) -> str:
     return f"[{KINDS[t.kind]}] {', '.join(t.pages)}: {t.problem}{keep}"
 
 
-PROPOSE = """You trim <<GUIDE>> so that it weighs less without saying less. The pages to work on are above, each
-whole, one <page> per file; the guide has other pages, which you do not see (the review that follows your trims
-reads them all). Each finding (F1…) names something that makes the guide heavy: the same fact stated at length in
-several pages, history piled up beside the current fact, a section longer than what it says needs.
+PROPOSE = """You trim <<GUIDE>> so that it weighs less without saying less. <<ABOVE>> Each finding (F1…) names
+something that makes the guide heavy: the same fact stated at length in several pages, history piled up beside the
+current fact, a section longer than what it says needs.
 
 For each one:
 - Check it against the pages above. If it is wrong, or the passage is needed where it is (a page a reader lands on
@@ -97,6 +97,8 @@ For each one:
 - Never remove the only statement of a fact, a figure, a caveat or a source: it counts as stated elsewhere only
   when you read it in a page above. Move it (two edits with the same `group`: one removes it here, the other adds
   it where it belongs) or leave it.
+- Answer the findings given here and nothing else: a run may handle other findings in other calls at the same
+  time.
 - Footnotes: when an edit removes the last sentence that cites a note, the program removes that note's definition
   itself; never leave a sentence citing a note you remove. A fact that moves to another page takes its note with
   it, defined there under a marker that page does not use yet.
@@ -131,6 +133,11 @@ sentence cites any more: do not list it. Finally, note in one line each any cont
 noticed elsewhere in the guide while reading, without proposing a fix, and copy the passages in question verbatim
 into its `excerpts`."""
 
+
+# What is above the findings, per way of reading (`propose`)
+ABOVE = {"guide": "The whole guide is above, one <page> per file.",
+         "pages": "The pages the findings name are above, each whole, one <page> per file; the guide has other pages, "
+                  "which you do not see (the review that follows your trims reads them all)."}
 
 # What one call is asked: a finding weighs the pages it names (two at least: a long section takes several edits).
 # The trims of thirty findings in one answer would not fit under the output limit of a model that thinks much
@@ -175,10 +182,16 @@ def batches(pages: list[list[str]], size: dict[str, int]) -> list[list[int]]:
 def propose(vault_dir: Path, findings: list[str], llm: LLM,
             excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """The trims for the findings the editor kept: (items, proposals, usages), one proposal and one usage per call.
-    Without the web. Each call gets the pages its findings name, whole, not the guide: a finding names every page
-    it is about, the cross-check that follows reads the whole guide, and the code lists what no page states any
-    more. The findings that name no page of the guide (a line typed by hand) go together with the whole guide.
+    Without the web, in several calls when the findings are many (`batches`). Two ways of reading:
+    - the whole guide for every call, when the engine caches it and says when its answer begins (the Claude API)
+      and the guide fits the model: the first call writes the cache, the others start once it has begun to answer
+      and read it (started together, each would pay for writing it);
+    - else the pages the findings of the call name, whole: a finding names every page it is about, the cross-check
+      that follows reads the whole guide, and the code lists what no page states any more. The findings that name
+      no page of the guide (a line typed by hand) then go together with the whole guide.
     A call that fails leaves its findings without a trim, said in their outcome; the others go on."""
+    client = llm.for_step("compact") if hasattr(llm, "for_step") else llm
+    shared = bool(getattr(client, "signals_start", False)) and reading.plan(vault_dir, llm, step="compact").mode == "whole"
     texts = {p.relative_to(vault_dir).as_posix(): vault.read(p).replace("\r", "") for p in vault.pages(vault_dir)}
     pages = [named(f, set(texts)) for f in findings]
     size = {p: len(t.encode("utf-8")) for p, t in texts.items()}
@@ -188,16 +201,17 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
     if without:
         groups.append(without)
 
-    def one(n: int) -> tuple[list[dict], dict, dict | None]:
+    def one(n: int, started=None) -> tuple[list[dict], dict, dict | None]:
         group = groups[n]
         ids, lines = [f"F{i + 1}" for i in group], [findings[i] for i in group]
-        given = sorted({p for i in group for p in pages[i]})
+        given = [] if shared else sorted({p for i in group for p in pages[i]})
         context = "<pages>\n" + "\n".join(f'<page path="{p}">\n{texts[p]}\n</page>' for p in given) + "\n</pages>"
         try:
-            return fix.propose(vault_dir, lines, llm, system=PROPOSE, effort=steps.effort("compact"), web=False,
+            return fix.propose(vault_dir, lines, llm, system=PROPOSE.replace("<<ABOVE>>", ABOVE["pages" if given else "guide"]),
+                               effort=steps.effort("compact"), web=False,
                                node="compact" if len(groups) == 1 else f"compact {n + 1}/{len(groups)}",
                                excerpts=excerpts, what=("Findings", "finding"), ids=ids,
-                               context=context if given else None, cached=not given)
+                               context=context if given else None, cached=not given, started=started)
         except ModelError as e:
             failed = {"item_ids": ids, "corrections": [], "error": str(e),
                       "outcomes": [{"item_id": i, "event": "", "no_change_reason": f"not handled, the call failed: {e}"}
@@ -205,6 +219,8 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
             return fix.items_of(lines, excerpts, ids), failed, e.usage
     if len(groups) == 1:
         results = [one(0)]
+    elif shared:
+        results = _after_the_first(len(groups), one)
     else:
         with ThreadPoolExecutor(max_workers=PARALLEL) as pool:
             results = list(pool.map(one, range(len(groups))))
@@ -212,6 +228,24 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
         raise ModelError(results[0][1]["error"])
     items = sorted((i for its, _, _ in results for i in its), key=lambda i: int(i["id"][1:]))
     return items, [p for _, p, _ in results], [u for _, _, u in results if u]
+
+
+def _after_the_first(n: int, one) -> list:
+    """`one(i, started)` for i < n, for calls that share a cached context: one call leads, the others start together
+    once it has begun to answer. A leader that ends without having begun (it failed) gives its place to the next.
+    All the others at once, without a ceiling: one that waited for a free place would start after the cache has
+    expired (five minutes after the last call that read it started)."""
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        futures = []
+        while len(futures) < n:
+            begun = threading.Event()
+            futures.append(pool.submit(one, len(futures), begun.set))
+            while not begun.is_set() and not futures[-1].done():
+                begun.wait(0.2)
+            if begun.is_set():
+                break
+        futures += [pool.submit(one, i) for i in range(len(futures), n)]
+        return [f.result() for f in futures]
 
 
 # -- what the code checks itself: footnotes ------------------------------------------------------------------

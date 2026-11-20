@@ -64,8 +64,8 @@ is then missed.
 ## The trims
 
 Tick the findings you want acted on and create a compaction run (from the command line:
-`vault-watch fix <thread> --findings findings.txt --compact`, one finding per line). The model reads the pages
-the findings name, whole, and proposes targeted edits, never a page rewritten whole:
+`vault-watch fix <thread> --findings findings.txt --compact`, one finding per line). The model reads the guide
+again and proposes targeted edits, never a page rewritten whole:
 
 - a repetition is shortened and linked to the page that keeps the full statement, with its source;
 - piled-up history gives way to the current fact;
@@ -73,8 +73,17 @@ the findings name, whole, and proposes targeted edits, never a page rewritten wh
 
 The proposals take several calls when the findings are many: the findings that share pages go together, and no
 call is asked more than its answer can hold (the trims of thirty findings would not fit in one answer). A call
-that fails leaves its findings without a trim, which the report of the run says; the others go on. A finding that
-names no page of the guide (a line typed by hand) is given the whole guide.
+that fails leaves its findings without a trim, which the report of the run says; the others go on.
+
+What each call reads depends on the engine:
+
+- **The Claude API**: the whole guide, every time. The first call writes it to the prompt cache, and the others
+  start once it has begun to answer, so they read the cache instead of paying for the guide again (on Claude
+  Fable 5.2, about 4.3 $ to write the IA on-prem guide, then 0.09 $ per call that reads it).
+- **Claude Code, an OpenAI-compatible server, a guide too large for the model**: the pages the findings of the
+  call name, whole. A finding names every page it is about; the model is told that the guide has other pages it
+  does not see, and keeps what it cannot find elsewhere. A finding that names no page of the guide (a line typed
+  by hand) is given the whole guide.
 
 Then the run takes the path of any other: a cross-check written for trims, which reads the whole guide (is
 anything lost? does the page still read on at that place? does the link point to a page that exists?), your
@@ -99,12 +108,13 @@ The estimates shown before each part follow the price of the model of each step.
 | | Claude Opus 5.5 | Claude Fable 5.2 on the two compaction steps |
 | :-- | --: | --: |
 | The report | ≈ 3.4 $ | ≈ 6.7 $ (measured on 20/11/2026: 6.28 $, 48 k tokens written at effort `high`) |
-| A run of trims, 10 findings | ≈ 5.5 $ | ≈ 7.5 $ |
-| A run of trims, 30 findings | ≈ 11.4 $ | ≈ 17.3 $ |
+| A run of trims, 10 findings | ≈ 7.2 $ | ≈ 10.8 $ |
+| A run of trims, 30 findings | ≈ 12.2 $ | ≈ 18.5 $ |
 
-A run costs its cross-check (the whole guide, once: about 2.6 $ here), then a share per finding: the pages its
-proposals read, what they write, and the mirror of each page touched. The figures of a run are estimates, counted
-high, to be replaced by measures after the first real runs.
+A run pays for the guide twice, whatever the findings: written to the cache by its proposals, then by its
+cross-check, which runs on its own model with another question (about 4.7 $ here with Opus 5.5 on both, 6.9 $
+with Fable 5.2 on the proposals). Then a share per finding: what the proposals write, and the mirror of each page
+touched. The figures of a run are estimates, counted high, to be replaced by measures after the first real runs.
 
 What a model thinks is billed as output and counts in the limit of what one call may write. The report lists at
 most 30 findings so that its answer stays far from that limit; an answer cut at the limit is billed and lost, which

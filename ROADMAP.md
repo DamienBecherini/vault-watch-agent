@@ -502,8 +502,9 @@ Built on 2026-11-20 (dev), docs in [docs/compact.md](docs/compact.md):
   removes the note a trim leaves without a sentence, refuses a trim that leaves a sentence citing a removed note,
   removes a passage whole without leaving a hole, and lists under each trim the values no page states any more.
   The first real report (20/11/2026, Fable 5.2 at effort high: 30 findings, 6.28 $, 48 k tokens written) showed
-  that the trims of thirty findings would not fit in one answer: the proposals now read the pages the findings
-  name, in several calls (`compact.batches`), and the estimate of a run follows the findings ticked.
+  that the trims of thirty findings would not fit in one answer: the proposals now take several calls
+  (`compact.batches`), each reading the whole guide from the cache the first one wrote (the Claude API) or the
+  pages its findings name (the other engines), and the estimate of a run follows the findings ticked.
 - T6.4: done in 1.0.1 (C2).
 - T6.5: on demand, from « Check the guide », with its estimate; the size check says when.
 

@@ -21,10 +21,12 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
   proposes targeted edits and takes the path of any run: a cross-check written for trims (is anything lost, does
   the page still read on), the review, the mirrors, the guide's audits, the pull request, on a branch
   `compact/<thread>`. No web, no sweep. The pull request says what the changed pages weighed before and after.
-  The proposals read the pages the findings name, not the whole guide, in several calls when the findings are
-  many (those that share pages together, four calls at a time): the trims of thirty findings would not fit in
-  one answer. A call that fails leaves its findings without a trim, said in the report of the run, and the
-  others go on.
+  The proposals take several calls when the findings are many (those that share pages together): the trims of
+  thirty findings would not fit in one answer. On the Claude API every call reads the whole guide: the first one
+  writes it to the prompt cache, the others start once it has begun to answer and read it (`llm.Claude.parse`
+  takes `started`, outside the engine protocol). With another engine, or a guide too large for the model, each
+  call reads the pages its findings name. A call that fails leaves its findings without a trim, said in the
+  report of the run, and the others go on.
 - What the code checks itself: a passage removed whole leaves no hole (a table keeps its rows, a paragraph does not
   leave two blank lines; this holds for every run); the definition of a note that a trim leaves without a sentence
   citing it is removed with it; a trim that would leave a sentence citing a removed note cannot be applied; and

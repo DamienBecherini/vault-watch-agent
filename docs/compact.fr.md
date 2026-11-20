@@ -69,8 +69,8 @@ chapitres échappe alors.
 ## Les allègements
 
 Cochez les pistes à traiter et créez un passage de compactage (en ligne de commande :
-`vault-watch fix <fil> --findings pistes.txt --compact`, une piste par ligne). Le modèle lit en entier les pages
-que les pistes nomment et propose des modifications ciblées, jamais une page réécrite en entier :
+`vault-watch fix <fil> --findings pistes.txt --compact`, une piste par ligne). Le modèle relit le guide et
+propose des modifications ciblées, jamais une page réécrite en entier :
 
 - une répétition est raccourcie et renvoie à la page qui garde l'énoncé complet, avec sa source ;
 - l'historique empilé laisse la place au fait courant ;
@@ -79,8 +79,17 @@ que les pistes nomment et propose des modifications ciblées, jamais une page r�
 Les propositions prennent plusieurs appels quand les pistes sont nombreuses : les pistes qui partagent des pages
 vont ensemble, et aucun appel ne se voit demander plus que sa réponse ne peut contenir (les allègements de trente
 pistes ne tiendraient pas dans une seule réponse). Un appel qui échoue laisse ses pistes sans allègement, ce que
-dit le rapport du passage ; les autres continuent. Une piste qui ne nomme aucune page du guide (une ligne saisie
-à la main) reçoit le guide entier.
+dit le rapport du passage ; les autres continuent.
+
+Ce que lit chaque appel dépend du moteur :
+
+- **L'API Claude** : tout le guide, à chaque fois. Le premier appel l'écrit dans le cache, et les autres partent
+  quand il a commencé à répondre : ils lisent alors le cache au lieu de payer le guide une nouvelle fois (sur
+  Claude Fable 5.2, environ 4,3 $ pour écrire le guide IA on-prem, puis 0,09 $ par appel qui le relit).
+- **Claude Code, un serveur compatible OpenAI, un guide trop grand pour le modèle** : les pages que nomment les
+  pistes de l'appel, en entier. Une piste nomme toutes les pages qu'elle concerne ; le modèle sait que le guide a
+  d'autres pages qu'il ne voit pas, et garde ce qu'il ne retrouve pas ailleurs. Une piste qui ne nomme aucune
+  page du guide (une ligne saisie à la main) reçoit le guide entier.
 
 Le passage suit ensuite le chemin de tous les autres : une relecture croisée écrite pour les allègements, qui lit
 tout le guide (perd-on quelque chose ? la page se lit-elle encore à cet endroit ? le lien mène-t-il à une page
@@ -105,12 +114,14 @@ Les estimations affichées avant chaque partie suivent le prix du modèle de cha
 | | Claude Opus 5.5 | Claude Fable 5.2 sur les deux étapes de compactage |
 | :-- | --: | --: |
 | Le rapport | ≈ 3,4 $ | ≈ 6,7 $ (mesuré le 20/11/2026 : 6,28 $, 48 k tokens écrits à l'effort `high`) |
-| Un passage d'allègements, 10 pistes | ≈ 5,5 $ | ≈ 7,5 $ |
-| Un passage d'allègements, 30 pistes | ≈ 11,4 $ | ≈ 17,3 $ |
+| Un passage d'allègements, 10 pistes | ≈ 7,2 $ | ≈ 10,8 $ |
+| Un passage d'allègements, 30 pistes | ≈ 12,2 $ | ≈ 18,5 $ |
 
-Un passage coûte sa relecture croisée (tout le guide, une fois : environ 2,6 $ ici), puis une part par piste : les
-pages que lisent ses propositions, ce qu'elles écrivent, et le miroir de chaque page touchée. Les chiffres d'un
-passage sont des estimations, comptées large, à remplacer par des mesures après les premiers passages réels.
+Un passage paie le guide deux fois, quelles que soient les pistes : écrit dans le cache par ses propositions, puis
+par sa relecture croisée, qui tourne sur son propre modèle avec une autre question (environ 4,7 $ ici avec
+Opus 5.5 pour les deux, 6,9 $ avec Fable 5.2 pour les propositions). Puis une part par piste : ce qu'écrivent les
+propositions, et le miroir de chaque page touchée. Les chiffres d'un passage sont des estimations, comptées
+large, à remplacer par des mesures après les premiers passages réels.
 
 Ce qu'un modèle réfléchit est facturé comme de la sortie et compte dans la limite de ce qu'un appel peut écrire.
 Le rapport liste au plus 30 pistes pour que sa réponse reste loin de cette limite ; une réponse coupée à la limite

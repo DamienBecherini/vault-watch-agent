@@ -94,6 +94,34 @@ def test_an_answer_cut_at_the_output_limit_is_counted_and_said(tmp_path):
         del llm.OUTPUTS["claude-opus-5-5"]
 
 
+def test_the_api_engine_says_when_its_answer_begins(tmp_path):
+    """Calls that share a cached context wait for this before they start (compact.propose)."""
+    seen = []
+
+    class Stream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def __iter__(self):
+            for kind in ("message_start", "content_block_start", "content_block_delta", "message_stop"):
+                seen.append(kind)
+                yield SimpleNamespace(type=kind)
+
+        def get_final_message(self):
+            seen.append("final")
+            return _message("valid")
+
+    client = llm.Claude("claude-opus-5-5", SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(stream=lambda **kw: Stream()))),
+                        tmp_path / "usage.jsonl")
+    answer, usage = client.parse(system="s", prompt="p", schema=Answer, effort="high", node="compact 1/2", context="guide",
+                                 started=lambda: seen.append("started"))
+    assert seen == ["message_start", "content_block_start", "started", "final"] and answer.facts == FACTS
+    assert llm.Claude.signals_start and not getattr(llm.ClaudeCode, "signals_start", False)
+
+
 # -- Claude Code: `claude -p` replaced by a fake replaying its JSON result per scenario ---------------------------
 
 SUBSCRIPTION = {"loggedIn": True, "authMethod": "claude.ai", "subscriptionType": "max"}
