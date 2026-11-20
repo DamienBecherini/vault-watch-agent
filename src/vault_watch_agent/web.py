@@ -894,7 +894,9 @@ def create_app(settings: Settings) -> FastAPI:
             return "" if not model else "no price" if p is None else "" if p.origin in ("set", "fetched") else p.label
 
         return [{"id": c.id, "title": c.title, "what": c.what, "model": name.get(c.model, c.model), "needs": list(c.needs),
-                 "fixable": c.fixable, "price_origin": origin(name.get(c.model, c.model)), **est[c.id]}
+                 "fixable": c.fixable, "price_origin": origin(name.get(c.model, c.model)), **est[c.id],
+                 # what a run made from this check's leads costs, when the agent can estimate it (a compaction run)
+                 "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd")}
                 for c in verify.CHECKS]
 
     @app.get("/api/verifications")

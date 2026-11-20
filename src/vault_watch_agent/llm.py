@@ -40,6 +40,10 @@ T = TypeVar("T", bound=BaseModel)
 MODEL = "claude-opus-5-5"
 TRANSLATOR = "claude-sonnet-5-5"
 MAX_CONTINUATIONS = 5  # server-side tool loops resumed after pause_turn
+# The most one request may write, thinking included (the models always think; every current Claude model accepts
+# 128k). It was 32 000 until 1.1.0, and the whole-guide checks wrote 27 to 29 k on Opus 5.5 at effort high: a
+# model that thinks more would have been cut, and a cut answer is billed and lost.
+MAX_TOKENS = 64_000
 
 
 class ModelError(RuntimeError):
@@ -180,7 +184,7 @@ class Claude(_Journal):
         for _ in range(MAX_CONTINUATIONS):
             with self.client.beta.messages.stream(
                 model=self.model,
-                max_tokens=32000,
+                max_tokens=MAX_TOKENS,
                 system=blocks,
                 messages=messages,
                 output_format=schema,

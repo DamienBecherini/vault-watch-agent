@@ -76,6 +76,18 @@ read on at that place? does the link point to a page that exists?), your review 
 guide's audits, the pull request. Its branch is `compact/<thread>`, and the pull request says what the changed
 pages weighed before and after.
 
+## Which model
+
+The report and the trims run on the reasoning model of the Settings, at effort `high` (the « lower » and « higher »
+of that role move it one level). Deciding what can go without the guide saying less is a judgement on the whole
+guide: use the strongest model you have and do not lower the effort for this run. The model is the one of the
+role, so it also runs the watches until you change it back.
+
+The estimates shown before each part follow the price of that model. On the IA on-prem guide (about 434 k tokens),
+at the list prices of November 2026: about 2.80 $ for the report and 5 $ for a run of trims with Claude Opus 5.5,
+twice that with Claude Fable 5.2. A run pays for reading the guide twice: its proposals and its cross-check do not
+share the cache. These are estimates, to be replaced by measures after the first real runs.
+
 ## What the code checks itself
 
 A model must not be trusted with what a program can verify:

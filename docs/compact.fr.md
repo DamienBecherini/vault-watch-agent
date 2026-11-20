@@ -81,6 +81,20 @@ quelque chose ? la page se lit-elle encore à cet endroit ? le lien mène-t-il �
 relecture carte par carte, les miroirs, les contrôles du guide, la pull request. Sa branche s'appelle
 `compact/<fil>`, et la pull request dit ce que pesaient les pages modifiées avant et après.
 
+## Quel modèle
+
+Le rapport et les allègements tournent sur le modèle de raisonnement des Réglages, à l'effort `high` (les réglages
+« plus bas » et « plus haut » de ce rôle le décalent d'un cran). Décider ce qui peut partir sans que le guide en
+dise moins est un jugement sur tout le guide : prenez le meilleur modèle dont vous disposez et ne baissez pas
+l'effort pour ce passage. Le modèle est celui du rôle : il fait donc aussi tourner les veilles tant que vous ne
+l'avez pas remis.
+
+Les estimations affichées avant chaque partie suivent le prix de ce modèle. Sur le guide IA on-prem (environ
+434 k tokens), aux prix publics de novembre 2026 : environ 2,80 $ pour le rapport et 5 $ pour un passage
+d'allègements avec Claude Opus 5.5, le double avec Claude Fable 5.2. Un passage paie deux lectures du guide : ses
+propositions et sa relecture croisée ne partagent pas le cache. Ce sont des estimations, à remplacer par des
+mesures après les premiers passages réels.
+
 ## Ce que le code vérifie lui-même
 
 On ne confie pas à un modèle ce qu'un programme peut vérifier :

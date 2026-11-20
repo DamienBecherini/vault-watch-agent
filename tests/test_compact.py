@@ -338,6 +338,8 @@ def test_the_leads_of_the_check_go_to_a_compaction_run(setup, tmp_path):
                                        make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
     options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
     assert options["compaction"]["needs"] == ["sizes"] and options["sizes"]["model"] is None
+    assert options["compaction"]["run_usd"] > options["compaction"]["usd"] > 0  # a run reads the guide twice
+    assert options["coherence"]["run_usd"] is None  # a fix run: no estimate from the server
     vid = c.post("/api/verifications", json={"checks": ["compaction"]}, headers=act).json()["id"]
     for _ in range(200):
         v = c.get(f"/api/verifications/{vid}").json()

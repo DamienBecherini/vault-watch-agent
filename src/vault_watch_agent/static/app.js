@@ -74,8 +74,8 @@ const TEXTS = {
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
       claims: "Affirmations à revérifier", pagesDue: "Pages à revoir", log: "Journal",
       // by: the ticked leads per kind of run (fix, translation, compact); one run per kind
-      createFix: (by, c) => {
-        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", "≈ 3-6 $"]].filter(k => by[k[0]]);
+      createFix: (by, c, runs = {}) => {
+        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"]].filter(k => by[k[0]]);
         return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2])})`).join(", ")}`
           : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
       },
@@ -237,8 +237,8 @@ const TEXTS = {
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
-      createFix: (by, c) => {
-        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", "≈ 3-6 $"]].filter(k => by[k[0]]);
+      createFix: (by, c, runs = {}) => {
+        const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"]].filter(k => by[k[0]]);
         return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2])})`).join(", ")}`
           : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
       },
@@ -781,7 +781,8 @@ async function viewCheck(id) {
     const ok = ticked().filter(c => c.dataset.fixable === "true"), n = ok.length, e = ticked().length;
     const by = {};
     ok.forEach(c => { by[c.dataset.mode] = (by[c.dataset.mode] || 0) + 1; });
-    $("#fix").textContent = V.createFix(by, cost); $("#fix").disabled = n === 0 || v.running;
+    const run = options.find(o => o.id === "compaction")?.run_usd;  // priced with the model of the Settings
+    $("#fix").textContent = V.createFix(by, cost, { compact: run ? `≈ ${dollars(run)}` : "" }); $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };
   boxes.forEach(c => c.onchange = count);

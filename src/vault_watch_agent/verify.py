@@ -31,7 +31,11 @@ COHERENCE_OUT = 27_000  # output tokens of the whole-guide read
 CLAIM_USD = 0.21  # one watchlist claim checked on the web
 DEAD_LINK_USD = 0.27  # one dead source: find where it moved
 OUTPUT_PER_CHAPTER = 3_000
-COMPACTION_OUT = 20_000  # output tokens of the compaction report (an estimate until a first run measures it)
+# Output tokens, thinking included. The report: like the coherence check (27 to 29 k measured on Opus 5.5 at effort
+# high). A compaction run: its proposals then its cross-check (21 to 30 k and 12 to 15 k measured on fix runs), and
+# the guide written twice to the cache (the two calls do not share it: another answer schema).
+COMPACTION_OUT = 30_000
+COMPACT_RUN_OUT = 40_000
 HEAVIEST = 15  # pages kept in the result of the size check: those over their budget, then the heaviest
 
 
@@ -107,6 +111,9 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         "compaction": {"tokens": fr + COMPACTION_OUT, "usd": _usd(reasoning, tokens_out=COMPACTION_OUT, cache_write=fr, table=table),
                        "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est modifié".replace(",", " "),
                                     f"{fr:,} tokens of pages, read whole; nothing is edited")},
+        # Not a check: the run the compaction leads go to (shown on the button that creates it)
+        "compact-run": {"tokens": 2 * fr + COMPACT_RUN_OUT,
+                        "usd": _usd(reasoning, tokens_out=COMPACT_RUN_OUT, cache_write=2 * fr, table=table)},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(reasoning, tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
