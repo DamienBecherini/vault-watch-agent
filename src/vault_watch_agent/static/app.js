@@ -72,6 +72,8 @@ const TEXTS = {
       needs: ids => `lance aussi : ${ids}`,
       start: c => `Lancer la vérification · ${c}`, history: "Vérifications précédentes",
       none: "Aucune vérification pour l'instant.", running: "En cours…", leads: n => `${n} piste(s)`,
+      chapters: c => `Chapitres à explorer, un appel par chapitre coché (chacun : ${c}) :`,
+      dig: "creuser (un appel pour cette seule piste)",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
       seeDetails: "Détails", dead: "Sources qui ne répondent pas", blocked: "Bloquées par une protection anti-robots (souvent normales dans un navigateur)",
@@ -139,6 +141,7 @@ const TEXTS = {
     reviewFigures: ["éléments de veille", "touchent une page", "corrections proposées", "pistes d'ajout"],
     corrections: "Corrections",
     noNewPage: "Cette passe ajoute dans les pages existantes : elle n'écrit jamais de nouvelle page.",
+    unchanged: n => `Pistes sans modification, et pourquoi (${n})`,
     pagesToWrite: n => n ? `${n} piste(s) demanderaient une page à elles. À toi de décider de les écrire :` : "Aucune de ses pistes n'en demandait une.",
     reviewHelp: "Coche ce qui doit être appliqué. Les corrections liées (une phrase et sa note, par exemple) forment un groupe : elles se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier.",
     group: g => `Groupe ${g}`, groupLeftOut: " · écarté : un membre ne s'applique pas",
@@ -244,6 +247,8 @@ const TEXTS = {
       needs: ids => `also runs: ${ids}`,
       start: c => `Run the check · ${c}`, history: "Previous checks",
       none: "No check yet.", running: "Running…", leads: n => `${n} lead(s)`,
+      chapters: c => `Chapters to explore, one call per chapter ticked (each: ${c}):`,
+      dig: "dig deeper (a call for this lead alone)",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
       seeDetails: "Details", dead: "Sources not answering", blocked: "Blocked by anti-bot protections (often fine in a browser)",
@@ -310,6 +315,7 @@ const TEXTS = {
     reviewFigures: ["watch items", "touch a page", "corrections proposed", "addition leads"],
     corrections: "Corrections",
     noNewPage: "This run adds to existing pages: it never writes a new page.",
+    unchanged: n => `Leads without an edit, and why (${n})`,
     pagesToWrite: n => n ? `${n} lead(s) would need a page of their own. Writing them is your decision:` : "None of its leads asked for one.",
     reviewHelp: "Tick what should be applied. Related corrections (a sentence and its footnote, for instance) form a group and are ticked together. A group with a member that cannot apply is left out whole.",
     group: g => `Group ${g}`, groupLeftOut: " · left out: a member does not apply",
@@ -587,7 +593,9 @@ function viewReview(r, title) {
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.reviewFigures[i]}</div>`).join("")}</div>
     ${r.reading?.mode === "chapters" ? `<p class="banner small">${T.byChapter(r.reading.tokens, r.reading.budget)}</p>` : ""}
     ${r.mode === "add" ? `<div class="card notice"><p><strong>${T.noNewPage}</strong> ${T.pagesToWrite(r.pages_to_write.length)}</p>
-      ${r.pages_to_write.length ? `<ul>${r.pages_to_write.map(p => `<li><strong>${esc(p.id)}</strong> ${esc(p.what)}<br><span class="muted small">${esc(p.lead)}</span></li>`).join("")}</ul>` : ""}</div>` : ""}
+      ${r.pages_to_write.length ? `<ul>${r.pages_to_write.map(p => `<li><strong>${esc(p.id)}</strong> ${esc(p.what)}<br><span class="muted small">${esc(p.lead)}</span></li>`).join("")}</ul>` : ""}</div>
+    ${r.unchanged.length ? `<details><summary>${T.unchanged(r.unchanged.length)}</summary>
+      <ul>${r.unchanged.map(u => `<li><strong>${esc(u.id)}</strong> ${esc(u.why)}<br><span class="muted small">${esc(u.lead)}</span></li>`).join("")}</ul></details>` : ""}` : ""}
     <h2>${T.corrections}</h2>
     <p class="muted small">${T.reviewHelp}</p>
     ${Object.entries(groups).map(([g, cs]) => cs.length > 1
@@ -713,8 +721,12 @@ async function viewChecks() {
           <span class="badge ${o.model ? "attention" : "ok"}">${price(o)}</span>${origin(o)}
           ${o.tokens ? `<span class="muted small">${V.tokens(o.tokens)}</span>` : ""}</div>
         <p class="muted small">${esc(o.what[lang])}</p>
+        ${o.limit ? `<p class="small attention-text">${esc(o.limit[lang])}</p>` : ""}
         <p class="muted small">${esc(o.note[lang])}${o.model ? ` · ${esc(o.model)}` : ""}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
-      </div></label>`).join("")}
+      </div></label>${o.chapters ? `<div class="card chapters" data-chapters-of="${o.id}" hidden>
+        <p class="muted small">${V.chapters(cost(`≈ ${dollars(o.usd_chapter || 0)}`))}</p>
+        ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" checked> ${esc(c.id)} <span class="muted small">(${c.pages})</span></label>`).join("")}
+      </div>` : ""}`).join("")}
     <p><button class="primary" id="start"></button></p>
     </details>
     <h2>${V.history}</h2>
@@ -723,15 +735,21 @@ async function viewChecks() {
   const total = () => {
     const ids = new Set(boxes.filter(c => c.checked).map(c => c.dataset.check));
     options.filter(o => ids.has(o.id)).forEach(o => o.needs.forEach(n => ids.add(n)));
-    const chosen = options.filter(o => ids.has(o.id)), usd = chosen.reduce((s, o) => s + (o.usd || 0), 0);
+    // A check with chapters (the exploration) shows them when it is ticked, and costs one call per chapter ticked
+    page.querySelectorAll("[data-chapters-of]").forEach(d => { d.hidden = !ids.has(d.dataset.chaptersOf); });
+    const chosen = options.filter(o => ids.has(o.id));
+    const usd = chosen.reduce((s, o) => s + (o.usd || 0) + (o.chapters ? (o.usd_chapter || 0) * chapters().length : 0), 0);
     $("#start").textContent = V.start(chosen.some(o => o.model) ? cost(`≈ ${dollars(usd)}`) : V.free);  // scripts only: free
-    $("#start").disabled = ids.size === 0;
+    $("#start").disabled = ids.size === 0 || chosen.some(o => o.chapters && !chapters().length);
   };
+  const chapters = () => [...page.querySelectorAll("[data-chapter]")].filter(c => c.checked).map(c => c.dataset.chapter);
   boxes.forEach(c => c.onchange = total);
+  page.querySelectorAll("[data-chapter]").forEach(c => c.onchange = total);
   total();
   $("#start").onclick = async () => {
     $("#start").disabled = true;
-    const { id } = await api("/api/verifications", { checks: boxes.filter(c => c.checked).map(c => c.dataset.check) });
+    const checks = boxes.filter(c => c.checked).map(c => c.dataset.check);
+    const { id } = await api("/api/verifications", { checks, ...(checks.includes("explore") ? { chapters: chapters() } : {}) });
     location.hash = `/check/${encodeURIComponent(id)}`;
   };
 }
@@ -792,7 +810,8 @@ async function viewCheck(id) {
         ${run.status ? badge(run.status) : ""}${run.pr_url ? ` ${extLink(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
-    return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span>${esc(f)}</span></label>${excerpts(passages)}</li>`;
+    return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span>${esc(f)}</span></label>${
+      mode === "add" ? `<label class="dig muted small"><input type="checkbox" data-deep="${esc(f)}"> ${V.dig}</label>` : ""}${excerpts(passages)}</li>`;
   }
   const boxes = [...page.querySelectorAll("[data-lead]")];
   const ticked = () => boxes.filter(c => c.checked);
@@ -802,15 +821,24 @@ async function viewCheck(id) {
     ok.forEach(c => { by[c.dataset.mode] = (by[c.dataset.mode] || 0) + 1; });
     // A compaction run, an addition run: what it costs whatever its leads, plus a share per lead, priced with the
     // models of the Settings (the check that gives the leads carries the estimate of the run they go to)
-    const runOf = (check, leads) => {
+    // A lead dug deeper has a call of its own instead of a share of one
+    const dug = ok.filter(c => c.dataset.mode === "add" && deep().has(c.dataset.lead)).length;
+    const runOf = (check, leads, deeper = 0) => {
       const o = options.find(o => o.id === check) || {};
-      return o.run_usd ? `≈ ${dollars(o.run_usd + (o.run_usd_each || 0) * leads)}` : "";
+      return o.run_usd ? `≈ ${dollars(o.run_usd + (o.run_usd_each || 0) * (leads - deeper) + (o.run_usd_deep || 0) * deeper)}` : "";
     };
-    $("#fix").textContent = V.createFix(by, cost, { compact: runOf("compaction", by.compact || 0), add: runOf("news", by.add || 0) });
+    $("#fix").textContent = V.createFix(by, cost, { compact: runOf("compaction", by.compact || 0), add: runOf("news", by.add || 0, dug) });
     $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };
   boxes.forEach(c => c.onchange = count);
+  // « Dig deeper » on a lead: it is then kept too
+  const digs = [...page.querySelectorAll("[data-deep]")];
+  const deep = () => new Set(digs.filter(d => d.checked).map(d => d.dataset.deep));
+  digs.forEach(d => d.onchange = () => {
+    if (d.checked) boxes.filter(c => c.dataset.lead === d.dataset.deep).forEach(c => c.checked = true);
+    count();
+  });
   // Tick or untick every open finding of one card (all ticked: untick)
   page.querySelectorAll("[data-fold]").forEach(d => d.ontoggle = () => { FOLDS[d.dataset.fold] = d.open; });
   page.querySelectorAll("[data-tick-card]").forEach(b => b.onclick = e => {
@@ -835,7 +863,8 @@ async function viewCheck(id) {
       const threads = [];
       for (const mode of ["fix", "translation", "compact", "add"]) {
         const text = ticked().filter(c => c.dataset.fixable === "true" && c.dataset.mode === mode).map(c => c.dataset.lead).join("\n");
-        if (text) threads.push((await api("/api/fix", { text, verification: id, mode })).thread);
+        const dig = mode === "add" ? { deep: text.split("\n").filter(f => deep().has(f)) } : {};
+        if (text) threads.push((await api("/api/fix", { text, verification: id, mode, ...dig })).thread);
       }
       location.hash = `/run/${encodeURIComponent(threads[0])}`;
     };

@@ -273,12 +273,33 @@ def news_command(args) -> None:
     which checks each one on the web."""
     from . import verify
 
-    _paid_check(args, "news", "add", "The list of leads", "--add", lambda work, llm: verify.run_news(VAULT, work, {}, llm))
+    if not args.explore:
+        _paid_check(args, "news", "add", "The list of leads", "--add", lambda work, llm: verify.run_news(VAULT, work, {}, llm))
+        return
+    # The other way: the web explored chapter by chapter (news.explore), each chapter a call with the web
+    import tempfile
+
+    from . import news
+
+    known = news.explorable(VAULT)
+    chapters = [c.strip() for c in (args.chapters or "").split(",") if c.strip()] or list(known)
+    unknown = [c for c in chapters if c not in known]
+    if unknown:
+        sys.exit(f"vault-watch: no such chapter to explore: {', '.join(unknown)} (the guide has: {', '.join(known)})")
+
+    def run(work: Path, llm) -> dict:
+        with tempfile.TemporaryDirectory() as folder:  # what the check reads its chapters from (verify.options)
+            (Path(folder) / "options.json").write_text(json.dumps({"chapters": chapters}), encoding="utf-8")
+            return verify.run_explore(VAULT, Path(folder), {}, llm)
+
+    _paid_check(args, "explore", "add", f"The exploration of {len(chapters)} chapter(s), one call each with the web,", "--add",
+                run, each=("usd_chapter", len(chapters)))
 
 
-def _paid_check(args, check: str, prefix: str, what: str, flag: str, run) -> None:
+def _paid_check(args, check: str, prefix: str, what: str, flag: str, run, each: tuple[str, int] | None = None) -> None:
     """A check that reads the whole guide, from the command line: its estimate, the question, the call
-    (`run(work, llm)`), the findings to a file and how to send those kept to a run (`fix <thread> --findings … <flag>`)."""
+    (`run(work, llm)`), the findings to a file and how to send those kept to a run (`fix <thread> --findings … <flag>`).
+    `each`: a part of the estimate that is counted several times (its key, how many: a chapter explored)."""
     from datetime import date
 
     from . import config, verify
@@ -290,8 +311,9 @@ def _paid_check(args, check: str, prefix: str, what: str, flag: str, run) -> Non
     apart = {step: own["model"] for step, own in settings["steps"].items() if own.get("model")}
     estimate = verify.estimates(VAULT, {}, settings["models"], table, apart)[check]
     billing = llm.capabilities().billing if hasattr(llm, "capabilities") else "token"
+    usd = estimate["usd"] + (estimate[each[0]] * each[1] if each else 0)
     paid = {"subscription": "taken from the subscription, not billed", "none": "a local model, not billed"}.get(
-        billing, f"≈ {estimate['usd']:.2f} $")
+        billing, f"≈ {usd:.2f} $")
     print(f"\n{what} reads the whole guide (≈ {estimate['tokens']:,} tokens): {paid}.")
     if not (args.yes or _confirm("Run it? [y/N] ")):
         print("vault-watch: nothing run.")
@@ -393,12 +415,16 @@ def main(argv: list[str] | None = None) -> None:
     kind.add_argument("--compact", action="store_true",
                       help="findings of `compact --report`: trims instead of corrections (no web, their own cross-check)")
     kind.add_argument("--add", action="store_true",
-                      help="leads of `news`: each one checked on the web, then written where it belongs")
+                      help="leads of `news`: each one checked on the web, then written where it belongs; a line of "
+                      "the file that begins with ! is dug deeper, in a call of its own")
     nw = sub.add_parser("news", help="what a reader would look for in the guide and not find: a list of leads, nothing "
                         "verified or edited (one model call that reads the whole guide)")
     nw.add_argument("--out", type=Path, help="where to write the leads, one per line (default: reports/ of the guide's "
                     "working folder)")
     nw.add_argument("--yes", action="store_true", help="run the model call without asking")
+    nw.add_argument("--explore", action="store_true", help="the other way to find leads: the web explored chapter by "
+                    "chapter, one call each (it costs more, and finds what nobody thought to ask)")
+    nw.add_argument("--chapters", help="--explore: the chapters to explore, e.g. 02-materiel,03-stack (default: all)")
     cp = sub.add_parser("compact", help="what the guide weighs, page by page (no model); --report lists what could be trimmed")
     cp.add_argument("--report", action="store_true", help="one model call reads the whole guide and lists what weighs; "
                     "nothing is edited")
@@ -518,7 +544,10 @@ def main(argv: list[str] | None = None) -> None:
             elif args.add:
                 from . import news
 
-                items, proposal, usage = news.propose(VAULT, findings, deps.llm, excerpts)
+                # A line that begins with « ! » is a lead to dig deeper: a call of its own
+                deep = {f[1:].strip() for f in findings if f.startswith("!")}
+                findings = [f[1:].strip() if f.startswith("!") else f for f in findings]
+                items, proposal, usage = news.propose(VAULT, findings, deps.llm, excerpts, deep=deep)
             else:
                 items, proposal, usage = fix.propose(VAULT, findings, deps.llm, excerpts=excerpts)
             mode = "translation" if args.translation else "compact" if args.compact else "add" if args.add else "fix"

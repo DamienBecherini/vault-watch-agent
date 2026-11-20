@@ -9,11 +9,13 @@ written: it stays one line in a report. This run is apart from the watches. It l
 proposes to add it; nothing is written without your review, and an addition takes the path of a correction:
 cross-check, review, mirrors, the guide's checks, pull request.
 
-It has two parts. Both call the model and say their cost before they run.
+It has two parts. Both call the model and say their cost before they run. The leads can be found in two ways,
+which answer two different questions; their leads go to the same run.
 
 | Part | What it does | Web |
 | :-- | :-- | :-- |
-| Leads | Reads the whole guide, and what past watches set aside, and lists what to go and check. Verifies nothing, edits nothing | no |
+| Leads, from the guide | Reads the whole guide, and what past watches set aside, and lists what to go and check. Verifies nothing, edits nothing | no |
+| Leads, from the web | For each chapter you choose, searches the web freely for what moved on its subjects and compares it with the whole guide. Edits nothing | yes |
 | Additions | For the leads you keep: checks each one on primary sources, then proposes where to write it, or says why not | yes |
 
 > **Limit.** This run adds to existing pages only: it never writes a new page. When a subject would need a page of
@@ -46,6 +48,31 @@ The items set aside by past watches are read from the reports of the runs kept o
 Leads about read-only pages alone are left out. As with any check, you keep the leads you want, dismiss the
 others, and send those kept to a run.
 
+## The leads, from the web
+
+```bash
+vault-watch --guide ../my-guide news --explore                        # every chapter
+vault-watch --guide ../my-guide news --explore --chapters 02-hardware,03-stack
+```
+
+In the interface: the check « What is new: the web explored, chapter by chapter »; ticking it shows the chapters,
+all ticked, and the cost follows the chapters you keep.
+
+One call per chapter. Each reads the whole guide and searches the web on the subjects of its chapter (about 12
+searches and 15 pages), opens primary sources, and keeps what no page of the guide says, eight leads at the most
+per chapter. A lead of this kind (`Found on the web`) is a fact read on a source, and it carries the addresses
+that establish it. A lead two chapters found from the same source is listed once.
+
+| | From the guide | From the web |
+| :-- | :-- | :-- |
+| Who decides what to look for | One call reads the guide and asks at most 30 questions | Each call searches freely on a chapter's subjects |
+| What you tick | Questions, not verified yet | Facts already found, with their sources |
+| When the web is paid for | After you chose, for the leads kept | Before you have seen anything, for each chapter |
+| What it can miss | What nobody thought to ask | What a dozen searches per chapter did not come across |
+
+The first answers « is this still current, is that known subject missing? »; the second is the only one that
+finds what you did not know to ask. A chapter whose call fails is said in the result, and the others go on.
+
 ## The additions
 
 ```bash
@@ -67,6 +94,14 @@ For each lead, the model searches the web and opens primary sources, then decide
 - it would need a page of its own: the page is not written. The report says « needs a page » with what it would
   hold and where; writing a new page stays your decision.
 
+**Dig deeper.** Beside each lead, a box « dig deeper » (on the command line, a `!` at the start of its line in the
+file). The lead then has a call of its own instead of a quarter of one, so the whole budget of searches goes to
+that one subject: several independent sources, what it replaces, how mature and available it is, what it changes
+for each kind of reader. It costs about what a chapter explored costs; keep it for the subjects that deserve it.
+
+The review shows, above the corrections, the pages the run says would be needed, then the leads it left without
+an edit and why: what a search found without writing anything is a result too.
+
 The edits then go through the cross-check of a watch (the whole guide and the cited source opened again), your
 review, the mirrors, the guide's checks and the pull request, on a branch `feat/<run>`.
 
@@ -83,11 +118,13 @@ on the first real runs.
 
 | | Estimate |
 | :-- | :-- |
-| The leads | ≈ 2.80 $ |
-| An addition run | ≈ 4.40 $, plus ≈ 0.75 $ per lead kept |
+| The leads, from the guide | ≈ 2.80 $ |
+| The leads, from the web | ≈ 2 $, plus ≈ 4.75 $ per chapter explored |
+| An addition run | ≈ 4.40 $, plus ≈ 0.75 $ per lead kept, or ≈ 4.90 $ for a lead dug deeper |
 
-The steps « leads of what is new » and « additions checked on the web » appear in the Settings, where each can run
-on a model of its own.
+The steps « leads of what is new », « the web explored by chapter » and « additions checked on the web » appear in
+the Settings, where each can run on a model of its own. With an engine paid by a subscription nothing is billed,
+and these calls count in its limits.
 
 ## What it does not do
 

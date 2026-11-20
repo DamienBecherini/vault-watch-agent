@@ -168,6 +168,8 @@ td.number, th.number { text-align: right; font-variant-numeric: tabular-nums; }
 textarea { width: 100%; min-height: 180px; font: inherit; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--card); color: var(--text); }
 .error-text { color: var(--error); }
+.card.chapters { margin: -6px 0 12px 34px; } .card.chapters label { display: inline-block; margin: 2px 14px 2px 0; }
+.card.chapters p { margin: 0 0 6px; } label.dig { display: block; margin: 2px 0 0 24px; }
 .card.notice { border-left: 4px solid var(--attention); } .card.notice p, .card.notice ul { margin: 0 0 6px; }
 .card.finished { opacity: .6; } .card.finished:hover { opacity: 1; }
 .header-end { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px 16px; flex-wrap: wrap; }

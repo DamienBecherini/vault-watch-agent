@@ -60,6 +60,10 @@ ADD_ROUNDS_EACH = 4  # readings of the cached guide per lead, by the proposals
 ADD_WEB_IN_EACH = 46_000  # tokens of web pages read per lead, by the proposals
 ADD_OUT_EACH = 5_000
 ADD_CROSS_READS, ADD_CROSS_WEB_IN_EACH = 3, 15_000
+# A call that has the whole budget of searches for itself (a chapter explored, a lead dug deeper): about twenty-five
+# rounds, each reading the cached guide and what the web returned so far. Twenty searches read 638 k tokens of
+# sources on 17/11/2026 (the re-check of the dated claims).
+WEB_CALL_ROUNDS, WEB_CALL_IN, WEB_CALL_OUT = 25, 640_000, 10_000
 HEAVIEST = 15  # pages kept in the result of the size check at least: the flagged ones (all of them), then the heaviest
 
 
@@ -97,6 +101,7 @@ class Check:
     estimate: Callable[[Path, dict], dict] | None = None
     fixable: bool = True  # findings can go to a fix run
     fix_mode: str = "fix"  # "translation": a fix run on the French and English pages alone (fix.propose_translation)
+    limit: dict | None = None  # what the check, or the run its leads go to, does not do: a line of its own on its card
 
 
 def _tokens(paths: list[Path]) -> int:
@@ -151,6 +156,14 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         "news": {"tokens": fr + NEWS_OUT, "usd": _usd(of("news"), tokens_out=NEWS_OUT, cache_write=fr, table=table),
                  "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est vérifié ni modifié".replace(",", " "),
                               f"{fr:,} tokens of pages, read whole; nothing is verified or edited")},
+        # One call per chapter: `usd` whatever the chapters (the guide written to the cache), `usd_chapter` for each
+        "explore": {"tokens": fr + WEB_CALL_IN, "usd": _usd(of("explore"), cache_write=fr, table=table),
+                    "usd_chapter": _usd(of("explore"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
+                                        cache_read=WEB_CALL_ROUNDS * fr, table=table),
+                    "note": note(f"un appel par chapitre choisi, avec le web et les {fr:,} tokens du guide ; rien n'est "
+                                 "modifié".replace(",", " "),
+                                 f"one call per chapter chosen, with the web and the {fr:,} tokens of the guide; nothing is "
+                                 "edited")},
         # Not a check: the run the leads of « news » go to. `usd`: whatever the leads (the guide written to the cache
         # by the proposals, then the cross-check); `usd_each`: per lead sent to the run
         "add-run": {"tokens": 2 * fr + CROSS_OUT,
@@ -158,6 +171,12 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                     + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, cache_read=ADD_CROSS_READS * fr, table=table),
                     "usd_each": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH,
                                      cache_read=ADD_ROUNDS_EACH * fr, table=table)
+                    + _usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
+                    + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
+                       if vault.guide_of(vault_dir).mirrors else 0.0),
+                    # a lead dug deeper: a call of its own, instead of a quarter of one
+                    "usd_deep": _usd(of("add"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
+                                     cache_read=WEB_CALL_ROUNDS * fr, table=table)
                     + _usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
                     + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                        if vault.guide_of(vault_dir).mirrors else 0.0)},
@@ -363,6 +382,30 @@ def run_news(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
             **_findings(vault_dir, news.Leads(findings=kept), news.line), "usage": usages, "reading": plan.summary()}
 
 
+def options(work: Path) -> dict:
+    """What the editor chose for the checks of this verification (`options.json` in its working folder, written by
+    the server or the command line): {"chapters": […]} for the exploration. {} when nothing was chosen."""
+    try:
+        found = json.loads((work / "options.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return found if isinstance(found, dict) else {}
+
+
+def run_explore(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
+    """What the web says that the guide does not (news.explore): one call per chapter chosen (all of them when none
+    was), each with the web and the whole guide. The leads come with their sources and edit nothing; those the
+    editor keeps go to an addition run, as the leads of « news » do."""
+    chosen = [c for c in options(work).get("chapters") or [] if isinstance(c, str)]
+    found, usages, failed = news.explore(vault_dir, llm, chosen)
+    guide = vault.guide_of(vault_dir)
+    kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]
+    explored = [c for c in news.explorable(vault_dir) if (not chosen or c in chosen) and c not in failed]
+    missed = f"; not explored, the call failed: {', '.join(failed)} ({next(iter(failed.values()))[:200]})" if failed else ""
+    return {"ok": not kept and not failed, "summary": f"{len(kept)} leads from {len(explored)} chapter(s){missed}",
+            **_findings(vault_dir, news.Leads(findings=kept), news.line), "usage": usages, "chapters": explored}
+
+
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     findings, found, usages = [], {}, []
     guide = vault.guide_of(vault_dir)
@@ -433,6 +476,8 @@ def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
             **_findings(vault_dir, result), "usage": [usage]}
 
 
+NO_NEW_PAGE = {"fr": "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
+               "en": "Limit: the addition run never writes a new page. It says which ones would be needed."}
 CHECKS = [
     Check("audits", {"fr": "Contrôles du guide", "en": "Guide audits"},
           {"fr": "Front matter, diagrammes Mermaid, fuites de notes d'agents, miroir anglais à jour (npm test).",
@@ -480,18 +525,27 @@ CHECKS = [
           {"fr": "Claude lit toutes les pages d'un coup, avec ce que les veilles ont mis de côté sans l'écrire, et liste "
                  "des pistes sans rien vérifier ni modifier : ce que le guide présente comme actuel et qui a sans doute "
                  "évolué, les sujets qu'un lecteur attendrait et qu'aucune page ne couvre. Les pistes gardées partent dans "
-                 "une passe d'ajouts, qui vérifie chacune sur le web puis propose où l'écrire, relue comme une correction. "
-                 "Limite : la passe n'écrit jamais de nouvelle page, elle signale celles qu'il faudrait.",
+                 "une passe d'ajouts, qui vérifie chacune sur le web puis propose où l'écrire, relue comme une correction.",
            "en": "Claude reads every page at once, with what the watches set aside without writing it, and lists leads "
                  "without verifying or editing anything: what the guide presents as current and has probably moved on, "
                  "the subjects a reader would expect and no page covers. The leads you keep go to an addition run, which "
-                 "checks each one on the web then proposes where to write it, reviewed like a correction. Limit: the run "
-                 "never writes a new page, it says which ones would be needed."},
-          MODEL, fix_mode="add"),
+                 "checks each one on the web then proposes where to write it, reviewed like a correction."},
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE),
+    Check("explore", {"fr": "Nouveautés : exploration du web, chapitre par chapitre",
+                      "en": "What is new: the web explored, chapter by chapter"},
+          {"fr": "Pour chaque chapitre choisi, Claude cherche librement sur le web ce qui a bougé sur ses sujets et le "
+                 "compare à tout le guide : il trouve ce que personne n'a pensé à demander, et chaque piste arrive avec "
+                 "ses sources. Plus cher que le contrôle précédent, et le web est payé avant que tu aies rien vu. Les "
+                 "pistes gardées partent dans la même passe d'ajouts, où tu peux en faire creuser une.",
+           "en": "For each chapter chosen, Claude searches the web freely for what moved on its subjects and compares it "
+                 "with the whole guide: it finds what nobody thought to ask, and each lead comes with its sources. It "
+                 "costs more than the check above, and the web is paid for before you have seen anything. The leads you "
+                 "keep go to the same addition run, where you can have one dug deeper."},
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,
            "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks, "sizes": run_sizes,
-           "compaction": run_compaction, "news": run_news}
+           "compaction": run_compaction, "news": run_news, "explore": run_explore}
 BY_ID = {c.id: c for c in CHECKS}
 
 

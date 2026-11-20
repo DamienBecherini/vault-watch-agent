@@ -204,12 +204,13 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
 
 def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None,
              groups: list[list[int]], *, pages: list[list[str]], texts: dict[str, str], step: str, system: str,
-             web: bool, what: tuple[str, str], whole: bool = False,
-             above: dict[str, str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+             web: bool, what: tuple[str, str], whole: bool = False, above: dict[str, str] | None = None,
+             headings: list[tuple[str, str]] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """The proposals of a run made in several calls: (items, proposals, usages), one proposal and one usage per call.
     `groups`: the findings of each call, by index; `pages`: the pages each finding names; `system`: the instructions,
     with <<ABOVE>> where they say what the call reads (`above`, by default `ABOVE`); `step`: the step, which names
-    the calls.
+    the calls; `what`: how the findings are called in the request (its heading, the tag of each), or per call in
+    `headings` (the instructions stay the same for every call: they are what the calls share in the cache).
     What a call reads:
     - the whole guide, cached, when the engine says when its answer begins (the Claude API) and the guide fits the
       model: one call leads and writes the cache, the others start once it has begun to answer (`_after_the_first`);
@@ -231,7 +232,7 @@ def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str,
             return fix.propose(vault_dir, lines, llm, system=system.replace("<<ABOVE>>", (above or ABOVE)["pages" if given else "guide"]),
                                effort=steps.effort(step), web=web,
                                node=step if len(groups) == 1 else f"{step} {n + 1}/{len(groups)}",
-                               excerpts=excerpts, what=what, ids=ids,
+                               excerpts=excerpts, what=headings[n] if headings else what, ids=ids,
                                context=context if given else None, cached=not given, started=started)
         except ModelError as e:
             failed = {"item_ids": ids, "corrections": [], "error": str(e),

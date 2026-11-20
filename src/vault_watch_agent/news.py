@@ -13,6 +13,12 @@ aside as a possible addition is never written. This is a run of its own, apart f
 
 The web is asked in the second part only, a few leads per call: each round of search re-reads what the call has
 gathered so far, so a long call costs much more than several short ones.
+
+A second way to find leads starts from the web instead of the guide (`explore`, the check « explore »): one call per
+chapter reads the whole guide and searches freely what moved on the chapter's subjects. It finds what nobody thought
+to ask, and its leads come with the sources that establish them; it pays for the web before the editor has seen
+anything. Its leads go to the same addition run, where the editor may ask that one be dug deeper (`propose`, `deep`):
+a call of its own, with the whole budget of searches for that one subject.
 """
 
 from __future__ import annotations
@@ -24,8 +30,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import compact, quotes, vault
-from .llm import LLM
+from . import compact, prompts, quotes, reading, steps, vault
+from .llm import LLM, ModelError
 
 LEADS = """You look for what a reader would expect to find in <<GUIDE>> and does not. The whole guide is above, one <page> per
 file. Today is <<TODAY>>. A guide kept up to date by a watch follows the sources it already knows: what none of them
@@ -51,17 +57,19 @@ the passage of the guide a lead is about when there is one (what it says today: 
 passages at most); none for a subject no page covers. Write the leads in English.<<BRIEF>>"""
 
 MAX_LEADS = 30  # a list an editor can go through; each lead kept is then a few searches on the web
-KINDS = {"newer": "Newer", "missing": "Missing", "candidate": "Seen by the watch"}
+KINDS = {"newer": "Newer", "missing": "Missing", "candidate": "Seen by the watch", "found": "Found on the web"}
 NO_PAGE = "no page yet"
 
 
 class Lead(BaseModel):
-    kind: Literal["newer", "missing", "candidate"]
+    kind: Literal["newer", "missing", "candidate", "found"]
     pages: list[str] = Field(description="Vault-relative paths of the pages concerned: where the addition would go, or "
                              "the page that states the older fact. Empty for a subject that fits no page.")
     problem: str = Field(description="One self-contained line, in English: what to look for and on which kind of "
                          "source, what the guide says today, and which decision of the reader it would change.")
     excerpts: list[quotes.Quote] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list, description="For a lead found on the web: the addresses of the "
+                               "primary sources you opened that establish it. Empty for a question.")
 
 
 class Leads(BaseModel):
@@ -70,7 +78,8 @@ class Leads(BaseModel):
 
 def line(lead: Lead) -> str:
     """A lead as the one line the editor keeps, dismisses or sends to an addition run."""
-    return f"[{KINDS[lead.kind]}] {', '.join(lead.pages) or NO_PAGE}: {lead.problem}"
+    sources = f" Sources: {', '.join(lead.sources)}" if lead.sources else ""
+    return f"[{KINDS[lead.kind]}] {', '.join(lead.pages) or NO_PAGE}: {lead.problem}{sources}"
 
 
 # -- what past watches set aside ------------------------------------------------------------------------------
@@ -117,6 +126,98 @@ def listing(found: list[dict]) -> str:
         f"- {c['date']}: {c['title']} <{c['url']}> — {c['why']}" for c in found)
 
 
+# -- the other way to find leads: the web explored, one call per chapter ------------------------------------
+EXPLORE = """You explore the web for what is new on the subjects of one chapter of <<GUIDE>>. The whole guide is above, one <page>
+per file. Today is <<TODAY>>. The request names the chapter to explore and its pages. A watch already follows the
+sources the guide knows, week after week: look where it does not, for what appeared or changed in the last months
+and that no page of the guide reflects.
+
+How to look:
+- From the pages of the chapter, take the subjects that move: products and their generations, models, tools and
+  their major versions, prices, rules in force, security. Search the web for each (web_search and web_fetch) and open
+  primary sources: the vendor's or the project's own page, release notes, a model card, an official text. Follow
+  what you find: a release note that names something the guide ignores is a lead.
+- You have about <<SEARCHES>> searches and <<PAGES>> pages for this chapter: spread them over its subjects rather than
+  exhausting one.
+- A newsletter, a video or a forum tells where to look; a lead needs a primary source you opened.
+
+What to keep:
+- Compare each thing found with the whole guide above, not with the chapter alone: keep it when no page says it, or
+  when a page still states what it supersedes. Leave out what the guide already covers.
+- Follow the guide's own threshold for additions, in its contract below: keep what would change a decision of the
+  reader, not everything that is new.
+- At most <<MAX>> leads, the most useful to a reader first; none when you found nothing that qualifies.
+
+Each lead is a fact you read on a primary source, not a guess: say what is new and its date, what the guide says
+today when it says something, which decision of the reader it changes, and what remains to be checked. `kind` is
+`found`. `pages` names the pages concerned (where it would go, or the page that states the older fact; none when it
+fits no page). `sources` lists the addresses you opened that establish it. In `excerpts`, copy verbatim the passage
+of the guide the lead is about when there is one (one sentence or one table row). Do not report an error, a
+contradiction, style or length (other checks do). Write the leads in English.<<BRIEF>>"""
+
+EXPLORE_SEARCHES, EXPLORE_PAGES = 12, 15  # asked of the model, per chapter: the web is what such a call costs
+MAX_PER_CHAPTER = 8
+
+
+def explorable(vault_dir: Path) -> dict[str, list[str]]:
+    """The chapters a call can explore, with their pages: every chapter that has a page the agent may edit."""
+    guide = vault.guide_of(vault_dir)
+    found = {name: [p.relative_to(vault_dir).as_posix() for p in pages] for name, pages in reading.chapters(vault_dir).items()}
+    return {name: pages for name, pages in found.items() if not all(guide.is_readonly(p) for p in pages)}
+
+
+def explore(vault_dir: Path, llm: LLM, chapters: list[str] | None = None) -> tuple[list[Lead], list[dict], dict[str, str]]:
+    """What the web says that the guide does not, chapter by chapter: (leads, usages, {chapter not explored: why}).
+    One call per chapter (`chapters`: those asked, all of them otherwise), each with the web and the whole guide:
+    cached and shared on the Claude API (one call leads and writes the cache, `compact._after_the_first`), one call
+    after the other with another engine; a guide too large for the model gives each call its chapter alone. A lead
+    whose source another chapter already gave is merged with it. A call that fails leaves its chapter unexplored,
+    said in the result; when every call fails the error is raised."""
+    known = explorable(vault_dir)
+    wanted = [c for c in known if not chapters or c in chapters]
+    if not wanted:
+        return [], [], {}
+    client = llm.for_step("explore") if hasattr(llm, "for_step") else llm
+    fits = reading.plan(vault_dir, llm, step="explore").mode == "whole"
+    shared = bool(getattr(client, "signals_start", False)) and fits
+    system = prompts.fill(EXPLORE.replace("<<SEARCHES>>", str(EXPLORE_SEARCHES)).replace("<<PAGES>>", str(EXPLORE_PAGES))
+                          .replace("<<MAX>>", str(MAX_PER_CHAPTER)), vault_dir)
+    whole = f"<guide>\n{vault.corpus(vault_dir)}\n</guide>" if fits else ""
+
+    def one(n: int, started=None) -> tuple[str, list[Lead], dict | None, str]:
+        chapter = wanted[n]
+        alone = "" if fits else f"<guide>\n{reading.corpus_of(vault_dir, reading.chapters(vault_dir)[chapter])}\n</guide>"
+        asked = system if fits else system.replace(
+            "The whole guide is above", f"One chapter of the guide ({chapter}) is above, the others are not shown", 1)
+        prompt = f"Chapter to explore: {chapter}\nIts pages:\n" + "\n".join(f"- {p}" for p in known[chapter]) + "\n\nList the leads."
+        try:
+            result, usage = llm.parse(system=asked, prompt=prompt, schema=Leads, effort=steps.effort("explore"),
+                                      node=f"verify explore {chapter}", context=whole or alone, web=True,
+                                      **({"started": started} if started else {}))
+        except ModelError as e:
+            return chapter, [], getattr(e, "usage", None), str(e)
+        return chapter, list(result.findings)[:MAX_PER_CHAPTER], usage, ""
+    if len(wanted) == 1:
+        results = [one(0)]
+    elif shared:
+        results = compact._after_the_first(len(wanted), one)
+    else:
+        results = [one(n) for n in range(len(wanted))]
+    failed = {chapter: why for chapter, _, _, why in results if why}
+    if len(failed) == len(wanted):
+        raise ModelError(next(iter(failed.values())))
+    leads, by_source = [], {}
+    for _, found, _, _ in results:
+        for lead in found:
+            first = next((by_source[s] for s in lead.sources if s in by_source), None)
+            if first is not None:  # the same source, seen from another chapter: one lead, with the pages of both
+                first.pages += [p for p in lead.pages if p not in first.pages]
+                continue
+            leads.append(lead)
+            by_source.update({s: lead for s in lead.sources})
+    return leads, [u for _, _, u, _ in results if u], failed
+
+
 # -- the additions: a run of the graph ------------------------------------------------------------------------
 ADD = """You look for what is new for <<GUIDE>> and write it where it belongs. <<ABOVE>> Today is <<TODAY>>. Each lead (F1…) is a
 question, not a fact: something the guide presents as current that may have moved on, a subject a reader would
@@ -146,6 +247,13 @@ For each one:
 - A fact you add carries its source the way the page cites its sources. When the page uses footnotes: a marker the
   page does not use yet, and its definition in a second edit with the same `group` (`current` is the last footnote
   definition of the page, `proposed` is that definition, a line break, then the new one, written like the others).
+- A lead that names its sources was found on the web: start from those addresses, open them again, and look further
+  only for what they leave open.
+- A lead given alone under the heading « Lead to dig deeper » was chosen by the editor for a fuller look, and has
+  the whole budget of searches of the call: read several independent primary sources, and establish what it
+  replaces, how mature and available it is (its licence, the hardware it needs, its known limits), and what it
+  changes for each kind of reader of the guide. Its addition may then span several pages. Say what you established
+  in its outcome's `event`, in three sentences at the most.
 - Answer the leads given here and nothing else: a run may handle other leads in other calls at the same time.
 
 Edits follow the guide's style: <<LANG>>, the same Markdown, wiki links [[...]] and footnote markers kept, dated wording
@@ -175,6 +283,16 @@ def pages_to_write(state: dict) -> list[dict]:
 
 NO_NEW_PAGE = "This run adds to existing pages only: it never writes a new page."
 
+
+def unchanged(state: dict) -> list[dict]:
+    """The leads an addition run left without an edit, and why: [{id, lead, why}], those that need a page apart
+    (`pages_to_write`). What the search found is as much a result as an edit: the review shows it."""
+    titles = {i["id"]: i["title"] for i in state.get("items", [])}
+    used = {i for c in state.get("corrections", []) for i in c.get("item_ids", [c.get("item_id")])}
+    return [{"id": o["item_id"], "lead": titles.get(o["item_id"], ""), "why": o.get("no_change_reason") or o.get("event") or ""}
+            for p in state.get("proposals", []) for o in p.get("outcomes", [])
+            if o["item_id"] not in used and not _NEEDS_PAGE.match(o.get("no_change_reason") or "")]
+
 PER_CALL = 4  # leads per call: each one is a few rounds of search, and each round re-reads what the call gathered
 
 
@@ -195,13 +313,19 @@ def batches(pages: list[list[str]], most: int = PER_CALL) -> list[list[int]]:
     return out
 
 
-def propose(vault_dir: Path, leads: list[str], llm: LLM,
-            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None = None,
+            deep: set[str] | list[str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """The additions for the leads the editor kept: (items, proposals, usages), one proposal and one usage per call.
     Every call reads the whole guide when it fits the model (`compact.in_calls`: cached and shared on the Claude
     API, one call after the other elsewhere) and the web. A call that fails leaves its leads without an addition,
-    said in their outcome; the others go on."""
+    said in their outcome; the others go on.
+    `deep`: the leads to dig deeper. Each has a call of its own, headed as such (`ADD` says what that asks), so the
+    whole budget of searches of a call goes to one subject; the others go four to a call."""
     texts = {p.relative_to(vault_dir).as_posix(): vault.read(p).replace("\r", "") for p in vault.pages(vault_dir)}
     pages = [compact.named(lead, set(texts)) for lead in leads]
-    return compact.in_calls(vault_dir, leads, llm, excerpts, batches(pages), pages=pages, texts=texts, step="add",
-                            system=ADD, web=True, what=("Leads", "lead"), whole=True, above=ABOVE)
+    dug = [i for i, lead in enumerate(leads) if lead in set(deep or [])]
+    usual = [i for i in range(len(leads)) if i not in dug]
+    groups = [[usual[i] for i in batch] for batch in batches([pages[i] for i in usual])] + [[i] for i in dug]
+    headings = [("Leads", "lead")] * (len(groups) - len(dug)) + [("Lead to dig deeper", "lead")] * len(dug)
+    return compact.in_calls(vault_dir, leads, llm, excerpts, groups, pages=pages, texts=texts, step="add",
+                            system=ADD, web=True, what=("Leads", "lead"), whole=True, above=ABOVE, headings=headings)

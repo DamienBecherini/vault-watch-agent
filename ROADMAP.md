@@ -84,7 +84,8 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   - [x] **« Look for what is new »** (2026-11-20, `news.py`, on dev for 1.3.0; [docs/news.md](docs/news.md)): a check
     reads the whole guide and what past watches set aside, and lists what a reader would expect and does not find
     (leads: nothing verified); the leads kept go to an addition run, which checks each one on the web and writes it
-    where it belongs. This is E4 in its first form. Still to do: the first real run on the IA on-prem guide
+    where it belongs. A second check finds leads from the web, one call per chapter, and a lead can be dug deeper in a
+    call of its own (asked for on 2026-11-20). This is E4 in its first form. Still to do: the first real run on the IA on-prem guide
     (billed) to set the estimates; a new page written by the run (today it says one is needed); D1 to D4 below
     (enrichment without a model, candidates grouped and kept over time).
 

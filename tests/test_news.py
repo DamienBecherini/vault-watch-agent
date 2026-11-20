@@ -265,7 +265,8 @@ def test_the_leads_of_the_check_go_to_an_addition_run(setup, tmp_path):
     assert "needs a page: the obligations, under 06-ops" in report and "| Ollama (voix) | 0.14 |" in report
     # The run writes no new page: said before the corrections, with the page its lead would need
     assert run["pages_to_write"] == [{"id": "F3", "lead": LEADS[2], "what": "the obligations, under 06-ops"}]
-    assert "never writes a new page" in options["news"]["what"]["en"] and "jamais de nouvelle page" in options["news"]["what"]["fr"]
+    assert "never writes a new page" in options["news"]["limit"]["en"] and "jamais de nouvelle page" in options["news"]["limit"]["fr"]
+    assert options["coherence"]["limit"] is None  # a line of its own on the card, for the checks that have one
     top = report.split("## Corrections")[0]
     assert "## New pages: not written" in top and "1 lead(s) would need a page of their own" in top
     assert "- **F3** the obligations, under 06-ops" in top

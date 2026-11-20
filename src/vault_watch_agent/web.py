@@ -136,6 +136,7 @@ class Report(BaseModel):
     # translation: fix the mirror pages against the source ones; compact: trims for what weighs (compact.py);
     # add: what is new, checked on the web and written where it belongs (news.py)
     mode: Literal["fix", "translation", "compact", "add"] = "fix"
+    deep: list[str] = []  # an addition run: the leads to dig deeper, each in a call of its own (news.propose)
 
 
 class Handle(BaseModel):
@@ -154,6 +155,7 @@ class Later(BaseModel):
 
 class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
+    chapters: list[str] = []  # the check « explore »: the chapters to explore (all of them when empty)
 
 
 class UserSettings(BaseModel):  # config.py: the key is a reference to where it is, never the key
@@ -555,6 +557,7 @@ def create_app(settings: Settings) -> FastAPI:
             "mode": v.get("mode", ""), "weight": v.get("weight"),  # what the edits weigh, per page (after apply)
             # An addition run writes no new page: the ones its leads would need, shown at the top of the review
             "pages_to_write": news.pages_to_write(v) if v.get("mode") == "add" else [],
+            "unchanged": news.unchanged(v) if v.get("mode") == "add" else [],  # its leads without an edit, and why
             "claims_due": v.get("claims_due", []),
             "usage": usage_line(v.get("usage", [])),
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
@@ -672,7 +675,7 @@ def create_app(settings: Settings) -> FastAPI:
                 items, proposal, usage = compact.propose(guide, findings, deps.llm, excerpts)
                 label = thread
             elif body.mode == "add":
-                items, proposal, usage = news.propose(guide, findings, deps.llm, excerpts)
+                items, proposal, usage = news.propose(guide, findings, deps.llm, excerpts, deep=body.deep)
                 label = thread
             else:
                 items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
@@ -940,10 +943,14 @@ def create_app(settings: Settings) -> FastAPI:
 
         model = lambda c: apart.get(c.id) or name.get(c.model, c.model) if c.model else None  # noqa: E731
         return [{"id": c.id, "title": c.title, "what": c.what, "model": model(c), "needs": list(c.needs),
-                 "fixable": c.fixable, "price_origin": origin(model(c)), **est[c.id],
+                 "fixable": c.fixable, "price_origin": origin(model(c)), "limit": c.limit, **est[c.id],
                  # what a run made from this check's leads costs, when the agent can estimate it (a compaction run)
                  "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd"),
-                 "run_usd_each": est.get(f"{c.fix_mode}-run", {}).get("usd_each")}
+                 "run_usd_each": est.get(f"{c.fix_mode}-run", {}).get("usd_each"),
+                 "run_usd_deep": est.get(f"{c.fix_mode}-run", {}).get("usd_deep"),  # a lead dug deeper, in a call of its own
+                 # the chapters a call can explore, each with its number of pages
+                 **({"chapters": [{"id": name, "pages": len(pages)} for name, pages in news.explorable(settings.vault).items()]}
+                    if c.id == "explore" else {})}
                 for c in verify.CHECKS]
 
     @app.get("/api/verifications")
@@ -970,6 +977,8 @@ def create_app(settings: Settings) -> FastAPI:
         def work(graph, job: Job):
             deps = settings.make_deps(vid, "verify")
             work_dir.mkdir(exist_ok=True)
+            if body.chapters:  # read by the check that takes them (verify.options)
+                write_json(work_dir / "options.json", {"chapters": body.chapters})
             # The guide as merged (main, up to date with origin), not the folder: it may be on another branch
             guide = vault.reading_copy(settings.vault, settings.home)
             data["commit"] = inputs.run(["git", "rev-parse", "--short", "HEAD"], cwd=guide).strip()

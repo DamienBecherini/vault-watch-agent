@@ -21,9 +21,20 @@ already knows, and what it sets aside as a possible addition is never written. [
   less), every call with the whole guide: cached and shared on the Claude API, one call after the other elsewhere.
   Then the cross-check of a watch, the review, the mirrors, the guide's audits and the pull request, on a branch
   `feat/<thread>`.
-- Two steps more in the Settings (the leads, the additions), each of which can run on a model of its own. The
-  button that creates an addition run shows an estimate that follows the leads ticked. The estimates are not
-  measured yet.
+- A second way to find leads, from the web instead of the guide: the check « What is new: the web explored,
+  chapter by chapter » (`vault-watch news --explore [--chapters …]`). One call per chapter chosen, each with the
+  web and the whole guide, searches freely what moved on the chapter's subjects and keeps what no page says; its
+  leads are facts with the sources that establish them, and go to the same addition run. It finds what nobody
+  thought to ask, and pays for the web before the editor has seen anything; the cost follows the chapters ticked.
+- A lead can be dug deeper (a box beside it; `!` at the start of its line on the command line): a call of its own
+  in the addition run, the whole budget of searches for that one subject.
+- What an addition run does not write is said where the editor reads: the run never writes a new page, and the
+  pages its leads would need are listed at the top of the review screen, of the report and of the pull request;
+  the check cards carry the limit as a line of their own. The review also lists the leads left without an edit,
+  and why.
+- Three steps more in the Settings (the leads, the exploration, the additions), each of which can run on a model
+  of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
+  The estimates are not measured yet.
 - `prompts.fill` knows two markers more: `<<TODAY>>` and `<<BRIEF>>` (the guide's contract, put last).
   `compact.in_calls` is the part of the compaction proposals that makes several calls, now shared.
 - Fixed: on Windows a page of the interface could fail to read a check or the sources file at the instant the
