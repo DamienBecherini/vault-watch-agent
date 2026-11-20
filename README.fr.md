@@ -230,16 +230,20 @@ modules s'emboîtent : [docs/code.fr.md](docs/code.fr.md).
   s'intercale.
 - **Pas de RAG vectoriel.** Un guide qui tient dans la fenêtre du modèle est lu en entier, avec le cache de prompt :
   le modèle voit les notes de bas de page et les incohérences entre pages qu'une recherche par extraits couperait.
-  Un guide qui ne tient pas est lu chapitre par chapitre.
-- **Des corrections seulement.** Les ajouts (un nouveau modèle, un nouvel outil) sont listés comme candidats dans le
-  rapport, pas rédigés : décider que quelque chose a sa place dans le guide revient à l'éditeur.
+  Un guide qui ne tient pas est lu chapitre par chapitre. Une exception, au choix de l'éditeur : un appel qui
+  vérifie une piste sur le web, en de nombreux tours de recherche, peut lire les pages que sa piste désigne et le
+  plan du guide. Ces pages sont désignées par un appel qui avait tout le guide sous les yeux, et la relecture
+  croisée qui suit lit chaque page.
+- **Une veille corrige, l'éditeur décide de ce qui s'ajoute.** Une veille liste les ajouts (un nouveau modèle, un
+  nouvel outil) comme candidats dans son rapport et n'en rédige aucun. Les rédiger est un passage à part, sur les
+  pistes que l'éditeur garde.
 
 ## Limites
 
 - **Du Markdown dans git.** Des pages dans un autre format, ou un guide qui est un sous-dossier d'un plus grand
   dépôt, ne sont pas pris en charge.
-- **Pas encore d'ajouts.** Les nouveaux outils et modèles sont listés comme pistes ; rédiger une nouvelle page n'est
-  pas automatisé.
+- **Pas de nouvelle page.** Un passage d'ajouts écrit dans les pages qui existent ; quand un sujet demande une page
+  à lui, il le dit et dit ce qu'elle contiendrait, et l'écrire reste à l'éditeur.
 - **Les dates sont difficiles.** Une version a une date de création, une date de tag et une date de publication ;
   quand ses sources ne tranchent pas, l'agent s'abstient plutôt que de deviner.
 - **Mesuré sur Claude seulement.** Un autre modèle tourne, mais la qualité de ses corrections n'est pas mesurée :

@@ -140,7 +140,7 @@ on the first real runs.
 
 The addition run is set on three real runs (2026-11-20). With the whole guide: 11.01 $ for a lead about six
 price lists and a lead dug deeper (29 edits), then 12.94 $ for three leads (14 edits), mirrors included. With the
-lead's pages and the plan: 8.41 $ before the mirrors for five leads (35 edits), where the whole guide would have
+lead's pages and the plan: 8.72 $ for five leads (35 edits), mirrors included, where the whole guide would have
 been about 17 $. What does not depend on the leads is the cross-check, about 4 $ each time. A lead that checks one
 version is not cheaper than another with the whole guide (16 to 25 rounds of search, each reading the guide again
 from the cache); with its own pages a lead cost 0.40 to 1.30 $.

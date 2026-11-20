@@ -18,11 +18,10 @@ already knows, and what it sets aside as a possible addition is never written. [
   checked on primary sources on the web, then written where a reader would look for it, corrected where the guide
   states something superseded, or left with its reason; a subject that needs a page of its own is said, the page
   is not written. One lead per call (the web of a call has a ceiling of 20 searches and 30 pages, which leads in
-  one call took from one another), every call with the whole guide: cached and shared on the Claude API, one call
-  after the other elsewhere. What two calls add to one page is put together by the program: a footnote marker both
-  chose is renamed, and two edits that write after the same passage both apply.
-  Then the cross-check of a watch, the review, the mirrors, the guide's audits and the pull request, on a branch
-  `feat/<thread>`.
+  one call would take from one another). What two calls add to one page is put together by the program: a footnote
+  marker both chose is renamed, and two edits that write after the same passage both apply, in the order proposed.
+  Then the cross-check of a watch, which reads the whole guide, the review, the mirrors, the guide's audits and the
+  pull request, on a branch `feat/<thread>`.
 - A second way to find leads, from the web instead of the guide: the check « What is new: the web explored,
   chapter by chapter » (`vault-watch news --explore [--chapters …]`). One call per chapter chosen, each with the
   web and the whole guide, searches freely what moved on the chapter's subjects and keeps what no page says; its
@@ -35,10 +34,10 @@ already knows, and what it sets aside as a possible addition is never written. [
   page with its path, weight, title and headings), 50 to 90 KB instead of 830 on the IA on-prem guide, cached for
   that call alone. A lead now says which pages to read: the call that lists the leads has the whole guide before
   it, and names after « Read also: » up to six pages one must have read to write the lead well. A lead that names
-  no page reads the whole guide all the same, and the cross-check reads every page either way. Measured on a run
-  of five leads: 8.41 $ before the mirrors, where the whole guide would have been about 17 $; the calls wrote 16
-  edits and the cross-check added 19 on pages they had not seen, every place that stated the older values was
-  reached. The button shows the price of the choice.
+  no page reads the whole guide all the same (cached and shared on the Claude API, one call after the other
+  elsewhere), and the cross-check reads every page either way. Measured on a run of five leads: 8.72 $, where the
+  whole guide would have been about 17 $; the calls wrote 16 edits and the cross-check added 19 on pages they had
+  not seen, every place that stated the older values was reached. The button shows the price of the choice.
 - A lead its call could not look at (the web of the call ran out, the call failed) is marked « not checked by the
   run » on its verification, with the reason and a button that puts it back among the leads to handle.
 - What an addition run does not write is said where the editor reads: the run never writes a new page, and the
@@ -96,23 +95,18 @@ already knows, and what it sets aside as a possible addition is never written. [
   is labelled so and highlighted in yellow (it had the green of an added line, and read as a proposed addition);
   the leads of « What is new » say that nothing is written yet and that the run may correct what is out of date as
   well as add. « Check the guide » has « Tick all », « Untick all » and « Only the free ones » above its checks.
-  The estimate of the leads is set on a first real run (2.28 $ for 28 leads on the IA on-prem guide: ≈ 2.40 $
-  announced, it was 2.80).
 - The lists scale with the runs kept: the home page reads the state of a run only when it has moved (one line of
   the database per run otherwise), shows the 20 newest runs outside the watches and offers the older ones;
-  « Check the guide » offers the verifications older than the 20 newest, which no screen listed before.
+  « Check the guide » offers the verifications older than the 20 newest, which no screen listed before. A run
+  just created is listed at once, before its proposals are made.
 - Four steps more in the Settings (the leads, the exploration, the additions, the split into chapters), each of which can run on a model
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
   The estimates of the leads and of an addition run are set on real runs (2026-11-20, the IA on-prem guide:
-  2.28 $ for 28 leads; 11.01 $ for a lead about six price lists and a lead dug deeper, 29 edits; then 12.78 $
-  for three leads; then 8.41 $ before the mirrors for five leads read with their pages and the plan): with the
-  whole guide ≈ 6.30 $ plus ≈ 2.15 $ per lead (≈ 2.80 $ dug deeper), with the lead's pages ≈ 4.30 $ plus ≈ 1.10 $
-  per lead (≈ 1.50 $ dug deeper). The cross-check costs about 4 $ whatever the leads. The exploration is not
-  measured yet.
-- Edits that write after the same passage are applied so that the first proposed ends first in the page (two
-  notes added by two calls keep their order).
-- While a run applied its corrections, its last four steps were shown as « undefined »: a second block of texts
-  had taken the key of the step names (not in 1.2.0). A test refuses a key written twice.
+  2.28 $ for 28 leads; with the whole guide, 11.01 $ for a lead about six price lists and a lead dug deeper, then
+  12.94 $ for three leads; with their pages and the plan, 8.72 $ for five leads): with the whole guide ≈ 6.30 $
+  plus ≈ 2.15 $ per lead (≈ 2.80 $ dug deeper), with the lead's pages ≈ 4.30 $ plus ≈ 1.10 $ per lead (≈ 1.50 $
+  dug deeper). The cross-check costs about 4 $ whatever the leads. The exploration and the proposal of chapters
+  by a model (0.13 $ once) are not set on more than that.
 - The values a run removes are looked for in the text of the pages only, no longer in their front matter
   (`verified_by: "Fable 5.1"` was 33 of the 35 lines listed by the first addition run).
 - `prompts.fill` knows two markers more: `<<TODAY>>` and `<<BRIEF>>` (the guide's contract, put last).

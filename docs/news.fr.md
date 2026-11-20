@@ -144,7 +144,7 @@ comptées large et seront réglées sur les premiers passages réels.
 
 Le passage d'ajouts est réglé sur trois passages réels (20/11/2026). Avec tout le guide : 11,01 $ pour une piste
 sur six grilles de prix et une piste creusée (29 modifications), puis 12,94 $ pour trois pistes (14
-modifications), miroirs compris. Avec les pages de la piste et le plan : 8,41 $ avant les miroirs pour cinq pistes
+modifications), miroirs compris. Avec les pages de la piste et le plan : 8,72 $, miroirs compris, pour cinq pistes
 (35 modifications), là où tout le guide aurait coûté environ 17 $. Ce qui ne dépend pas des pistes, c'est la
 relecture croisée, environ 4 $ à chaque fois. Avec tout le guide, une piste qui vérifie une seule version ne coûte
 pas moins qu'une autre (16 à 25 tours de recherche, chacun relisant le guide depuis le cache) ; avec ses propres

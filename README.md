@@ -223,15 +223,18 @@ a fake model and a throwaway git repository; an engine contract checks any engin
   exact usage of each call. No LangChain chat-model wrapper sits in between.
 - **No vector RAG.** A guide that fits the model's window is read whole, with prompt caching: the model sees
   footnotes and inconsistencies between pages that retrieval would cut. A guide that does not fit is read chapter
-  by chapter.
-- **Corrections only.** Additions (a new model, a new tool) are listed as candidates in the report, not drafted:
-  deciding that something belongs in the guide is the editor's call.
+  by chapter. One exception, chosen by the editor: a call that checks one lead on the web, over many rounds of
+  search, may read the pages its lead names and the plan of the guide. The pages are named by a call that had the
+  whole guide before it, and the cross-check that follows reads every page.
+- **A watch corrects, the editor decides what is added.** A watch lists additions (a new model, a new tool) as
+  candidates in its report and writes none. Writing them is a run of its own, on the leads the editor keeps.
 
 ## Limits
 
 - **Markdown in git.** Pages in another format, or a guide that is a subfolder of a larger repository, are not
   supported.
-- **No additions yet.** New tools and models are listed as leads; drafting a new page is not automated.
+- **No new page.** An addition run writes in the pages that exist; when a subject needs a page of its own, it
+  says so and what the page would hold, and writing it stays with the editor.
 - **Dates are hard.** A release has a creation date, a tag date and a publication date; when its sources do not
   settle one, the agent declines rather than guesses.
 - **Measured on Claude only.** Another model runs, but the quality of its corrections is not measured: review its

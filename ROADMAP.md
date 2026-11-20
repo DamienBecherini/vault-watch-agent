@@ -85,9 +85,14 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
     reads the whole guide and what past watches set aside, and lists what a reader would expect and does not find
     (leads: nothing verified); the leads kept go to an addition run, which checks each one on the web and writes it
     where it belongs. A second check finds leads from the web, one call per chapter, and a lead can be dug deeper in a
-    call of its own (asked for on 2026-11-20). This is E4 in its first form. Still to do: the first real run on the IA on-prem guide
-    (billed) to set the estimates; a new page written by the run (today it says one is needed); D1 to D4 below
-    (enrichment without a model, candidates grouped and kept over time).
+    call of its own (asked for on 2026-11-20). This is E4 in its first form. Run for real the same day on the IA
+    on-prem guide: 28 leads (2.28 $), then three addition runs (the guide's pull requests 96, 97 and 98: 29, 14 and
+    35 edits for 11.01 $, 12.94 $ and 8.72 $), which set the estimates and showed what to fix (one lead per call, a
+    lead not checked sent again, what two calls add to one page). The third read each lead's pages and the plan of
+    the guide instead of the whole guide, now the default. Released as 1.3.0, with the chapters of the guide (declared
+    in the manifest or proposed by a model) and the readers' feedback. Still to do: a new page written by the run
+    (today it says one is needed); D1 to D4 below (enrichment without a model, candidates grouped and kept over
+    time).
 
 ## Phase F — publication and interface
 
@@ -138,6 +143,7 @@ true, the version is tagged, and `main` receives it (work happens on the `dev` b
 | M4. Any model | 0.6.0 | Run the steps on an OpenAI-compatible model, local ones included |
 | M5. Stable | 1.0.0 | Rely on the manifest and the engine protocol not changing under them |
 | M6. Compaction | 1.2.0 | Keep a guide from growing heavy: redundancies, piled-up history and long sections found and trimmed, reviewed like corrections |
+| What is new | 1.3.0 | What no source of the watch announces: leads from the guide or from the web, each checked on the web and written where it belongs; the chapters of a guide; the readers' feedback |
 
 ### Decisions to take first
 
