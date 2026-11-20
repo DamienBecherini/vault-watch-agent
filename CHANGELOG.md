@@ -44,7 +44,8 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
   window while the table is there.
 - A pull request with many corrections is opened: its description goes to `gh` in a file (as an argument, Windows
   refused it over 32 767 characters, before `gh` ran) and stays under what GitHub accepts (it loses, as far as
-  needed, the passages under its findings, the end of its « Why » cells, then the last rows of its table). A
+  needed, the passages under its findings, the end of its « Why » cells, then the last rows of its table). The
+  commit messages, which name every correction, go to `git` on its standard input for the same reason. A
   publication that fails says so on the publish screen, which showed nothing.
 - Every run says what it changes in the weight of the pages it edits: expected in its report, before the review
   (« Weight, if every valid correction is applied », with the three pages that change the most), measured in its

@@ -149,6 +149,24 @@ def test_github_gets_a_long_description_in_a_file(tmp_path, monkeypatch):
     assert not os.path.exists(seen["command"][seen["command"].index("--body-file") + 1])  # the file is gone
 
 
+def test_a_long_commit_message_goes_to_git_on_its_standard_input(tmp_path):
+    """The commit of a run names every correction: on a command line, some 500 of them would not pass on Windows."""
+    from vault_watch_agent import inputs
+
+    run = lambda *a, text=None: inputs.run(["git", *a], cwd=tmp_path, text=text)  # noqa: E731
+    run("init", "-q", "-b", "main")
+    run("config", "user.name", "t")
+    run("config", "user.email", "t@example.org")
+    (tmp_path / "a.md").write_text("x\n", encoding="utf-8")
+    run("add", "a.md")
+    body = ", ".join(f"C{n} 06-mise-en-œuvre/local-inference-security.md" for n in range(1, 2001))  # 100 000 characters
+    run("commit", "-q", "-F", "-", text=f"chore(content): trims\n\n{body}\n")
+    assert run("log", "-1", "--format=%s").strip() == "chore(content): trims"
+    assert run("log", "-1", "--format=%b").strip() == body and len(body) > 90_000
+    with pytest.raises(RuntimeError, match="failed"):
+        run("commit", "-q", "-F", "-", text="nothing to commit\n")
+
+
 def test_gitea_downloads_the_artifact_of_a_run(server, tmp_path):
     fake, gitea = server
     gitea.download_artifact("owner/guide", "41", "weekly-watch", tmp_path / "run-41")

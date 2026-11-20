@@ -356,7 +356,7 @@ def publish(guide: Guide, home: Path, chosen: list[dict], *, today: str, open_pu
     from . import inputs, vault
 
     file = guide.watch.feeds
-    git = lambda *args, cwd: inputs.run(["git", *args], cwd=cwd)  # noqa: E731
+    git = lambda *args, cwd, text=None: inputs.run(["git", *args], cwd=cwd, text=text)  # noqa: E731
     with vault._GIT:  # not while a run syncs the base or resets the reading copy
         vault._sync(guide.root, guide.base_branch)
         branch, n = f"chore/watch-sources-{today}", 1
@@ -370,8 +370,8 @@ def publish(guide: Guide, home: Path, chosen: list[dict], *, today: str, open_pu
         path = worktree / file
         path.write_text(edit(path.read_text(encoding="utf-8"), chosen), encoding="utf-8", newline="\n")
         git("add", file, cwd=worktree)
-        git("commit", "-q", "-m", title(chosen), "-m", "\n".join(f"{p['action']} {p['feed']['id']}: {reason(p)}" for p in chosen),
-            cwd=worktree)
+        reasons = "\n".join(f"{p['action']} {p['feed']['id']}: {reason(p)}" for p in chosen)
+        git("commit", "-q", "-F", "-", cwd=worktree, text=f"{title(chosen)}\n\n{reasons}\n")  # on stdin: it can be long
         url = ""
         if guide.repository and open_pull_request:
             git("push", "-q", "-u", "origin", branch, cwd=worktree)

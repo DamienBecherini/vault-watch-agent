@@ -879,9 +879,10 @@ const SOURCES_VIEW = { sort: "", dir: 1, states: new Set(), query: "" };
 
 // A table wider than its card: `html` in a frame that scrolls sideways and says so (a shade on the side that
 // hides columns, an arrow that stays in the window while the table is there). `wideTables` wires the frames of a page.
+const chevron = points => `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const wideTable = (html, left, right) => `<div class="card wide"><div class="scroll-x">${html}</div>
-  <div class="scroll-arrows"><button type="button" data-scroll="-1" title="${esc(left)}" aria-label="${esc(left)}">‹</button>
-  <button type="button" data-scroll="1" title="${esc(right)}" aria-label="${esc(right)}">›</button></div></div>`;
+  <div class="scroll-arrows"><button type="button" data-scroll="-1" title="${esc(left)}" aria-label="${esc(left)}">${chevron("15,5 8,12 15,19")}</button>
+  <button type="button" data-scroll="1" title="${esc(right)}" aria-label="${esc(right)}">${chevron("9,5 16,12 9,19")}</button></div></div>`;
 function wideTables(root) {
   root.querySelectorAll(".card.wide").forEach(card => {
     const box = card.querySelector(".scroll-x");
@@ -889,9 +890,15 @@ function wideTables(root) {
     const mark = () => {
       card.classList.toggle("can-left", box.scrollLeft > 1);
       card.classList.toggle("can-right", box.scrollLeft + box.clientWidth < box.scrollWidth - 1);
+      // Where the fixed first column ends: the shade that says columns are hidden on the left starts there
+      card.style.setProperty("--first", `${box.querySelector("th")?.offsetWidth || 0}px`);
     };
     box.addEventListener("scroll", mark, { passive: true });
     new ResizeObserver(mark).observe(box);
+    // The arrows stay above the bar of actions, whatever its height (its buttons wrap on a narrow window)
+    const bar = document.querySelector(".bar"), lift = () => card.style.setProperty("--bar", `${bar ? bar.offsetHeight : 0}px`);
+    if (bar) new ResizeObserver(lift).observe(bar);
+    lift();
     card.querySelectorAll("[data-scroll]").forEach(b => b.onclick = () =>
       box.scrollBy({ left: Number(b.dataset.scroll) * box.clientWidth * 0.6, behavior: "smooth" }));
     mark();
@@ -945,6 +952,7 @@ async function viewSources() {
     ["advisories", check.proposals.filter(p => p.why === "no-advisories")]].filter(([, list]) => list.length) : [];
   const last = check?.applied?.filter(a => !a.state).at(-1);  // the pull request (or branch) still to merge
   const draw = () => {
+    const sideways = page.querySelector(".card.wide .scroll-x")?.scrollLeft || 0;  // kept when the table is drawn again
     const q = view.query.trim().toLowerCase(), open = p => !p.applied && !p.later;
     const typed = f => !q || [f.id, f.target, f.url, f.type, f.tier, S.verdicts[f.verdict]].some(x => x && String(x).toLowerCase().includes(q));
     const shown = sortSources(s.feeds.filter(f => (!view.states.size || view.states.has(f.verdict)) && typed(f)));
@@ -1001,6 +1009,7 @@ async function viewSources() {
       page.querySelector(`[data-sort="${key}"]`)?.focus();  // the keyboard stays on the column
     });
     if ($("#default-sort")) $("#default-sort").onclick = () => { view.sort = ""; view.dir = 1; draw(); };
+    page.querySelector(".card.wide .scroll-x").scrollLeft = sideways;
     wideTables(page);
     // The text typed filters as it is typed; the page is drawn again, the caret stays where it was
     $("#source-filter").oninput = e => {

@@ -43,8 +43,8 @@ class Deps:
         self.base = self.base or guide.base_branch
 
 
-def git(*args: str, cwd: Path) -> str:
-    return inputs.run(["git", *args], cwd=cwd)
+def git(*args: str, cwd: Path, text: str | None = None) -> str:
+    return inputs.run(["git", *args], cwd=cwd, text=text)
 
 
 def sorted_proposals(state: WatchState) -> list[dict]:
@@ -274,8 +274,7 @@ def build(deps: Deps, checkpointer=None):
                 pass  # the audits step runs the same check and reports it before the PR
         git("add", *pages, cwd=worktree)
         summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
-        git("commit", "-m", pr_title(state),
-            "-m", summary, cwd=worktree)
+        git("commit", "-F", "-", cwd=worktree, text=f"{pr_title(state)}\n\n{summary}\n")  # the message on stdin: it can be long
         return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen], "weight": weight}
 
     # -- mirror (the pages of each mirror of the manifest follow the edits of the source) ---------------

@@ -108,25 +108,28 @@ ul.filters { list-style: none; padding-left: 0; } ul.filters li { margin: 4px 0;
   transition: opacity .15s; z-index: 2; background: linear-gradient(to left, var(--shade), transparent);
   border-radius: 0 var(--radius) var(--radius) 0; }
 .card.wide.can-right::after { opacity: 1; }
+/* Its twin on the left starts where the fixed first column ends (--first, measured by wideTables): one shade for
+   the whole table, even from the first row to the last */
+.card.wide::before { content: ""; position: absolute; top: 16px; bottom: 16px; left: calc(16px + var(--first, 0px)); width: 14px;
+  pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 2; background: linear-gradient(to right, var(--shade), transparent); }
+.card.wide.can-left::before { opacity: 1; }
 /* The first column stays while the others scroll; its shade says columns are hidden on the left */
 .scroll-x th:first-child, .scroll-x td:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); }
-.can-left .scroll-x th:first-child, .can-left .scroll-x td:first-child { box-shadow: 10px 0 10px -8px var(--shade); }
-.scroll-arrows { position: sticky; bottom: 20px; height: 0; display: flex; justify-content: space-between; pointer-events: none; z-index: 3; }
+.scroll-arrows { position: sticky; bottom: calc(var(--bar, 0px) + 18px); height: 0; display: flex; justify-content: space-between; pointer-events: none; z-index: 3; }
 /* An arrow sits astride the border of the card, so that it hides next to nothing of the table */
 .scroll-arrows [data-scroll="-1"] { --aside: calc(-50% - 16px); } .scroll-arrows [data-scroll="1"] { --aside: calc(50% + 16px); }
-.scroll-arrows button { pointer-events: auto; visibility: hidden; transform: translate(var(--aside), -100%); width: 38px; height: 38px; padding: 0;
+.scroll-arrows button { pointer-events: auto; visibility: hidden; transform: translate(var(--aside), -100%); width: 38px; height: 38px; padding: 0; display: grid; place-items: center;
   border-radius: 50%; border: 1px solid var(--field-border); background: var(--card); color: var(--text); font-size: 22px; line-height: 1;
   cursor: pointer; box-shadow: 0 2px 10px var(--shade); }
 .scroll-arrows button:hover { background: var(--bg); }
 .scroll-arrows button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .can-left .scroll-arrows [data-scroll="-1"], .can-right .scroll-arrows [data-scroll="1"] { visibility: visible; }
-@media (prefers-reduced-motion: reduce) { .card.wide::after { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .card.wide::after, .card.wide::before { transition: none; } }
 /* The sources: a long address wraps in its column instead of widening the table */
 table.sources td.first { min-width: 17ch; max-width: 30ch; }
 table.sources td.first .muted { overflow-wrap: anywhere; }
 table.sources th { font-size: 12.5px; vertical-align: bottom; }
 table.sources th, table.sources td { padding: 6px; }
-main:has(.bar) .scroll-arrows { bottom: 88px; }  /* above the bar of actions, fixed at the bottom of the window */
 .table-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .table-tools input[type="search"] { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--field-border);
   background: var(--bg); color: var(--text); width: min(100%, 30ch); }

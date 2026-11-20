@@ -17,10 +17,12 @@ from pathlib import Path
 NOTES_MAX = 4000  # the watch script already caps notes around this size
 
 
-def run(cmd: list[str], cwd: Path | None = None) -> str:
-    done = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", check=False)
+def run(cmd: list[str], cwd: Path | None = None, text: str | None = None) -> str:
+    """`text` goes to the command's standard input: a text that may be long (a commit message that names every
+    correction, a pull request description) never goes on the command line, which Windows caps at 32 767 characters."""
+    done = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", check=False, input=text)
     if done.returncode != 0:
-        raise RuntimeError(f"{' '.join(cmd)} failed ({done.returncode}): {done.stderr.strip()[:500]}")
+        raise RuntimeError(f"{' '.join(cmd)[:300]} failed ({done.returncode}): {done.stderr.strip()[:500]}")
     return done.stdout
 
 
