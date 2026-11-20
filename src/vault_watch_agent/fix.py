@@ -43,24 +43,37 @@ def _passages(item: dict) -> str:
                    for e in item.get("excerpts", []) if e["match"] == "exact")
 
 
+def items_of(findings: list[str], excerpts: dict[str, list[dict]] | None = None,
+             ids: list[str] | None = None) -> list[dict]:
+    """The findings as the items of a run (F1…, or the `ids` given)."""
+    return [
+        {"id": i, "domain": "fix", "tier": "", "title": f, "url": "", "date": "", "urgent": False,
+         "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, [])}
+        for i, f in zip(ids or [f"F{n}" for n in range(1, len(findings) + 1)], findings)
+    ]
+
+
 def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM, context: str | None = None,
             effort: str = "", web: bool = True, node: str = "fix",
             excerpts: dict[str, list[dict]] | None = None,
-            what: tuple[str, str] = ("Reported errors", "error")) -> tuple[list[dict], dict, dict]:
+            what: tuple[str, str] = ("Reported errors", "error"), ids: list[str] | None = None,
+            cached: bool = True) -> tuple[list[dict], dict, dict]:
     """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request.
-    `what`: how the findings are called in the prompt (its heading, the tag of each one)."""
+    `what`: how the findings are called in the prompt (its heading, the tag of each one).
+    `ids`: the ids of the findings when the caller numbers them (a run made of several calls).
+    `cached`: False when no other call reads the same `context`: it then goes with the question, at the plain
+    input price (writing it to the prompt cache costs more)."""
     if "<<" in system:  # written with the markers of prompts.fill
         system = prompts.fill(system, vault_dir)
-    items = [
-        {"id": f"F{n}", "domain": "fix", "tier": "", "title": f, "url": "", "date": "", "urgent": False,
-         "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, [])}
-        for n, f in enumerate(findings, start=1)
-    ]
+    items = items_of(findings, excerpts, ids)
     heading, tag = what
     listing = "\n".join(f"<{tag} id=\"{i['id']}\">{i['title']}{_passages(i)}</{tag}>" for i in items)
+    context, prompt = context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", f"{heading}:\n\n{listing}"
+    if not cached:
+        context, prompt = None, f"{context}\n\n{prompt}"
     result, usage = llm.parse(
-        system=system, prompt=f"{heading}:\n\n{listing}", schema=ClusterProposal, effort=effort or steps.effort("fix"),
-        node=node, context=context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", web=web,
+        system=system, prompt=prompt, schema=ClusterProposal, effort=effort or steps.effort("fix"),
+        node=node, context=context, web=web,
     )
     ids = [i["id"] for i in items]
     corrections = [
@@ -132,18 +145,21 @@ def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,
                    web=False, node="fix translation", excerpts=excerpts)
 
 
-def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, thread: str = "",
-                  mode: str = "fix") -> dict:
+def initial_state(label: str, items: list[dict], proposal: dict | list[dict], usage: dict | list[dict],
+                  thread: str = "", mode: str = "fix") -> dict:
     """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch.
     `mode` "translation" skips the cross-check against the whole guide; "compact" is a compaction run (compact.py):
-    trims instead of corrections, its own cross-check, its own branch."""
+    trims instead of corrections, its own cross-check, its own branch.
+    `proposal`, `usage`: one of each, or the list of a run whose proposals took several calls."""
     today = date.today().isoformat()
+    proposals = proposal if isinstance(proposal, list) else [proposal]
+    usages = usage if isinstance(usage, list) else [usage]
     if mode == "compact":
         return {
             "source": f"what weighs in the guide ({label})", "issue": None, "as_of": today, "mode": mode,
             "title": f"chore(content): reviewed trims of the guide ({label})",
             "branch_name": f"compact/{thread or f'guide-{today}'}",
-            "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": [proposal], "usage": [usage],
+            "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": proposals, "usage": usages,
         }
     kind = "fix(i18n): reviewed translation fixes" if mode == "translation" else "fix(content): reviewed corrections"
     return {
@@ -157,6 +173,6 @@ def initial_state(label: str, items: list[dict], proposal: dict, usage: dict, th
         "claims_due": [],
         "decisions": [],
         "evidence": {},
-        "proposals": [proposal],
-        "usage": [usage],
+        "proposals": proposals,
+        "usage": usages,
     }

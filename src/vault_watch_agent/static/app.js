@@ -781,7 +781,8 @@ async function viewCheck(id) {
     const ok = ticked().filter(c => c.dataset.fixable === "true"), n = ok.length, e = ticked().length;
     const by = {};
     ok.forEach(c => { by[c.dataset.mode] = (by[c.dataset.mode] || 0) + 1; });
-    const run = options.find(o => o.id === "compaction")?.run_usd;  // priced with the model of the Settings
+    // A compaction run: its cross-check, plus a share per finding, priced with the models of the Settings
+    const o = options.find(o => o.id === "compaction") || {}, run = o.run_usd ? o.run_usd + (o.run_usd_each || 0) * (by.compact || 0) : 0;
     $("#fix").textContent = V.createFix(by, cost, { compact: run ? `≈ ${dollars(run)}` : "" }); $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };

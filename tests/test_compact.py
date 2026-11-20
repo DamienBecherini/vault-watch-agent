@@ -150,7 +150,9 @@ class FakeLLM:
                            proposed="Minimum version of vLLM: see [[03-stack/engines|Engines]]."),
             ]), usage
         assert node == "compact" and not web and "Findings:" in prompt and '<finding id="F1">' in prompt
-        assert "You trim" in system and '<page path="03-stack/engines.md">' in context
+        # The pages the findings name, with the question (no other call reads them), not the whole guide
+        assert "You trim" in system and context is None and "projet/changelog.md" not in prompt
+        assert '<page path="03-stack/engines.md">' in prompt and '<page path="06-ops/security.md">' in prompt
         return ClusterProposal(
             outcomes=[ItemOutcome(item_id="F1", event="", no_change_reason=""),
                       ItemOutcome(item_id="F2", event="", no_change_reason="")],
@@ -265,6 +267,7 @@ def test_a_compaction_run_trims_on_a_branch_after_the_review(setup):
     graph = build(deps, InMemorySaver())
     config = {"configurable": {"thread_id": "compact-test"}}
     items, proposal, usage = compact.propose(deps.vault, FINDINGS, llm)
+    assert [i["id"] for i in items] == ["F1", "F2"] and len(proposal) == len(usage) == 1
     graph.update_state(config, fix.initial_state("compact-test", items, proposal, usage, "compact-test", "compact"),
                        as_node="propose")
     graph.invoke(None, config)
@@ -317,6 +320,59 @@ Le port 8000 doit rester fermé, voir la page sécurité.
     assert "0.31.2" in ENGINES and (deps.vault / "03-stack/engines.md").read_text(encoding="utf-8") == ENGINES  # main untouched
 
 
+def test_the_findings_are_grouped_by_the_pages_they_share(monkeypatch):
+    size = {p: 1000 for p in "abcdefgh"}
+    monkeypatch.setattr(compact, "BATCH_LOAD", 6)
+    #                          0           1      2           3      4
+    assert compact.batches([["a", "b"], ["c"], ["b", "d"], ["c"], ["a"]], size) == [[0, 2, 4], [1, 3]]
+    assert compact.batches([list("abcdefgh")], size) == [[0]]  # heavier than a batch: alone
+    monkeypatch.setattr(compact, "BATCH_BYTES", 2500)
+    assert compact.batches([["a", "b"], ["c"], ["b"]], size) == [[0, 2], [1]]  # the pages of a call have a ceiling
+    sources = {"03-stack/engines.md", "06-ops/security.md"}
+    assert compact.named("[Repeated] 03-stack/engines.md, 06-ops/security.md, en/x.md, ../secret.md: 03-stack/engines.md",
+                         sources) == ["03-stack/engines.md", "06-ops/security.md"]
+
+
+def test_a_run_takes_several_calls_and_goes_on_when_one_fails(setup, monkeypatch):
+    from vault_watch_agent.llm import ModelError
+
+    deps, _ = setup
+    monkeypatch.setattr(compact, "BATCH_LOAD", 2)  # one finding per call
+    seen = {}
+
+    class Llm:
+        def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
+            seen[node] = (prompt, context)
+            if "by hand" in prompt:  # names no page: the whole guide, cached
+                assert context and "projet/changelog.md" in context and "<guide>" in context
+                return ClusterProposal(outcomes=[ItemOutcome(item_id="F3", event="", no_change_reason="vague")],
+                                       corrections=[]), {"node": node, "cost_usd": 0.5}
+            if '<finding id="F2">' in prompt:
+                error = ModelError("compact: the answer was cut before its end")
+                error.usage = {"node": node, "cost_usd": 2.0, "cut": True}
+                raise error
+            assert '<finding id="F1">' in prompt and "06-ops/security.md" not in prompt
+            proposal = ClusterProposal(
+                outcomes=[ItemOutcome(item_id="F1", event="", no_change_reason="")],
+                corrections=[trim("Auparavant, la version 0.31.2 suffisait[^2].", "", ["F1"], group="g")])
+            return proposal, {"node": node, "cost_usd": 1.0}
+
+    items, proposals, usages = compact.propose(deps.vault, [*FINDINGS, "typed by hand, no page"], Llm())
+    assert sorted(seen) == ["compact 1/3", "compact 2/3", "compact 3/3"]
+    assert [i["id"] for i in items] == ["F1", "F2", "F3"] and [p["item_ids"] for p in proposals] == [["F1"], ["F2"], ["F3"]]
+    assert proposals[1]["corrections"] == [] and "the call failed" in proposals[1]["outcomes"][0]["no_change_reason"]
+    assert sum(u["cost_usd"] for u in usages) == 3.5  # the cut call is counted
+    state = fix.initial_state("t", items, proposals, usages, "t", "compact")
+    assert state["proposals"] == proposals and state["usage"] == usages
+
+    class Down:
+        def parse(self, **kw):
+            raise ModelError("no credit")
+
+    with pytest.raises(ModelError, match="no credit"):  # every call failed: the run stops there
+        compact.propose(deps.vault, FINDINGS, Down())
+
+
 def test_other_runs_still_refuse_an_edit_that_drops_a_note():
     from vault_watch_agent.graph import mark_unsafe
 
@@ -338,7 +394,7 @@ def test_the_leads_of_the_check_go_to_a_compaction_run(setup, tmp_path):
                                        make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
     options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
     assert options["compaction"]["needs"] == ["sizes"] and options["sizes"]["model"] is None
-    assert options["compaction"]["run_usd"] > options["compaction"]["usd"] > 0  # a run reads the guide twice
+    assert options["compaction"]["run_usd"] > 0 and options["compaction"]["run_usd_each"] > 0  # the cross-check, then per finding
     assert options["coherence"]["run_usd"] is None  # a fix run: no estimate from the server
     vid = c.post("/api/verifications", json={"checks": ["compaction"]}, headers=act).json()["id"]
     for _ in range(200):

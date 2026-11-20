@@ -30,7 +30,7 @@ STEPS: dict[str, Step] = {s.id: s for s in (
     Step("fix", "reasoning", "high", ("web", "whole_guide")),
     Step("coherence", "reasoning", "high", ("whole_guide",)),
     Step("compaction", "reasoning", "high", ("whole_guide",)),  # the report: what weighs in the guide
-    Step("compact", "reasoning", "high", ("whole_guide",)),  # the trims for the findings kept
+    Step("compact", "reasoning", "high"),  # the trims for the findings kept: the pages they name, in several calls
     Step("claims", "reasoning", "high", ("web",)),
     Step("deadlinks", "reasoning", "medium", ("web",)),
     Step("mirror", "translator", "medium"),

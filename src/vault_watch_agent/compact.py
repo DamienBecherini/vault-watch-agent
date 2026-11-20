@@ -19,13 +19,14 @@ refused (`mark_dangling`), and each trim lists the values that no page states an
 from __future__ import annotations
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from . import fix, quotes, steps, vault
-from .llm import LLM
+from .llm import LLM, ModelError
 
 REPORT = """You look for what makes <<GUIDE>> heavier than it needs to be. The whole guide is above, one <page> per
 file. A guide kept up to date by a watch only grows: notes are added beside older ones, the same warning is copied
@@ -74,12 +75,13 @@ def line(t: Trim) -> str:
     return f"[{KINDS[t.kind]}] {', '.join(t.pages)}: {t.problem}{keep}"
 
 
-PROPOSE = """You trim <<GUIDE>> so that it weighs less without saying less. The whole guide is above, one <page> per
-file. Each finding (F1…) names something that makes the guide heavy: the same fact stated at length in several
-pages, history piled up beside the current fact, a section longer than what it says needs.
+PROPOSE = """You trim <<GUIDE>> so that it weighs less without saying less. The pages to work on are above, each
+whole, one <page> per file; the guide has other pages, which you do not see (the review that follows your trims
+reads them all). Each finding (F1…) names something that makes the guide heavy: the same fact stated at length in
+several pages, history piled up beside the current fact, a section longer than what it says needs.
 
 For each one:
-- Check it against the guide above. If it is wrong, or the passage is needed where it is (a page a reader lands on
+- Check it against the pages above. If it is wrong, or the passage is needed where it is (a page a reader lands on
   directly must still tell them what they need to act), give an outcome with no_change_reason.
 - Otherwise propose targeted edits, never a page or a section rewritten whole:
   - a repetition: the page the finding names keeps the full statement, with its source and footnote; in the other
@@ -92,14 +94,15 @@ For each one:
     the old behaviour).
   - a long section: remove what repeats, restates the page or duplicates the table beside it; keep every fact,
     figure, caveat and source.
-- Never remove the only statement of a fact, a figure, a caveat or a source. Move it (two edits with the same
-  `group`: one removes it here, the other adds it where it belongs) or leave it.
+- Never remove the only statement of a fact, a figure, a caveat or a source: it counts as stated elsewhere only
+  when you read it in a page above. Move it (two edits with the same `group`: one removes it here, the other adds
+  it where it belongs) or leave it.
 - Footnotes: when an edit removes the last sentence that cites a note, the program removes that note's definition
   itself; never leave a sentence citing a note you remove. A fact that moves to another page takes its note with
   it, defined there under a marker that page does not use yet.
 - No new fact and no rewording for style: every `proposed` says the same as its `current`, or less.
 
-`current` is copied verbatim from one page and occurs once in it: a sentence, a list item, a table row or a short
+`current` is copied verbatim from one page above and occurs once in it: a sentence, a list item, a table row or a short
 paragraph (several edits for a longer passage). `proposed` replaces it, in <<LANG>> and in the page's style; leave
 it empty to remove `current` whole. `item_ids` lists the findings the edit answers. `source_url` is the path of the
 page where the reader still finds the information (the edited page itself for history and length). `severity` is
@@ -129,12 +132,86 @@ noticed elsewhere in the guide while reading, without proposing a fix, and copy 
 into its `excerpts`."""
 
 
+# What one call is asked: a finding weighs the pages it names (two at least: a long section takes several edits).
+# The trims of thirty findings in one answer would not fit under the output limit of a model that thinks much
+# (the report alone wrote 48 k tokens on Fable 5.2 at effort high), and an answer cut at the limit is billed and lost.
+BATCH_LOAD = 30
+BATCH_BYTES = 600_000  # of pages given to one call (about 190 k tokens)
+PARALLEL = 4
+
+
+def named(finding: str, sources: set[str]) -> list[str]:
+    """The source pages of the guide a finding names, in its order."""
+    out: list[str] = []
+    for m in fix.PAGE_PATH.finditer(finding):
+        if m.group(0) in sources and m.group(0) not in out:
+            out.append(m.group(0))
+    return out
+
+
+def batches(pages: list[list[str]], size: dict[str, int]) -> list[list[int]]:
+    """The findings (by index) grouped for one call each. A batch takes the first finding left, then those that
+    share the most pages with it while it holds: the trims asked of one page are then written together, and the
+    call reads fewer pages."""
+    left, out = list(range(len(pages))), []
+    load = lambda i: max(2, len(pages[i]))  # noqa: E731
+    while left:
+        batch = [left.pop(0)]
+        seen, total = set(pages[batch[0]]), load(batch[0])
+        while True:
+            fits = [i for i in left if total + load(i) <= BATCH_LOAD
+                    and sum(size[p] for p in seen | set(pages[i])) <= BATCH_BYTES]
+            if not fits:
+                break
+            best = max(fits, key=lambda i: (len(seen & set(pages[i])), -i))
+            left.remove(best)
+            batch.append(best)
+            seen |= set(pages[best])
+            total += load(best)
+        out.append(sorted(batch))
+    return out
+
+
 def propose(vault_dir: Path, findings: list[str], llm: LLM,
-            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], dict, dict]:
-    """The trims for the findings the editor kept: same output as `fix.propose`, without the web (everything a trim
-    needs is in the guide)."""
-    return fix.propose(vault_dir, findings, llm, system=PROPOSE, effort=steps.effort("compact"), web=False,
-                       node="compact", excerpts=excerpts, what=("Findings", "finding"))
+            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+    """The trims for the findings the editor kept: (items, proposals, usages), one proposal and one usage per call.
+    Without the web. Each call gets the pages its findings name, whole, not the guide: a finding names every page
+    it is about, the cross-check that follows reads the whole guide, and the code lists what no page states any
+    more. The findings that name no page of the guide (a line typed by hand) go together with the whole guide.
+    A call that fails leaves its findings without a trim, said in their outcome; the others go on."""
+    texts = {p.relative_to(vault_dir).as_posix(): vault.read(p).replace("\r", "") for p in vault.pages(vault_dir)}
+    pages = [named(f, set(texts)) for f in findings]
+    size = {p: len(t.encode("utf-8")) for p, t in texts.items()}
+    with_pages = [i for i, ps in enumerate(pages) if ps]
+    groups = [[with_pages[i] for i in b] for b in batches([pages[i] for i in with_pages], size)]
+    without = [i for i, ps in enumerate(pages) if not ps]
+    if without:
+        groups.append(without)
+
+    def one(n: int) -> tuple[list[dict], dict, dict | None]:
+        group = groups[n]
+        ids, lines = [f"F{i + 1}" for i in group], [findings[i] for i in group]
+        given = sorted({p for i in group for p in pages[i]})
+        context = "<pages>\n" + "\n".join(f'<page path="{p}">\n{texts[p]}\n</page>' for p in given) + "\n</pages>"
+        try:
+            return fix.propose(vault_dir, lines, llm, system=PROPOSE, effort=steps.effort("compact"), web=False,
+                               node="compact" if len(groups) == 1 else f"compact {n + 1}/{len(groups)}",
+                               excerpts=excerpts, what=("Findings", "finding"), ids=ids,
+                               context=context if given else None, cached=not given)
+        except ModelError as e:
+            failed = {"item_ids": ids, "corrections": [], "error": str(e),
+                      "outcomes": [{"item_id": i, "event": "", "no_change_reason": f"not handled, the call failed: {e}"}
+                                   for i in ids]}
+            return fix.items_of(lines, excerpts, ids), failed, e.usage
+    if len(groups) == 1:
+        results = [one(0)]
+    else:
+        with ThreadPoolExecutor(max_workers=PARALLEL) as pool:
+            results = list(pool.map(one, range(len(groups))))
+    if results and all(p.get("error") for _, p, _ in results):
+        raise ModelError(results[0][1]["error"])
+    items = sorted((i for its, _, _ in results for i in its), key=lambda i: int(i["id"][1:]))
+    return items, [p for _, p, _ in results], [u for _, _, u in results if u]
 
 
 # -- what the code checks itself: footnotes ------------------------------------------------------------------

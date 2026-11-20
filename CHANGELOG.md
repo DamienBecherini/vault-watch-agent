@@ -21,12 +21,17 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
   proposes targeted edits and takes the path of any run: a cross-check written for trims (is anything lost, does
   the page still read on), the review, the mirrors, the guide's audits, the pull request, on a branch
   `compact/<thread>`. No web, no sweep. The pull request says what the changed pages weighed before and after.
+  The proposals read the pages the findings name, not the whole guide, in several calls when the findings are
+  many (those that share pages together, four calls at a time): the trims of thirty findings would not fit in
+  one answer. A call that fails leaves its findings without a trim, said in the report of the run, and the
+  others go on.
 - What the code checks itself: a passage removed whole leaves no hole (a table keeps its rows, a paragraph does not
   leave two blank lines; this holds for every run); the definition of a note that a trim leaves without a sentence
   citing it is removed with it; a trim that would leave a sentence citing a removed note cannot be applied; and
   each trim lists the versions, advisory ids, amounts and links that no page states any more once the trims apply.
 - Two steps more in the Settings (the report, the trims), with their effort (`high`). The button that creates a
-  compaction run shows an estimate computed from the price of the reasoning model of the Settings.
+  compaction run shows an estimate that follows the findings ticked: the cross-check, then a share per finding,
+  at the prices of the models of the Settings.
 - A step can be set apart from its role (« Models and effort », « Set a step apart »; `steps` in the settings, an
   optional key of schema 1): its own model, and its own effort taken as it is. Made for the compaction on the
   strongest model while the watches keep theirs. The calls of that step go to a client of their own (`llm.Routed`,

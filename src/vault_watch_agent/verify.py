@@ -34,10 +34,15 @@ OUTPUT_PER_CHAPTER = 3_000
 # Output tokens, thinking included, counted high on purpose: an estimate shown before a billed run should not be
 # beaten. The coherence check wrote 27 to 29 k on Opus 5.5 at effort high, the proposals and the cross-check of a fix
 # run 21 to 30 k and 12 to 15 k; the first compaction report on Fable 5.2 at effort high wrote more than 64 000
-# (20/11/2026, cut at the limit of the time). A run writes the guide twice to the cache (its two calls do not share
-# it: another answer schema).
+# (20/11/2026, cut at the limit of the time), then 48 459 once the report was held to 30 findings.
 COMPACTION_OUT = 60_000
-COMPACT_RUN_OUT = 90_000
+# A compaction run: per finding, the proposals read its share of the pages (the 30 findings of the first report
+# named 44 pages, given in 4 calls: as many bytes as the whole guide) and write its trims; then one cross-check of
+# the whole guide, and the mirror of each page touched. Not measured yet.
+COMPACT_FINDINGS = 30  # findings whose pages weigh the guide once
+COMPACT_OUT_EACH = 7_000  # proposals, thinking included
+CROSS_OUT, CROSS_OUT_EACH = 20_000, 800
+MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one page and a half per finding
 HEAVIEST = 15  # pages kept in the result of the size check: those over their budget, then the heaviest
 
 
@@ -117,9 +122,13 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                        "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est modifié".replace(",", " "),
                                     f"{fr:,} tokens of pages, read whole; nothing is edited")},
         # Not a check: the run the compaction leads go to (shown on the button that creates it)
-        "compact-run": {"tokens": 2 * fr + COMPACT_RUN_OUT,
-                        "usd": _usd(of("compact"), tokens_out=COMPACT_RUN_OUT * 5 // 8, cache_write=fr, table=table)
-                        + _usd(of("crosscheck"), tokens_out=COMPACT_RUN_OUT * 3 // 8, cache_write=fr, table=table)},
+        # `usd`: whatever the findings (the cross-check); `usd_each`: per finding sent to the run
+        "compact-run": {"tokens": fr + CROSS_OUT,
+                        "usd": _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, table=table),
+                        "usd_each": _usd(of("compact"), tokens_in=fr // COMPACT_FINDINGS, tokens_out=COMPACT_OUT_EACH, table=table)
+                        + _usd(of("crosscheck"), tokens_out=CROSS_OUT_EACH, table=table)
+                        + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
+                           if vault.guide_of(vault_dir).mirrors else 0.0)},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},

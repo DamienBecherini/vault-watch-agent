@@ -654,7 +654,8 @@ def create_app(settings: Settings) -> FastAPI:
             else:
                 items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
                 label = "errors reported in the interface"
-            job.events.append({"t": time.time(), "node": "propose", "cost": round(usage.get("cost_usd", 0.0), 2)})
+            spent = sum(u.get("cost_usd", 0.0) for u in (usage if isinstance(usage, list) else [usage]))
+            job.events.append({"t": time.time(), "node": "propose", "cost": round(spent, 2)})
             graph.update_state(config(thread), fix.initial_state(label, items, proposal, usage, thread, body.mode),
                                as_node="propose")
             follow(graph, job, None)
@@ -901,7 +902,8 @@ def create_app(settings: Settings) -> FastAPI:
         return [{"id": c.id, "title": c.title, "what": c.what, "model": model(c), "needs": list(c.needs),
                  "fixable": c.fixable, "price_origin": origin(model(c)), **est[c.id],
                  # what a run made from this check's leads costs, when the agent can estimate it (a compaction run)
-                 "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd")}
+                 "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd"),
+                 "run_usd_each": est.get(f"{c.fix_mode}-run", {}).get("usd_each")}
                 for c in verify.CHECKS]
 
     @app.get("/api/verifications")

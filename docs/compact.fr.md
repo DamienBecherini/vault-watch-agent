@@ -69,17 +69,23 @@ chapitres échappe alors.
 ## Les allègements
 
 Cochez les pistes à traiter et créez un passage de compactage (en ligne de commande :
-`vault-watch fix <fil> --findings pistes.txt --compact`, une piste par ligne). Le modèle relit tout le guide et
-propose des modifications ciblées, jamais une page réécrite en entier :
+`vault-watch fix <fil> --findings pistes.txt --compact`, une piste par ligne). Le modèle lit en entier les pages
+que les pistes nomment et propose des modifications ciblées, jamais une page réécrite en entier :
 
 - une répétition est raccourcie et renvoie à la page qui garde l'énoncé complet, avec sa source ;
 - l'historique empilé laisse la place au fait courant ;
 - une section longue perd ce qui se répète, jamais un fait, un chiffre, une réserve ou une source.
 
-Le passage suit ensuite le chemin de tous les autres : une relecture croisée écrite pour les allègements (perd-on
-quelque chose ? la page se lit-elle encore à cet endroit ? le lien mène-t-il à une page qui existe ?), votre
-relecture carte par carte, les miroirs, les contrôles du guide, la pull request. Sa branche s'appelle
-`compact/<fil>`, et la pull request dit ce que pesaient les pages modifiées avant et après.
+Les propositions prennent plusieurs appels quand les pistes sont nombreuses : les pistes qui partagent des pages
+vont ensemble, et aucun appel ne se voit demander plus que sa réponse ne peut contenir (les allègements de trente
+pistes ne tiendraient pas dans une seule réponse). Un appel qui échoue laisse ses pistes sans allègement, ce que
+dit le rapport du passage ; les autres continuent. Une piste qui ne nomme aucune page du guide (une ligne saisie
+à la main) reçoit le guide entier.
+
+Le passage suit ensuite le chemin de tous les autres : une relecture croisée écrite pour les allègements, qui lit
+tout le guide (perd-on quelque chose ? la page se lit-elle encore à cet endroit ? le lien mène-t-il à une page
+qui existe ?), votre relecture carte par carte, les miroirs, les contrôles du guide, la pull request. Sa branche
+s'appelle `compact/<fil>`, et la pull request dit ce que pesaient les pages modifiées avant et après.
 
 ## Quel modèle
 
@@ -94,11 +100,17 @@ l'étape « relecture croisée », commune avec les veilles : elle suit le rôle
 elle aussi. Voir [Choisir un modèle](choose-a-model.fr.md#un-modèle-pour-une-seule-étape).
 
 Les estimations affichées avant chaque partie suivent le prix du modèle de chaque étape. Sur le guide IA on-prem
-(environ 434 k tokens), aux prix publics de novembre 2026 : environ 3,4 $ pour le rapport et 6,1 $ pour un
-passage d'allègements avec Claude Opus 5.5 ; avec Claude Fable 5.2 sur les deux étapes de compactage, environ
-6,7 $ et 9,4 $. Un passage paie deux lectures du guide : ses propositions et sa relecture croisée ne
-partagent pas le cache. Ce sont des estimations, comptées large, à remplacer par des mesures après les premiers
-passages réels.
+(environ 434 k tokens), aux prix publics de novembre 2026 :
+
+| | Claude Opus 5.5 | Claude Fable 5.2 sur les deux étapes de compactage |
+| :-- | --: | --: |
+| Le rapport | ≈ 3,4 $ | ≈ 6,7 $ (mesuré le 20/11/2026 : 6,28 $, 48 k tokens écrits à l'effort `high`) |
+| Un passage d'allègements, 10 pistes | ≈ 5,5 $ | ≈ 7,5 $ |
+| Un passage d'allègements, 30 pistes | ≈ 11,4 $ | ≈ 17,3 $ |
+
+Un passage coûte sa relecture croisée (tout le guide, une fois : environ 2,6 $ ici), puis une part par piste : les
+pages que lisent ses propositions, ce qu'elles écrivent, et le miroir de chaque page touchée. Les chiffres d'un
+passage sont des estimations, comptées large, à remplacer par des mesures après les premiers passages réels.
 
 Ce qu'un modèle réfléchit est facturé comme de la sortie et compte dans la limite de ce qu'un appel peut écrire.
 Le rapport liste au plus 30 pistes pour que sa réponse reste loin de cette limite ; une réponse coupée à la limite
