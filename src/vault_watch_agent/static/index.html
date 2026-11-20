@@ -11,7 +11,10 @@
 <body>
   <header>
     <a class="brand" href="#/"><img src="/static/icon.svg" alt="" width="22" height="22">vault-watch</a>
-    <span class="guide-name muted" id="guide-name"></span>   <!-- the guide this server works on (app.js header) -->
+    <details class="menu" id="guide-menu">   <!-- the guide this server works on: its site, its repository, its chapters (app.js header) -->
+      <summary><span class="guide-name" id="guide-name"></span></summary>
+      <div class="menu-items" id="guide-links"></div>
+    </details>
     <nav>
       <a href="#/" data-nav="watches">Veilles</a>
       <a href="#/sources" data-nav="sources">Sources</a>
@@ -20,12 +23,11 @@
       <a href="#/costs" data-nav="costs">Coûts</a>
     </nav>
     <div class="header-end">   <!-- at the right; on a narrow window it goes under the menu, still at the right -->
-      <nav class="external" id="external" aria-label="Liens externes"></nav>
       <div class="tools" id="tools"></div>   <!-- size, mode, palettes, bell, language, Settings: app.js header() -->
     </div>
   </header>
   <main id="page" aria-live="polite"></main>
-  <footer id="footer"></footer>   <!-- the version (app.js header) -->
+  <footer id="footer"></footer>   <!-- the version, the agent's code, « Give my opinion » (app.js header) -->
   <script src="/static/themes.js"></script>
   <script src="/static/notify.js"></script>
   <script src="/static/settings.js"></script>

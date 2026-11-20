@@ -156,7 +156,7 @@ declare reads « not checked » in the report, on the publish screen and in the 
 `max_context_tokens`: a ceiling on what a single model call may read of the guide, whatever the model. The
 cross-check, its sweep and the coherence check read the whole guide in one call when it fits in the model's window
 (minus a reserve of 100 k tokens for the instructions, the web and the answer) and under this ceiling; otherwise they
-run chapter by chapter (one top folder per call, with the pages the corrections change), and the report and the
+run chapter by chapter (one [chapter](#chapter) per call, with the pages the corrections change), and the report and the
 run view say so: a contradiction between two chapters can then be missed. Not set: the model's window decides.
 
 `growth_kb` (5 by default) and `growth_percent` (25): a page that gained that many KB in 90 days, or that share of
@@ -166,6 +166,56 @@ pattern that matches wins); none by default, since how long a page should be dep
 page is a warning of `vault-watch doctor`, of `vault-watch compact` and of the « Size of the pages » check, never a
 failure: it says where a [compaction](compact.md) should look first. A read-only page is listed with its weight
 and never flagged.
+
+### `[[chapter]]`
+
+The chapters are the pages the agent works on together. Three steps go chapter by chapter: the exploration of the
+web ([what is new](news.md), one paid call per chapter), the check of the translations (one call per chapter), and
+every step that reads the whole guide when the model's window is too small for it. A chapter is best a set of
+pages a reader would look up together and that the same news would change.
+
+Optional. Without it, an automatic rule applies: one chapter per top folder (the pages at the root form one); a
+folder heavier than 150 KB is split along its subfolders, or in slices of pages of similar weight when it has none;
+the top folders lighter than 20 KB are gathered. To decide yourself, declare chapters, each a table:
+
+```toml
+[[chapter]]
+name = "Hardware"
+paths = ["02-hardware/", "03-stack/choose-a-gpu.md"]
+
+[[chapter]]
+name = "Glossary"
+paths = ["00-glossary/"]
+explore = false
+```
+
+| Key | Meaning |
+| :-- | :-- |
+| `name` | How the chapter is called on the screens and on the command line (`news --explore --chapters`). Unique, 80 characters at most, no comma, no quotation mark |
+| `paths` | What it holds: a folder (`"02-hardware/"`, everything under it), a glob (`*` within a folder, `**` across folders) or a page. A page goes to the first chapter that takes it: write the particular before the general |
+| `explore` | `false` leaves the chapter unticked when the web is explored (a glossary, the pages about the project: the web brings nothing new to them by itself). It can still be ticked. `true` by default |
+
+The pages no chapter takes follow the automatic rule, so a manifest may declare only what the rule gets wrong.
+
+`[[chapter]]` is read from the agent 1.3.0. An older agent refuses a manifest that has it (an unknown key): update
+the agent wherever the guide is read, a workflow that collects its watch included, before you merge such a manifest.
+
+Three ways to write these tables, all reviewed by you before they reach the guide:
+
+- **A model proposes them.** Page « Chapters » of the interface (in the menu under the guide's name), or
+  `vault-watch chapters --propose`. One call reads the outline of the guide (the path, weight, title and headings
+  of each page, not its text: about a twentieth of the guide) and proposes chapters, with those not to explore by
+  default and a sentence of reasons for each. Its cost is said first. Nothing is written by the call.
+- **By hand on the same page**: add, rename, move paths, « Start from the current split »; « See the result »
+  shows the chapters it gives, with their weight, before anything is saved.
+- **By hand in the manifest.**
+
+Saving from the page writes the manifest on a branch of the guide (`chore/chapters-<date>`) and opens a pull
+request when the guide has a repository; the split applies once it is merged. `vault-watch chapters --propose
+--write` puts it in the manifest of the folder instead, for you to commit. `vault-watch chapters` lists the
+chapters as they are now, with their weight; `--automatic` removes the declared ones. Run it again, or open the
+page, when the guide gains a folder or a chapter grows much: `vault-watch doctor` says when a declared chapter
+takes no page any more.
 
 ## What each part unlocks
 

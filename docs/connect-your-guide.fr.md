@@ -157,7 +157,7 @@ ne déclare pas est « non vérifié » dans le rapport, sur l'écran de publica
 `max_context_tokens` : un plafond de ce qu'un seul appel du modèle peut lire du guide, quel que soit le modèle.
 La relecture globale, son balayage et le contrôle de cohérence lisent le guide entier en un appel quand il tient
 dans la fenêtre du modèle (moins une réserve de 100 k tokens pour les consignes, le web et la réponse) et sous ce
-plafond ; sinon ils passent chapitre par chapitre (un dossier de premier niveau par appel, avec les pages que
+plafond ; sinon ils passent chapitre par chapitre (un [chapitre](#chapter) par appel, avec les pages que
 modifient les corrections), et le rapport comme l'écran du passage le disent : une contradiction entre deux
 chapitres peut alors échapper. Sans plafond : la fenêtre du modèle décide.
 
@@ -168,6 +168,60 @@ facultatif, en Ko, pour toutes les pages, et un autre pour les pages d'un dossie
 page dépend de son sujet. Une page signalée est un avertissement de `vault-watch doctor`, de `vault-watch compact`
 et du contrôle « Taille des pages », jamais un échec : elle dit où un [compactage](compact.fr.md) doit regarder
 d'abord. Une page en lecture seule est listée avec son poids et jamais signalée.
+
+### `[[chapter]]`
+
+Les chapitres sont les pages sur lesquelles l'agent travaille ensemble. Trois étapes passent chapitre par
+chapitre : l'exploration du web ([les nouveautés](news.fr.md), un appel payant par chapitre), le contrôle des
+traductions (un appel par chapitre), et toute étape qui lit le guide entier quand la fenêtre du modèle est trop
+petite pour lui. Un bon chapitre réunit les pages qu'un lecteur consulterait ensemble et qu'une même actualité
+ferait changer.
+
+Facultatif. Sans cela, une règle automatique s'applique : un chapitre par dossier de premier niveau (les pages à
+la racine en forment un) ; un dossier de plus de 150 Ko est découpé selon ses sous-dossiers, ou en tranches de
+pages de poids voisin s'il n'en a pas ; les dossiers de premier niveau de moins de 20 Ko sont réunis. Pour décider
+vous-même, déclarez des chapitres, une table chacun :
+
+```toml
+[[chapter]]
+name = "Matériel"
+paths = ["02-materiel/", "03-stack/choisir-un-gpu.md"]
+
+[[chapter]]
+name = "Lexique"
+paths = ["00-lexique/"]
+explore = false
+```
+
+| Clé | Sens |
+| :-- | :-- |
+| `name` | Le nom du chapitre sur les écrans et en ligne de commande (`news --explore --chapters`). Unique, 80 caractères au plus, sans virgule ni guillemet |
+| `paths` | Ce qu'il contient : un dossier (`"02-materiel/"`, tout ce qu'il y a dessous), un motif (`*` dans un dossier, `**` à travers les dossiers) ou une page. Une page va au premier chapitre qui la prend : écrivez le particulier avant le général |
+| `explore` | `false` laisse le chapitre décoché quand le web est exploré (un lexique, les pages sur le projet : le web ne leur apporte rien de neuf par lui-même). On peut toujours le cocher. `true` par défaut |
+
+Les pages qu'aucun chapitre ne prend suivent la règle automatique : un manifeste peut ne déclarer que ce que la
+règle fait mal.
+
+`[[chapter]]` est lu à partir de l'agent 1.3.0. Un agent plus ancien refuse un manifeste qui en contient (clé
+inconnue) : mettez l'agent à jour partout où le guide est lu, y compris un workflow qui collecte sa veille, avant
+de fusionner un tel manifeste.
+
+Trois façons d'écrire ces tables, toutes relues par vous avant d'atteindre le guide :
+
+- **Un modèle les propose.** Page « Chapitres » de l'interface (dans le menu sous le nom du guide), ou
+  `vault-watch chapters --propose`. Un appel lit le plan du guide (le chemin, le poids, le titre et les intertitres
+  de chaque page, pas son texte : environ un vingtième du guide) et propose des chapitres, avec ceux à ne pas
+  explorer par défaut et une phrase de raisons pour chacun. Son coût est dit d'abord. L'appel n'écrit rien.
+- **À la main sur la même page** : ajouter, renommer, déplacer des chemins, « Partir du découpage actuel » ;
+  « Voir le résultat » montre les chapitres obtenus, avec leur poids, avant tout enregistrement.
+- **À la main dans le manifeste.**
+
+Enregistrer depuis la page écrit le manifeste sur une branche du guide (`chore/chapters-<date>`) et ouvre une
+pull request quand le guide a un dépôt ; le découpage s'applique une fois fusionné. `vault-watch chapters --propose
+--write` le met dans le manifeste du dossier, à commiter vous-même. `vault-watch chapters` liste les chapitres
+tels qu'ils sont, avec leur poids ; `--automatic` retire ceux qui sont déclarés. Relancez-le, ou rouvrez la page,
+quand le guide gagne un dossier ou qu'un chapitre grossit beaucoup : `vault-watch doctor` dit quand un chapitre
+déclaré ne prend plus aucune page.
 
 ## Ce que débloque chaque partie
 

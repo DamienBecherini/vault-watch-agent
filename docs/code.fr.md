@@ -96,6 +96,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `inputs.py` | 121 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |
 | `prompts.py` | 119 | Prompts système construits à partir de la charte éditoriale et de la politique de traduction du guide |
 | `state.py` | 117 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
+| `chapters.py` | 357 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
 | `reading.py` | 99 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
 | `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
 | `steps.py` | 56 | Chaque étape d'un passage : son rôle, son effort, ce qu'elle demande à un moteur |

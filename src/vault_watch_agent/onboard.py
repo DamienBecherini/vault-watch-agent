@@ -236,6 +236,14 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
                             f"{len(missing)} page(s) without a copy under {folder}" if missing else f"every page has a copy under {folder}"))
     if not guide.mirrors:
         out.append(Line("off", "mirrors", "none: no translation step"))
+    if pages:
+        from . import chapters
+
+        split = chapters.view(root)
+        declared = sum(c["declared"] for c in split["chapters"])
+        out.append(Line("warn" if split["notes"] else "ok", "chapters",
+                        f"{len(split['chapters'])} ({declared} declared in the manifest, the others by the automatic rule)"
+                        + "".join(f"; {note}" for note in split["notes"])))
     if guide.readonly:
         rel = [p.relative_to(root).as_posix() for p in pages]
         n = sum(1 for p in rel if guide.is_readonly(p))

@@ -48,7 +48,24 @@ already knows, and what it sets aside as a possible addition is never written. [
   kept on the disk, the open ones and the list of watch issues are asked again at most every 20 seconds and side by
   side, and the page draws what it showed last before it refreshes. Measured on the IA on-prem guide: 1.7 s for
   the first display after a start, 15 ms after.
-- Three steps more in the Settings (the leads, the exploration, the additions), each of which can run on a model
+- The chapters of a guide are no longer its top folders only ([`[[chapter]]`](docs/connect-your-guide.md#chapter)).
+  The manifest can declare them (`[[chapter]]`: a name, paths, and `explore = false` for a chapter left unticked
+  when the web is explored), an optional part of schema 1 that an older agent refuses as an unknown key. A model
+  can propose them: page « Chapters » of the interface, or `vault-watch chapters --propose`; one call reads the
+  outline of the guide (path, weight, title and headings of each page, not the text) and names the chapters, those
+  not to explore by default, and why. The page also edits them by hand, shows what a split would give before it is
+  saved, then writes the manifest on a branch with its pull request. For the pages no chapter takes, and for a
+  guide that declares none, the automatic rule now splits a folder heavier than 150 KB (along its subfolders, else
+  in slices of pages) and gathers the top folders lighter than 20 KB: on the IA on-prem guide, the lexicon (219 KB)
+  becomes two chapters and the root pages join the project pages. The exploration, the check of the translations
+  and the reading by chapter follow. `vault-watch chapters` lists them; `doctor` has a line for them.
+- The header: the guide's name is a menu (its site, its repository, its chapters) instead of a row of links; the
+  agent's code is in the footer, with « Give my opinion », which opens an issue of the agent's repository with the
+  version and the system filled in (nothing of the guide). The link to the Claude API console is gone.
+- The lists scale with the runs kept: the home page reads the state of a run only when it has moved (one line of
+  the database per run otherwise), shows the 20 newest runs outside the watches and offers the older ones;
+  « Check the guide » offers the verifications older than the 20 newest, which no screen listed before.
+- Four steps more in the Settings (the leads, the exploration, the additions, the split into chapters), each of which can run on a model
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
   The estimates are not measured yet.
 - `prompts.fill` knows two markers more: `<<TODAY>>` and `<<BRIEF>>` (the guide's contract, put last).

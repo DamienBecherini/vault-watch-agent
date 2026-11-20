@@ -281,8 +281,11 @@ def news_command(args) -> None:
 
     from . import news
 
+    from . import chapters as split
+
     known = news.explorable(VAULT)
-    chapters = [c.strip() for c in (args.chapters or "").split(",") if c.strip()] or list(known)
+    chapters = [c.strip() for c in (args.chapters or "").split(",") if c.strip()] or [
+        c for c in split.default_explored(VAULT) if c in known]
     unknown = [c for c in chapters if c not in known]
     if unknown:
         sys.exit(f"vault-watch: no such chapter to explore: {', '.join(unknown)} (the guide has: {', '.join(known)})")
@@ -294,6 +297,61 @@ def news_command(args) -> None:
 
     _paid_check(args, "explore", "add", f"The exploration of {len(chapters)} chapter(s), one call each with the web,", "--add",
                 run, each=("usd_chapter", len(chapters)))
+
+
+def chapters_command(args) -> None:
+    """The chapters of the guide as the agent has them; --propose: a model's split from the outline of the guide
+    (its cost said first, asked for unless --yes), printed as the lines of the manifest, written there with --write;
+    --automatic: the declared chapters removed from the manifest."""
+    from datetime import date
+
+    from . import chapters, config, verify
+    from .guide import GuideError
+    from .llm import create, step_model
+
+    def table(view: dict, why: dict | None = None) -> None:
+        print(f"{'chapter':<52}{'pages':>6}{'KB':>8}  explored  from")
+        for c in view["chapters"]:
+            print(f"{c['name'][:50]:<52}{c['pages']:>6}{c['kb']:>8.0f}  {'yes' if c['explore'] else 'no':<8}  "
+                  f"{'manifest' if c['declared'] else 'automatic'}"
+                  + (f"\n    {why[c['name']]}" if why and why.get(c["name"]) else ""))
+        for note in view["notes"]:
+            print(f"! {note}")
+
+    try:
+        if args.automatic:
+            changed = chapters.write(VAULT, [])
+            print("vault-watch: the manifest declares no chapter any more (review with git diff, then commit)." if changed
+                  else "vault-watch: the manifest declares no chapter: nothing to change.")
+            return
+        if not args.propose:
+            table(chapters.view(VAULT))
+            return
+        settings = config.load(CONFIG_HOME)
+        prices = Prices.of_home(CONFIG_HOME, settings)
+        llm = create("reasoning", JOURNAL, settings, prices)
+        client = llm.for_step("chapters") if hasattr(llm, "for_step") else llm
+        billing = client.capabilities().billing if hasattr(client, "capabilities") else "token"
+        usd = verify.chapters_usd(VAULT, step_model(settings, "chapters"), prices)
+        paid = {"subscription": "taken from the subscription, not billed", "none": "a local model, not billed"}.get(
+            billing, f"≈ {usd:.2f} $")
+        print(f"A model reads the outline of the guide (titles, headings, weights; not the text) and proposes chapters: {paid}.")
+        if not (args.yes or _confirm("Run it? [y/N] ")):
+            print("vault-watch: nothing run.")
+            return
+        llm.run, llm.kind = f"chapters-{date.today().isoformat()}", "verify"
+        declared, why, usage = chapters.propose(VAULT, llm)
+        if not declared:
+            sys.exit("vault-watch: the model proposed no chapter that names a page of the guide")
+        table(chapters.view(VAULT, declared), why)
+        print(f"\n(≈ {(usage or {}).get('cost_usd', 0):.2f} $) The lines of the manifest:\n\n{chapters.toml(declared)}")
+        if args.write:
+            chapters.write(VAULT, declared)
+            print(f"vault-watch: written to {VAULT / 'vault-watch.toml'}. Review with git diff, then commit it as any change of the guide.")
+        else:
+            print("Nothing is written. Paste these lines at the end of the manifest, or run again with --write.")
+    except GuideError as e:
+        sys.exit(f"vault-watch: {e}")
 
 
 def _paid_check(args, check: str, prefix: str, what: str, flag: str, run, each: tuple[str, int] | None = None) -> None:
@@ -426,7 +484,17 @@ def main(argv: list[str] | None = None) -> None:
     nw.add_argument("--yes", action="store_true", help="run the model call without asking")
     nw.add_argument("--explore", action="store_true", help="the other way to find leads: the web explored chapter by "
                     "chapter, one call each (it costs more, and finds what nobody thought to ask)")
-    nw.add_argument("--chapters", help="--explore: the chapters to explore, e.g. 02-materiel,03-stack (default: all)")
+    nw.add_argument("--chapters", help="--explore: the chapters to explore, e.g. 02-materiel,03-stack (default: all, "
+                    "except those the manifest declares with explore = false; `vault-watch chapters` lists them)")
+    ch = sub.add_parser("chapters", help="the chapters the agent works on (exploration of the web, check of the "
+                        "translations, reading by chapter); --propose asks a model for a split")
+    ch.add_argument("--propose", action="store_true", help="one model call reads the outline of the guide (titles, "
+                    "headings, weights) and proposes chapters; nothing is written without --write")
+    ch.add_argument("--write", action="store_true", help="--propose: put the proposal in the manifest of the guide's "
+                    "folder (review it with git diff, commit it as any change of the guide)")
+    ch.add_argument("--automatic", action="store_true", help="remove the chapters the manifest declares: back to the "
+                    "automatic rule")
+    ch.add_argument("--yes", action="store_true", help="--propose: run the model call without asking")
     cp = sub.add_parser("compact", help="what the guide weighs, page by page (no model); --report lists what could be trimmed")
     cp.add_argument("--report", action="store_true", help="one model call reads the whole guide and lists what weighs; "
                     "nothing is edited")
@@ -485,6 +553,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "news":
         HOME.mkdir(parents=True, exist_ok=True)
         news_command(args)
+        return
+    if args.cmd == "chapters":
+        chapters_command(args)
         return
     if args.cmd == "costs":
         from . import costs

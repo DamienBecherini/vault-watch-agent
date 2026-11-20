@@ -72,7 +72,31 @@ nav a.active { color: var(--text); border-color: var(--accent); }
 main { max-width: 980px; margin: 0 auto; padding: 24px 16px 96px; }
 .cfg-row { display: grid; grid-template-columns: minmax(120px, 32%) 1fr; gap: 8px; padding: 4px 0; overflow-wrap: anywhere; }
 .cfg-row .cfg-label { color: var(--muted); }
-.guide-name { font-size: 13px; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guide-name { display: inline-block; vertical-align: bottom; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The guide's menu: its name, in the header, opens its site, its repository and its chapters */
+.menu { position: relative; font-size: 13px; }
+.menu > summary { list-style: none; cursor: pointer; color: var(--muted); padding: 3px 10px; border: 1px solid var(--border);
+  border-radius: 999px; white-space: nowrap; user-select: none; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary::after { content: " ▾"; }
+.menu > summary:hover, .menu[open] > summary { color: var(--text); border-color: var(--accent); }
+.menu-items { position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; min-width: 220px; display: grid; padding: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
+.menu-items a { padding: 7px 10px; border-radius: 6px; text-decoration: none; color: var(--text); white-space: nowrap; font-size: 14px; }
+.menu-items a:hover, .menu-items a:focus-visible { background: color-mix(in srgb, var(--text) 8%, transparent); }
+footer a { color: inherit; }
+/* « Chapters »: the table of the split, and one card per chapter being edited */
+table.chapters th.num, table.chapters td.num { text-align: right; white-space: nowrap; }
+table.chapters td { vertical-align: top; padding: 6px 8px; } table.chapters th { padding: 6px 8px; text-align: left; }
+.check-card > .option-text { padding: 16px; } .option-text p { margin: 6px 0 0; }
+.chapter-fields { display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 12px; align-items: start; }
+.chapter-fields label { display: grid; gap: 4px; color: var(--muted); align-content: start; }
+.chapter-fields input, .chapter-fields textarea { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid var(--field-border); background: var(--field, var(--card)); color: var(--text); width: 100%; }
+.chapter-fields textarea { font-family: ui-monospace, Consolas, monospace; font-size: 13px; resize: vertical; }
+.chapter-row .actions { margin-top: 8px; }
+pre.toml { overflow-x: auto; font-size: 12.5px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
+@media (max-width: 620px) { .chapter-fields { grid-template-columns: 1fr; } }
 footer { max-width: 980px; margin: -72px auto 0; padding: 0 16px 24px; color: var(--muted); font-size: 12px; }
 h1 { font-size: 22px; margin: 0 0 4px; }
 h2 { font-size: 17px; margin: 32px 0 12px; }
@@ -184,7 +208,6 @@ label.dig { display: block; margin: 2px 0 0 24px; }
 .card.notice { border-left: 4px solid var(--attention); } .card.notice p, .card.notice ul { margin: 0 0 6px; }
 .card.finished { opacity: .6; } .card.finished:hover { opacity: 1; }
 .header-end { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px 16px; flex-wrap: wrap; }
-nav.external a { font-size: 13px; }
 .tools { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 button.icon { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--muted); }
 button.icon:hover:not(:disabled), button.icon.on { color: var(--text); border-color: var(--accent); }
@@ -194,7 +217,6 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-li
 .langs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .langs button { border: 0; border-radius: 0; padding: 3px 9px; font-size: 12px; color: var(--muted); background: transparent; }
 .langs button.active { background: var(--accent); color: var(--accent-text); }
-nav.external { align-items: center; }
 .option { display: grid; grid-template-columns: 28px 1fr; gap: 4px 12px; cursor: pointer; }
 .option input { width: 18px; height: 18px; margin-top: 3px; }
 .option p { margin: 4px 0 0; }

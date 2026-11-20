@@ -64,7 +64,37 @@ const TEXTS = {
       sortBy: c => `Trier par « ${c} » (un second clic inverse)`, defaultSort: "Tri par défaut",
       count: (n, label) => `${n} ${label}`,
     },
-    links: ["Guide", "Dépôt du guide", "Code de l'agent", "Claude API"],
+    menu: { site: "Site du guide", repo: forge => `Dépôt sur ${forge}`, chapters: "Chapitres", code: "Code de l'agent", feedback: "Donner mon avis",
+      open: "Liens et chapitres du guide", older: "Afficher les plus anciens",
+      report: ["Ce qui s'est passé", "Ce que j'attendais", "Comment reproduire (commande ou page, moteur)", "Version et système (remplis par la page ; retire ce que tu ne veux pas partager)", "Journal (fin de la sortie du terminal ; retire toute clé ou chemin privé)"] },
+    chapters: {
+      title: "Chapitres",
+      intro: "L'agent travaille chapitre par chapitre à trois endroits : l'exploration du web (un appel payant par chapitre), le contrôle des traductions (un appel par chapitre) et la lecture du guide quand il ne tient pas dans la fenêtre du modèle. Un chapitre réunit les pages qu'un lecteur consulterait ensemble et qu'une même actualité ferait changer.",
+      now: "Découpage actuel", sourceAuto: "règle automatique", sourceManifest: "déclaré dans le manifeste du guide",
+      autoHelp: (big, small) => `Pour les pages qu'aucun chapitre déclaré ne prend, la règle automatique fait un chapitre par dossier de premier niveau, découpe un dossier de plus de ${big} Ko (par sous-dossier, sinon par tranches de pages) et réunit ceux de moins de ${small} Ko.`,
+      cols: ["Chapitre", "Pages", "Poids", "Exploré par défaut", "Origine"],
+      declared: "manifeste", auto: "automatique", yes: "oui", no: "non", kb: n => `${n} Ko`,
+      change: "Modifier le découpage",
+      askTitle: "Demander un découpage à un modèle",
+      askWhat: "Le modèle lit le plan du guide (chemin, poids, titre et intertitres de chaque page, pas le texte) et propose des chapitres, avec ceux à ne pas explorer par défaut (un lexique, les pages sur le projet). Rien n'est écrit : tu relis et tu ajustes ci-dessous.",
+      ask: c => `Proposer un découpage · ${c}`, asking: "Le modèle lit le plan du guide…",
+      asked: c => `Proposition reçue (${c}). Relis-la, ajuste-la, puis enregistre.`,
+      byHand: "À la main ou après une proposition", fromNow: "Partir du découpage actuel", add: "Ajouter un chapitre", remove: "Retirer",
+      name: "Nom", paths: "Chemins, un par ligne : un dossier terminé par /, un motif avec * ou **, ou une page", explore: "exploré par défaut",
+      pathsHelp: "Une page va au premier chapitre qui la prend. Les pages qu'aucun chapitre ne prend suivent la règle automatique.",
+      preview: "Voir le résultat", result: "Ce que ça donnerait",
+      save: forge => `Ouvrir la pull request sur ${forge}`, saveLocal: "Créer la branche",
+      saveHelp: (manifest, base) => `Le découpage est écrit dans ${manifest}, sur une branche à part ; il s'applique une fois fusionné dans ${base}.`,
+      needs: v => `Avant de fusionner : un manifeste qui déclare des chapitres demande l'agent ${v} ou plus récent partout où le guide est lu, y compris le workflow qui collecte sa veille. Un agent plus ancien refuse le manifeste.`,
+      noManifest: "Ce guide n'a pas de manifeste : la commande vault-watch init en écrit un, et les chapitres s'y déclarent.",
+      backAuto: "Revenir à la règle automatique",
+      pending: "Une pull request déclare un découpage. Il s'appliquera une fois fusionnée ; d'ici là, rien d'autre ne peut être enregistré.",
+      saved: "Pull request ouverte. Le découpage s'applique une fois fusionnée.",
+      savedLocal: (branch, base) => `Branche ${branch} créée sur cette machine (guide sans dépôt) : fusionne-la dans ${base} pour appliquer le découpage.`,
+      toml: "Lignes du manifeste (pour les coller à la main)", copy: "Copier", copied: "Copié",
+      empty: "Aucun chapitre déclaré : ajoutes-en un, pars du découpage actuel ou demande une proposition.",
+      edit: "Modifier les chapitres",
+    },
     verif: {
       title: "Vérifier le guide",
       intro: "Un bilan de santé du guide entier, à la demande. Les contrôles gratuits utilisent les scripts du guide ; les autres font lire le guide par Claude. Les résultats sont des pistes : celles que tu gardes partent dans une passe fix, qui les vérifie sur les sources et passe par ta relecture.",
@@ -253,7 +283,37 @@ const TEXTS = {
       sortBy: c => `Sort by « ${c} » (a second click reverses)`, defaultSort: "Default order",
       count: (n, label) => `${n} ${label}`,
     },
-    links: ["Guide", "Guide repository", "Agent code", "Claude API"],
+    menu: { site: "Site of the guide", repo: forge => `Repository on ${forge}`, chapters: "Chapters", code: "Agent code", feedback: "Give my opinion",
+      open: "Links and chapters of the guide", older: "Show older ones",
+      report: ["What happened", "What I expected", "How to reproduce (command or page, engine)", "Version and system (filled by the page; remove what you do not want to share)", "Log (the end of the terminal output; remove any key or private path)"] },
+    chapters: {
+      title: "Chapters",
+      intro: "The agent works chapter by chapter in three places: the exploration of the web (one paid call per chapter), the check of the translations (one call per chapter) and the reading of the guide when it does not fit in the model's window. A chapter gathers the pages a reader would look up together and that the same news would change.",
+      now: "Current split", sourceAuto: "automatic rule", sourceManifest: "declared in the guide's manifest",
+      autoHelp: (big, small) => `For the pages no declared chapter takes, the automatic rule makes one chapter per top folder, splits a folder heavier than ${big} KB (by subfolder, else in slices of pages) and gathers those lighter than ${small} KB.`,
+      cols: ["Chapter", "Pages", "Weight", "Explored by default", "From"],
+      declared: "manifest", auto: "automatic", yes: "yes", no: "no", kb: n => `${n} KB`,
+      change: "Change the split",
+      askTitle: "Ask a model for a split",
+      askWhat: "The model reads the outline of the guide (path, weight, title and headings of each page, not the text) and proposes chapters, with those not to explore by default (a glossary, the pages about the project). Nothing is written: you review and adjust below.",
+      ask: c => `Propose a split · ${c}`, asking: "The model reads the outline of the guide…",
+      asked: c => `Proposal received (${c}). Review it, adjust it, then save.`,
+      byHand: "By hand, or after a proposal", fromNow: "Start from the current split", add: "Add a chapter", remove: "Remove",
+      name: "Name", paths: "Paths, one per line: a folder ending with /, a pattern with * or **, or a page", explore: "explored by default",
+      pathsHelp: "A page goes to the first chapter that takes it. The pages no chapter takes follow the automatic rule.",
+      preview: "See the result", result: "What it would give",
+      save: forge => `Open the pull request on ${forge}`, saveLocal: "Create the branch",
+      saveHelp: (manifest, base) => `The split is written to ${manifest}, on a branch of its own; it applies once merged into ${base}.`,
+      needs: v => `Before you merge: a manifest that declares chapters needs the agent ${v} or newer wherever the guide is read, the workflow that collects its watch included. An older agent refuses the manifest.`,
+      noManifest: "This guide has no manifest: the command vault-watch init writes one, and the chapters are declared there.",
+      backAuto: "Back to the automatic rule",
+      pending: "A pull request declares a split. It will apply once merged; until then nothing else can be saved.",
+      saved: "Pull request opened. The split applies once it is merged.",
+      savedLocal: (branch, base) => `Branch ${branch} created on this machine (a guide without a repository): merge it into ${base} to apply the split.`,
+      toml: "Lines of the manifest (to paste them by hand)", copy: "Copy", copied: "Copied",
+      empty: "No chapter declared: add one, start from the current split or ask for a proposal.",
+      edit: "Change the chapters",
+    },
     verif: {
       title: "Check the guide",
       intro: "A health check of the whole guide, on demand. The free checks run the guide's own scripts; the others have Claude read the guide. Results are leads: the ones you keep go to a fix run, which checks them on sources and goes through your review.",
@@ -420,7 +480,6 @@ async function api(path, body) {
 // --- Header -------------------------------------------------------------------------------------------
 let info = null;
 const forgeName = () => info?.forge || "GitHub";  // where the pull requests are merged
-const CLAUDE_BILLING = "https://platform.claude.com/settings/billing";  // API credits left (the API engine spends them)
 // What a paid action costs: its estimate on the API, nothing on Claude Code with a subscription (info.engine)
 const onSubscription = () => info?.engine === "claude-code";
 // What an action costs: the estimate (Claude API prices) on the API only; nothing on a subscription or a local model;
@@ -498,11 +557,20 @@ let REPORT_TEXT = "";    // what was typed on the report page, kept the same way
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
-  const links = info ? [info.site, info.repo_url, info.agent, CLAUDE_BILLING]
-    .map((url, i) => url && extLink(url, `${T.links[i]} ↗`)).filter(Boolean).join("") : "";
-  $("#external").innerHTML = links;
-  $("#footer").textContent = info?.version ? `vault-watch ${info.version}` : "";
-  $("#guide-name").textContent = info?.guide || "";   // one guide per server
+  // The guide's menu: its name opens its site, its repository and its chapters (one guide per server)
+  $("#guide-name").textContent = info?.guide || "";
+  $("#guide-menu").hidden = !info;
+  $("#guide-menu > summary").title = T.menu.open;
+  $("#guide-links").innerHTML = info ? [
+    info.site && extLink(info.site, `${T.menu.site} ↗`),
+    info.repo_url && extLink(info.repo_url, `${T.menu.repo(forgeName())} ↗`),
+    `<a href="#/chapters">${T.menu.chapters}</a>`].filter(Boolean).join("") : "";
+  // The footer: the version, the agent's code, and a report sent as an issue of the agent's repository, with the
+  // version and the system filled in (nothing of the guide: not its name, not the run being looked at)
+  const context = info ? `vault-watch ${info.version} · ${info.system} · Python ${info.python} · ${info.engine || "?"} · ${(location.hash.match(/^#\/[a-z]*/) || ["#/"])[0]}` : "";
+  const report = T.menu.report.map((title, i) => `**${title}**\n${i === 3 ? context : ""}\n`).join("\n");
+  $("#footer").innerHTML = info?.version ? [`vault-watch ${esc(info.version)}`, extLink(info.agent, `${T.menu.code} ↗`),
+    extLink(`${info.agent}/issues/new?labels=bug&body=${encodeURIComponent(report)}`, `${T.menu.feedback} ↗`)].join(" · ") : "";
   document.title = info?.guide ? `vault-watch · ${info.guide}` : "vault-watch";
   // The size of the text, light or dark, the palettes (themes.js), the bell (notify.js), the language, the Settings
   const tools = $("#tools");
@@ -521,12 +589,24 @@ function header() {
   });
 }
 
+// The guide's menu closes when one of its links is followed, on a click elsewhere, and with Escape
+document.addEventListener("click", e => {
+  const menu = $("#guide-menu");
+  if (menu.open && (!menu.contains(e.target) || e.target.closest("a"))) menu.open = false;
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#guide-menu").open = false; });
+
 // --- Router --------------------------------------------------------------------------------------
 async function route() {
   if (source) { source.close(); source = null; }
   clearTimeout(followTimer);
   let h = location.hash.slice(1) || "/";
-  if (h !== shownHash) { Object.keys(OWN).forEach(k => delete OWN[k]); shownHash = h; }
+  if (h !== shownHash) {
+    Object.keys(OWN).forEach(k => delete OWN[k]);
+    shownHash = h;
+    // « Chapters »: what was said there is said once; what is being edited stays, unless it was saved
+    if (CH_EDIT) CH_EDIT = CH_EDIT.done ? null : { ...CH_EDIT, said: "" };
+  }
   if (h === "/settings") {   // an address to open the Settings: the window, over the first page
     history.replaceState(null, "", "#/");
     h = "/";
@@ -542,6 +622,7 @@ async function route() {
     else if (h === "/sources") await viewSources();
     else if (h === "/report" || h === "/idea") await viewReport(h === "/idea");
     else if (h === "/costs") await viewCosts();
+    else if (h === "/chapters") await viewChapters();
     else await viewWatches();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
@@ -551,8 +632,9 @@ addEventListener("hashchange", route);
 
 // --- Watches ---------------------------------------------------------------------------------------
 let HOME = null;  // the last answer shown on the home page: drawn at once on the way back, then refreshed
+let RUNS_SHOWN = 20, CHECKS_SHOWN = 20;  // the lists show the newest; « older ones » asks for more
 async function viewWatches() {
-  const load = () => Promise.all([api("/api/watches"), api("/api/runs")]);
+  const load = () => Promise.all([api("/api/watches"), api(`/api/runs?limit=${RUNS_SHOWN + 1}`)]);  // one more: are there older ones?
   if (HOME) {
     drawWatches(...HOME);
     const shown = JSON.stringify(HOME), at = location.hash;
@@ -590,11 +672,13 @@ function drawWatches(watches, others) {
         ${badge(r.status)} ${action}
       </div>`;
     }).join("") || `<p class="muted">${T.noWatch}</p>`}
-    ${others.length ? `<h2>${T.others}</h2>${others.map(r => `
+    ${others.length ? `<h2>${T.others}</h2>${others.slice(0, RUNS_SHOWN).map(r => `
       <div class="card row${FINISHED.includes(r.status) ? " finished" : ""}"><div class="grow"><b>${esc(r.thread)}</b>
         <div class="muted small">${esc(r.source)} · ${r.corrections} correction(s) · ${dollars(r.cost)}${
           r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div></div>
-        ${badge(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a></div>`).join("")}` : ""}`;
+        ${badge(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a></div>`).join("")}
+      ${others.length > RUNS_SHOWN ? `<p><button type="button" id="older">${T.menu.older}</button></p>` : ""}` : ""}`;
+  if ($("#older")) $("#older").onclick = () => { RUNS_SHOWN += 40; HOME = null; viewWatches(); };
   const collect = $("#collect");
   if (collect) collect.onclick = async () => {
     collect.disabled = true;
@@ -607,6 +691,98 @@ function drawWatches(watches, others) {
     const { thread } = await api("/api/analyses", b.dataset.kind === "issue" ? { issue: Number(b.dataset.analyse) } : { watch: b.dataset.analyse });
     location.hash = `/run/${encodeURIComponent(thread)}`;
   });
+}
+
+// --- The chapters of the guide: seen, proposed by a model, edited by hand, declared in the manifest ---------
+let CH_EDIT = null;   // what is being edited: {rows: [{name, paths, explore}], why: {name: reason}, result, said}
+async function viewChapters() {
+  await loadSteps();
+  const d = await api(`/api/chapters${stepsQuery()}`), C = T.chapters;
+  if (!CH_EDIT) CH_EDIT = { rows: d.chapters.filter(c => c.declared).map(c => ({ name: c.name, paths: c.paths, explore: c.explore })), why: {} };
+  const E = CH_EDIT;
+  const table = (rows, why) => `<div class="scroll-x"><table class="chapters"><thead><tr>${C.cols.map((c, i) => `<th${i === 1 || i === 2 ? ' class="num"' : ""}>${c}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>
+      <td><b>${esc(r.name)}</b><div class="muted small">${esc(r.first)}${r.pages > 1 ? ` … ${esc(r.last)}` : ""}</div>${why?.[r.name] ? `<div class="small">${esc(why[r.name])}</div>` : ""}</td>
+      <td class="num">${r.pages}</td><td class="num">${C.kb(Math.round(r.kb))}</td>
+      <td>${r.explore ? C.yes : `<b>${C.no}</b>`}</td><td class="muted">${r.declared ? C.declared : C.auto}</td></tr>`).join("")}</tbody></table></div>`;
+  const notes = list => list.length ? `<ul class="attention-text small">${list.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : "";
+  const pending = d.pending?.pr_url;
+  const canSave = d.from_manifest && !pending;
+  page.innerHTML = `
+    <h1>${C.title}</h1>
+    <p class="subtitle">${C.intro}</p>
+    ${pending ? `<p class="banner">${C.pending} ${extLink(d.pending.pr_url, "pull request ↗")}</p>` : ""}
+    ${E.said ? `<p class="banner">${E.said}</p>` : ""}
+    <h2>${C.now} <span class="badge neutral">${d.source === "manifest" ? C.sourceManifest : C.sourceAuto}</span></h2>
+    <div class="card">${table(d.chapters)}${notes(d.notes)}<p class="muted small">${C.autoHelp(d.big_kb, d.small_kb)}</p></div>
+    <h2>${C.change}</h2>
+    <div class="card check-card"><div class="option-text">
+        <div class="header"><b>${C.askTitle}</b> <span class="badge attention">${costOf("chapters", `≈ ${dollars(d.usd)}`)}</span></div>
+        <p class="muted small">${C.askWhat}</p>
+        <p><button id="ask">${C.ask(costOf("chapters", `≈ ${dollars(d.usd)}`))}</button> <span class="error-text small" id="ask-error"></span></p>
+      </div><div class="card-foot">${stepLine("chapters")}</div></div>
+    <h3>${C.byHand}</h3>
+    <p class="muted small">${C.pathsHelp}</p>
+    <div id="rows">${E.rows.map((r, i) => `<div class="card chapter-row" data-row="${i}">
+      <div class="chapter-fields">
+        <label class="small">${C.name}<input type="text" data-f="name" value="${esc(r.name)}" maxlength="80"></label>
+        <label class="small">${C.paths}<textarea data-f="paths" rows="${Math.min(8, Math.max(2, r.paths.length))}" spellcheck="false">${esc(r.paths.join("\n"))}</textarea></label>
+      </div>
+      ${E.why[r.name] ? `<p class="muted small">${esc(E.why[r.name])}</p>` : ""}
+      <div class="actions"><label class="small"><input type="checkbox" data-f="explore" ${r.explore ? "checked" : ""}> ${C.explore}</label>
+        <span class="spacer"></span><button type="button" class="small-button danger" data-remove="${i}">${C.remove}</button></div>
+    </div>`).join("") || `<p class="muted">${C.empty}</p>`}</div>
+    <p class="actions"><button type="button" id="add-row">${C.add}</button><button type="button" id="from-now">${C.fromNow}</button>
+      <span class="spacer"></span><button type="button" class="primary" id="preview"${E.rows.length ? "" : " disabled"}>${C.preview}</button></p>
+    <p class="error-text small" id="edit-error"></p>
+    <div id="result"${E.result ? "" : " hidden"}>${E.result ? `<h2>${C.result}</h2>
+      <div class="card">${table(E.result.chapters, E.why)}${notes(E.result.notes)}
+        <details><summary class="small">${C.toml}</summary><pre class="toml">${esc(E.result.toml)}</pre>
+          <button type="button" class="small-button" id="copy-toml">${C.copy}</button></details></div>
+      <p class="muted small">${d.from_manifest ? C.saveHelp(d.manifest, d.base) : C.noManifest}</p>
+      ${d.from_manifest && E.rows.length ? `<p class="small attention-text">${C.needs(d.needs)}</p>` : ""}
+      <p><button type="button" class="primary" id="save"${canSave ? "" : " disabled"}>${d.has_repo ? C.save(d.forge) : C.saveLocal}</button></p>` : ""}</div>
+    ${d.source === "manifest" ? `<p><button type="button" class="small-button" id="back-auto"${canSave ? "" : " disabled"}>${C.backAuto}</button></p>` : ""}`;
+  const read = () => [...page.querySelectorAll("[data-row]")].map(row => ({
+    name: row.querySelector("[data-f=name]").value.trim(),
+    paths: row.querySelector("[data-f=paths]").value.split("\n").map(p => p.trim()).filter(Boolean),
+    explore: row.querySelector("[data-f=explore]").checked }));
+  const keep = () => { E.rows = read(); };
+  const failed = (where, e) => { $(where).textContent = e.message; };
+  // What was typed since the last result: the result no longer says what would be saved
+  $("#rows").oninput = () => { E.result = null; $("#result").hidden = true; };
+  $("#add-row").onclick = () => { keep(); E.rows.push({ name: "", paths: [], explore: true }); E.result = null; viewChapters(); };
+  $("#from-now").onclick = () => { CH_EDIT = { rows: d.chapters.map(c => ({ name: c.name, paths: c.cover, explore: c.explore })), why: {} }; viewChapters(); };
+  page.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => { keep(); E.rows.splice(Number(b.dataset.remove), 1); E.result = null; viewChapters(); });
+  $("#preview").onclick = async () => {
+    keep();
+    try { E.result = await api("/api/chapters/preview", { chapters: E.rows }); E.said = ""; viewChapters(); }
+    catch (e) { failed("#edit-error", e); }
+  };
+  $("#ask").onclick = async () => {
+    const b = $("#ask");
+    b.disabled = true;
+    b.textContent = C.asking;
+    try {
+      const p = await api("/api/chapters/propose", { steps: ownFor(["chapters"]) });
+      CH_EDIT = { rows: p.chapters.filter(c => c.declared).map(c => ({ name: c.name, paths: c.paths, explore: c.explore })), why: p.why, result: p,
+                  said: C.asked(costOf("chapters", dollars(p.cost))) };
+      viewChapters();
+    } catch (e) { b.disabled = false; b.textContent = C.ask(costOf("chapters", `≈ ${dollars(d.usd)}`)); failed("#ask-error", e); }
+  };
+  const save = async (chapters, button) => {
+    button.disabled = true;
+    try {
+      const done = await api("/api/chapters", { chapters });
+      CH_EDIT = { rows: chapters, why: {}, done: true, said: done.pr_url ? `${C.saved} ${extLink(done.pr_url, "pull request ↗")}` : esc(C.savedLocal(done.branch, done.base)) };
+      viewChapters();
+    } catch (e) { button.disabled = false; failed("#edit-error", e); }
+  };
+  if ($("#save")) $("#save").onclick = () => { keep(); save(E.rows, $("#save")); };
+  if ($("#back-auto")) $("#back-auto").onclick = () => save([], $("#back-auto"));
+  if ($("#copy-toml")) $("#copy-toml").onclick = async () => {
+    try { await navigator.clipboard.writeText(E.result.toml); $("#copy-toml").textContent = C.copied; } catch { /* no clipboard: the text is selectable */ }
+  };
+  bindSteps(page, () => { keep(); viewChapters(); });
 }
 
 // --- One run ---------------------------------------------------------------------------------------
@@ -808,7 +984,8 @@ async function viewChecks() {
   await loadSteps();
   const kept = CHECK_FORM;  // drawn again after a step was changed for this verification: the boxes stay as they were
   CHECK_FORM = null;
-  const [options, verifs] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api("/api/verifications")]);
+  const [options, listed] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api(`/api/verifications?limit=${CHECKS_SHOWN + 1}`)]);
+  const verifs = listed.slice(0, CHECKS_SHOWN);
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
   // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
   const price = o => o.model ? costOf(o.id, o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
@@ -841,12 +1018,15 @@ async function viewChecks() {
         <p class="muted small">${esc(o.note[lang])}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
       </div></label>${o.model ? `<div class="card-foot">${stepLine(o.id)}</div>` : ""}${o.chapters ? `<div class="card-foot chapters" data-chapters-of="${o.id}" hidden>
         <p class="muted small">${V.chapters(costOf(o.id, `≈ ${dollars(o.usd_chapter || 0)}`))}</p>
-        ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" ${!kept || kept.chapters.has(c.id) ? "checked" : ""}> ${esc(c.id)} <span class="muted small">(${c.pages})</span></label>`).join("")}
+        ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" ${(kept ? kept.chapters.has(c.id) : c.explore) ? "checked" : ""}> ${esc(c.id)} <span class="muted small">(${c.pages} p., ${T.chapters.kb(Math.round(c.kb))})</span></label>`).join("")}
+        <p class="small"><a href="#/chapters">${T.chapters.edit}</a></p>
       </div>` : ""}</div>`).join("")}
     <p><button class="primary" id="start"></button></p>
     </details>
     <h2>${V.history}</h2>
-    ${older.map(checkCard).join("") || `<p class="muted">${V.none}</p>`}`;
+    ${older.map(checkCard).join("") || `<p class="muted">${V.none}</p>`}
+    ${listed.length > CHECKS_SHOWN ? `<p><button type="button" id="older">${T.menu.older}</button></p>` : ""}`;
+  if ($("#older")) $("#older").onclick = () => { CHECKS_SHOWN += 40; viewChecks(); };
   const boxes = [...page.querySelectorAll("[data-check]")];
   const total = () => {
     const ids = new Set(boxes.filter(c => c.checked).map(c => c.dataset.check));

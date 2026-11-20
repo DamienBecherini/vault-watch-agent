@@ -56,6 +56,7 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # 17/11/2026); then the cross-check of a watch (the guide written to its own cache, read three times, and each
 # source opened again), and the mirror of each page touched.
 NEWS_OUT = 40_000
+CHAPTERS_OUT = 6_000  # the split of the guide into chapters: its answer, thinking included (not measured)
 ADD_ROUNDS_EACH = 4  # readings of the cached guide per lead, by the proposals
 ADD_WEB_IN_EACH = 46_000  # tokens of web pages read per lead, by the proposals
 ADD_OUT_EACH = 5_000
@@ -196,8 +197,16 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
 
 
 def by_chapter(vault_dir: Path) -> dict[str, list[Path]]:
-    """The pages by top folder (reading.chapters)."""
+    """The pages by chapter (reading.chapters)."""
     return reading.chapters(vault_dir)
+
+
+def chapters_usd(vault_dir: Path, model: str, table=None) -> float:
+    """What a model's split of the guide costs (chapters.propose): the outline of the guide read, a short answer."""
+    from . import chapters
+
+    tokens = int(len(chapters.outline(vault_dir).encode("utf-8")) / BYTES_PER_TOKEN)
+    return _usd(model, tokens_in=tokens, tokens_out=CHAPTERS_OUT, table=table)
 
 
 # ---------------------------------------------------------------------------
@@ -393,10 +402,13 @@ def options(work: Path) -> dict:
 
 
 def run_explore(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
-    """What the web says that the guide does not (news.explore): one call per chapter chosen (all of them when none
-    was), each with the web and the whole guide. The leads come with their sources and edit nothing; those the
-    editor keeps go to an addition run, as the leads of « news » do."""
-    chosen = [c for c in options(work).get("chapters") or [] if isinstance(c, str)]
+    """What the web says that the guide does not (news.explore): one call per chapter chosen (when none was: all
+    of them, except those the guide's manifest leaves out with `explore = false`), each with the web and the whole
+    guide. The leads come with their sources and edit nothing; those the editor keeps go to an addition run, as the
+    leads of « news » do."""
+    from . import chapters
+
+    chosen = [c for c in options(work).get("chapters") or [] if isinstance(c, str)] or chapters.default_explored(vault_dir)
     found, usages, failed = news.explore(vault_dir, llm, chosen)
     guide = vault.guide_of(vault_dir)
     kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]

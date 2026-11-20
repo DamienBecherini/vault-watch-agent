@@ -74,7 +74,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `graph.py` | 655 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
 | `collect.py` | 568 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
 | `llm.py` | 506 | The engines (API, Claude Code on a subscription, the OpenAI-compatible one, and those of other packages, `EngineKind`, protocol 1): structured output, prompt caching, web search and fetch, capabilities, cost journal |
-| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / news / prices / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
+| `cli.py` | 521 | `vault-watch init / doctor / run / resume / fix / eval / collect / compact / news / chapters / prices / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
 | `verify.py` | 417 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
 | `guide.py` | 352 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
 | `onboard.py` | 335 | `init` (a manifest from what a repository shows) and `doctor` (what will run, what is missing) |
@@ -95,6 +95,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `inputs.py` | 121 | The watch as the contract says (`check_watch`), its kept items, its artifact; the guide's scripts; freshness claims due |
 | `prompts.py` | 119 | System prompts built from the guide's own editorial brief and translation policy |
 | `state.py` | 117 | `WatchState` and the Pydantic schemas the model must answer with |
+| `chapters.py` | 357 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
 | `reading.py` | 99 | How the guide is read: whole in one call, or chapter by chapter when it does not fit the model's window |
 | `costs.py` | 87 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |
 | `steps.py` | 56 | Each step of a run: its role, its effort, what it needs from an engine |

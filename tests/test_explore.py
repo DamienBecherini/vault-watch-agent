@@ -36,7 +36,10 @@ def sh(*cmd, cwd):
 
 
 @pytest.fixture
-def guide(tmp_path: Path) -> Path:
+def guide(tmp_path: Path, monkeypatch) -> Path:
+    from vault_watch_agent import chapters
+
+    monkeypatch.setattr(chapters, "SMALL_KB", 0)  # one chapter per folder, however light (the automatic rule gathers them)
     repo = tmp_path / "guide"
     for rel, text in PAGES.items():
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -189,7 +192,8 @@ def test_the_leads_of_an_exploration_go_to_an_addition_run(guide, tmp_path):
     c = TestClient(create_app(Settings(vault=guide, home=deps.home, journal=tmp_path / "usage.jsonl",
                                        make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
     options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
-    assert options["explore"]["chapters"] == [{"id": "02-materiel", "pages": 1}, {"id": "03-stack", "pages": 2}]
+    assert options["explore"]["chapters"] == [{"id": "02-materiel", "pages": 1, "kb": 0.1, "explore": True},
+                                              {"id": "03-stack", "pages": 2, "kb": 0.1, "explore": True}]
     assert options["explore"]["usd_chapter"] > 0 and options["explore"]["run_usd_deep"] > options["explore"]["run_usd_each"]
     assert "chapters" not in options["news"] and "never writes a new page" in options["explore"]["limit"]["en"]
     vid = c.post("/api/verifications", json={"checks": ["explore"], "chapters": ["02-materiel", "03-stack"]}, headers=act).json()["id"]
@@ -212,3 +216,33 @@ def test_the_leads_of_an_exploration_go_to_an_addition_run(guide, tmp_path):
     # What the search found without writing anything is shown at the review, not only in the report
     assert run["unchanged"] == [{"id": "F2", "lead": leads[1], "why": "Alpha 4 is a preview: no weights yet"}]
     assert run["pages_to_write"] == []
+
+
+def test_the_lists_show_the_newest_runs_and_give_the_older_ones_on_request(guide, tmp_path):
+    from vault_watch_agent.web import Settings, create_app
+
+    deps = Deps(vault=guide, home=tmp_path / "home", llm=RunLLM(), today="2026-11-20")
+    act = {"X-Vault-Watch": "1"}
+    c = TestClient(create_app(Settings(vault=guide, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    threads = []
+    for _ in range(3):
+        thread = c.post("/api/fix", json={"text": news.line(FOUND["02-materiel"][0]), "mode": "add"}, headers=act).json()["thread"]
+        for _ in range(200):
+            if c.get(f"/api/runs/{thread}").json()["status"] != "running":
+                break
+            time.sleep(0.05)
+        threads.append(thread)
+    every = c.get("/api/runs").json()
+    assert [r["thread"] for r in every] == threads[::-1] and {r["status"] for r in every} == {"review"}  # the newest first
+    assert [r["thread"] for r in c.get("/api/runs", params={"limit": 2}).json()] == threads[:0:-1]
+    # Asked again: the same answer, from what the first reading kept of each run; a run that moves is read again
+    assert c.get("/api/runs").json() == every
+    c.post(f"/api/runs/{threads[0]}/review", json={"accept": "none"}, headers=act)
+    for _ in range(200):
+        if c.get(f"/api/runs/{threads[0]}").json()["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert {r["thread"]: r["status"] for r in c.get("/api/runs").json()}[threads[0]] == "nothing-applied"
+    assert c.get("/api/verifications", params={"limit": 1}).json() == []
+

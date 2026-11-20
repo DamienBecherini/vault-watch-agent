@@ -52,12 +52,14 @@ vous gardez les pistes que vous voulez, vous écartez les autres, et celles gard
 ## Les pistes, depuis le web
 
 ```bash
-vault-watch --guide ../mon-guide news --explore                        # tous les chapitres
+vault-watch --guide ../mon-guide news --explore                        # les chapitres que le guide explore par défaut
 vault-watch --guide ../mon-guide news --explore --chapters 02-materiel,03-stack
 ```
 
 Dans l'interface : le contrôle « Nouveautés : exploration du web, chapitre par chapitre » ; le cocher affiche les
-chapitres, tous cochés, et le coût suit les chapitres gardés.
+chapitres avec leur poids, et le coût suit les chapitres gardés. Tous sont cochés, sauf ceux que le guide déclare
+avec `explore = false` (un lexique, les pages sur le projet). Ce qu'est un chapitre, et comment les faire proposer
+par un modèle : [`[[chapter]]` dans le manifeste](connect-your-guide.fr.md#chapter).
 
 Un appel par chapitre. Chacun lit tout le guide et cherche sur le web les sujets de son chapitre (environ 12
 recherches et 15 pages), ouvre des sources primaires, et garde ce qu'aucune page du guide ne dit, huit pistes au

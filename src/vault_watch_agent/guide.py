@@ -56,6 +56,17 @@ class Floors:
 
 
 @dataclass(frozen=True)
+class Chapter:
+    """A chapter the manifest declares ([[chapter]]): the pages the agent works on together (chapters.py)."""
+    name: str
+    paths: tuple[str, ...]  # a folder ("02-hardware/"), a glob or a page; a page goes to the first chapter that takes it
+    explore: bool = True    # ticked by default when the web is explored chapter by chapter
+
+    def takes(self, page: str) -> bool:
+        return any(under(page, path) for path in self.paths)
+
+
+@dataclass(frozen=True)
 class Guide:
     root: Path
     name: str
@@ -84,6 +95,7 @@ class Guide:
     page_budgets: tuple[tuple[str, int], ...] = ()  # (glob, KB): a ceiling for the pages of a folder; the first match wins
     growth_kb: int = 5              # a page that gained this much in 90 days is flagged…
     growth_percent: int = 25        # …or this share of what it weighed (and 2 KB at least)
+    chapters: tuple[Chapter, ...] = ()  # the chapters declared; the pages none takes follow the automatic rule
     schema: int = SCHEMA
     from_manifest: bool = True
 
@@ -124,6 +136,7 @@ class Guide:
                 "max_context_tokens": self.max_context_tokens, "page_kb": self.page_kb,
                 "page_budgets": [list(b) for b in self.page_budgets], "growth_kb": self.growth_kb,
                 "growth_percent": self.growth_percent, "from_manifest": self.from_manifest,
+                "chapters": [{"name": c.name, "paths": list(c.paths), "explore": c.explore} for c in self.chapters],
                 "manifest": MANIFEST}
 
     def mirror_of(self, page: str, language: str) -> str | None:
@@ -133,7 +146,7 @@ class Guide:
 
 
 _KEYS = {
-    "": {"schema", "guide", "content", "watch", "rules", "checks", "budget"},
+    "": {"schema", "guide", "content", "watch", "rules", "checks", "budget", "chapter"},
     "guide": {"name", "description", "repository", "forge", "forge_url", "forge_token", "site", "base_branch"},
     "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page"},
@@ -231,7 +244,34 @@ def parse(data: dict, root: Path) -> Guide:
         brief=_rule(root, rules, "brief"), translation_policy=_rule(root, rules, "translation_policy"),
         **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, max_context_tokens=tokens,
         page_kb=page_kb, page_budgets=tuple(budgets.items()), **growth, schema=schema,
+        chapters=chapters_of(data.get("chapter", [])),
     )
+
+
+def chapters_of(given) -> tuple[Chapter, ...]:
+    """The [[chapter]] tables of a manifest, checked: each a name (unique, no comma: the command line lists chapters
+    with commas) and paths; `explore = false` leaves it unticked when the web is explored."""
+    if not isinstance(given, list) or not all(isinstance(c, dict) for c in given):
+        raise GuideError("[[chapter]]: a list of tables, each with name and paths")
+    out: list[Chapter] = []
+    for n, c in enumerate(given, start=1):
+        unknown = set(c) - {"name", "paths", "explore"}
+        if unknown:
+            raise GuideError(f"[[chapter]] {n}: unknown key {', '.join(sorted(unknown))} (known: explore, name, paths)")
+        name = c.get("name")
+        if not isinstance(name, str) or not name.strip() or len(name) > 80 or any(ch in name for ch in ',"\n\r'):
+            raise GuideError(f"[[chapter]] {n}: name is a text of 80 characters at most, without comma or quote")
+        name = name.strip()
+        if any(name == other.name for other in out):
+            raise GuideError(f"[[chapter]] {n}: the name {name!r} is used twice")
+        paths = c.get("paths")
+        if not isinstance(paths, list) or not paths or not all(isinstance(p, str) and p.strip() for p in paths):
+            raise GuideError(f"[[chapter]] {name}: paths is a list of folders (\"02-hardware/\"), globs or pages")
+        explore = c.get("explore", True)
+        if not isinstance(explore, bool):
+            raise GuideError(f"[[chapter]] {name}: explore is true or false")
+        out.append(Chapter(name, tuple(p.strip() for p in paths), explore))
+    return tuple(out)
 
 
 def legacy(root: Path) -> Guide:
@@ -271,6 +311,13 @@ def matches(path: str, pattern: str) -> bool:
         else:
             out, i = out + re.escape(pattern[i]), i + 1
     return re.fullmatch(out, path) is not None
+
+
+def under(page: str, path: str) -> bool:
+    """Whether `page` (relative to the guide, with /) is what `path` names: a folder (with or without its final /)
+    and everything under it, a glob (`matches`), or the page itself."""
+    folder = path.rstrip("/")
+    return page == path or page.startswith(folder + "/") or (not path.endswith("/") and matches(page, path))
 
 
 def working_folder(home: Path, guide: Guide) -> Path:

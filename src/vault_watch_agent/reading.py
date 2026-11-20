@@ -7,7 +7,7 @@ chapter by chapter, each call with one chapter and the pages the corrections cha
 say so, because a contradiction between two chapters can then be missed.
 
     plan = reading.plan(vault_dir, llm)        # Plan(mode="whole" | "chapters", tokens, budget, exact)
-    reading.chapters(vault_dir)               # {"01-basics": [Path, ...], "(root)": [...]}
+    reading.chapters(vault_dir)               # {"01-basics": [Path, ...], "(root)": [...]} (chapters.py)
 """
 
 from __future__ import annotations
@@ -50,12 +50,11 @@ class Plan:
 
 
 def chapters(vault_dir: Path) -> dict[str, list[Path]]:
-    """The pages by top folder; the pages at the root (index, home) form one group."""
-    groups: dict[str, list[Path]] = {}
-    for p in vault.pages(vault_dir):
-        parts = p.relative_to(vault_dir).parts
-        groups.setdefault(parts[0] if len(parts) > 1 else "(root)", []).append(p)
-    return groups
+    """The pages by chapter, in the guide's order: the chapters its manifest declares, and for the pages none takes
+    the automatic rule (a top folder each, the heavy ones split, the light ones gathered): chapters.py."""
+    from . import chapters as split  # it reads the guide through vault, as this module does
+
+    return {c.name: c.pages for c in split.of(vault_dir)}
 
 
 def plan(vault_dir: Path, llm, window: int | None = None, step: str = "") -> Plan:

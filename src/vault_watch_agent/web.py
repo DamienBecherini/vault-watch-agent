@@ -40,7 +40,9 @@ from pydantic import BaseModel
 
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
+from . import chapters as chapters_mod
 from . import compact, costs, fix, forge, inputs, llm, news, prices, sourcecheck, sources, steps, vault, verify
+from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
 
@@ -160,6 +162,14 @@ class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
     chapters: list[str] = []  # the check « explore »: the chapters to explore (all of them when empty)
     steps: dict = {}  # for this verification alone: {step: {engine, model, effort}} (config.run_steps)
+
+
+class Chapters(BaseModel):
+    chapters: list[dict] = []  # the chapters to declare: {name, paths, explore}; none: back to the automatic rule
+
+
+class Propose(BaseModel):
+    steps: dict = {}  # for this call alone: {"chapters": {engine, model, effort}}
 
 
 class UserSettings(BaseModel):  # config.py: the key is a reference to where it is, never the key
@@ -351,10 +361,10 @@ def create_app(settings: Settings) -> FastAPI:
                     pass  # asked again after the next start, nothing more
         return pr_states.get(url, "")
 
-    def warm(names: list[str]) -> None:
+    def warm(names: dict[str, str]) -> None:
         """Asks the forge at once, side by side, for the pull requests of these runs whose state may have moved: a
         page that lists ten runs waits for one answer, not ten in a row."""
-        urls = {viewer.get_state(config(t)).values.get("pr_url") for t in names}
+        urls = {core(t, names[t])["pr_url"] for t in names}
         due = [u for u in urls if u and pr_due(u)]
         if len(due) > 1:
             with ThreadPoolExecutor(max_workers=8) as pool:
@@ -370,29 +380,45 @@ def create_app(settings: Settings) -> FastAPI:
             listed.update(found=src.list(), at=time.time())
         return listed["found"]
 
-    def summary(thread: str) -> dict:
-        snapshot = viewer.get_state(config(thread))
-        v, job = snapshot.values, jobs.get(thread)
-        st = status(snapshot, job)
-        if st == "published":
-            st = {"merged": "merged", "open": "pr-open", "closed": "pr-closed"}.get(pr_state(v["pr_url"]), st)
-        return {
-            "thread": thread, "status": st, "source": v.get("source", ""),
-            "as_of": v.get("as_of", ""), "pr_url": v.get("pr_url", ""),
-            "cost": round(sum(u.get("cost_usd", 0.0) for u in v.get("usage", [])), 2),
-            "corrections": len(v.get("corrections", [])), "applied": len(v.get("applied", [])),
-            "error": job.error if job else "",
-        }
+    seen: dict[str, tuple[str, dict]] = {}  # thread -> (its last checkpoint, what a list shows of it)
 
-    def threads() -> list[str]:
+    def core(thread: str, stamp: str = "") -> dict:
+        """What a list shows of a run, from its state. With `stamp` (its last checkpoint, from `stamped`) the state
+        is read again only when the run has moved: a page that lists two hundred past runs reads none of them, it
+        asks the database for one line per run. Without it (one run looked at), the state is read."""
+        known = seen.get(thread)
+        if stamp and known and known[0] == stamp:
+            return known[1]
+        snapshot = viewer.get_state(config(thread))
+        v = snapshot.values
+        made = {"status": status(snapshot, None), "source": v.get("source", ""),
+                "as_of": v.get("as_of", ""), "pr_url": v.get("pr_url", ""),
+                "cost": round(sum(u.get("cost_usd", 0.0) for u in v.get("usage", [])), 2),
+                "corrections": len(v.get("corrections", [])), "applied": len(v.get("applied", []))}
+        if stamp:
+            seen[thread] = (stamp, made)
+        return made
+
+    def summary(thread: str, stamp: str = "") -> dict:
+        c, job = core(thread, stamp), jobs.get(thread)
+        st = "running" if job and not job.done else c["status"]
+        if st == "published":
+            st = {"merged": "merged", "open": "pr-open", "closed": "pr-closed"}.get(pr_state(c["pr_url"]), st)
+        return {"thread": thread, **c, "status": st, "error": job.error if job else ""}
+
+    def stamped() -> dict[str, str]:
+        """The runs kept here, the newest first, each with its last checkpoint (what says whether it has moved)."""
         if not db.exists():
-            return []
+            return {}
         with sqlite3.connect(db) as c:
             try:
                 rows = c.execute("SELECT thread_id, MAX(checkpoint_id) FROM checkpoints GROUP BY thread_id").fetchall()
             except sqlite3.OperationalError:
-                return []
-        return [t for t, _ in sorted(rows, key=lambda r: r[1], reverse=True) if not t.startswith("eval-")]
+                return {}
+        return {t: stamp for t, stamp in sorted(rows, key=lambda r: r[1], reverse=True) if not t.startswith("eval-")}
+
+    def threads() -> list[str]:
+        return list(stamped())
 
     @app.get("/api/health")
     def health():
@@ -464,7 +490,11 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/info")
     def info():
+        import platform
+
         return {"repo": settings.repo, "site": settings.site, "agent": AGENT_REPO, "engine": engine_now(),
+                # for a report sent from the page (« Give my opinion »): nothing of the guide, nothing of the machine
+                "system": platform.system(), "python": platform.python_version(),
                 "billing": billing_now(),
                 "guide": guide.name, "watch_source": guide.watch.source, "forge": forge.get().name,
                 "repo_url": forge_repo_url(),
@@ -579,9 +609,9 @@ def create_app(settings: Settings) -> FastAPI:
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e
 
-    def run_of(watch: dict, known: list[str]) -> dict:
+    def run_of(watch: dict, known: dict[str, str]) -> dict:
         """The run that counts for a watch: the published one, else the latest (re-runs are named issue-50b…)."""
-        runs = [summary(t) for t in known if re.fullmatch(rf"{re.escape(watch['thread'])}[a-z]?", t)]
+        runs = [summary(t, known[t]) for t in known if re.fullmatch(rf"{re.escape(watch['thread'])}[a-z]?", t)]
         if runs:
             return next((r for r in runs if r["pr_url"]), runs[0])
         new = summary(watch["thread"])
@@ -595,18 +625,23 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/watches")
     def watches():
-        found, known = list_watches(), threads()
+        found, known = list_watches(), stamped()
         warm(known)
         return [{**w, "run": run_of(w, known)} for w in found]
 
     @app.get("/api/runs")
-    def runs():
-        """Runs that are not a watch's (fix runs, files of another folder), newest first."""
+    def runs(limit: int = 0):
+        """Runs that are not a watch's (fix runs, files of another folder), newest first; `limit`: the newest ones
+        only (the page asks for one more than it shows, to know whether older ones exist)."""
         src = watch_source()
         mine = {w["thread"] for w in src.list()} if src.kind in ("file", "feeds") else set()
-        warm(threads())
-        return [summary(t) for t in threads()
-                if not re.fullmatch(r"issue-\d+[a-z]?", t) and re.sub(r"[a-z]$", "", t) not in mine and t not in mine]
+        known = stamped()
+        others = [t for t in known
+                  if not re.fullmatch(r"issue-\d+[a-z]?", t) and re.sub(r"[a-z]$", "", t) not in mine and t not in mine]
+        if limit > 0:
+            others = others[:limit]
+        warm({t: known[t] for t in others})
+        return [summary(t, known[t]) for t in others]
 
     @app.get("/api/runs/{thread}")
     def run_view(thread: str):
@@ -1038,13 +1073,20 @@ def create_app(settings: Settings) -> FastAPI:
                  "run_usd_each": est.get(f"{c.fix_mode}-run", {}).get("usd_each"),
                  "run_usd_deep": est.get(f"{c.fix_mode}-run", {}).get("usd_deep"),  # a lead dug deeper, in a call of its own
                  # the chapters a call can explore, each with its number of pages
-                 **({"chapters": [{"id": name, "pages": len(pages)} for name, pages in news.explorable(settings.vault).items()]}
-                    if c.id == "explore" else {})}
+                 **({"chapters": explorable_view()} if c.id == "explore" else {})}
                 for c in verify.CHECKS]
 
+    def explorable_view() -> list[dict]:
+        """The chapters a call can explore: its pages, its weight, and whether it is ticked when the page opens."""
+        by = {c["name"]: c for c in chapters_mod.view(settings.vault)["chapters"]}
+        return [{"id": name, "pages": len(pages), "kb": by[name]["kb"], "explore": by[name]["explore"]}
+                for name, pages in news.explorable(settings.vault).items()]
+
     @app.get("/api/verifications")
-    def verif_list():
-        return [{k: v for k, v in verif_view(p).items() if k not in ("results", "handled")} for p in verif_files()[:20]]
+    def verif_list(limit: int = 20):
+        """The newest verifications (`limit`; the page asks for one more than it shows, to offer the older ones)."""
+        return [{k: v for k, v in verif_view(p).items() if k not in ("results", "handled")}
+                for p in verif_files()[:max(1, limit)]]
 
     @app.get("/api/verifications/{vid}")
     def verif_get(vid: str):
@@ -1094,6 +1136,89 @@ def create_app(settings: Settings) -> FastAPI:
 
         start(vid, "verify", "verify", work)
         return {"id": vid}
+
+    # -- the chapters of the guide (chapters.py): seen, proposed by a model, declared in the manifest -------
+    chapters_pending = settings.home / "chapters-pr.json"  # the pull request of the last split, until it is merged
+
+    def declared_of(rows: list[dict]) -> list:
+        try:
+            return list(guide_mod.chapters_of([{k: r[k] for k in ("name", "paths", "explore") if k in r} for r in rows]))
+        except guide_mod.GuideError as e:
+            raise HTTPException(400, str(e)) from e
+
+    def pending_split() -> dict:
+        """The pull request that declares the chapters, while it is open. Merged: the guide's folder follows its
+        base branch, so that this page shows the split at once; merged or closed: forgotten."""
+        try:
+            pending = read_json(chapters_pending)
+        except (OSError, ValueError):
+            return {}
+        state = pr_state(pending.get("pr_url", ""))
+        if state not in ("merged", "closed"):
+            return pending
+        if state == "merged":
+            try:
+                vault.sync(settings.vault, guide.base_branch)
+            except RuntimeError:
+                pass  # the folder is not on its base branch, or offline: it follows at the next run
+        chapters_pending.unlink(missing_ok=True)
+        return {}
+
+    @app.get("/api/chapters")
+    def chapters_get(steps: str = ""):
+        """The chapters as the agent has them now, with what a page needs to change them: what a model's proposal
+        costs and runs on (`steps`: what the page chose for it), the open pull request of the last split."""
+        cfg = user_settings.load(cfg_home)
+        cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
+        pending = pending_split()
+        now = vault.guide_of(settings.vault)
+        return {**chapters_mod.view(settings.vault), "toml": chapters_mod.toml(now.chapters), "pending": pending,
+                "usd": verify.chapters_usd(settings.vault, llm.step_model(cfg, "chapters"), price_table(cfg)),
+                "step": next(s for s in steps_view(cfg) if s["step"] == "chapters"),
+                "has_repo": bool(now.repository), "forge": forge.get().name, "from_manifest": now.from_manifest,
+                "manifest": guide_mod.MANIFEST, "base": now.base_branch, "needs": chapters_mod.NEEDS}
+
+    @app.post("/api/chapters/preview")
+    def chapters_preview(body: Chapters):
+        """What the chapters would be with these declared, and the lines of the manifest that say so. Nothing is
+        written."""
+        declared = declared_of(body.chapters)
+        return {**chapters_mod.view(settings.vault, declared), "toml": chapters_mod.toml(declared)}
+
+    @app.post("/api/chapters/propose")
+    def chapters_propose(body: Propose):
+        """A split by a model, from the outline of the guide (one call, paid): to review, nothing is written."""
+        thread = time.strftime("chapters-%Y-%m-%d-%H%M%S")
+        keep_steps(thread, body.steps)
+        deps = settings.make_deps(thread, "verify")
+        try:
+            declared, why, usage = chapters_mod.propose(settings.vault, deps.llm)
+        except llm.ModelError as e:
+            raise HTTPException(502, str(e)[:600]) from e
+        if not declared:
+            raise HTTPException(502, "the model proposed no chapter that names a page of the guide")
+        return {**chapters_mod.view(settings.vault, declared), "toml": chapters_mod.toml(declared), "why": why,
+                "cost": round((usage or {}).get("cost_usd", 0.0), 2)}
+
+    @app.post("/api/chapters")
+    def chapters_save(body: Chapters):
+        """Declares these chapters in the guide's manifest, on a branch of its own: pushed with its pull request when
+        the guide has a repository, left on this machine otherwise. The guide's folder is not touched."""
+        declared = declared_of(body.chapters)
+        pending = pending_split()
+        if pending:
+            raise HTTPException(409, f"a pull request already declares chapters: {pending['pr_url']} (merge or close it first)")
+        if not vault.guide_of(settings.vault).from_manifest:
+            raise HTTPException(409, f"the guide has no {guide_mod.MANIFEST}: `vault-watch init` writes one, the chapters go there")
+        now = vault.guide_of(settings.vault)
+        try:
+            done = chapters_mod.publish(now, settings.home, declared, today=date.today().isoformat(),
+                                        open_pull_request=forge.get().open_pull_request)
+        except (guide_mod.GuideError, RuntimeError) as e:  # nothing to change, git, or the forge
+            raise HTTPException(409, str(e)[:600]) from e
+        if done["pr_url"]:
+            write_json(chapters_pending, {**done, "t": time.time()})
+        return {**done, "base": now.base_branch}
 
     # -- page ------------------------------------------------------------------------------------
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
