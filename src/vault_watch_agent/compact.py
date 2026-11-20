@@ -145,6 +145,7 @@ ABOVE = {"guide": "The whole guide is above, one <page> per file.",
 BATCH_LOAD = 30
 BATCH_BYTES = 600_000  # of pages given to one call (about 190 k tokens)
 PARALLEL = 4
+NARROW_PARALLEL = 8  # calls that each write their own pages to the cache: not thirty at once
 
 
 def named(finding: str, sources: set[str]) -> list[str]:
@@ -205,7 +206,8 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
 def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None,
              groups: list[list[int]], *, pages: list[list[str]], texts: dict[str, str], step: str, system: str,
              web: bool, what: tuple[str, str], whole: bool = False, above: dict[str, str] | None = None,
-             headings: list[tuple[str, str]] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+             headings: list[tuple[str, str]] | None = None, narrow: bool = False,
+             before: str = "") -> tuple[list[dict], list[dict], list[dict]]:
     """The proposals of a run made in several calls: (items, proposals, usages), one proposal and one usage per call.
     `groups`: the findings of each call, by index; `pages`: the pages each finding names; `system`: the instructions,
     with <<ABOVE>> where they say what the call reads (`above`, by default `ABOVE`); `step`: the step, which names
@@ -217,23 +219,28 @@ def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str,
     - with another engine, the whole guide all the same when `whole` is asked and it fits, one call after the other
       (an engine that caches reads it again; a local model takes one call at a time anyway);
     - else the pages the findings of the call name, whole, with the question; a group that names none reads the guide.
+    `narrow`: the pages the findings name even when the guide could be shared, after `before` (the plan of the
+    guide), cached for the call alone (a call with the web reads what it was given again at each round of search);
+    `above` then says it under "plan". These calls share nothing: they run together, `NARROW_PARALLEL` at a time.
     A call that fails leaves its findings without a proposal, said in their outcome; the others go on."""
     client = llm.for_step(step) if hasattr(llm, "for_step") else llm
     fits = reading.plan(vault_dir, llm, step=step).mode == "whole"
     shared = bool(getattr(client, "signals_start", False)) and fits
-    everything = shared or (whole and fits)
+    everything = (shared or (whole and fits)) and not narrow
+    named = lambda n: sorted({p for i in groups[n] for p in pages[i]})  # noqa: E731
 
     def one(n: int, started=None) -> tuple[list[dict], dict, dict | None]:
         group = groups[n]
         ids, lines = [f"F{i + 1}" for i in group], [findings[i] for i in group]
-        given = [] if everything else sorted({p for i in group for p in pages[i]})
-        context = "<pages>\n" + "\n".join(f'<page path="{p}">\n{texts[p]}\n</page>' for p in given) + "\n</pages>"
+        given = [] if everything else named(n)
+        context = (before if narrow else "") + "<pages>\n" + "\n".join(f'<page path="{p}">\n{texts[p]}\n</page>' for p in given) + "\n</pages>"
+        said = (above or ABOVE)["guide" if not given else "plan" if narrow else "pages"]
         try:
-            return fix.propose(vault_dir, lines, llm, system=system.replace("<<ABOVE>>", (above or ABOVE)["pages" if given else "guide"]),
+            return fix.propose(vault_dir, lines, llm, system=system.replace("<<ABOVE>>", said),
                                effort=steps.effort(step), web=web,
                                node=step if len(groups) == 1 else f"{step} {n + 1}/{len(groups)}",
                                excerpts=excerpts, what=headings[n] if headings else what, ids=ids,
-                               context=context if given else None, cached=not given, started=started)
+                               context=context if given else None, cached=narrow or not given, started=started)
         except ModelError as e:
             failed = {"item_ids": ids, "corrections": [], "error": str(e),
                       "outcomes": [{"item_id": i, "event": "", "no_change_reason": f"not handled, the call failed: {e}"}
@@ -241,6 +248,17 @@ def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str,
             return fix.items_of(lines, excerpts, ids), failed, e.usage
     if len(groups) == 1:
         results = [one(0)]
+    elif narrow:
+        # The calls that have their own pages run together. Those whose findings name no page read the guide: on an
+        # engine that shares it in the cache one leads and the others follow, else one after the other.
+        rest = [n for n in range(len(groups)) if not named(n)]
+        with ThreadPoolExecutor(max_workers=NARROW_PARALLEL) as pool:
+            own = {n: pool.submit(one, n) for n in range(len(groups)) if n not in rest}
+            if shared and fits and len(rest) > 1:
+                guide = dict(zip(rest, _after_the_first(len(rest), lambda k, started=None: one(rest[k], started))))
+            else:
+                guide = {n: one(n) for n in rest}
+            results = [own[n].result() if n in own else guide[n] for n in range(len(groups))]
     elif shared:
         results = _after_the_first(len(groups), one)
     elif everything:

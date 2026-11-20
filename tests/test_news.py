@@ -370,3 +370,86 @@ def test_a_lead_its_run_could_not_look_at_can_be_sent_again(setup, tmp_path):
     assert c.post(f"/api/verifications/{vid}/leads", json={"findings": [LEADS[0]], "status": "open"}, headers=act).json() \
         == {"open": 1, "fix": 2, "dismissed": 0}
     assert c.get(f"/api/verifications/{vid}").json()["unchecked"] == {}
+
+
+def test_a_lead_says_which_pages_to_read():
+    lead = news.Lead(kind="newer", pages=["03-stack/engines.md"], problem="check the release notes.",
+                     read=["00-lexique/vllm.md", "03-stack/engines.md", "06-ops/security.md", "00-lexique/vllm.md"],
+                     sources=["https://example.org/a"])
+    said = news.line(lead)
+    assert said == ("[Newer] 03-stack/engines.md: check the release notes. Read also: 00-lexique/vllm.md, 06-ops/security.md. "
+                    "Sources: https://example.org/a")
+    # The pages go with the line: the run finds them there, those of the guide only
+    from vault_watch_agent import compact
+
+    assert compact.named(said, {"03-stack/engines.md", "00-lexique/vllm.md"}) == ["03-stack/engines.md", "00-lexique/vllm.md"]
+    many = news.Lead(kind="missing", pages=[], problem="x.", read=[f"a/{n}.md" for n in range(9)])
+    assert news.line(many).count(".md") == news.MAX_READ and news.line(news.Lead(kind="missing", pages=[], problem="x.")).endswith(": x.")
+    assert "<<READ>>" in news.LEADS and "<<READ>>" in news.EXPLORE
+
+
+def test_a_call_reads_its_pages_and_the_plan_when_asked(setup):
+    deps, _ = setup
+    leads = [LEADS[0], LEADS[1] + " Read also: 02-materiel/cards.md.", LEADS[2], LEADS[2] + " Again."]
+    seen, lock = {}, threading.Lock()
+
+    class Api:
+        signals_start = True
+
+        def parse(self, *, system, prompt, schema, effort, node, context=None, web=False, started=None):
+            lead = prompt.split('<lead id="')[1].split('"')[0]
+            with lock:
+                seen[lead] = (context, system, started is not None)
+            if started:
+                started()
+            assert "<pages>" not in prompt and "<guide>" not in prompt  # what a call reads is cached, not in the question
+            return ClusterProposal(outcomes=[ItemOutcome(item_id=lead, event="", no_change_reason="-")], corrections=[]), \
+                {"node": node, "cost_usd": 1.0}
+
+    items, proposals, usages = news.propose(deps.vault, leads, Api(), context="pages")
+    assert [i["id"] for i in items] == ["F1", "F2", "F3", "F4"] and len(proposals) == 4 and len(usages) == 4
+    one, system, _ = seen["F1"]
+    assert one.startswith("<plan>\n- ") and "- 03-stack/engines.md (" in one.split("</plan>")[0]  # every page, in the plan
+    assert '<page path="02-materiel/cards.md">' in one and '<page path="03-stack/engines.md">' not in one
+    assert "the plan of the guide" in system and "edit only the pages given" in system and "<<" not in system
+    two = seen["F2"][0]  # the page it concerns and the page it asks to read
+    assert '<page path="03-stack/engines.md">' in two and '<page path="02-materiel/cards.md">' in two and "projet/changelog.md\">" not in two
+    # A lead that names no page reads the guide: one of them writes it to the cache, the other follows
+    assert seen["F3"][0].startswith("<guide>") and seen["F4"][0].startswith("<guide>") and "The whole guide is above" in seen["F3"][1]
+    assert sorted([seen["F3"][2], seen["F4"][2]]) == [False, True] and not seen["F1"][2] and not seen["F2"][2]
+
+    seen.clear()
+    news.propose(deps.vault, leads[:2], Api())  # by default: the whole guide, shared
+    assert all(context.startswith("<guide>") for context, _, _ in seen.values())
+    with pytest.raises(ValueError, match="context"):
+        news.propose(deps.vault, leads[:1], Api(), context="summary")
+
+    # The estimate: on a guide of a few pages a call's own pages weigh as much as the guide (nothing to gain per lead);
+    # on a guide of 800 KB each round of search reads a twelfth of it
+    small = verify.estimates(deps.vault, {})["add-run"]
+    assert 0 < small["usd_pages"] < small["usd"] and small["usd_each_pages"] >= small["usd_each"]
+    (deps.vault / "03-stack" / "long.md").write_text("# Long\n\n" + "Une phrase de plus. " * 40_000, encoding="utf-8")
+    estimate = verify.estimates(deps.vault, {})["add-run"]
+    assert 0 < estimate["usd_pages"] < estimate["usd"] and 0 < estimate["usd_each_pages"] < estimate["usd_each"]
+    assert estimate["usd_each_pages"] < estimate["usd_deep_pages"] < estimate["usd_deep"]
+
+
+def test_the_interface_asks_for_the_pages_context(setup, tmp_path):
+    from vault_watch_agent.web import Settings, create_app
+
+    deps, llm = setup
+    act = {"X-Vault-Watch": "1"}
+    c = TestClient(create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
+    assert 0 < options["news"]["run_usd_pages"] < options["news"]["run_usd"] and options["news"]["run_usd_each_pages"] > 0
+    assert c.post("/api/fix", json={"text": LEADS[0], "mode": "add", "context": "summary"}, headers=act).status_code == 422
+    thread = c.post("/api/fix", json={"text": "\n".join(LEADS[:2]), "mode": "add", "context": "pages"}, headers=act).json()["thread"]
+    for _ in range(200):
+        run = c.get(f"/api/runs/{thread}").json()
+        if run["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert run["status"] == "review" and [x["id"] for x in run["corrections"]] == ["C1"]
+    asked = {node: system for node, (system, _) in llm.prompts.items() if node.startswith("add")}
+    assert len(asked) == 2 and all("the plan of the guide" in system for system in asked.values())

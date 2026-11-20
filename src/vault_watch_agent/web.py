@@ -144,6 +144,8 @@ class Report(BaseModel):
     # add: what is new, checked on the web and written where it belongs (news.py)
     mode: Literal["fix", "translation", "compact", "add"] = "fix"
     deep: list[str] = []  # an addition run: the leads to dig deeper, each in a call of its own (news.propose)
+    # an addition run: what each call reads, the whole guide or its lead's pages and the plan of the guide
+    context: Literal["guide", "pages"] = "guide"
     steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
 
 
@@ -796,7 +798,8 @@ def create_app(settings: Settings) -> FastAPI:
                 items, proposal, usage = compact.propose(guide, findings, deps.llm, excerpts)
                 label = thread
             elif body.mode == "add":
-                items, proposal, usage = news.propose(guide, findings, deps.llm, excerpts, deep=body.deep)
+                items, proposal, usage = news.propose(guide, findings, deps.llm, excerpts, deep=body.deep,
+                                                      context=body.context)
                 label = thread
             else:
                 items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
@@ -1086,6 +1089,8 @@ def create_app(settings: Settings) -> FastAPI:
                  "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd"),
                  "run_usd_each": est.get(f"{c.fix_mode}-run", {}).get("usd_each"),
                  "run_usd_deep": est.get(f"{c.fix_mode}-run", {}).get("usd_deep"),  # a lead dug deeper, in a call of its own
+                 # an addition run whose calls read their lead's pages and the plan, not the whole guide
+                 **{f"run_{k}": est.get(f"{c.fix_mode}-run", {}).get(k) for k in ("usd_pages", "usd_each_pages", "usd_deep_pages")},
                  # the chapters a call can explore, each with its number of pages
                  **({"chapters": explorable_view()} if c.id == "explore" else {})}
                 for c in verify.CHECKS]

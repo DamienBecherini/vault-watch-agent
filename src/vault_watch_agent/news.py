@@ -54,11 +54,16 @@ length (other checks do). Do not list what the guide already covers, even briefl
 been superseded. Follow the guide's own threshold for additions, in its contract below. List at most <<MAX>> leads:
 the editor keeps some, then a run checks each one on the web and proposes where to write it.
 Each lead names the pages concerned (where the addition would go, or the page that states the older fact; none for
-a subject that fits no page), so that someone who has not read the guide can act on it. In `excerpts`, copy verbatim
+a subject that fits no page), so that someone who has not read the guide can act on it. In `read`, list the other
+pages one must have read to write it well, since the run that checks a lead may be given these pages only: every
+page that states the same fact or figure, the lexicon entry of the subject, a page whose advice would change with
+it (<<READ>> at the most; none when the pages concerned are enough). In `excerpts`, copy verbatim
 the passage of the guide a lead is about when there is one (what it says today: one sentence or one table row, two
 passages at most); none for a subject no page covers. Write the leads in English.<<BRIEF>>"""
 
 MAX_LEADS = 30  # a list an editor can go through; each lead kept is then a few searches on the web
+MAX_READ = 6  # pages a lead asks to read besides those it concerns
+READ_ALSO = "Read also: "
 KINDS = {"newer": "Newer", "missing": "Missing", "candidate": "Seen by the watch", "found": "Found on the web"}
 NO_PAGE = "no page yet"
 
@@ -69,6 +74,9 @@ class Lead(BaseModel):
                              "the page that states the older fact. Empty for a subject that fits no page.")
     problem: str = Field(description="One self-contained line, in English: what to look for and on which kind of "
                          "source, what the guide says today, and which decision of the reader it would change.")
+    read: list[str] = Field(default_factory=list, description="Vault-relative paths of the other pages one must have "
+                            "read to write this lead well: every page that states the same fact or figure, the lexicon "
+                            "entry of the subject, a page whose advice would change with it. Not the pages of `pages`.")
     excerpts: list[quotes.Quote] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list, description="For a lead found on the web: the addresses of the "
                                "primary sources you opened that establish it. Empty for a question.")
@@ -79,9 +87,13 @@ class Leads(BaseModel):
 
 
 def line(lead: Lead) -> str:
-    """A lead as the one line the editor keeps, dismisses or sends to an addition run."""
+    """A lead as the one line the editor keeps, dismisses or sends to an addition run. The pages it asks to read
+    are in the line (« Read also: … »): they go with it wherever it goes (the interface, a file of findings), and
+    the run finds them there (`compact.named`)."""
     sources = f" Sources: {', '.join(lead.sources)}" if lead.sources else ""
-    return f"[{KINDS[lead.kind]}] {', '.join(lead.pages) or NO_PAGE}: {lead.problem}{sources}"
+    more = list(dict.fromkeys(p for p in lead.read if p not in lead.pages))[:MAX_READ]
+    read = f" {READ_ALSO}{', '.join(more)}." if more else ""
+    return f"[{KINDS[lead.kind]}] {', '.join(lead.pages) or NO_PAGE}: {lead.problem}{read}{sources}"
 
 
 # -- what past watches set aside ------------------------------------------------------------------------------
@@ -153,7 +165,10 @@ What to keep:
 Each lead is a fact you read on a primary source, not a guess: say what is new and its date, what the guide says
 today when it says something, which decision of the reader it changes, and what remains to be checked. `kind` is
 `found`. `pages` names the pages concerned (where it would go, or the page that states the older fact; none when it
-fits no page). `sources` lists the addresses you opened that establish it. In `excerpts`, copy verbatim the passage
+fits no page). `read` lists the other pages one must have read to write it well, since the run that checks a lead
+may be given these pages only: every page that states the same fact or figure, the lexicon entry of the subject, a
+page whose advice would change with it (<<READ>> at the most). `sources` lists the addresses you opened that
+establish it. In `excerpts`, copy verbatim the passage
 of the guide the lead is about when there is one (one sentence or one table row). Do not report an error, a
 contradiction, style or length (other checks do). Write the leads in English.<<BRIEF>>"""
 
@@ -183,6 +198,7 @@ def explore(vault_dir: Path, llm: LLM, chapters: list[str] | None = None) -> tup
     fits = reading.plan(vault_dir, llm, step="explore").mode == "whole"
     shared = bool(getattr(client, "signals_start", False)) and fits
     system = prompts.fill(EXPLORE.replace("<<SEARCHES>>", str(EXPLORE_SEARCHES)).replace("<<PAGES>>", str(EXPLORE_PAGES))
+                          .replace("<<READ>>", str(MAX_READ))
                           .replace("<<MAX>>", str(MAX_PER_CHAPTER)), vault_dir)
     whole = f"<guide>\n{vault.corpus(vault_dir)}\n</guide>" if fits else ""
 
@@ -214,6 +230,7 @@ def explore(vault_dir: Path, llm: LLM, chapters: list[str] | None = None) -> tup
             first = next((by_source[s] for s in lead.sources if s in by_source), None)
             if first is not None:  # the same source, seen from another chapter: one lead, with the pages of both
                 first.pages += [p for p in lead.pages if p not in first.pages]
+                first.read += [p for p in lead.read if p not in first.read]
                 continue
             leads.append(lead)
             by_source.update({s: lead for s in lead.sources})
@@ -270,7 +287,14 @@ lead.<<BRIEF>>"""
 ABOVE = {"guide": "The whole guide is above, one <page> per file.",
          "pages": "The pages the leads name are above, each whole, one <page> per file; the guide has other pages, "
                   "which you do not see: when you cannot tell whether the guide already covers a lead, say so in "
-                  "its outcome (the review that follows reads every page)."}
+                  "its outcome (the review that follows reads every page).",
+         "plan": "Above are the plan of the guide (every page: its path, its weight, its title and its headings), "
+                 "then the pages the lead names or asks to read, each whole, one <page> per file. The guide has other "
+                 "pages, which you do not see: edit only the pages given. When the plan shows that another page "
+                 "probably states the same fact or already covers the subject, name that page in the lead's outcome "
+                 "(in `event`, or in no_change_reason when you edit nothing) instead of guessing what it says: the "
+                 "review that follows reads every page, and completes or corrects."}
+CONTEXTS = ("guide", "pages")  # what each call of an addition run reads: the whole guide, or the lead's pages and the plan
 
 _NEEDS_PAGE = re.compile(r"^\W*needs a page\W*", re.I)
 
@@ -319,13 +343,23 @@ def batches(pages: list[list[str]], most: int = PER_CALL) -> list[list[int]]:
 
 
 def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None = None,
-            deep: set[str] | list[str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+            deep: set[str] | list[str] | None = None, context: str = "guide") -> tuple[list[dict], list[dict], list[dict]]:
     """The additions for the leads the editor kept: (items, proposals, usages), one proposal and one usage per call.
     Every call reads the whole guide when it fits the model (`compact.in_calls`: cached and shared on the Claude
     API, one call after the other elsewhere) and the web. A call that fails leaves its leads without an addition,
     said in their outcome; the others go on.
     One lead per call (`PER_CALL`), so that each has the whole web of a call. `deep`: the leads to dig deeper,
-    headed as such (`ADD` says what that asks)."""
+    headed as such (`ADD` says what that asks).
+    `context`: "guide", every call reads the whole guide; "pages", a call reads the plan of the guide
+    (`chapters.outline`) and the pages its lead names, those it asks to read included (« Read also: »), cached for
+    that call alone: a call re-reads what it was given at each round of search, and the guide is twelve times the
+    pages of a lead. A lead that names no page reads the guide all the same. What a call did not see is the business
+    of the cross-check, which reads every page."""
+    from . import chapters  # here: chapters.py is read by the checks, which this module serves
+
+    if context not in CONTEXTS:
+        raise ValueError(f"context: {context!r} is not one of {', '.join(CONTEXTS)}")
+    narrow = context == "pages"
     texts = {p.relative_to(vault_dir).as_posix(): vault.read(p).replace("\r", "") for p in vault.pages(vault_dir)}
     pages = [compact.named(lead, set(texts)) for lead in leads]
     dug = [i for i, lead in enumerate(leads) if lead in set(deep or [])]
@@ -334,7 +368,8 @@ def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, lis
     headings = [("Leads", "lead")] * (len(groups) - len(dug)) + [("Lead to dig deeper", "lead")] * len(dug)
     return compact.in_calls(vault_dir, leads, llm, excerpts, groups, pages=pages, texts=texts, step="add",
                             system=ADD.replace("<<SEARCHES>>", str(webtools.MAX_SEARCHES)).replace("<<PAGES>>", str(webtools.MAX_PAGES)),
-                            web=True, what=("Leads", "lead"), whole=True, above=ABOVE, headings=headings)
+                            web=True, what=("Leads", "lead"), whole=True, above=ABOVE, headings=headings, narrow=narrow,
+                            before=f"<plan>\n{chapters.outline(vault_dir)}\n</plan>\n" if narrow else "")
 
 
 _NOTE_DEF = re.compile(r"^\[\^([^\]\s]+)\]:", re.M)

@@ -135,13 +135,29 @@ on the first real runs.
 | :-- | :-- |
 | The leads, from the guide | ≈ 2.40 $ (2.28 $ measured on 2026-11-20 for 28 leads) |
 | The leads, from the web | ≈ 2 $, plus ≈ 4.75 $ per chapter explored |
-| An addition run | ≈ 4.40 $, plus ≈ 2.90 $ per lead kept, or ≈ 3.70 $ for a lead dug deeper |
+| An addition run, each call with the whole guide | ≈ 4.40 $, plus ≈ 2.90 $ per lead kept, or ≈ 3.70 $ for a lead dug deeper |
+| An addition run, each call with its lead's pages and the plan | ≈ 2.40 $, plus ≈ 2.10 $ per lead kept, or ≈ 2.40 $ for a lead dug deeper (not measured yet) |
 
 The addition run is set on two real runs (2026-11-20). The first: 11.01 $ for a lead about six price lists and a
 lead dug deeper, 29 edits, mirrors included. The second: 12.78 $ before the mirrors for three leads (two security
 floors to check, one subject to add), 14 edits, for 13.10 $ announced. A lead that checks one version is not
 cheaper than another: 16 to 25 rounds of search each. Most of a lead's cost is the guide read again from the cache
 at each round.
+
+**What each lead's call reads** is chosen when the run is created (a list above the button on the leads page;
+`--context guide` or `--context pages` on the command line; the whole guide by default).
+
+- *The whole guide*: the call sees every page. The safest, and the most expensive.
+- *The lead's pages and the plan of the guide*: the call reads the pages the lead names, those it asks to read,
+  and the plan of the guide (every page with its path, weight, title and headings). On the IA on-prem guide that
+  is 50 to 90 KB instead of 830. The call edits these pages only, and names in its outcome another page the plan
+  suggests. A lead that names no page reads the whole guide all the same.
+
+The lead itself says which pages to read: the call that lists the leads has the whole guide before it, so it
+names the pages concerned and, after « Read also: », up to six others one must have read to write the lead well
+(a page that states the same fact, the lexicon entry, a page whose advice would change). Leads listed before this
+existed name only the pages concerned. Either way the cross-check reads the whole guide afterwards: it is what
+catches a repetition or a contradiction with a page the call did not see.
 
 The steps « leads of what is new », « the web explored by chapter » and « additions checked on the web » appear in
 the Settings, where each can run on a model of its own. With an engine paid by a subscription nothing is billed,

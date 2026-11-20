@@ -489,6 +489,9 @@ def main(argv: list[str] | None = None) -> None:
     kind.add_argument("--add", action="store_true",
                       help="leads of `news`: each one checked on the web, then written where it belongs; a line of "
                       "the file that begins with ! is dug deeper, in a call of its own")
+    f.add_argument("--context", choices=("guide", "pages"), default="guide",
+                   help="with --add, what each lead's call reads: the whole guide (default), or the pages the lead "
+                   "names and the plan of the guide (cheaper; the cross-check reads every page either way)")
     nw = sub.add_parser("news", help="what a reader would look for in the guide and not find: a list of leads, nothing "
                         "verified or edited (one model call that reads the whole guide)")
     nw.add_argument("--out", type=Path, help="where to write the leads, one per line (default: reports/ of the guide's "
@@ -632,7 +635,7 @@ def main(argv: list[str] | None = None) -> None:
                 # A line that begins with « ! » is a lead to dig deeper: a call of its own
                 deep = {f[1:].strip() for f in findings if f.startswith("!")}
                 findings = [f[1:].strip() if f.startswith("!") else f for f in findings]
-                items, proposal, usage = news.propose(VAULT, findings, deps.llm, excerpts, deep=deep)
+                items, proposal, usage = news.propose(VAULT, findings, deps.llm, excerpts, deep=deep, context=args.context)
             else:
                 items, proposal, usage = fix.propose(VAULT, findings, deps.llm, excerpts=excerpts)
             mode = "translation" if args.translation else "compact" if args.compact else "add" if args.add else "fix"

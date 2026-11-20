@@ -139,13 +139,30 @@ comptées large et seront réglées sur les premiers passages réels.
 | :-- | :-- |
 | Les pistes, depuis le guide | ≈ 2,40 $ (2,28 $ mesurés le 20/11/2026 pour 28 pistes) |
 | Les pistes, depuis le web | ≈ 2 $, plus ≈ 4,75 $ par chapitre exploré |
-| Un passage d'ajouts | ≈ 4,40 $, plus ≈ 2,90 $ par piste gardée, ou ≈ 3,70 $ pour une piste creusée |
+| Un passage d'ajouts, chaque appel avec tout le guide | ≈ 4,40 $, plus ≈ 2,90 $ par piste gardée, ou ≈ 3,70 $ pour une piste creusée |
+| Un passage d'ajouts, chaque appel avec les pages de sa piste et le plan | ≈ 2,40 $, plus ≈ 2,10 $ par piste gardée, ou ≈ 2,40 $ pour une piste creusée (pas encore mesuré) |
 
 Le passage d'ajouts est réglé sur deux passages réels (20/11/2026). Le premier : 11,01 $ pour une piste sur six
 grilles de prix et une piste creusée, 29 modifications, miroirs compris. Le second : 12,78 $ avant les miroirs
 pour trois pistes (deux planchers de sécurité à vérifier, un sujet à ajouter), 14 modifications, pour 13,10 $
 annoncés. Une piste qui vérifie une seule version ne coûte pas moins qu'une autre : 16 à 25 tours de recherche
 chacune. L'essentiel du coût d'une piste est le guide relu depuis le cache à chaque tour.
+
+**Ce que lit l'appel de chaque piste** se choisit à la création du passage (une liste au-dessus du bouton sur la
+page des pistes ; `--context guide` ou `--context pages` en ligne de commande ; tout le guide par défaut).
+
+- *Tout le guide* : l'appel voit chaque page. Le plus sûr, et le plus cher.
+- *Les pages de la piste et le plan du guide* : l'appel lit les pages que la piste nomme, celles qu'elle demande
+  de lire, et le plan du guide (chaque page avec son chemin, son poids, son titre et ses intertitres). Sur le guide
+  IA on-prem, cela fait 50 à 90 Ko au lieu de 830. L'appel ne modifie que ces pages, et nomme dans son résultat une
+  autre page que le plan lui suggère. Une piste qui ne nomme aucune page lit quand même tout le guide.
+
+C'est la piste qui dit quelles pages lire : l'appel qui liste les pistes a tout le guide sous les yeux, il nomme
+donc les pages concernées et, après « Read also: », jusqu'à six autres qu'il faut avoir lues pour bien écrire la
+piste (une page qui énonce le même fait, la fiche de lexique, une page dont le conseil changerait). Les pistes
+listées avant cette fonction ne nomment que les pages concernées. Dans les deux cas, la relecture croisée lit
+ensuite tout le guide : c'est elle qui rattrape une répétition ou une contradiction avec une page que l'appel
+n'a pas vue.
 
 Les étapes « pistes de nouveautés », « exploration du web par chapitre » et « ajouts vérifiés sur le web »
 apparaissent dans les Réglages, où chacune peut tourner sur un modèle à elle. Avec un moteur payé par un

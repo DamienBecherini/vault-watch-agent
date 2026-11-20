@@ -140,6 +140,8 @@ const TEXTS = {
       warning: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
       sent: "→ passe fix", dismissed: "écartée", reopen: "Rétablir",
       unchecked: "pas vérifiée par la passe", resend: "Remettre à traiter",
+      context: "Chaque appel de piste lit", contextGuide: "tout le guide", contextPages: "les pages de la piste et le plan du guide",
+      contextTip: "Tout le guide : l'appel voit chaque page. C'est le plus sûr et le plus cher, car le guide est relu à chaque tour de recherche. Les pages de la piste et le plan : l'appel lit les pages que la piste nomme ou demande de lire, plus la liste de toutes les pages avec leurs titres ; il ne modifie que ces pages. Une piste qui ne nomme aucune page lit quand même tout le guide. Dans les deux cas, la relecture croisée lit ensuite tout le guide et complète ou corrige.",
       uncheckedAll: n => `${n} piste(s) envoyée(s) n'ont pas été vérifiées par leur passe : rien n'a été cherché ni modifié pour elles. Remets-les à traiter pour les renvoyer.`,
       resendAll: n => n > 1 ? `Remettre les ${n} à traiter` : "Remettre à traiter", dismiss: n => `Écarter ${n} piste(s)`,
       interrupted: "interrompue",
@@ -373,6 +375,8 @@ const TEXTS = {
       warning: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
       sent: "→ fix run", dismissed: "dismissed", reopen: "Reopen",
       unchecked: "not checked by the run", resend: "Put back to handle",
+      context: "Each lead's call reads", contextGuide: "the whole guide", contextPages: "the lead's pages and the plan of the guide",
+      contextTip: "The whole guide: the call sees every page. It is the safest and the most expensive, since the guide is read again at each round of search. The lead's pages and the plan: the call reads the pages the lead names or asks to read, and the list of every page with its headings; it edits these pages only. A lead that names no page reads the whole guide all the same. Either way, the cross-check then reads the whole guide and completes or corrects.",
       uncheckedAll: n => `${n} lead(s) sent were not checked by their run: nothing was searched or edited for them. Put them back to handle to send them again.`,
       resendAll: n => n > 1 ? `Put the ${n} back to handle` : "Put back to handle", dismiss: n => `Dismiss ${n} lead(s)`,
       interrupted: "interrupted",
@@ -759,6 +763,11 @@ function drawWatches(watches, others) {
 
 // --- The chapters of the guide: seen, proposed by a model, edited by hand, declared in the manifest ---------
 // A help bubble: a « ? » that says what the thing beside it is, on hover, on keyboard focus and on a tap
+// What each call of an addition run reads: the whole guide, or its lead's pages and the plan (the reader's choice,
+// kept in this browser). A lead that names no page (« [Missing] no page yet: … ») reads the guide either way.
+let ADD_CONTEXT = "guide";
+try { if (localStorage.getItem("vault-watch-add-context") === "pages") ADD_CONTEXT = "pages"; } catch { /* private window */ }
+const NO_PAGE = /^\[[^\]]+\] no page yet:/;
 const tip = text => `<button type="button" class="tip" data-tip="${esc(text)}" aria-label="${esc(text)}">?</button>`;
 // The bubble stays inside the window: its width and its place follow where the « ? » is
 const placeTip = e => {
@@ -1217,6 +1226,8 @@ async function viewCheck(id) {
     }).join("")}
     <div class="bar">
       <details class="run-steps" id="run-steps-box" hidden><summary>${T.perStep.title}</summary><div id="run-steps"></div></details>
+      <label class="add-context small" id="add-context-box" hidden>${V.context}
+        <select id="add-context"><option value="guide">${V.contextGuide}</option><option value="pages">${V.contextPages}</option></select>${tip(V.contextTip)}</label>
       <button id="all">${V.tickAll}</button><button id="nothing">${V.untickAll}</button>
       <button id="dismiss"></button>
       <button class="primary" id="fix"></button>
@@ -1238,6 +1249,12 @@ async function viewCheck(id) {
   }
   const boxes = [...page.querySelectorAll("[data-lead]")];
   const ticked = () => boxes.filter(c => c.checked);
+  $("#add-context").value = ADD_CONTEXT;
+  $("#add-context").onchange = e => {
+    ADD_CONTEXT = e.target.value;
+    try { localStorage.setItem("vault-watch-add-context", ADD_CONTEXT); } catch { /* private window: per page only */ }
+    count();
+  };
   const count = () => {
     const ok = ticked().filter(c => c.dataset.fixable === "true"), n = ok.length, e = ticked().length;
     const by = {};
@@ -1250,8 +1267,18 @@ async function viewCheck(id) {
       const o = options.find(o => o.id === check) || {};
       return o.run_usd ? `≈ ${dollars(o.run_usd + (o.run_usd_each || 0) * (leads - deeper) + (o.run_usd_deep || 0) * deeper)}` : "";
     };
+    // An addition run whose calls read their lead's pages and the plan: priced so, except the leads that name no
+    // page, which read the whole guide (the first of them writes it to the cache: the difference of the two bases)
+    const adds = ok.filter(c => c.dataset.mode === "add").map(c => c.dataset.lead);
+    $("#add-context-box").hidden = !adds.length;
+    const addCost = () => {
+      const o = options.find(o => o.id === "news") || {};
+      if (ADD_CONTEXT !== "pages" || !o.run_usd_pages) return runOf("news", adds.length, dug);
+      const each = f => NO_PAGE.test(f) ? (deep().has(f) ? o.run_usd_deep : o.run_usd_each) : (deep().has(f) ? o.run_usd_deep_pages : o.run_usd_each_pages);
+      return `≈ ${dollars(o.run_usd_pages + (adds.some(f => NO_PAGE.test(f)) ? o.run_usd - o.run_usd_pages : 0) + adds.reduce((s, f) => s + (each(f) || 0), 0))}`;
+    };
     $("#fix").textContent = V.createFix(by, (usd, mode) => costOf(MODE_STEP[mode] || "fix", usd),
-      { compact: runOf("compaction", by.compact || 0), add: runOf("news", by.add || 0, dug) });
+      { compact: runOf("compaction", by.compact || 0), add: addCost() });
     // The steps of the run(s) these leads go to: what runs each, changeable for this time
     const kinds = Object.keys(by);
     const wanted = [...kinds.map(k => MODE_STEP[k]), ...(kinds.some(k => k !== "translation") ? ["crosscheck"] : []), ...(kinds.length ? ["mirror"] : [])];
@@ -1296,7 +1323,7 @@ async function viewCheck(id) {
       const threads = [];
       for (const mode of ["fix", "translation", "compact", "add"]) {
         const text = ticked().filter(c => c.dataset.fixable === "true" && c.dataset.mode === mode).map(c => c.dataset.lead).join("\n");
-        const dig = mode === "add" ? { deep: text.split("\n").filter(f => deep().has(f)) } : {};
+        const dig = mode === "add" ? { deep: text.split("\n").filter(f => deep().has(f)), context: ADD_CONTEXT } : {};
         const steps = ownFor([MODE_STEP[mode], "crosscheck", "mirror"]);
         if (text) threads.push((await api("/api/fix", { text, verification: id, mode, steps, ...dig })).thread);
       }

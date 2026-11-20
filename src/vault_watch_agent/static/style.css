@@ -208,7 +208,9 @@ textarea { width: 100%; min-height: 180px; font: inherit; padding: 10px; border-
 .step-line { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 4px 0; }
 .step-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex-basis: 100%; }
 .step-fields select, .step-fields input[type=text] { padding: 4px 6px; font-size: 14px; max-width: 240px; }
-.step-fields[hidden] { display: none; } .bar .run-steps { flex-basis: 100%; text-align: left; } .run-steps summary { cursor: pointer; }
+.step-fields[hidden] { display: none; } .bar .run-steps { flex-basis: 100%; text-align: left; }
+.bar .add-context { flex-basis: 100%; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.bar .add-context[hidden] { display: none; } .bar .add-context select { max-width: 100%; } .run-steps summary { cursor: pointer; }
 .tabs { display: flex; gap: 6px; margin: 0 0 12px; } .tabs a { padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius); text-decoration: none; }
 .tabs a.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 label.dig { display: block; margin: 2px 0 0 24px; }

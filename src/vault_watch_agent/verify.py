@@ -67,6 +67,10 @@ ADD_WEB_IN_EACH = 90_000  # tokens of web pages read per lead, by the proposals
 ADD_OUT_EACH = 16_000
 ADD_DEEP_ROUNDS, ADD_DEEP_WEB_IN, ADD_DEEP_OUT = 22, 120_000, 22_000  # a lead dug deeper: more sources, more pages
 ADD_CROSS_READS = 2  # the cross-check: readings of the cached guide whatever the leads
+# A call that reads its lead's pages and the plan of the guide instead of the whole guide (news.propose, "pages"):
+# the plan is a twentieth of the guide (38 KB of 820 on the IA on-prem guide), the pages a lead names 13 to 55 KB.
+# Not measured yet.
+PLAN_SHARE, ADD_PAGES_BYTES = 0.05, 60_000
 ADD_CROSS_ROUNDS_EACH, ADD_CROSS_WEB_IN_EACH, ADD_CROSS_OUT_EACH = 7, 55_000, 9_000  # and per lead
 # A call that has the whole budget of searches for itself (a chapter explored, a lead dug deeper): about twenty-five
 # rounds, each reading the cached guide and what the web returned so far. Twenty searches read 638 k tokens of
@@ -148,6 +152,8 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                       cache_read=ADD_CROSS_ROUNDS_EACH * fr, table=table)
                  + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                     if vault.guide_of(vault_dir).mirrors else 0.0))
+    # What a call of the "pages" context reads, and caches: never more than the guide itself
+    own = min(fr, int(PLAN_SHARE * fr + ADD_PAGES_BYTES / BYTES_PER_TOKEN))
     return {
         "audits": {"tokens": 0, "usd": 0.0, "note": note("≈ 10 s", "≈ 10 s")},
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
@@ -186,7 +192,14 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                                      cache_read=ADD_ROUNDS_EACH * fr, table=table) + add_after,
                     # a lead dug deeper: the same call, asked for a fuller look
                     "usd_deep": _usd(of("add"), tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT,
-                                     cache_read=ADD_DEEP_ROUNDS * fr, table=table) + add_after},
+                                     cache_read=ADD_DEEP_ROUNDS * fr, table=table) + add_after,
+                    # the same run when each call reads its lead's pages and the plan (context "pages"): the
+                    # proposals no longer write the guide to the cache, each call writes and reads its own pages
+                    "usd_pages": _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, cache_read=ADD_CROSS_READS * fr, table=table),
+                    "usd_each_pages": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH, cache_write=own,
+                                           cache_read=ADD_ROUNDS_EACH * own, table=table) + add_after,
+                    "usd_deep_pages": _usd(of("add"), tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT, cache_write=own,
+                                           cache_read=ADD_DEEP_ROUNDS * own, table=table) + add_after},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
@@ -389,7 +402,7 @@ def run_news(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     which checks each one on the web."""
     seen = news.candidates(news.reports_of(work), date.today())
     plan = reading.plan(vault_dir, llm, step="news")
-    system = prompts.fill(news.LEADS.replace("<<MAX>>", str(news.MAX_LEADS)), vault_dir)
+    system = prompts.fill(news.LEADS.replace("<<MAX>>", str(news.MAX_LEADS)).replace("<<READ>>", str(news.MAX_READ)), vault_dir)
     found, usages = _read_guide(vault_dir, llm, plan, system, f"{news.listing(seen)}\n\nList the leads.", news.Leads, "news")
     guide = vault.guide_of(vault_dir)
     kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))][:news.MAX_LEADS]
