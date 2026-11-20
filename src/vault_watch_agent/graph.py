@@ -652,13 +652,43 @@ def pr_title(state: WatchState) -> str:
     return state.get("title") or f"chore(watch): reviewed corrections, watch of {state['as_of']}"
 
 
-def pr_body(state: WatchState) -> str:
+PR_BODY_MAX = 60_000  # characters: GitHub refuses a description over 65 536
+
+
+def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
+    """The description of the pull request, under `limit` characters. A run with many corrections loses, in this
+    order and only as far as needed: the passages under its findings, the end of its « Why » cells, the last rows of
+    its table (the commit message of the branch names every correction)."""
+    count = len([c for c in state["corrections"] if c["id"] in state.get("applied", [])])
+    for passages, why, rows in ((True, 0, count), (False, 0, count), (False, 120, count)):
+        body = _pr_body(state, passages, why, rows)
+        if len(body) <= limit:
+            return body
+    low, high = 0, count  # the most rows that fit
+    while low < high:
+        middle = (low + high + 1) // 2
+        if len(_pr_body(state, False, 120, middle)) <= limit:
+            low = middle
+        else:
+            high = middle - 1
+    return _pr_body(state, False, 120, low)
+
+
+def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str:
     applied = [c for c in state["corrections"] if c["id"] in state.get("applied", [])]
-    rows = "\n".join(f"| {c['id']} | {c['severity']} | `{c['page']}` | {_cell(c['rationale'])} | {c['source_url']} |" for c in applied)
+    cut = lambda text: text if not why or len(text) <= why else text[:why].rstrip() + "…"  # noqa: E731
+    rows = "\n".join(f"| {c['id']} | {c['severity']} | `{c['page']}` | {_cell(cut(c['rationale']))} | {c['source_url']} |"
+                     for c in applied[:rows_kept])
+    if rows_kept < len(applied):
+        rows += (f"\n\n{len(applied) - rows_kept} more, {applied[rows_kept]['id']} to {applied[-1]['id']}: the commit "
+                 "message of the branch names every one.")
+    shortened = ("" if passages and not why else
+                 "\nThis description is shortened to fit: the report of the run, on the machine that ran it, has all of it.\n")
     # A fix run: the reported errors behind the applied corrections, with the passages they are about
     used = {i for c in applied for i in c.get("item_ids", [c["item_id"]])}
     reported = [i for i in state.get("items", []) if i.get("domain") == "fix" and i["id"] in used]
-    errors = "".join(f"- {i['id']}: {i['title']}\n" + "".join(f"{line}\n" for line in quotes.markdown(i.get("excerpts", [])))
+    errors = "".join(f"- {i['id']}: {i['title']}\n"
+                     + ("".join(f"{line}\n" for line in quotes.markdown(i.get("excerpts", []))) if passages else "")
                      for i in reported)
     trims = state.get("mode") == "compact"
     w = state.get("weight") or {}
@@ -678,6 +708,7 @@ def pr_body(state: WatchState) -> str:
            "all answer.\n" if not state.get("link_problems") else
            "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
         + ("" if state.get("audit_ok") is not False else f"\n```\n{state.get('audit_log', '')}\n```\n")
+        + shortened
         + (f"\nCloses #{state['issue']}.\n" if state.get("issue") else "")  # the watch is handled once merged
     )
 

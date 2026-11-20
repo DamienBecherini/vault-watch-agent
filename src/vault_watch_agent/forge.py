@@ -18,6 +18,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 import zipfile
 from pathlib import Path
 from typing import Protocol
@@ -74,8 +75,13 @@ class GitHub:
         inputs.run(["gh", "run", "download", run_id, "--repo", repo, "-n", name, "-D", str(dest)])
 
     def open_pull_request(self, repo: str, *, base: str, head: str, title: str, body: str, cwd: Path) -> str:
-        return inputs.run(["gh", "pr", "create", "--repo", repo, "--base", base, "--head", head,
-                           "--title", title, "--body", body], cwd=cwd).strip()
+        # The description in a file: as an argument, a long one is refused by Windows before gh runs (a command
+        # line holds 32 767 characters; the 193 trims of 20/11/2026 made 117 000)
+        with tempfile.TemporaryDirectory(prefix="vault-watch-pr-") as folder:
+            text = Path(folder) / "body.md"
+            text.write_text(body, encoding="utf-8", newline="\n")
+            return inputs.run(["gh", "pr", "create", "--repo", repo, "--base", base, "--head", head,
+                               "--title", title, "--body-file", str(text)], cwd=cwd).strip()
 
     def pull_request_state(self, url: str) -> str:
         """open, merged or closed."""

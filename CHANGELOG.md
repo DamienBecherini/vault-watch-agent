@@ -36,6 +36,10 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
 - Two steps more in the Settings (the report, the trims), with their effort (`high`). The button that creates a
   compaction run shows an estimate that follows the findings ticked: the cross-check, then a share per finding,
   at the prices of the models of the Settings.
+- A pull request with many corrections is opened: its description goes to `gh` in a file (as an argument, Windows
+  refused it over 32 767 characters, before `gh` ran) and stays under what GitHub accepts (it loses, as far as
+  needed, the passages under its findings, the end of its « Why » cells, then the last rows of its table). A
+  publication that fails says so on the publish screen, which showed nothing.
 - Every run says what it changes in the weight of the pages it edits: expected in its report, before the review
   (« Weight, if every valid correction is applied », with the three pages that change the most), measured in its
   pull request and on the publish screen. A watch that adds 5 KB to one page shows it before the review.

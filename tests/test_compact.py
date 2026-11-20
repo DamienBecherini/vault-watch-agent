@@ -322,6 +322,21 @@ Le port 8000 doit rester fermé, voir la page sécurité.
     assert "KB before and" in body and "What weighed:\n\n- F1: [History]" in body
     from vault_watch_agent.graph import expected_weight, weight_line
 
+    # A description too long for the forge loses, in this order: the passages under the findings, the end of the
+    # « Why » cells, the last rows of the table; under the limit it is whole
+    many = {**state, "applied": [f"C{n}" for n in range(1, 401)], "corrections": [
+        {**state["corrections"][0], "id": f"C{n}", "rationale": "Superseded by the floor stated in the next sentence. " * 6}
+        for n in range(1, 401)], "items": [{**i, "excerpts": [{"page": "a.md", "line": 3, "match": "exact",
+                                                                 "lines": [{"hit": True, "text": "x" * 300}]}] * 4}
+                                                 for i in state["items"]]}
+    whole, short = pr_body(many, limit=10**9), pr_body(many)
+    assert len(whole) > 150_000 and "    > → xxx" in whole and "shortened" not in whole
+    assert len(short) <= 60_000 and "    > → xxx" not in short and "… | 03-stack/engines.md |" in short
+    assert "This description is shortened to fit" in short and "- F1: [History]" in short and "Guide audits: " in short
+    kept = short.count("| Minor |")
+    assert 0 < kept < 400 and f"{400 - kept} more, C{kept + 1} to C400: the commit message of the branch names every one." in short
+    assert pr_body(state) == pr_body(state, limit=10**9)  # an ordinary run: nothing cut
+
     # Every run says it, not only the trims: a fix run that adds to a page
     assert pr_body({**state, "mode": "fix", "weight": {"before": 10240, "after": 12288, "pages": [["a.md", 2048]]}}).startswith(
         "Corrections from what weighs in the guide (compact-test), reviewed before apply.\n\n"

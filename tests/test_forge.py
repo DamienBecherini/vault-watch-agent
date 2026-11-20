@@ -130,6 +130,25 @@ def test_gitea_opens_a_pull_request_and_reads_its_state(server, tmp_path):
         gitea.pull_request_state(f"{URL}/owner/guide/issues/3")
 
 
+def test_github_gets_a_long_description_in_a_file(tmp_path, monkeypatch):
+    """As an argument, a description over 32 767 characters is refused by Windows before gh runs (20/11/2026: the
+    193 trims of a compaction run, 117 000 characters, and nothing happened on the publish screen)."""
+    seen = {}
+
+    def run(command, cwd=None):
+        seen.update(command=command, cwd=cwd, body=open(command[command.index("--body-file") + 1], encoding="utf-8").read())
+        return "https://github.com/owner/guide/pull/12\n"
+
+    monkeypatch.setattr(forge.inputs, "run", run)
+    body = "| C1 | Minor | `a.md` | « é » |\n" * 4000  # 120 000 characters
+    url = GitHub().open_pull_request("owner/guide", base="main", head="compact/x", title="T", body=body, cwd=tmp_path)
+    assert url == "https://github.com/owner/guide/pull/12" and seen["body"] == body and seen["cwd"] == tmp_path
+    assert "--body" not in seen["command"] and max(len(a) for a in seen["command"]) < 300  # nothing long on the command line
+    import os
+
+    assert not os.path.exists(seen["command"][seen["command"].index("--body-file") + 1])  # the file is gone
+
+
 def test_gitea_downloads_the_artifact_of_a_run(server, tmp_path):
     fake, gitea = server
     gitea.download_artifact("owner/guide", "41", "weekly-watch", tmp_path / "run-41")
