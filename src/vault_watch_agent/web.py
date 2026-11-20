@@ -940,6 +940,8 @@ def create_app(settings: Settings) -> FastAPI:
                         result = verify.RUNNERS[step](guide, work_dir, data["results"], model)
                     except Exception as e:  # one check failing does not stop the others
                         result = {"ok": False, "summary": f"could not run: {type(e).__name__}: {e}"[:500], "findings": []}
+                        if getattr(e, "usage", None):  # billed all the same (an answer cut at the output limit)
+                            result["usage"] = [e.usage]
                     result["fixable"] = check.fixable
                     data["cost"] = round(data["cost"] + sum(u.get("cost_usd", 0) for u in result.get("usage", [])), 2)
                     data["results"][step] = result

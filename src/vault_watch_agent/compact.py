@@ -42,12 +42,15 @@ heaviest first:
   listed below with their heaviest sections: look there first.
 Do not report an error of fact or a contradiction (another check does), style, or a missing topic. Never propose
 to remove the only statement of a fact, a caveat or a source. Skip what would save less than a sentence or two.
+List at most <<MAX>> findings, those that save the most: the editor acts on them, then asks again.
 Each finding names the pages, quotes the passages, and says what to trim and where the reader still finds the
 information, so that someone who has not read the guide can act on it. Write the findings in English."""
 
-EXCERPTS = ("\nIn `excerpts`, copy each passage in question verbatim from its page (one sentence or one table row; "
-            "for a repetition, one from each page): the reviewer reads it without opening the page.")
+EXCERPTS = ("\nIn `excerpts`, copy each passage in question verbatim from its page (one sentence or one table row, "
+            "not a paragraph; for a repetition, one from each page; three passages at most): the reviewer reads it "
+            "without opening the page.")
 
+MAX_FINDINGS = 30  # a report an editor can act on; the answer also stays far from the model's output limit
 KINDS = {"repeated": "Repeated", "history": "History", "long": "Long"}
 
 

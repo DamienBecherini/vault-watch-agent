@@ -33,9 +33,12 @@ Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-p
   the step read from the label of the call); the estimates, the journal and the way the guide is read (whole or by
   chapter) follow the model of the step. An agent older than 1.2.0 ignores the key, and drops it when it saves the
   settings.
-- A request to the Claude API may now write 64 000 tokens instead of 32 000, thinking included. The whole-guide
-  checks wrote 27 to 29 k on Opus 5.5 at effort high; a model that thinks more would have been cut, and a cut
-  answer is billed and lost.
+- A request to the Claude API may now write what its model accepts (128 000 tokens on the current models, read from
+  the Models API) instead of 32 000, thinking included. The whole-guide checks wrote 27 to 29 k on Opus 5.5 at
+  effort high, and the first compaction report on Fable 5.2 at effort high was cut at 64 000, the limit tried
+  first. An answer cut at the limit is billed and lost: it is now written to the cost journal (`cut`, its output
+  counted at the limit), the error says what it cost, and a check that failed this way shows that cost. The
+  compaction report lists at most 30 findings.
 
 ## 1.1.0 (2026-11-19)
 

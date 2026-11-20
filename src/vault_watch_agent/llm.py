@@ -40,14 +40,21 @@ T = TypeVar("T", bound=BaseModel)
 MODEL = "claude-opus-5-5"
 TRANSLATOR = "claude-sonnet-5-5"
 MAX_CONTINUATIONS = 5  # server-side tool loops resumed after pause_turn
-# The most one request may write, thinking included (the models always think; every current Claude model accepts
-# 128k). It was 32 000 until 1.1.0, and the whole-guide checks wrote 27 to 29 k on Opus 5.5 at effort high: a
-# model that thinks more would have been cut, and a cut answer is billed and lost.
-MAX_TOKENS = 64_000
+# The most one request may write, thinking included: what the model accepts (`max_output`). It was 32 000 until
+# 1.1.0, and the whole-guide checks wrote 27 to 29 k on Opus 5.5 at effort high. A cut answer is billed and lost:
+# on 20/11/2026 the first compaction report on Fable 5.2 at effort high was cut at 64 000, most of it thinking.
+MAX_TOKENS = 128_000  # the current Claude models
+OUTPUTS: dict[str, int] = {}  # model id -> the most it writes, as the Models API gave it (list_models fills it)
+
+
+def max_output(model: str) -> int:
+    """The output limit of `model`: from the Models API when it was read, else what the agent knows."""
+    return OUTPUTS.get(model) or (64_000 if model.startswith("claude-haiku-4") else MAX_TOKENS)
 
 
 class ModelError(RuntimeError):
-    pass
+    """`usage`: what the failed call was billed all the same, when the engine knows it (a cut answer)."""
+    usage: dict | None = None
 
 
 class LLM(Protocol):
@@ -181,10 +188,11 @@ class Claude(_Journal):
             ]
         messages: list = [{"role": "user", "content": prompt}]
         totals = {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0, "web_searches": 0}
+        limit = max_output(self.model)
         for _ in range(MAX_CONTINUATIONS):
             with self.client.beta.messages.stream(
                 model=self.model,
-                max_tokens=MAX_TOKENS,
+                max_tokens=limit,
                 system=blocks,
                 messages=messages,
                 output_format=schema,
@@ -194,7 +202,26 @@ class Claude(_Journal):
                 fallbacks="default",
                 **extra,
             ) as stream:
-                message = stream.get_final_message()
+                try:
+                    message = stream.get_final_message()
+                except ValidationError as e:
+                    # The SDK reads the JSON when its block ends: an answer cut at the limit is not JSON. The call is
+                    # billed: it goes to the journal with what is known (the input as counted, the output at the limit).
+                    u = stream.current_message_snapshot.usage
+                    usage = {"node": node, "model": self.model, "engine": "api", "effort": effort, "cut": True,
+                             "input": totals["input"] + u.input_tokens, "output": totals["output"] + limit,
+                             "cache_read": totals["cache_read"] + (u.cache_read_input_tokens or 0),
+                             "cache_write": totals["cache_write"] + (u.cache_creation_input_tokens or 0),
+                             "web_searches": totals["web_searches"]}
+                    usd, price = self.prices.cost(usage)
+                    usage.update(cost_usd=round(usd, 6), price=price.rates() if price else None,
+                                 price_origin=price.label if price else "no price")
+                    self.record(usage)
+                    error = ModelError(f"{node}: the answer was cut before its end (the limit of {limit:,} output tokens, "
+                                       f"thinking included): billed ≈ {usd:.2f} $ and lost. Lower the effort of this step "
+                                       "or ask it for less.")
+                    error.usage = usage
+                    raise error from e
             u = message.usage
             totals["input"] += u.input_tokens
             totals["output"] += u.output_tokens
@@ -558,6 +585,7 @@ def list_models(reference: str, client: anthropic.Anthropic | None = None, price
               for m in sorted(found, key=lambda m: m.created_at, reverse=True)
               if m.id.startswith("claude-") and not getattr(m, "deprecated_at", None)]
     CONTEXTS.update({m["id"]: m["context"] for m in models if m["context"]})
+    OUTPUTS.update({m.id: m.max_tokens for m in found if getattr(m, "max_tokens", None)})
     _models[reference] = (time.monotonic(), models)
     return models
 

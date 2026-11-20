@@ -94,10 +94,15 @@ l'étape « relecture croisée », commune avec les veilles : elle suit le rôle
 elle aussi. Voir [Choisir un modèle](choose-a-model.fr.md#un-modèle-pour-une-seule-étape).
 
 Les estimations affichées avant chaque partie suivent le prix du modèle de chaque étape. Sur le guide IA on-prem
-(environ 434 k tokens), aux prix publics de novembre 2026 : environ 2,80 $ pour le rapport et 5 $ pour un passage
-d'allègements avec Claude Opus 5.5 ; avec Claude Fable 5.2 sur les deux étapes de compactage, environ 5,50 $ et
-7,80 $. Un passage paie deux lectures du guide : ses propositions et sa relecture croisée ne partagent pas le
-cache. Ce sont des estimations, à remplacer par des mesures après les premiers passages réels.
+(environ 434 k tokens), aux prix publics de novembre 2026 : environ 3,4 $ pour le rapport et 6,1 $ pour un
+passage d'allègements avec Claude Opus 5.5 ; avec Claude Fable 5.2 sur les deux étapes de compactage, environ
+6,7 $ et 9,4 $. Un passage paie deux lectures du guide : ses propositions et sa relecture croisée ne
+partagent pas le cache. Ce sont des estimations, comptées large, à remplacer par des mesures après les premiers
+passages réels.
+
+Ce qu'un modèle réfléchit est facturé comme de la sortie et compte dans la limite de ce qu'un appel peut écrire.
+Le rapport liste au plus 30 pistes pour que sa réponse reste loin de cette limite ; une réponse coupée à la limite
+est facturée et perdue, ce que le journal et le coût du contrôle montrent alors.
 
 ## Ce que le code vérifie lui-même
 

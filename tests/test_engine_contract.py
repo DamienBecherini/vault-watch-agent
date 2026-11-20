@@ -53,6 +53,47 @@ def test_the_api_engine_keeps_the_contract(tmp_path):
     check_engine(ApiAdapter(), tmp_path)
 
 
+def test_an_answer_cut_at_the_output_limit_is_counted_and_said(tmp_path):
+    """The SDK fails while reading a JSON cut at the limit (20/11/2026, Fable 5.2 at effort high): the call is
+    billed, so it goes to the journal, and the error says what it cost."""
+    import pytest
+    from pydantic import TypeAdapter, ValidationError
+
+    request = {}
+
+    class Stream:
+        current_message_snapshot = SimpleNamespace(usage=SimpleNamespace(
+            input_tokens=300, output_tokens=1, cache_read_input_tokens=0, cache_creation_input_tokens=400_000))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get_final_message(self):
+            TypeAdapter(Answer).validate_json('{"facts": ["a", ')  # what the SDK does with the cut text
+
+    def stream(**kw):
+        request.update(kw)
+        return Stream()
+
+    journal = tmp_path / "usage.jsonl"
+    client = llm.Claude("claude-fable-5-2", SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(stream=stream))), journal)
+    with pytest.raises(llm.ModelError, match="cut before its end .*128,000 output tokens") as caught:
+        client.parse(system="s", prompt="p", schema=Answer, effort="high", node="verify compaction")
+    assert not isinstance(caught.value, ValidationError) and request["max_tokens"] == 128_000  # the model's own limit
+    line = json.loads(journal.read_text(encoding="utf-8"))
+    assert line["cut"] and line["output"] == 128_000 and line["cache_write"] == 400_000
+    assert line["cost_usd"] == caught.value.usage["cost_usd"] == pytest.approx(400_000 * 10 / 1e6 + 128_000 * 40 / 1e6 + 300 * 8 / 1e6)
+    assert llm.max_output("claude-haiku-4-5") == 64_000 and llm.max_output("claude-opus-5-5") == 128_000
+    llm.OUTPUTS["claude-opus-5-5"] = 96_000  # read from the Models API: it wins
+    try:
+        assert llm.max_output("claude-opus-5-5") == 96_000
+    finally:
+        del llm.OUTPUTS["claude-opus-5-5"]
+
+
 # -- Claude Code: `claude -p` replaced by a fake replaying its JSON result per scenario ---------------------------
 
 SUBSCRIPTION = {"loggedIn": True, "authMethod": "claude.ai", "subscriptionType": "max"}

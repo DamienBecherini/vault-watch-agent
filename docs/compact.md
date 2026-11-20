@@ -89,10 +89,14 @@ watches: it follows the role unless you set it apart too. See
 [Choose a model](choose-a-model.md#a-model-for-one-step).
 
 The estimates shown before each part follow the price of the model of each step. On the IA on-prem guide (about
-434 k tokens), at the list prices of November 2026: about 2.80 $ for the report and 5 $ for a run of trims with
-Claude Opus 5.5; with Claude Fable 5.2 on the two compaction steps, about 5.50 $ and 7.80 $. A run pays for
-reading the guide twice: its proposals and its cross-check do not share the cache. These are estimates, to be
-replaced by measures after the first real runs.
+434 k tokens), at the list prices of November 2026: about 3.4 $ for the report and 6.1 $ for a run of trims
+with Claude Opus 5.5; with Claude Fable 5.2 on the two compaction steps, about 6.7 $ and 9.4 $. A run pays
+for reading the guide twice: its proposals and its cross-check do not share the cache. These are estimates, counted
+high, to be replaced by measures after the first real runs.
+
+What a model thinks is billed as output and counts in the limit of what one call may write. The report lists at
+most 30 findings so that its answer stays far from that limit; an answer cut at the limit is billed and lost, which
+the journal and the check's cost then show.
 
 ## What the code checks itself
 

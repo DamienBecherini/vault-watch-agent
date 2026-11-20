@@ -31,11 +31,13 @@ COHERENCE_OUT = 27_000  # output tokens of the whole-guide read
 CLAIM_USD = 0.21  # one watchlist claim checked on the web
 DEAD_LINK_USD = 0.27  # one dead source: find where it moved
 OUTPUT_PER_CHAPTER = 3_000
-# Output tokens, thinking included. The report: like the coherence check (27 to 29 k measured on Opus 5.5 at effort
-# high). A compaction run: its proposals then its cross-check (21 to 30 k and 12 to 15 k measured on fix runs), and
-# the guide written twice to the cache (the two calls do not share it: another answer schema).
-COMPACTION_OUT = 30_000
-COMPACT_RUN_OUT = 40_000
+# Output tokens, thinking included, counted high on purpose: an estimate shown before a billed run should not be
+# beaten. The coherence check wrote 27 to 29 k on Opus 5.5 at effort high, the proposals and the cross-check of a fix
+# run 21 to 30 k and 12 to 15 k; the first compaction report on Fable 5.2 at effort high wrote more than 64 000
+# (20/11/2026, cut at the limit of the time). A run writes the guide twice to the cache (its two calls do not share
+# it: another answer schema).
+COMPACTION_OUT = 60_000
+COMPACT_RUN_OUT = 90_000
 HEAVIEST = 15  # pages kept in the result of the size check: those over their budget, then the heaviest
 
 
@@ -293,7 +295,8 @@ def run_compaction(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict
     listing = "\n".join(f"- {sizes.describe(r)}{' — over its budget' if r['over'] else ''}"
                         f"{' — read-only' if r['readonly'] else ''}" for r in heaviest)
     plan = reading.plan(vault_dir, llm, step="compaction")
-    found, usages = _read_guide(vault_dir, llm, plan, prompts.fill(compact.REPORT, vault_dir) + compact.EXCERPTS,
+    system = compact.REPORT.replace("<<MAX>>", str(compact.MAX_FINDINGS))
+    found, usages = _read_guide(vault_dir, llm, plan, prompts.fill(system, vault_dir) + compact.EXCERPTS,
                                 f"The heaviest pages:\n{listing}\n\nList the findings.", compact.Trims, "compaction")
     guide = vault.guide_of(vault_dir)
     kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]  # nothing to edit there
