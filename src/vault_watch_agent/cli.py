@@ -344,6 +344,8 @@ def make_deps(thread: str, kind: str) -> Deps:
         return Deps(vault=VAULT, home=HOME, llm=None)
     vault.sync(VAULT)
     settings = config.load(CONFIG_HOME)  # read for each run: a change in the Settings page applies to the next one
+    # What this run set for its own steps (an engine, a model, an effort chosen when it was started), over the settings
+    settings["steps"] = config.over(settings["steps"], config.run_steps(HOME, thread))
     table = Prices.of_home(CONFIG_HOME, settings)  # the user's prices, the fetched list, the defaults
     llm, translator = create("reasoning", JOURNAL, settings, table), create("translator", JOURNAL, settings, table)
     for model in (llm, translator):

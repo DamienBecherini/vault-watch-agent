@@ -51,6 +51,23 @@ pendant que les veilles hebdomadaires restent sur le modèle mesuré ici. Les es
 suivent le modèle de chaque étape. Dans `settings.json` :
 `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
 
+Une étape peut aussi avoir son propre moteur (`"steps": {"news": {"engine": "claude-code"}}`) : la recherche de
+nouveautés par un abonnement, par exemple, pendant que les veilles restent sur l'API. Sans modèle à elle, une telle
+étape prend le modèle que son rôle a avec ce moteur. Si son moteur ne peut pas servir (l'API sans clé), l'erreur
+arrive quand cette étape est demandée, pas avant.
+
+Trois niveaux, du plus général au plus particulier :
+
+| Niveau | Où | S'applique à |
+| :-- | :-- | :-- |
+| Les valeurs par défaut | L'agent lui-même | Une machine où rien n'a été réglé |
+| Les Réglages | « Moteur », « Modèles et effort », « Régler une étape à part » | Tous les passages à partir de là |
+| Ce passage seulement | « changer pour cette fois », à côté de chaque contrôle et au-dessus du bouton qui crée un passage | Ce passage, jusqu'à sa dernière étape (les miroirs après la relecture) ; les Réglages ne sont pas touchés |
+
+Chaque écran qui lance un passage montre ce qui fera tourner chacune de ses étapes (moteur, modèle, effort) et
+comment c'est payé, avant le clic. Un moteur imposé à toute une commande (`VAULT_WATCH_ENGINE`) l'emporte sur les
+trois.
+
 ## Ce qui a été essayé
 
 **Un modèle local sur un portable.** Qwen3.6-35B-A3B (llama.cpp, quantifié, fenêtre de 64k) sur un GPU de portable

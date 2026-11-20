@@ -503,14 +503,31 @@ def create(role: str = "reasoning", journal: Path | None = None, settings: dict 
     if not apart:
         return client
     by_step, efforts = {}, {}
-    for step, own in apart.items():  # one client per step set apart: its model, and its effort taken as it is
-        other = engines()[name].make(role, journal, _with_model(settings, name, role, own["model"]) if own.get("model") else settings)
+    for step, own in apart.items():  # one client per step set apart: its engine, its model, its effort taken as it is
+        engine_of_step = step_engine(settings, step, name)
+        its = {**settings, "engine": engine_of_step}
+        try:
+            other = engines()[engine_of_step].make(
+                role, journal, _with_model(its, engine_of_step, role, own["model"]) if own.get("model") else its)
+        except Exception as e:  # noqa: BLE001 - its engine cannot be set up (no key…): said when the step is asked
+            other = _Unavailable(own.get("model") or "", f"{step}: the engine {engine_of_step} of this step cannot be used ({e})")
         other.effort_step = 0 if own.get("effort") else client.effort_step
         other.prices = client.prices
         by_step[step] = other
         if own.get("effort"):
             efforts[step] = own["effort"]
     return Routed(client, by_step, efforts)
+
+
+class _Unavailable:
+    """In place of the client of a step whose engine could not be set up (the API without a key, for instance): the
+    error is raised when that step is asked, not for the runs that never reach it."""
+
+    def __init__(self, model: str, error: str):
+        self.model, self.error = model, error
+
+    def parse(self, **_):
+        raise ModelError(self.error)
 
 
 class Routed:
@@ -551,11 +568,39 @@ def _with_model(settings: dict, name: str, role: str, model: str) -> dict:
     return out
 
 
+def step_engine(settings: dict, step: str, name: str = "") -> str:
+    """The engine that runs `step`: the one forced for the whole command (VAULT_WATCH_ENGINE), else its own (`steps`
+    of the settings), else the engine of the settings (`name` when the caller already resolved it)."""
+    forced = os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower()
+    own = ((settings.get("steps") or {}).get(step) or {}).get("engine")
+    return (name or engine(settings["engine"])) if forced or not own else own
+
+
 def step_model(settings: dict, step: str) -> str:
-    """The model that runs `step`: its own (`steps` of the settings), else its role's."""
+    """The model that runs `step`: its own (`steps` of the settings), else its role's with the engine of the step."""
     from . import steps
 
-    return ((settings.get("steps") or {}).get(step) or {}).get("model") or model_of(settings, steps.STEPS[step].role)
+    name = step_engine(settings, step)
+    return ((settings.get("steps") or {}).get(step) or {}).get("model") or engines()[name].model_of(
+        {**settings, "engine": name}, steps.STEPS[step].role)
+
+
+def step_effort(settings: dict, step: str) -> str:
+    """The effort `step` runs at: its own, taken as it is, else what the code asks moved by the effort of its role."""
+    from . import steps
+
+    own = ((settings.get("steps") or {}).get(step) or {}).get("effort")
+    return own or shift_effort(steps.effort(step), EFFORT_STEPS[settings["effort"][steps.STEPS[step].role]])
+
+
+def billing_of(settings: dict, name: str) -> str:
+    """How the calls of the engine `name` are paid, without making a client: token, subscription, or none (a local
+    model)."""
+    if name == "claude-code":
+        return "subscription"
+    if name == "openai":
+        return "none" if ((settings.get("engines") or {}).get("openai") or {}).get("billing") == "local" else "token"
+    return "token"
 
 
 def model_of(settings: dict, role: str) -> str:

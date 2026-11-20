@@ -75,6 +75,17 @@ La première répond à « ceci est-il encore à jour, ce sujet connu manque-t-i
 trouve ce qu'on ne savait pas demander. Un chapitre dont l'appel échoue est signalé dans le résultat, et les
 autres continuent.
 
+## Une idée ou une information à vous
+
+Quand vous savez déjà quoi regarder, sautez la recherche de pistes : « Signaler ou proposer », onglet « Une idée
+ou une information à creuser » (un lien sur « Vérifier le guide » y mène). Un sujet par ligne, avec une adresse
+si vous en avez une ; une case demande que chacun soit creusé. Les sujets partent directement dans un passage
+d'ajouts.
+
+```bash
+vault-watch --guide ../mon-guide fix mon-idee --findings idee.txt --add    # une ligne qui commence par ! est creusée
+```
+
 ## Les ajouts
 
 ```bash

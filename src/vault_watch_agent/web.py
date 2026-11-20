@@ -120,6 +120,7 @@ class Analyse(BaseModel):
     issue: int | None = None
     watch_json: str | None = None
     watch: str | None = None  # the id of a watch of the guide's source (a file of the guide)
+    steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
 
 
 class Review(BaseModel):
@@ -137,6 +138,7 @@ class Report(BaseModel):
     # add: what is new, checked on the web and written where it belongs (news.py)
     mode: Literal["fix", "translation", "compact", "add"] = "fix"
     deep: list[str] = []  # an addition run: the leads to dig deeper, each in a call of its own (news.propose)
+    steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
 
 
 class Handle(BaseModel):
@@ -156,6 +158,7 @@ class Later(BaseModel):
 class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
     chapters: list[str] = []  # the check « explore »: the chapters to explore (all of them when empty)
+    steps: dict = {}  # for this verification alone: {step: {engine, model, effort}} (config.run_steps)
 
 
 class UserSettings(BaseModel):  # config.py: the key is a reference to where it is, never the key
@@ -368,14 +371,45 @@ def create_app(settings: Settings) -> FastAPI:
         """How the next run is paid, without making a client: token, subscription, or none (a local model)."""
         try:
             cfg = user_settings.load(cfg_home)
-            name = llm.engine(cfg["engine"])
+            return llm.billing_of(cfg, llm.engine(cfg["engine"]))
         except (user_settings.ConfigError, llm.ModelError):
             return "token"
-        if name == "claude-code":
-            return "subscription"
-        if name == "openai":
-            return "none" if (cfg["engines"].get("openai") or {}).get("billing") == "local" else "token"
-        return "token"
+
+    def own_steps(text: str) -> dict:
+        """What a page chose for the steps of the run it is about to start (`steps`, as JSON in a query): checked."""
+        try:
+            return user_settings.check_steps(json.loads(text) if text else {})
+        except ValueError as e:  # ConfigError is one
+            raise HTTPException(400, f"steps: {e}") from e
+
+    def keep_steps(thread: str, given: dict) -> None:
+        """Keeps what a run sets for its own steps, before it starts (cli.make_deps reads it for each of its jobs)."""
+        try:
+            user_settings.save_run_steps(settings.home, thread, given)
+        except ValueError as e:
+            raise HTTPException(400, f"steps: {e}") from e
+
+    def steps_view(cfg: dict) -> list[dict]:
+        """Each step as it would run with `cfg`: its engine, model, effort, and how its calls are paid."""
+        out = []
+        for s in steps.STEPS.values():
+            if not s.shown:
+                continue
+            name = llm.step_engine(cfg, s.id)
+            out.append({"step": s.id, "role": s.role, "engine": name, "engine_label": llm.engines()[name].label,
+                        "model": llm.step_model(cfg, s.id), "effort": llm.step_effort(cfg, s.id),
+                        "billing": llm.billing_of(cfg, name), "own": s.id in cfg["steps"]})
+        return out
+
+    @app.get("/api/steps")
+    def steps_now(steps: str = ""):
+        """How each step would run now: with the settings, and with what the page chose for one run laid over them
+        (`steps`). With it, what a page needs to offer another choice: the engines, the efforts."""
+        cfg = user_settings.load(cfg_home)
+        cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
+        return {"steps": steps_view(cfg), "efforts": list(llm.EFFORT_LEVELS),
+                "engines": [{"name": k.name, "label": k.label} for k in llm.engines().values()],
+                "forced": os.environ.get("VAULT_WATCH_ENGINE", "").strip().lower()}
 
     def forge_repo_url() -> str:
         """The repository's web page on its forge ("" for a local guide)."""
@@ -626,6 +660,7 @@ def create_app(settings: Settings) -> FastAPI:
         if viewer.get_state(config(thread)).values:
             raise HTTPException(409, f"{thread} already has a run")
         source = f"issue #{body.issue}" if body.issue else body.watch_json
+        keep_steps(thread, body.steps)
         start(thread, "run", "watch", lambda g, job: follow(g, job, {"issue": body.issue, "source": source}))
         return {"thread": thread}
 
@@ -686,6 +721,7 @@ def create_app(settings: Settings) -> FastAPI:
                                as_node="propose")
             follow(graph, job, None)
 
+        keep_steps(thread, body.steps)
         if body.verification:  # the findings of a check, sent here: they are handled
             mark(body.verification, findings, {"status": "fix", "thread": thread})
         start(thread, "fix", "fix", work)
@@ -923,7 +959,9 @@ def create_app(settings: Settings) -> FastAPI:
         return {"deleted": vid}
 
     @app.get("/api/verifications/options")
-    def verif_options():
+    def verif_options(steps: str = ""):
+        """`steps`: what the page chose for the steps of the verification it is about to start (JSON), laid over the
+        settings: the estimates and the way each check is paid follow it."""
         known = {}
         for p in verif_files():  # counts from the last checks that measured them, for the paid follow-ups
             r = read_json(p).get("results", {})
@@ -932,8 +970,11 @@ def create_app(settings: Settings) -> FastAPI:
             if "claims" not in known and "freshness" in r:
                 known["claims"] = len(r["freshness"].get("claims", []))
         cfg = user_settings.load(cfg_home)
+        cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
         models = cfg["models"]  # the models of the user's settings, shown and priced
-        apart = {step: own["model"] for step, own in cfg["steps"].items() if own.get("model")}  # a step's own model
+        # a step's own model, or the model of its role with its own engine
+        apart = {step: llm.step_model(cfg, step) for step, own in cfg["steps"].items() if own.get("model") or own.get("engine")}
+        how = {s["step"]: s for s in steps_view(cfg)}  # the engine, the effort and the billing of each step
         table = price_table()
         est = verify.estimates(settings.vault, known, models, table, apart)
         name = {verify.MODEL: models["reasoning"], verify.TRANSLATOR: models["translator"]}
@@ -944,6 +985,8 @@ def create_app(settings: Settings) -> FastAPI:
         model = lambda c: apart.get(c.id) or name.get(c.model, c.model) if c.model else None  # noqa: E731
         return [{"id": c.id, "title": c.title, "what": c.what, "model": model(c), "needs": list(c.needs),
                  "fixable": c.fixable, "price_origin": origin(model(c)), "limit": c.limit, **est[c.id],
+                 # a check that calls the model is a step: the engine and the effort it runs at, how it is paid
+                 **({k: how[c.id][k] for k in ("engine", "engine_label", "effort", "billing")} if c.id in how else {}),
                  # what a run made from this check's leads costs, when the agent can estimate it (a compaction run)
                  "run_usd": est.get(f"{c.fix_mode}-run", {}).get("usd"),
                  "run_usd_each": est.get(f"{c.fix_mode}-run", {}).get("usd_each"),
@@ -967,6 +1010,7 @@ def create_app(settings: Settings) -> FastAPI:
         if not body.checks or unknown:
             raise HTTPException(400, f"unknown or no checks: {sorted(unknown)}")
         vid = time.strftime("verif-%Y-%m-%d-%H%M%S")
+        keep_steps(vid, body.steps)
         steps = verify.plan(body.checks)
         verifs.mkdir(parents=True, exist_ok=True)
         path, work_dir = verifs / f"{vid}.json", verifs / vid

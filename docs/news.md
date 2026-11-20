@@ -73,6 +73,16 @@ that establish it. A lead two chapters found from the same source is listed once
 The first answers « is this still current, is that known subject missing? »; the second is the only one that
 finds what you did not know to ask. A chapter whose call fails is said in the result, and the others go on.
 
+## An idea or a piece of news of your own
+
+When you already know what to look at, skip the search for leads: « Report or suggest », tab « An idea or a piece
+of news to dig into » (a link on « Check the guide » leads there). One subject per line, with an address if you
+have one; a box asks that each be dug deeper. The subjects go straight to an addition run.
+
+```bash
+vault-watch --guide ../my-guide fix my-idea --findings idea.txt --add     # a line that begins with ! is dug deeper
+```
+
 ## The additions
 
 ```bash

@@ -59,8 +59,8 @@ const SETTINGS_TEXTS = {
     effortHelp: "L'effort est fixé étape par étape dans le code ; ce réglage décale chaque étape d'un cran. Plus haut : plus de réflexion, plus de tokens (et de limites d'abonnement ou de coût), plus lent.",
     stepsOf: "Ce que donne chaque étape :",
     stepsApart: "Régler une étape à part", stepsApartCount: n => `${n} étape(s) à part`,
-    stepsApartHelp: "Une étape peut tourner sur un autre modèle que son rôle, ou à un effort fixé : par exemple le compactage sur le modèle le plus fort, les veilles inchangées. Un effort choisi ici s'applique tel quel, sans le décalage du rôle.",
-    asRole: "comme le rôle", stepModel: "Modèle", stepEffort: "Effort", stepServerHint: "comme le rôle (ou l'identifiant d'un modèle du serveur)",
+    stepsApartHelp: "Une étape peut tourner sur un autre moteur ou un autre modèle que son rôle, ou à un effort fixé : par exemple le compactage sur le modèle le plus fort, ou la recherche de nouveautés par l'abonnement Claude Code, les veilles inchangées. Chaque écran qui lance une passe montre ces réglages et permet de les changer pour cette passe seulement. Un effort choisi ici s'applique tel quel, sans le décalage du rôle.",
+    asRole: "comme le rôle", asRest: "comme le reste", stepEngine: "Moteur", stepModel: "Modèle", stepEffort: "Effort", stepServerHint: "comme le rôle (ou l'identifiant d'un modèle du serveur)",
     stepNames: { triage: "tri", proposals: "propositions", crosscheck: "relecture croisée", fix: "correction des erreurs signalées", coherence: "cohérence du guide", compaction: "ce qui alourdit le guide", compact: "allègements proposés", news: "pistes de nouveautés", explore: "exploration du web par chapitre", add: "ajouts vérifiés sur le web",
       claims: "affirmations datées", checks: "vérifications", deadlinks: "liens morts", mirror: "miroir", translation: "contrôle des traductions", "fix-translation": "correction des traductions" },
     levels: { low: "bas", medium: "moyen", high: "élevé", xhigh: "très élevé", max: "maximal" },
@@ -151,8 +151,8 @@ const SETTINGS_TEXTS = {
     effortHelp: "The effort is set step by step in the code; this setting moves every step one level. Higher: more thinking, more tokens (and more of the subscription's limits or of the cost), slower.",
     stepsOf: "What each step then runs at:",
     stepsApart: "Set a step apart", stepsApartCount: n => `${n} step(s) set apart`,
-    stepsApartHelp: "A step can run on another model than its role, or at a set effort: the compaction on the strongest model, for instance, and the watches unchanged. An effort chosen here applies as it is, without the role's shift.",
-    asRole: "as the role", stepModel: "Model", stepEffort: "Effort", stepServerHint: "as the role (or the id of a model of the server)",
+    stepsApartHelp: "A step can run on another engine or another model than its role, or at a set effort: the compaction on the strongest model, for instance, or the search for what is new through a Claude Code subscription, and the watches unchanged. Every screen that starts a run shows these settings and lets you change them for that run only. An effort chosen here applies as it is, without the role's shift.",
+    asRole: "as the role", asRest: "as the rest", stepEngine: "Engine", stepModel: "Model", stepEffort: "Effort", stepServerHint: "as the role (or the id of a model of the server)",
     stepNames: { triage: "triage", proposals: "proposals", crosscheck: "cross-check", fix: "fixing reported errors", coherence: "consistency of the guide", compaction: "what makes the guide heavy", compact: "trims proposed", news: "leads of what is new", explore: "the web explored by chapter", add: "additions checked on the web",
       claims: "dated claims", checks: "checks", deadlinks: "dead links", mirror: "mirror", translation: "translation checks", "fix-translation": "fixing translations" },
     levels: { low: "low", medium: "medium", high: "high", xhigh: "extra high", max: "max" },
@@ -374,9 +374,13 @@ function drawSettings(s, message = "") {
               <details class="cfg-steps"${s.choices.steps[role].some(x => (s.steps || {})[x.step]) ? " open" : ""}>
                 <summary>${S.stepsApart} <span class="badge" data-apart="${role}" hidden></span></summary>
                 <p class="muted small">${S.stepsApartHelp}</p>
-                <div class="cfg-step cfg-step-head muted small"><span></span><span>${S.stepModel}</span><span>${S.stepEffort}</span></div>
+                <div class="cfg-step cfg-step-head muted small"><span></span><span>${S.stepEngine}</span><span>${S.stepModel}</span><span>${S.stepEffort}</span></div>
                 ${s.choices.steps[role].map(x => `<div class="cfg-step">
                   <span class="cfg-step-name">${S.stepNames[x.step] || x.step}</span>
+                  <select data-step-engine="${x.step}" aria-label="${S.stepEngine} · ${S.stepNames[x.step] || x.step}">
+                    <option value="">${S.asRest}</option>
+                    ${s.engines_installed.map(e => `<option value="${esc(e.name)}"${((s.steps || {})[x.step] || {}).engine === e.name ? " selected" : ""}>${esc(e.label)}</option>`).join("")}
+                  </select>
                   <select data-step-model="${x.step}" aria-label="${S.stepModel} · ${S.stepNames[x.step] || x.step}"></select>
                   <input type="text" data-step-server="${x.step}" list="server-models" value="${esc(((s.steps || {})[x.step] || {}).model || "")}"
                     placeholder="${S.stepServerHint}" aria-label="${S.stepModel} · ${S.stepNames[x.step] || x.step}" spellcheck="false" hidden>
@@ -414,8 +418,10 @@ function drawSettings(s, message = "") {
     $("#server-options").hidden = !onServer;
     page.querySelectorAll("[data-role]").forEach(x => x.hidden = onServer);
     page.querySelectorAll("[data-server-role]").forEach(x => x.hidden = !onServer);
-    page.querySelectorAll("[data-step-model]").forEach(x => x.hidden = onServer);
-    page.querySelectorAll("[data-step-server]").forEach(x => x.hidden = !onServer);
+    // A step with its own engine takes its models where that engine has them (a list, or the server's ids)
+    const stepOnServer = step => ((draft.steps[step] || {}).engine || now) === "openai";
+    page.querySelectorAll("[data-step-model]").forEach(x => x.hidden = stepOnServer(x.dataset.stepModel));
+    page.querySelectorAll("[data-step-server]").forEach(x => x.hidden = !stepOnServer(x.dataset.stepServer));
     $("#models-source").hidden = onServer;   // the Claude list: not the server's (its list is under Engine)
     if (cc.subscription) {
       $("#use-claude-code").hidden = now === "claude-code";
@@ -574,6 +580,7 @@ function drawSettings(s, message = "") {
     if (Object.keys(own).length) draft.steps[step] = own; else delete draft.steps[step];
     refresh();
   };
+  page.querySelectorAll("[data-step-engine]").forEach(f => f.onchange = () => setStep(f.dataset.stepEngine, "engine", f.value));
   page.querySelectorAll("[data-step-model]").forEach(f => f.onchange = () => setStep(f.dataset.stepModel, "model", f.value));
   page.querySelectorAll("[data-step-server]").forEach(f => f.oninput = () => setStep(f.dataset.stepServer, "model", f.value.trim()));
   page.querySelectorAll("[data-step-effort]").forEach(f => f.onchange = () => setStep(f.dataset.stepEffort, "effort", f.value));

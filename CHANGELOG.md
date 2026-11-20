@@ -32,6 +32,18 @@ already knows, and what it sets aside as a possible addition is never written. [
   pages its leads would need are listed at the top of the review screen, of the report and of the pull request;
   the check cards carry the limit as a line of their own. The review also lists the leads left without an edit,
   and why.
+- An idea or a piece of news of your own goes straight to an addition run, without a search for leads: the page
+  « Report an error » becomes « Report or suggest », with a tab « An idea or a piece of news to dig into » (and a
+  link from « Check the guide »).
+- A step can run on its own engine, not only its own model and effort (`steps.<step>.engine` in the settings, an
+  optional key of schema 1; « Set a step apart » has a column for it): the search for what is new through a
+  subscription while the watches stay on the API, for instance. An engine that cannot be set up is said when its
+  step is asked, not for the runs that never reach it. An agent older than 1.3.0 ignores the key.
+- The engine, the model and the effort of a step can be changed for one run only, where the run is started,
+  without opening the Settings: every check card and every button that creates a run shows what will run each
+  step and how it is paid, with « change for this time ». The choice is kept with the run (`runs/<thread>.json`
+  in the guide's working folder), so the steps that come after a pause follow it; the Settings are not touched.
+  The estimates follow it. `GET /api/steps` says how each step would run.
 - Three steps more in the Settings (the leads, the exploration, the additions), each of which can run on a model
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
   The estimates are not measured yet.

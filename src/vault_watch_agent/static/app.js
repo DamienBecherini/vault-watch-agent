@@ -17,7 +17,7 @@ let source = null;  // EventSource of the run being followed
 // --- Languages ---------------------------------------------------------------------------------------
 const TEXTS = {
   fr: {
-    nav: { watches: "Veilles", sources: "Sources", check: "Vérifier le guide", report: "Signaler une erreur", costs: "Coûts" },
+    nav: { watches: "Veilles", sources: "Sources", check: "Vérifier le guide", report: "Signaler ou proposer", costs: "Coûts" },
     sources: {
       title: "Sources de la veille",
       intro: (p, runs, file) => `Ce que chaque source a apporté sur ${p.watches} veille(s), du ${p.since || "…"} au ${p.until}, et ce qu'il en est sorti dans ${runs} passage(s). Calculé sans modèle, à partir des veilles et des passages gardés sur cette machine. La liste est dans <code>${file}</code>.`,
@@ -73,6 +73,7 @@ const TEXTS = {
       start: c => `Lancer la vérification · ${c}`, history: "Vérifications précédentes",
       none: "Aucune vérification pour l'instant.", running: "En cours…", leads: n => `${n} piste(s)`,
       chapters: c => `Chapitres à explorer, un appel par chapitre coché (chacun : ${c}) :`,
+      ideaLink: "Tu as déjà une idée ou une information précise ? Fais-la vérifier et écrire directement, sans recherche de pistes.",
       dig: "creuser (un appel pour cette seule piste)",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
       notFixable: "Pas encore corrigeable par une passe fix (les traductions se corrigent depuis le français) : à reprendre à la main ou par une prochaine fonction.",
@@ -81,8 +82,8 @@ const TEXTS = {
       // by: the ticked leads per kind of run (fix, translation, compact, add); one run per kind
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"], ["add", "ajouts", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
-        return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2])})`).join(", ")}`
-          : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
+        return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2], k[0])})`).join(", ")}`
+          : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
       heaviest: "Pages les plus lourdes", flaggedFirst: "Pages signalées, puis les plus lourdes", perChapter: "Par chapitre",
       over: "au-dessus de son plafond", grew: "a beaucoup grossi", newPage: "nouvelle page",
@@ -176,7 +177,20 @@ const TEXTS = {
       new: () => "Ce passage n'a pas commencé.",
     },
     resume: "Reprendre", applied: "Appliquées",
-    reportTitle: "Signaler une erreur",
+    reportTitle: "Signaler une erreur ou proposer un sujet",
+    reportKinds: { fix: "Une erreur à corriger", add: "Une idée ou une information à creuser" },
+    ideaIntro: "Un sujet par ligne : ce que tu as vu, ou ce qui manque d'après toi, avec une adresse si tu en as une. L'agent vérifie chaque sujet sur des sources primaires, avec tout le guide en contexte, puis propose où l'écrire ; tu relis comme pour une veille. Rien avant : pas de recherche de pistes.",
+    ideaCost: (base, each, deep) => `Compte ${base}, plus ${each} par sujet (${deep} par sujet creusé).`,
+    ideaExample: "Ollama fait tourner des modèles de voix en local depuis octobre : https://ollama.com/blog/speech-models",
+    ideaButton: "Vérifier et proposer des ajouts",
+    ideaDeep: "Creuser chaque sujet : un appel par sujet, plus de recherches, plus cher",
+    ideaLimit: "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
+    steps: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
+      reset: "comme les Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
+      restUnbilled: "le reste non facturé",
+      effort: e => ({ low: "effort faible", medium: "effort moyen", high: "effort élevé", xhigh: "effort très élevé", max: "effort maximal" })[e] || e,
+      names: { fix: "Corrections", "fix-translation": "Corrections de traduction", compact: "Allègements", add: "Ajouts", crosscheck: "Relecture croisée", mirror: "Miroirs" },
+      forced: e => `Le moteur de ce serveur est imposé (VAULT_WATCH_ENGINE=${e}) : il ne se change pas ici.` },
     reportIntro: "Une erreur par ligne : la page, ce qui est faux, et si possible la bonne information. L'agent vérifie chaque point sur des sources primaires, avec tout le guide en contexte, puis propose des corrections que tu relis comme pour une veille.",
     reportCost: "Compte 5 à 7 $.", reportSubscription: "Les appels passent par Claude Code sur ton abonnement : rien n'est facturé.",
     reportExample: "03-stack/engines.md : vLLM 0.31 n'est plus la version minimale, la 0.33 corrige un avis de sécurité.",
@@ -192,7 +206,7 @@ const TEXTS = {
     subscription: "abonnement, non facturé", local: "modèle local, non facturé", provider: "facturé par ton fournisseur",
   },
   en: {
-    nav: { watches: "Watches", sources: "Sources", check: "Check the guide", report: "Report an error", costs: "Costs" },
+    nav: { watches: "Watches", sources: "Sources", check: "Check the guide", report: "Report or suggest", costs: "Costs" },
     sources: {
       title: "Sources of the watch",
       intro: (p, runs, file) => `What each source brought over ${p.watches} watch(es), from ${p.since || "…"} to ${p.until}, and what came out of it in ${runs} run(s). Computed without a model, from the watches and the runs kept on this machine. The list is in <code>${file}</code>.`,
@@ -248,6 +262,7 @@ const TEXTS = {
       start: c => `Run the check · ${c}`, history: "Previous checks",
       none: "No check yet.", running: "Running…", leads: n => `${n} lead(s)`,
       chapters: c => `Chapters to explore, one call per chapter ticked (each: ${c}):`,
+      ideaLink: "You already have an idea or a precise piece of news? Have it checked and written straight away, without a search for leads.",
       dig: "dig deeper (a call for this lead alone)",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
       notFixable: "Not fixable by a fix run yet (translations are fixed from the French side): to handle by hand or by a later feature.",
@@ -255,8 +270,8 @@ const TEXTS = {
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"], ["add", "addition", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
-        return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2])})`).join(", ")}`
-          : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
+        return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2], k[0])})`).join(", ")}`
+          : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
       heaviest: "Heaviest pages", flaggedFirst: "Flagged pages, then the heaviest", perChapter: "Per chapter",
       over: "over its ceiling", grew: "grew much", newPage: "new page",
@@ -350,7 +365,20 @@ const TEXTS = {
       new: () => "This run has not started.",
     },
     resume: "Resume", applied: "Applied",
-    reportTitle: "Report an error",
+    reportTitle: "Report an error or suggest a subject",
+    reportKinds: { fix: "An error to fix", add: "An idea or a piece of news to dig into" },
+    ideaIntro: "One subject per line: what you saw, or what you think is missing, with an address if you have one. The agent checks each subject on primary sources, with the whole guide in context, then proposes where to write it; you review as for a watch. Nothing before: no search for leads.",
+    ideaCost: (base, each, deep) => `About ${base}, plus ${each} per subject (${deep} per subject dug deeper).`,
+    ideaExample: "Ollama has run speech models locally since October: https://ollama.com/blog/speech-models",
+    ideaButton: "Check and propose additions",
+    ideaDeep: "Dig into each subject: one call per subject, more searches, more expensive",
+    ideaLimit: "Limit: the addition run never writes a new page. It says which ones would be needed.",
+    steps: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
+      reset: "as in the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
+      restUnbilled: "the rest not billed",
+      effort: e => ({ low: "low effort", medium: "medium effort", high: "high effort", xhigh: "very high effort", max: "maximum effort" })[e] || e,
+      names: { fix: "Corrections", "fix-translation": "Translation fixes", compact: "Trims", add: "Additions", crosscheck: "Cross-check", mirror: "Mirrors" },
+      forced: e => `The engine of this server is forced (VAULT_WATCH_ENGINE=${e}): it cannot be changed here.` },
     reportIntro: "One error per line: the page, what is wrong, and the right information if you have it. The agent checks each point on primary sources, with the whole guide in context, then proposes corrections you review as for a watch.",
     reportCost: "About 5 to 7 $.", reportSubscription: "The calls go through Claude Code on your subscription: nothing is billed.",
     reportExample: "03-stack/engines.md: vLLM 0.31 is no longer the minimum version, 0.33 fixes a security advisory.",
@@ -399,6 +427,73 @@ const onSubscription = () => info?.engine === "claude-code";
 // another provider's prices are its own.
 const cost = usd => onSubscription() ? T.subscription : info?.billing === "none" ? T.local
   : info?.engine && info.engine !== "api" ? T.provider : usd;
+
+// --- What a run sets for its own steps: an engine, a model, an effort, for that run alone -----------------------
+// The Settings give each step its engine, model and effort; a page that starts a run shows them and lets the reader
+// change them for that run only (config.run_steps on the server). Forgotten when another screen is opened.
+const OWN = {};      // {step: {engine, model, effort}}
+let STEPS = null;    // how each step would run now, with OWN laid over the Settings (/api/steps)
+let shownHash = "";  // the screen OWN belongs to
+const MODE_STEP = { fix: "fix", translation: "fix-translation", compact: "compact", add: "add" };  // the step that proposes, per kind of run
+const stepsQuery = () => Object.keys(OWN).length ? `?steps=${encodeURIComponent(JSON.stringify(OWN))}` : "";
+const loadSteps = async () => { STEPS = await api(`/api/steps${stepsQuery()}`); };
+const stepNow = step => STEPS?.steps.find(s => s.step === step);
+const ownFor = steps => Object.fromEntries(Object.entries(OWN).filter(([step]) => steps.includes(step)));
+// What an action costs with the engine of its step: its estimate on the Claude API only
+const costOf = (step, usd) => {
+  const s = stepNow(step);
+  return !s ? cost(usd) : s.billing === "subscription" ? T.subscription : s.billing === "none" ? T.local : s.engine !== "api" ? T.provider : usd;
+};
+const billedStep = step => costOf(step, "$") === "$";
+// One line per step: what runs it, and the fields to change it for this run
+function stepLine(step, name = "") {
+  const s = stepNow(step);
+  if (!s) return "";
+  return `<div class="step-line small" data-step-line="${step}">
+    <span class="muted">${name ? `${esc(name)}${T.colon}` : ""}${esc(s.engine_label)} · ${esc(s.model || "?")} · ${T.steps.effort(s.effort)}</span>
+    ${OWN[step] ? `<span class="badge attention">${T.steps.once}</span>` : ""}
+    ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}">${T.steps.change}</button>`}
+    <span class="step-fields" data-step-fields="${step}" hidden>
+      <select data-f="engine" aria-label="${T.steps.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
+      <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.steps.modelOfRole)}" aria-label="${T.steps.model}" spellcheck="false">
+      <datalist id="models-${step}"></datalist>
+      <select data-f="effort" aria-label="${T.steps.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.steps.effort(e)}</option>`).join("")}</select>
+      <button type="button" class="small-button" data-step-ok="${step}">${T.steps.apply}</button>
+      ${OWN[step] ? `<button type="button" class="small-button" data-step-reset="${step}">${T.steps.reset}</button>` : ""}
+    </span></div>`;
+}
+// The buttons of the lines above, inside `root`; `redraw` draws the screen again once a choice is made
+function bindSteps(root, redraw) {
+  const fields = step => root.querySelector(`[data-step-fields="${step}"]`);
+  const models = async step => {  // the models the chosen engine offers, as suggestions: any id can be typed
+    const f = fields(step), engine = f.querySelector("[data-f=engine]").value;
+    const claude = engine === "api" || engine === "claude-code";
+    const r = await api(`/api/models${claude ? "" : `?engine=${encodeURIComponent(engine)}`}`).catch(() => ({ models: [] }));
+    f.querySelector("datalist").innerHTML = (r.models || []).map(m => `<option value="${esc(m.id)}">${esc(m.name || m.id)}</option>`).join("");
+  };
+  root.querySelectorAll("[data-step-edit]").forEach(b => b.onclick = () => {
+    const f = fields(b.dataset.stepEdit);
+    f.hidden = !f.hidden;
+    if (!f.hidden) models(b.dataset.stepEdit);
+  });
+  root.querySelectorAll("[data-step-fields]").forEach(f => f.querySelector("[data-f=engine]").onchange = () => {
+    f.querySelector("[data-f=model]").value = "";  // another engine: its usual model, unless one is typed
+    models(f.dataset.stepFields);
+  });
+  root.querySelectorAll("[data-step-ok]").forEach(b => b.onclick = async () => {
+    const f = fields(b.dataset.stepOk), value = name => f.querySelector(`[data-f=${name}]`).value.trim();
+    OWN[b.dataset.stepOk] = Object.fromEntries([["engine", value("engine")], ["model", value("model")], ["effort", value("effort")]].filter(([, v]) => v));
+    await loadSteps();
+    redraw();
+  });
+  root.querySelectorAll("[data-step-reset]").forEach(b => b.onclick = async () => {
+    delete OWN[b.dataset.stepReset];
+    await loadSteps();
+    redraw();
+  });
+}
+let CHECK_FORM = null;   // the boxes ticked on « Check the guide », kept while the form is drawn again
+let REPORT_TEXT = "";    // what was typed on the report page, kept the same way
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
@@ -430,20 +525,21 @@ async function route() {
   if (source) { source.close(); source = null; }
   clearTimeout(followTimer);
   let h = location.hash.slice(1) || "/";
+  if (h !== shownHash) { Object.keys(OWN).forEach(k => delete OWN[k]); shownHash = h; }
   if (h === "/settings") {   // an address to open the Settings: the window, over the first page
     history.replaceState(null, "", "#/");
     h = "/";
     openSettings();
   }
   document.querySelectorAll("nav [data-nav]").forEach(a =>
-    a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : h.startsWith(`/${a.dataset.nav}`)));
+    a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : h === "/idea" ? a.dataset.nav === "report" : h.startsWith(`/${a.dataset.nav}`)));
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
     else if (h === "/check") await viewChecks();
     else if (h === "/sources") await viewSources();
-    else if (h === "/report") viewReport();
+    else if (h === "/report" || h === "/idea") await viewReport(h === "/idea");
     else if (h === "/costs") await viewCosts();
     else await viewWatches();
   } catch (e) {
@@ -693,11 +789,14 @@ const checkBadge = p => {
 };
 
 async function viewChecks() {
-  const [options, verifs] = await Promise.all([api("/api/verifications/options"), api("/api/verifications")]);
+  await loadSteps();
+  const kept = CHECK_FORM;  // drawn again after a step was changed for this verification: the boxes stay as they were
+  CHECK_FORM = null;
+  const [options, verifs] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api("/api/verifications")]);
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
   // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
-  const price = o => o.model ? cost(o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
-  const origin = o => o.model && o.price_origin && o.usd != null && !onSubscription()
+  const price = o => o.model ? costOf(o.id, o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
+  const origin = o => o.model && o.price_origin && o.usd != null && billedStep(o.id)
     ? ` <span class="muted small">${esc(T.priceOrigin(o.price_origin))}</span>` : "";
   // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
   const pending = verifs.filter(p => ["to-handle", "running"].includes(p.status));
@@ -711,21 +810,22 @@ async function viewChecks() {
   page.innerHTML = `
     <h1>${V.title}</h1>
     <p class="subtitle">${V.intro}</p>
+    <p class="small"><a href="#/idea">${V.ideaLink}</a></p>
     ${pending.length ? `<h2>${V.toHandleTitle}</h2>${pending.map(checkCard).join("")}` : ""}
     <details class="new-check"${pending.length ? "" : " open"}><summary><h2>${V.newCheck}</h2></summary>
     ${remaining ? `<p class="attention-text">${V.warning(remaining)}</p>` : ""}
     ${options.map(o => `<label class="card option">
-      <input type="checkbox" data-check="${o.id}" ${o.model ? "" : "checked"}>
+      <input type="checkbox" data-check="${o.id}" ${(kept ? kept.checks.has(o.id) : !o.model) ? "checked" : ""}>
       <div>
         <div class="header"><b>${esc(o.title[lang])}</b>
           <span class="badge ${o.model ? "attention" : "ok"}">${price(o)}</span>${origin(o)}
           ${o.tokens ? `<span class="muted small">${V.tokens(o.tokens)}</span>` : ""}</div>
         <p class="muted small">${esc(o.what[lang])}</p>
         ${o.limit ? `<p class="small attention-text">${esc(o.limit[lang])}</p>` : ""}
-        <p class="muted small">${esc(o.note[lang])}${o.model ? ` · ${esc(o.model)}` : ""}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
-      </div></label>${o.chapters ? `<div class="card chapters" data-chapters-of="${o.id}" hidden>
-        <p class="muted small">${V.chapters(cost(`≈ ${dollars(o.usd_chapter || 0)}`))}</p>
-        ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" checked> ${esc(c.id)} <span class="muted small">(${c.pages})</span></label>`).join("")}
+        <p class="muted small">${esc(o.note[lang])}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
+      </div></label>${o.model ? `<div class="step-under">${stepLine(o.id)}</div>` : ""}${o.chapters ? `<div class="card chapters" data-chapters-of="${o.id}" hidden>
+        <p class="muted small">${V.chapters(costOf(o.id, `≈ ${dollars(o.usd_chapter || 0)}`))}</p>
+        ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" ${!kept || kept.chapters.has(c.id) ? "checked" : ""}> ${esc(c.id)} <span class="muted small">(${c.pages})</span></label>`).join("")}
       </div>` : ""}`).join("")}
     <p><button class="primary" id="start"></button></p>
     </details>
@@ -737,26 +837,33 @@ async function viewChecks() {
     options.filter(o => ids.has(o.id)).forEach(o => o.needs.forEach(n => ids.add(n)));
     // A check with chapters (the exploration) shows them when it is ticked, and costs one call per chapter ticked
     page.querySelectorAll("[data-chapters-of]").forEach(d => { d.hidden = !ids.has(d.dataset.chaptersOf); });
-    const chosen = options.filter(o => ids.has(o.id));
-    const usd = chosen.reduce((s, o) => s + (o.usd || 0) + (o.chapters ? (o.usd_chapter || 0) * chapters().length : 0), 0);
-    $("#start").textContent = V.start(chosen.some(o => o.model) ? cost(`≈ ${dollars(usd)}`) : V.free);  // scripts only: free
+    const chosen = options.filter(o => ids.has(o.id)), paid = chosen.filter(o => o.model), billed = paid.filter(o => billedStep(o.id));
+    const usd = billed.reduce((s, o) => s + (o.usd || 0) + (o.chapters ? (o.usd_chapter || 0) * chapters().length : 0), 0);
+    // Scripts only: free. Every model check on a subscription or a local model: said. Else what the billed ones cost.
+    $("#start").textContent = V.start(!paid.length ? V.free : !billed.length ? costOf(paid[0].id, "")
+      : `≈ ${dollars(usd)}${billed.length < paid.length ? ` + ${T.steps.restUnbilled}` : ""}`);
     $("#start").disabled = ids.size === 0 || chosen.some(o => o.chapters && !chapters().length);
   };
   const chapters = () => [...page.querySelectorAll("[data-chapter]")].filter(c => c.checked).map(c => c.dataset.chapter);
   boxes.forEach(c => c.onchange = total);
   page.querySelectorAll("[data-chapter]").forEach(c => c.onchange = total);
+  bindSteps(page, () => {
+    CHECK_FORM = { checks: new Set(boxes.filter(c => c.checked).map(c => c.dataset.check)), chapters: new Set(chapters()) };
+    viewChecks();
+  });
   total();
   $("#start").onclick = async () => {
     $("#start").disabled = true;
     const checks = boxes.filter(c => c.checked).map(c => c.dataset.check);
-    const { id } = await api("/api/verifications", { checks, ...(checks.includes("explore") ? { chapters: chapters() } : {}) });
+    const { id } = await api("/api/verifications", { checks, steps: ownFor(checks), ...(checks.includes("explore") ? { chapters: chapters() } : {}) });
     location.hash = `/check/${encodeURIComponent(id)}`;
   };
 }
 
 async function viewCheck(id) {
   clearTimeout(followTimer);
-  const [v, options] = await Promise.all([api(`/api/verifications/${encodeURIComponent(id)}`), api("/api/verifications/options")]);
+  await loadSteps();
+  const [v, options] = await Promise.all([api(`/api/verifications/${encodeURIComponent(id)}`), api(`/api/verifications/options${stepsQuery()}`)]);
   if (location.hash.slice(1) !== `/check/${id}`) return;  // left the page meanwhile
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
   const list = (title, items) => items && items.length ? `<details><summary>${title} (${items.length})</summary><ul>${items.map(x => `<li>${x}</li>`).join("")}</ul></details>` : "";
@@ -796,6 +903,7 @@ async function viewCheck(id) {
       </details>`;
     }).join("")}
     <div class="bar">
+      <details class="run-steps" id="run-steps-box" hidden><summary>${T.steps.title}</summary><div id="run-steps"></div></details>
       <button id="all">${V.tickAll}</button><button id="nothing">${V.untickAll}</button>
       <button id="dismiss"></button>
       <button class="primary" id="fix"></button>
@@ -827,7 +935,15 @@ async function viewCheck(id) {
       const o = options.find(o => o.id === check) || {};
       return o.run_usd ? `≈ ${dollars(o.run_usd + (o.run_usd_each || 0) * (leads - deeper) + (o.run_usd_deep || 0) * deeper)}` : "";
     };
-    $("#fix").textContent = V.createFix(by, cost, { compact: runOf("compaction", by.compact || 0), add: runOf("news", by.add || 0, dug) });
+    $("#fix").textContent = V.createFix(by, (usd, mode) => costOf(MODE_STEP[mode] || "fix", usd),
+      { compact: runOf("compaction", by.compact || 0), add: runOf("news", by.add || 0, dug) });
+    // The steps of the run(s) these leads go to: what runs each, changeable for this time
+    const kinds = Object.keys(by);
+    const wanted = [...kinds.map(k => MODE_STEP[k]), ...(kinds.some(k => k !== "translation") ? ["crosscheck"] : []), ...(kinds.length ? ["mirror"] : [])];
+    $("#run-steps-box").hidden = !wanted.length;
+    $("#run-steps").innerHTML = (STEPS.forced ? `<p class="muted small">${T.steps.forced(STEPS.forced)}</p>` : "")
+      + wanted.map(s => stepLine(s, T.steps.names[s])).join("");
+    bindSteps($("#run-steps"), count);
     $("#fix").disabled = n === 0 || v.running;
     $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
   };
@@ -864,7 +980,8 @@ async function viewCheck(id) {
       for (const mode of ["fix", "translation", "compact", "add"]) {
         const text = ticked().filter(c => c.dataset.fixable === "true" && c.dataset.mode === mode).map(c => c.dataset.lead).join("\n");
         const dig = mode === "add" ? { deep: text.split("\n").filter(f => deep().has(f)) } : {};
-        if (text) threads.push((await api("/api/fix", { text, verification: id, mode, ...dig })).thread);
+        const steps = ownFor([MODE_STEP[mode], "crosscheck", "mirror"]);
+        if (text) threads.push((await api("/api/fix", { text, verification: id, mode, steps, ...dig })).thread);
       }
       location.hash = `/run/${encodeURIComponent(threads[0])}`;
     };
@@ -891,17 +1008,31 @@ function sizesBlock(s) {
 const FOLDS = {};  // check cards folded or opened by the reader, by verification/check, kept across refreshes
 
 // --- Report errors -----------------------------------------------------------------------------------
-function viewReport() {
+async function viewReport(idea = false) {
+  await loadSteps();
+  const kind = idea ? "add" : "fix", wanted = [MODE_STEP[kind], "crosscheck", "mirror"];
+  // What the run costs: said for the engine of the step that proposes (an addition run: from the estimate of its check)
+  const news = idea ? (await api(`/api/verifications/options${stepsQuery()}`)).find(o => o.id === "news") || {} : {};
+  const price = !billedStep(MODE_STEP[kind]) ? (stepNow(MODE_STEP[kind])?.billing === "subscription" ? T.reportSubscription : costOf(MODE_STEP[kind], ""))
+    : idea ? T.ideaCost(`≈ ${dollars(news.run_usd)}`, `≈ ${dollars(news.run_usd_each)}`, `≈ ${dollars(news.run_usd_deep)}`) : T.reportCost;
   page.innerHTML = `
     <h1>${T.reportTitle}</h1>
-    <p class="subtitle">${T.reportIntro} ${onSubscription() ? T.reportSubscription : T.reportCost}</p>
-    <textarea id="text" placeholder="${esc(T.reportExample)}"></textarea>
-    <p><button class="primary" id="send">${T.reportButton}</button></p>`;
+    <p class="tabs"><a href="#/report"${idea ? "" : ' class="active"'}>${T.reportKinds.fix}</a><a href="#/idea"${idea ? ' class="active"' : ""}>${T.reportKinds.add}</a></p>
+    <p class="subtitle">${idea ? T.ideaIntro : T.reportIntro} ${price}</p>
+    ${idea ? `<p class="small attention-text">${T.ideaLimit}</p>` : ""}
+    <textarea id="text" placeholder="${esc(idea ? T.ideaExample : T.reportExample)}">${esc(REPORT_TEXT)}</textarea>
+    ${idea ? `<p><label class="small"><input type="checkbox" id="deep"> ${T.ideaDeep}</label></p>` : ""}
+    <details class="run-steps"${Object.keys(ownFor(wanted)).length ? " open" : ""}><summary>${T.steps.title}</summary>
+      ${STEPS.forced ? `<p class="muted small">${T.steps.forced(STEPS.forced)}</p>` : ""}${wanted.map(s => stepLine(s, T.steps.names[s])).join("")}</details>
+    <p><button class="primary" id="send">${idea ? T.ideaButton : T.reportButton}</button></p>`;
+  bindSteps(page, () => { REPORT_TEXT = $("#text").value; viewReport(idea); });
   $("#send").onclick = async () => {
     const text = $("#text").value.trim();
     if (!text) return;
     $("#send").disabled = true;
-    const { thread } = await api("/api/fix", { text });
+    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    const { thread } = await api("/api/fix", { text, mode: kind, steps: ownFor(wanted), ...(idea && $("#deep").checked ? { deep: lines } : {}) });
+    REPORT_TEXT = "";
     location.hash = `/run/${encodeURIComponent(thread)}`;
   };
 }

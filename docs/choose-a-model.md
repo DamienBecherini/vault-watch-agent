@@ -46,6 +46,22 @@ The use this was made for: the [compaction](compact.md) on the strongest model, 
 weekly watches stay on the model measured here. The estimates and the cost journal follow the model of each step.
 In `settings.json`: `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
 
+A step can also have its own engine (`"steps": {"news": {"engine": "claude-code"}}`): the search for what is
+new through a subscription, for instance, while the watches stay on the API. Without a model of its own, such a
+step takes the model its role has with that engine. If its engine cannot be used (the API without a key), the
+error comes when that step is asked, not before.
+
+Three levels, from the most general to the most particular:
+
+| Level | Where | Applies to |
+| :-- | :-- | :-- |
+| The defaults | The agent itself | A machine where nothing was set |
+| The Settings | « Engine », « Models and effort », « Set a step apart » | Every run from then on |
+| This run only | « change for this time », beside each check and above the button that creates a run | That run, down to its last step (the mirrors after the review); the Settings are not touched |
+
+Each screen that starts a run shows what will run each of its steps (engine, model, effort) and how it is paid,
+before the click. An engine forced for a whole command (`VAULT_WATCH_ENGINE`) wins over all three.
+
 ## What was tried
 
 **A local model on a laptop.** Qwen3.6-35B-A3B (llama.cpp, quantized, 64k window) on an 8 GB laptop GPU. It runs
