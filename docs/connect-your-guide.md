@@ -159,11 +159,13 @@ cross-check, its sweep and the coherence check read the whole guide in one call 
 run chapter by chapter (one top folder per call, with the pages the corrections change), and the report and the
 run view say so: a contradiction between two chapters can then be missed. Not set: the model's window decides.
 
-`page_kb` (30 by default) and `[budget.pages]`: the size, in KB, above which a page is flagged, and another one for
-the pages of a folder (`"00-lexicon/**" = 8` under `[budget.pages]`; the first pattern that matches wins). A page
-over its budget is a warning of `vault-watch doctor`, of `vault-watch compact` and of the « Size of the pages »
-check, never a failure: it says where a [compaction](compact.md) should look first. A read-only page is listed with
-its weight and never flagged.
+`growth_kb` (5 by default) and `growth_percent` (25): a page that gained that many KB in 90 days, or that share of
+what it weighed, is flagged as having grown much. `page_kb` and `[budget.pages]`: an optional ceiling, in KB, for
+every page, and another one for the pages of a folder (`"00-lexicon/**" = 8` under `[budget.pages]`; the first
+pattern that matches wins); none by default, since how long a page should be depends on its subject. A flagged
+page is a warning of `vault-watch doctor`, of `vault-watch compact` and of the « Size of the pages » check, never a
+failure: it says where a [compaction](compact.md) should look first. A read-only page is listed with its weight
+and never flagged.
 
 ## What each part unlocks
 

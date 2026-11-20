@@ -80,8 +80,10 @@ class Guide:
     sources: str | None = None
     version_floors: Floors | None = None
     max_context_tokens: int | None = None
-    page_kb: int = 30               # the size above which a page is flagged (sizes.py): a warning, never a failure
-    page_budgets: tuple[tuple[str, int], ...] = ()  # (glob, KB) for the pages of a folder; the first match wins
+    page_kb: int = 0                # a ceiling for every page, in KB (sizes.py); 0: none. A warning, never a failure
+    page_budgets: tuple[tuple[str, int], ...] = ()  # (glob, KB): a ceiling for the pages of a folder; the first match wins
+    growth_kb: int = 5              # a page that gained this much in 90 days is flagged…
+    growth_percent: int = 25        # …or this share of what it weighed (and 2 KB at least)
     schema: int = SCHEMA
     from_manifest: bool = True
 
@@ -120,7 +122,8 @@ class Guide:
                 "checks": {"audits": self.audits or "", "claims_due": self.claims_due or "", "sources": self.sources or "",
                            "version_floors": self.version_floors.script if self.version_floors else ""},
                 "max_context_tokens": self.max_context_tokens, "page_kb": self.page_kb,
-                "page_budgets": [list(b) for b in self.page_budgets], "from_manifest": self.from_manifest,
+                "page_budgets": [list(b) for b in self.page_budgets], "growth_kb": self.growth_kb,
+                "growth_percent": self.growth_percent, "from_manifest": self.from_manifest,
                 "manifest": MANIFEST}
 
     def mirror_of(self, page: str, language: str) -> str | None:
@@ -136,7 +139,7 @@ _KEYS = {
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
-    "budget": {"max_context_tokens", "page_kb", "pages"},
+    "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
 }
 
 
@@ -203,9 +206,14 @@ def parse(data: dict, root: Path) -> Guide:
     if tokens is not None and (not isinstance(tokens, int) or isinstance(tokens, bool) or tokens <= 0):
         raise GuideError("[budget] max_context_tokens: a positive whole number")
     whole = lambda v: isinstance(v, int) and not isinstance(v, bool) and v > 0  # noqa: E731
-    page_kb = budget.get("page_kb", 30)
-    if not whole(page_kb):
+    page_kb = budget.get("page_kb", 0)
+    if "page_kb" in budget and not whole(page_kb):
         raise GuideError("[budget] page_kb: a positive whole number (KB above which a page is flagged)")
+    growth = {}
+    for key, default in (("growth_kb", 5), ("growth_percent", 25)):
+        growth[key] = budget.get(key, default)
+        if not whole(growth[key]):
+            raise GuideError(f"[budget] {key}: a positive whole number (what a page gains in 90 days before it is flagged)")
     budgets = budget.get("pages", {})
     if not isinstance(budgets, dict) or not all(isinstance(k, str) and k and whole(v) for k, v in budgets.items()):
         raise GuideError('[budget.pages]: a table of "glob pattern" = KB (a positive whole number)')
@@ -222,7 +230,7 @@ def parse(data: dict, root: Path) -> Guide:
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
         brief=_rule(root, rules, "brief"), translation_policy=_rule(root, rules, "translation_policy"),
         **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, max_context_tokens=tokens,
-        page_kb=page_kb, page_budgets=tuple(budgets.items()), schema=schema,
+        page_kb=page_kb, page_budgets=tuple(budgets.items()), **growth, schema=schema,
     )
 
 

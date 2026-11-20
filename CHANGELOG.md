@@ -8,10 +8,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 Compaction (M6): keep a guide from growing heavy. A watch only adds; the IA on-prem guide went from 572 KB to
 891 KB in 90 days. [docs/compact.md](docs/compact.md).
 
-- Sizes (`sizes.py`, no model): each page against its budget, its heaviest sections, what its footnotes weigh, and
-  what the guide gained in 90 days, read from Git. The budget is `[budget] page_kb` in the manifest (30 KB by
-  default) and `[budget.pages]` for the pages of a folder: two optional keys, an addition to schema 1. Shown by
-  `vault-watch compact`, by a line of `doctor` and by the check « Size of the pages »; a page over its budget is a
+- Sizes (`sizes.py`, no model): what each page weighs, what it gained in 90 days (read from Git), its heaviest
+  sections and what its footnotes weigh. A page is flagged when it grew much against itself: 5 KB or a quarter of
+  what it weighed (`[budget] growth_kb`, `growth_percent`), shown with its size now and what it gained. No ceiling
+  by default, since how long a page should be depends on its subject; a guide can set one (`[budget] page_kb`,
+  `[budget.pages]` for the pages of a folder). Four optional keys, an addition to schema 1. Shown by
+  `vault-watch compact`, by a line of `doctor` and by the check « Size of the pages »; a flagged page is a
   warning, never a failure, and a read-only page is never flagged.
 - The report: the check « Compaction: what makes the guide heavy » of « Check the guide » (or
   `vault-watch compact --report`, which says its cost and asks first). One call reads the whole guide, with its

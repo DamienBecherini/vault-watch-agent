@@ -79,7 +79,8 @@ const TEXTS = {
         return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2])})`).join(", ")}`
           : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
       },
-      heaviest: "Pages les plus lourdes", perChapter: "Par chapitre", over: "au-dessus du budget", newPage: "nouvelle page",
+      heaviest: "Pages les plus lourdes", flaggedFirst: "Pages signalées, puis les plus lourdes", perChapter: "Par chapitre",
+      over: "au-dessus de son plafond", grew: "a beaucoup grossi", newPage: "nouvelle page",
       readonly: "lecture seule", notes: (n, w) => `${n} notes de bas de page (${w})`, pagesWord: "page(s)",
       growth: g => `Le guide pesait ${kb(g.bytes)} le ${g.date} : ${signedKb(g.added)} en ${g.days} jours${g.new_pages ? `, dont ${g.new_pages} nouvelle(s) page(s)` : ""}.`,
       tickAll: "Tout cocher", untickAll: "Tout décocher",
@@ -243,7 +244,8 @@ const TEXTS = {
         return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} point(s) as a ${k[1]} run (${c(k[2])})`).join(", ")}`
           : `Create a ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} point(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2])}`;
       },
-      heaviest: "Heaviest pages", perChapter: "Per chapter", over: "over its budget", newPage: "new page",
+      heaviest: "Heaviest pages", flaggedFirst: "Flagged pages, then the heaviest", perChapter: "Per chapter",
+      over: "over its ceiling", grew: "grew much", newPage: "new page",
       readonly: "read-only", notes: (n, w) => `${n} footnotes (${w})`, pagesWord: "page(s)",
       growth: g => `The guide weighed ${kb(g.bytes)} on ${g.date}: ${signedKb(g.added)} in ${g.days} days${g.new_pages ? `, ${g.new_pages} new page(s) among it` : ""}.`,
       tickAll: "Tick all", untickAll: "Untick all",
@@ -824,13 +826,15 @@ async function viewCheck(id) {
 // The size check: what the guide gained, its heaviest pages (those over their budget first), the weight per chapter
 function sizesBlock(s) {
   const V = T.verif;
-  const grew = p => !("before" in p) ? "" : p.before == null ? ` · ${V.newPage}` : p.bytes !== p.before ? ` · ${signedKb(p.bytes - p.before)}` : "";
-  const row = p => `<li><code>${esc(p.page)}</code> — <b>${kb(p.bytes)}</b> / ${kb(p.budget * 1024)}${grew(p)}${p.readonly ? ` · ${V.readonly}` : ""}${
-    p.over ? ` <span class="badge attention">${V.over}</span>` : ""}
+  // The size now, then what the page gained since the earlier commit (bytes and share of what it weighed)
+  const share = p => p.before ? `, ${p.bytes >= p.before ? "+" : "−"}${Math.round(Math.abs(p.bytes - p.before) * 100 / p.before)} %` : "";
+  const grew = p => !("before" in p) ? "" : p.before == null ? ` · ${V.newPage}` : p.bytes !== p.before ? ` · ${signedKb(p.bytes - p.before)}${share(p)}` : "";
+  const row = p => `<li><code>${esc(p.page)}</code> — <b>${kb(p.bytes)}</b>${p.budget ? ` / ${kb(p.budget * 1024)}` : ""}${grew(p)}${p.readonly ? ` · ${V.readonly}` : ""}${
+    p.over ? ` <span class="badge attention">${V.over}</span>` : ""}${p.grew ? ` <span class="badge attention">${V.grew}</span>` : ""}
     <div class="muted small">${[...p.sections.map(x => `${esc(x.title)} ${kb(x.bytes)}`),
       ...(p.footnotes.count ? [V.notes(p.footnotes.count, kb(p.footnotes.bytes))] : [])].join(" · ")}</div></li>`;
   return `${s.growth ? `<p class="small">${V.growth(s.growth)}</p>` : ""}
-    <details${s.over ? " open" : ""}><summary>${V.heaviest} (${s.heaviest.length})</summary><ul>${s.heaviest.map(row).join("")}</ul></details>
+    <details${s.over || s.grew ? " open" : ""}><summary>${s.over || s.grew ? V.flaggedFirst : V.heaviest} (${s.heaviest.length})</summary><ul>${s.heaviest.map(row).join("")}</ul></details>
     <details><summary>${V.perChapter} (${s.chapters.length})</summary><ul>${s.chapters.map(c =>
       `<li><code>${esc(c.chapter)}</code> — ${kb(c.bytes)}, ${c.pages} ${V.pagesWord}</li>`).join("")}</ul></details>`;
 }

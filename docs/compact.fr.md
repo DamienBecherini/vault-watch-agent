@@ -14,21 +14,32 @@ de tourner.
 
 | Partie | Ce qu'elle fait | Modèle |
 | :-- | :-- | :-- |
-| Tailles | Chaque page face à son budget, ses sections les plus lourdes, le poids de ses notes de bas de page, ce que le guide a pris en 90 jours | aucun |
+| Tailles | Ce que pèse chaque page et ce qu'elle a pris, ses sections les plus lourdes, le poids de ses notes de bas de page, ce que le guide a pris en 90 jours | aucun |
 | Rapport | Lit tout le guide et liste ce qui est répété, ce qui est de l'historique empilé, quelles sections sont plus longues que ce qu'elles disent. Ne modifie rien | un appel (le coût d'une relecture croisée) |
 | Allègements | Pour les pistes que vous gardez : des modifications ciblées (texte actuel, texte proposé, raison), puis relecture croisée, relecture, miroirs et pull request | un passage |
 
 ## Tailles
 
 ```bash
-vault-watch --guide ../mon-guide compact       # les pages au-dessus de leur budget, puis les plus lourdes ; sans modèle
-vault-watch --guide ../mon-guide doctor        # une ligne : le poids du guide, sa croissance, les pages hors budget
+vault-watch --guide ../mon-guide compact       # les pages qui ont beaucoup grossi, puis les plus lourdes ; sans modèle
+vault-watch --guide ../mon-guide doctor        # une ligne : le poids du guide, sa croissance, les pages qui ont beaucoup grossi
 ```
 
 Dans l'interface : « Vérifier le guide », contrôle « Taille des pages » (gratuit, coché d'office).
 
-Le budget est une taille en Ko au-dessus de laquelle une page est signalée. Il vaut 30 Ko, sauf si le manifeste
-dit autre chose :
+La bonne longueur d'une page dépend de son sujet : une page de référence sur la sécurité est longue, une entrée
+de lexique est courte. Une page n'est donc pas jugée face à une taille fixe, mais face à elle-même : elle est
+signalée quand elle a **beaucoup grossi** en 90 jours, de 5 Ko ou plus, ou d'un quart de son poids (et de 2 Ko
+au moins). La ligne d'une page signalée donne sa taille actuelle et ce qu'elle a pris (`46 KB  +18.9 KB, +71%`).
+
+```toml
+[budget]
+growth_kb = 5                 # une page qui a pris autant en 90 jours est signalée (valeur par défaut)
+growth_percent = 25           # ou cette part de ce qu'elle pesait (valeur par défaut)
+```
+
+Un guide qui veut un plafond peut en fixer un, pour toutes les pages ou pour celles d'un dossier ; il n'y en a
+aucun par défaut :
 
 ```toml
 [budget]
@@ -38,10 +49,10 @@ page_kb = 30                  # toutes les pages
 "05-solutions/**" = 20
 ```
 
-Un dépassement est un avertissement, jamais un échec : il dit où regarder d'abord. La croissance est lue dans
-Git (ce que pesait chaque page il y a 90 jours sur la branche courante) ; un guide hors de Git a des tailles et
-pas de croissance. Une page en lecture seule (`[content] readonly`) est listée avec son poids et jamais
-signalée : l'agent ne la modifie pas.
+Une page signalée est un avertissement, jamais un échec : elle dit où regarder d'abord. La croissance est lue
+dans Git (ce que pesait chaque page il y a 90 jours sur la branche courante) ; un guide hors de Git a des tailles
+et pas de croissance, donc rien n'y est signalé sans plafond. Une page nouvelle n'est pas signalée. Une page en
+lecture seule (`[content] readonly`) est listée avec son poids et jamais signalée : l'agent ne la modifie pas.
 
 ## Le rapport
 

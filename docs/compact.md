@@ -12,20 +12,31 @@ It has three parts. The first is free; the other two call the model and say what
 
 | Part | What it does | Model |
 | :-- | :-- | :-- |
-| Sizes | Each page against its budget, its heaviest sections, what its footnotes weigh, what the guide gained in 90 days | none |
+| Sizes | What each page weighs and gained, its heaviest sections, what its footnotes weigh, what the guide gained in 90 days | none |
 | Report | Reads the whole guide and lists what is repeated, what is piled-up history, which sections are longer than what they say. Edits nothing | one call (the cost of a cross-check) |
 | Trims | For the findings you keep: targeted edits (current text, proposed text, reason), then cross-check, review, mirrors and pull request | a run |
 
 ## Sizes
 
 ```bash
-vault-watch --guide ../my-guide compact        # the pages over their budget, then the heaviest; no model
-vault-watch --guide ../my-guide doctor         # one line: the guide's weight, its growth, the pages over budget
+vault-watch --guide ../my-guide compact        # the pages that grew much, then the heaviest; no model
+vault-watch --guide ../my-guide doctor         # one line: the guide's weight, its growth, the pages that grew much
 ```
 
 In the interface: « Check the guide », the check « Size of the pages » (free, ticked by default).
 
-The budget is a size in KB above which a page is flagged. It is 30 KB unless the manifest says otherwise:
+How long a page should be depends on its subject: a security reference is long, a lexicon entry is short. So a
+page is not judged against a fixed size, but against itself: it is flagged when it **grew much** in 90 days, by
+5 KB or more, or by a quarter of what it weighed (and 2 KB at least). The line of a flagged page gives its size
+now and what it gained (`46 KB  +18.9 KB, +71%`).
+
+```toml
+[budget]
+growth_kb = 5                 # a page that gained this much in 90 days is flagged (default)
+growth_percent = 25           # or this share of what it weighed (default)
+```
+
+A guide that wants a ceiling can set one, for every page or for the pages of a folder; none is set by default:
 
 ```toml
 [budget]
@@ -35,9 +46,10 @@ page_kb = 30                  # every page
 "05-solutions/**" = 20
 ```
 
-A page over its budget is a warning, never a failure: it says where to look first. The growth is read from Git
-(what each page weighed 90 days ago on the current branch); a guide outside Git has sizes and no growth. A
-read-only page (`[content] readonly`) is listed with its weight and never flagged: the agent does not edit it.
+A flagged page is a warning, never a failure: it says where to look first. The growth is read from Git (what each
+page weighed 90 days ago on the current branch); a guide outside Git has sizes and no growth, so nothing is
+flagged there without a ceiling. A new page is not flagged. A read-only page (`[content] readonly`) is listed with
+its weight and never flagged: the agent does not edit it.
 
 ## The report
 

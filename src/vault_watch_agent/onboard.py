@@ -247,7 +247,7 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
         from . import sizes
 
         weight = sizes.report(root)
-        out.append(Line("warn" if weight["over"] else "ok", "size", sizes.summary(weight)))
+        out.append(Line("warn" if weight["over"] or weight["grew"] else "ok", "size", sizes.summary(weight)))
 
     top = _git(root, "rev-parse", "--show-toplevel")
     if not top:

@@ -53,9 +53,11 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 
 ## Phase E — keep the vault and the sources in shape
 
-- [x] **E1. Size budget per page** (2026-11-20, `sizes.py`, M6): `[budget] page_kb` and `[budget.pages]` in the
-  manifest (30 KB by default), a warning of `doctor`, of `vault-watch compact` and of the « Size of the pages »
-  check, never a failure. Not checked in CI: a page over its budget is where to look, not an error.
+- [x] **E1. Size per page** (2026-11-20, `sizes.py`, M6): a page is flagged when it grew much against itself in
+  90 days (`[budget] growth_kb`, `growth_percent`), with its size now and what it gained; a ceiling is optional
+  (`[budget] page_kb`, `[budget.pages]`), none by default: the first design had 30 KB for every page, which the
+  user found arbitrary (how long a page should be depends on its subject). A warning of `doctor`, of
+  `vault-watch compact` and of the « Size of the pages » check, never a failure, not checked in CI.
 - [x] **E2. Compaction** (2026-11-20, `compact.py`, M6): a check lists what is repeated, piled-up history or longer
   than it needs; the findings kept go to a compaction run, reviewed like corrections. On demand rather than on a
   timer: the size check says when.

@@ -94,6 +94,40 @@ def test_the_report_names_the_pages_over_their_budget_and_where_the_weight_is(gu
     assert "over" in sizes.table(rep) and "## Ports" in sizes.table(rep)
 
 
+def test_without_a_ceiling_a_page_is_flagged_when_it_grew_much(tmp_path):
+    """No ceiling by default: how long a page should be depends on its subject. What is flagged is a page that
+    gained much against what it weighed, shown with its new size."""
+    root = tmp_path / "guide"
+    write(root, "vault-watch.toml", 'schema = 1\n[guide]\nname = "T"\n[content]\nlanguage = "fr"\nreadonly = ["projet/**"]\n')
+    para = "Une phrase de contenu, assez longue pour peser. " * 20  # about 1 KB
+    for name, n in (("long.md", 40), ("small.md", 1), ("steady.md", 30), ("projet/log.md", 2)):
+        write(root, name, f"# {name}\n\n" + para * n)
+    git("init", "-q", "-b", "main", cwd=root)
+    git("config", "user.name", "t", cwd=root)
+    git("config", "user.email", "t@t", cwd=root)
+    git("add", ".", cwd=root)
+    git("commit", "-qm", "old", cwd=root, when="2026-01-01T12:00:00")
+    for name, n in (("long.md", 46), ("small.md", 4), ("steady.md", 31), ("projet/log.md", 20)):
+        write(root, name, f"# {name}\n\n" + para * n)
+    write(root, "tiny.md", "# tiny\n\n" + para)  # new
+    rep = sizes.report(root, today="2026-04-15")
+    rows = {r["page"]: r for r in rep["pages"]}
+    assert vault.guide_of(root).page_kb == 0 and rep["over"] == 0 and all(r["budget"] == 0 for r in rep["pages"])
+    # +6 KB (over the 5 KB); +3 KB on 1 KB (over 25 % and 2 KB); +1 KB on 30 (neither); read-only and new: never
+    assert {p: r["grew"] for p, r in rows.items()} == {"long.md": True, "small.md": True, "steady.md": False,
+                                                       "projet/log.md": False, "tiny.md": False}
+    assert rep["grew"] == 2 and [r["page"] for r in sizes.flagged(rep)] == ["long.md", "small.md"]  # the largest gain first
+    line = sizes.summary(rep)
+    assert "2 page(s) grew much in 90 days: long.md 43 KB (+5.6 KB, +15%), small.md 3.8 KB (+2.8 KB, +296%)" in line and "budget" not in line
+    table = sizes.table(rep)
+    assert table.splitlines()[2].startswith("grew    43 KB") and "new  tiny.md" in table and " / " not in table
+    assert "budget" not in sizes.describe(rows["long.md"]) and "KB 90 days ago" in sizes.describe(rows["long.md"])
+    assert sizes.gained(rows["tiny.md"]) == "new" and sizes.gained(rows["steady.md"]).startswith("+0.9 KB, +3%")
+    # the thresholds are the guide's
+    write(root, "vault-watch.toml", 'schema = 1\n[guide]\nname = "T"\n[content]\nlanguage = "fr"\nreadonly = ["projet/**"]\n[budget]\ngrowth_kb = 50\ngrowth_percent = 400\n')
+    assert sizes.report(root, today="2026-04-15")["grew"] == 0
+
+
 def test_growth_is_read_from_git(guide):
     rep = sizes.report(guide, days=90, today="2026-06-01")  # 90 days before: 3 March, the commit of January
     g, rows = rep["growth"], {r["page"]: r for r in rep["pages"]}
@@ -108,7 +142,8 @@ def test_a_guide_outside_git_has_sizes_and_no_growth(tmp_path):
     write(tmp_path, "vault-watch.toml", MANIFEST)
     write(tmp_path, "a.md", "# A\n\nTexte.\n")
     rep = sizes.report(tmp_path)
-    assert rep["growth"] is None and rep["over"] == 0 and "no page over its budget" in sizes.summary(rep)
+    assert rep["growth"] is None and rep["over"] == rep["grew"] == 0
+    assert sizes.summary(rep).endswith("no page grew much (no earlier commit to compare with)")
 
 
 def test_a_heading_in_a_code_block_is_not_a_section():

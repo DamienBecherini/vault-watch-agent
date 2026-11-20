@@ -161,11 +161,13 @@ plafond ; sinon ils passent chapitre par chapitre (un dossier de premier niveau 
 modifient les corrections), et le rapport comme l'écran du passage le disent : une contradiction entre deux
 chapitres peut alors échapper. Sans plafond : la fenêtre du modèle décide.
 
-`page_kb` (30 par défaut) et `[budget.pages]` : la taille, en Ko, au-dessus de laquelle une page est signalée, et
-une autre pour les pages d'un dossier (`"00-lexique/**" = 8` sous `[budget.pages]` ; le premier motif qui
-correspond l'emporte). Un dépassement est un avertissement de `vault-watch doctor`, de `vault-watch compact` et du
-contrôle « Taille des pages », jamais un échec : il dit où un [compactage](compact.fr.md) doit regarder d'abord.
-Une page en lecture seule est listée avec son poids et jamais signalée.
+`growth_kb` (5 par défaut) et `growth_percent` (25) : une page qui a pris autant de Ko en 90 jours, ou cette part
+de ce qu'elle pesait, est signalée comme ayant beaucoup grossi. `page_kb` et `[budget.pages]` : un plafond
+facultatif, en Ko, pour toutes les pages, et un autre pour les pages d'un dossier (`"00-lexique/**" = 8` sous
+`[budget.pages]` ; le premier motif qui correspond l'emporte) ; aucun par défaut, puisque la bonne longueur d'une
+page dépend de son sujet. Une page signalée est un avertissement de `vault-watch doctor`, de `vault-watch compact`
+et du contrôle « Taille des pages », jamais un échec : elle dit où un [compactage](compact.fr.md) doit regarder
+d'abord. Une page en lecture seule est listée avec son poids et jamais signalée.
 
 ## Ce que débloque chaque partie
 

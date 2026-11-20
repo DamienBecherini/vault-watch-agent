@@ -48,7 +48,7 @@ COMPACT_OUT_EACH = 8_500  # proposals, thinking included
 CROSS_IN_EACH = 2_000  # the trims of a finding, read by the cross-check
 CROSS_OUT, CROSS_OUT_EACH = 10_000, 800
 MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one page and a half per finding
-HEAVIEST = 15  # pages kept in the result of the size check: those over their budget, then the heaviest
+HEAVIEST = 15  # pages kept in the result of the size check at least: the flagged ones (all of them), then the heaviest
 
 
 class Finding(BaseModel):
@@ -295,12 +295,13 @@ def run_coherence(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
 
 
 def run_sizes(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
-    """What each page weighs against its budget (sizes.py): no model. A page over its budget is a warning."""
+    """What each page weighs and what it gained (sizes.py): no model. A page that grew much, or one above the
+    ceiling its guide set, is a warning."""
     rep = sizes.report(vault_dir)
-    over = [r for r in rep["pages"] if r["over"]]
-    shown = over + [r for r in rep["pages"] if not r["over"]][:max(0, HEAVIEST - len(over))]
-    return {"ok": not over, "summary": sizes.summary(rep), "findings": [],
-            "sizes": {"total": rep["total"], "pages": len(rep["pages"]), "over": len(over), "heaviest": shown,
+    first = sizes.flagged(rep)
+    shown = first + [r for r in rep["pages"] if r not in first][:max(0, HEAVIEST - len(first))]
+    return {"ok": not first, "summary": sizes.summary(rep), "findings": [],
+            "sizes": {"total": rep["total"], "pages": len(rep["pages"]), "over": rep["over"], "grew": rep["grew"], "heaviest": shown,
                       "chapters": rep["chapters"], "growth": rep["growth"]}}
 
 
@@ -308,7 +309,7 @@ def run_compaction(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict
     """What makes the guide heavy (compact.REPORT): the model reads it whole, with the heaviest pages named, and
     edits nothing. The findings the editor keeps go to a compaction run (compact.propose)."""
     heaviest = results["sizes"]["sizes"]["heaviest"]
-    listing = "\n".join(f"- {sizes.describe(r)}{' — over its budget' if r['over'] else ''}"
+    listing = "\n".join(f"- {sizes.describe(r)}{' — over its budget' if r['over'] else ''}{' — grew much' if r.get('grew') else ''}"
                         f"{' — read-only' if r['readonly'] else ''}" for r in heaviest)
     plan = reading.plan(vault_dir, llm, step="compaction")
     system = compact.REPORT.replace("<<MAX>>", str(compact.MAX_FINDINGS))
@@ -420,10 +421,12 @@ CHECKS = [
            "en": "For each dead source, Claude looks for where the page moved or an equivalent source."},
           MODEL, needs=("sources",)),
     Check("sizes", {"fr": "Taille des pages", "en": "Size of the pages"},
-          {"fr": "Chaque page face à son budget ([budget] du manifeste, 30 Ko par défaut), ses sections les plus lourdes, "
-                 "et ce que le guide a pris en 90 jours. Un dépassement est un avertissement, jamais un échec.",
-           "en": "Each page against its budget ([budget] of the manifest, 30 KB by default), its heaviest sections, and "
-                 "what the guide gained in 90 days. A page over its budget is a warning, never a failure."}, None),
+          {"fr": "Ce que pèse chaque page, ce qu'elle a pris en 90 jours et ses sections les plus lourdes. Une page qui a "
+                 "beaucoup grossi (5 Ko ou 25 % par défaut), ou qui dépasse le plafond que le guide s'est fixé ([budget] du "
+                 "manifeste, aucun par défaut), est un avertissement, jamais un échec.",
+           "en": "What each page weighs, what it gained in 90 days and its heaviest sections. A page that grew much (5 KB "
+                 "or 25% by default), or one above the ceiling the guide set itself ([budget] of the manifest, none by "
+                 "default), is a warning, never a failure."}, None),
     Check("compaction", {"fr": "Compactage : ce qui alourdit le guide", "en": "Compaction: what makes the guide heavy"},
           {"fr": "Claude lit toutes les pages d'un coup et liste, sans rien modifier : le même fait répété dans plusieurs "
                  "pages, l'historique empilé à côté du fait courant, les sections plus longues que ce qu'elles disent. Les "
