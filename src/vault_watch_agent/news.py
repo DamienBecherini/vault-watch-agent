@@ -11,14 +11,16 @@ aside as a possible addition is never written. This is a run of its own, apart f
    is checked on primary sources, then added where it belongs, or left with the reason. The result enters the graph
    like the corrections of a fix run: cross-check, review, mirrors, the guide's audits, pull request.
 
-The web is asked in the second part only, a few leads per call: each round of search re-reads what the call has
-gathered so far, so a long call costs much more than several short ones.
+The web is asked in the second part only, one lead per call. The web of a call has a ceiling (20 searches, 30
+pages), and leads that shared a call shared it too: on 2026-11-20 a lead about six price lists took all of it and
+left its three neighbours unchecked. The calls share the guide in the cache and run together; what two of them add
+to one page is put together by the program (`merge`).
 
 A second way to find leads starts from the web instead of the guide (`explore`, the check « explore »): one call per
 chapter reads the whole guide and searches freely what moved on the chapter's subjects. It finds what nobody thought
 to ask, and its leads come with the sources that establish them; it pays for the web before the editor has seen
 anything. Its leads go to the same addition run, where the editor may ask that one be dug deeper (`propose`, `deep`):
-a call of its own, with the whole budget of searches for that one subject.
+its call is asked for a fuller look, on several independent sources, and may write on several pages.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from . import compact, prompts, quotes, reading, steps, vault
+from . import compact, prompts, quotes, reading, steps, vault, webtools
 from .llm import LLM, ModelError
 
 LEADS = """You look for what a reader would expect to find in <<GUIDE>> and does not. The whole guide is above, one <page> per
@@ -249,11 +251,13 @@ For each one:
   definition of the page, `proposed` is that definition, a line break, then the new one, written like the others).
 - A lead that names its sources was found on the web: start from those addresses, open them again, and look further
   only for what they leave open.
-- A lead given alone under the heading « Lead to dig deeper » was chosen by the editor for a fuller look, and has
-  the whole budget of searches of the call: read several independent primary sources, and establish what it
-  replaces, how mature and available it is (its licence, the hardware it needs, its known limits), and what it
-  changes for each kind of reader of the guide. Its addition may then span several pages. Say what you established
-  in its outcome's `event`, in three sentences at the most.
+- A lead given under the heading « Lead to dig deeper » was chosen by the editor for a fuller look: read several
+  independent primary sources, and establish what it replaces, how mature and available it is (its licence, the
+  hardware it needs, its known limits), and what it changes for each kind of reader of the guide. Its addition
+  may then span several pages. Say what you established in its outcome's `event`, in three sentences at the most.
+- A call has about <<SEARCHES>> searches and <<PAGES>> pages on the web: open the primary sources first. When they
+  run out before a lead is checked, give it an outcome whose no_change_reason begins with « not checked: » and says
+  what is left to open; never fill the gap from memory.
 - Answer the leads given here and nothing else: a run may handle other leads in other calls at the same time.
 
 Edits follow the guide's style: <<LANG>>, the same Markdown, wiki links [[...]] and footnote markers kept, dated wording
@@ -293,7 +297,8 @@ def unchanged(state: dict) -> list[dict]:
             for p in state.get("proposals", []) for o in p.get("outcomes", [])
             if o["item_id"] not in used and not _NEEDS_PAGE.match(o.get("no_change_reason") or "")]
 
-PER_CALL = 4  # leads per call: each one is a few rounds of search, and each round re-reads what the call gathered
+PER_CALL = 1  # leads per call: the web of a call has a ceiling, which leads in one call take from one another
+NOT_CHECKED = re.compile(r"^\W*not (checked|handled)\b", re.I)  # a lead its call could not look at: to send again
 
 
 def batches(pages: list[list[str]], most: int = PER_CALL) -> list[list[int]]:
@@ -319,8 +324,8 @@ def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, lis
     Every call reads the whole guide when it fits the model (`compact.in_calls`: cached and shared on the Claude
     API, one call after the other elsewhere) and the web. A call that fails leaves its leads without an addition,
     said in their outcome; the others go on.
-    `deep`: the leads to dig deeper. Each has a call of its own, headed as such (`ADD` says what that asks), so the
-    whole budget of searches of a call goes to one subject; the others go four to a call."""
+    One lead per call (`PER_CALL`), so that each has the whole web of a call. `deep`: the leads to dig deeper,
+    headed as such (`ADD` says what that asks)."""
     texts = {p.relative_to(vault_dir).as_posix(): vault.read(p).replace("\r", "") for p in vault.pages(vault_dir)}
     pages = [compact.named(lead, set(texts)) for lead in leads]
     dug = [i for i, lead in enumerate(leads) if lead in set(deep or [])]
@@ -328,4 +333,39 @@ def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, lis
     groups = [[usual[i] for i in batch] for batch in batches([pages[i] for i in usual])] + [[i] for i in dug]
     headings = [("Leads", "lead")] * (len(groups) - len(dug)) + [("Lead to dig deeper", "lead")] * len(dug)
     return compact.in_calls(vault_dir, leads, llm, excerpts, groups, pages=pages, texts=texts, step="add",
-                            system=ADD, web=True, what=("Leads", "lead"), whole=True, above=ABOVE, headings=headings)
+                            system=ADD.replace("<<SEARCHES>>", str(webtools.MAX_SEARCHES)).replace("<<PAGES>>", str(webtools.MAX_PAGES)),
+                            web=True, what=("Leads", "lead"), whole=True, above=ABOVE, headings=headings)
+
+
+_NOTE_DEF = re.compile(r"^\[\^([^\]\s]+)\]:", re.M)
+
+
+def merge(vault_dir: Path, corrections: list[dict]) -> None:
+    """What several calls add to one page, made to fit together (in place). Each call saw the page as it is, so two
+    of them give their new footnote the same free marker: the later call's marker is renamed, in every edit that
+    call makes to the page, to one neither the page nor an earlier call uses. Two edits that only append to the
+    same passage (two definitions after the last footnote, two rows after the same row) both apply: `appends`."""
+    taken: dict[str, set[str]] = {}   # page -> markers defined in it, or given to a call already
+    for call in sorted({c["proposal"] for c in corrections}):
+        mine = [c for c in corrections if c["proposal"] == call]
+        for page in sorted({c["page"] for c in mine}):
+            path = vault_dir / page
+            used = taken.setdefault(page, set(_NOTE_DEF.findall(vault.read(path).replace("\r", ""))) if path.is_file() else set())
+            edits = [c for c in mine if c["page"] == page]
+            new = sorted({m for c in edits for m in _NOTE_DEF.findall(c["proposed"])}
+                         - {m for c in edits for m in _NOTE_DEF.findall(c["current"])}, key=lambda m: (len(m), m))
+            for marker in new:
+                name = marker
+                if marker in used:
+                    numbers = [int(m) for m in used | set(new) if m.isdigit()]
+                    name = str(max(numbers) + 1) if numbers else f"{marker}-2"
+                    while name in used or name in new:
+                        name = f"{name}-2"
+                    for c in edits:
+                        c["proposed"] = c["proposed"].replace(f"[^{marker}]", f"[^{name}]")
+                used.add(name)
+
+
+def appends(c: dict) -> bool:
+    """An edit that keeps its passage and writes after it: two of them at the same place do not collide."""
+    return c["proposed"].startswith(c["current"]) and len(c["proposed"]) > len(c["current"])

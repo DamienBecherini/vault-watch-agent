@@ -159,6 +159,8 @@ def build(deps: Deps, checkpointer=None):
             key = f"{c['proposal']}/{c['group']}" if c.get("group") else c["id"]
             c["group"] = first.setdefault(key, c["id"])
         trims = state.get("mode") == "compact"
+        if state.get("mode") == "add":  # one call per lead: what two calls add to one page is made to fit
+            news.merge(deps.vault, corrections)
         if trims:  # a note the trims leave without a sentence citing it goes with them
             corrections = compact.with_orphan_notes(deps.vault, corrections)
         mark_conflicts(deps.vault, corrections, trims)
@@ -484,7 +486,8 @@ def mark_unsafe(corrections: list[dict], trims: bool = False) -> None:
 
 
 def mark_conflicts(vault_dir: Path, corrections: list[dict], trims: bool = False) -> None:
-    """Two corrections that edit overlapping text of a page cannot both apply: the later one is refused."""
+    """Two corrections that edit overlapping text of a page cannot both apply: the later one is refused. Except two
+    that only write after the same passage (`news.appends`: each still finds it once the other is applied)."""
     mark_unsafe(corrections, trims)
     if trims:
         compact.mark_dangling(vault_dir, corrections)
@@ -495,11 +498,13 @@ def mark_conflicts(vault_dir: Path, corrections: list[dict], trims: bool = False
         text = vault.read(vault_dir / c["page"]).replace("\r\n", "\n")
         start = text.find(c["current"].replace("\r\n", "\n"))
         end = start + len(c["current"])
-        clash = next((cid for s, e, cid in spans.get(c["page"], []) if start < e and s < end), None)
+        after = news.appends(c)
+        clash = next((cid for s, e, cid, also in spans.get(c["page"], [])
+                      if start < e and s < end and not (after and also and (s, e) == (start, end))), None)
         if clash:
             c["check"] = f"conflict with {clash}"
         else:
-            spans.setdefault(c["page"], []).append((start, end, c["id"]))
+            spans.setdefault(c["page"], []).append((start, end, c["id"], after))
 
 
 def _cell(text: str) -> str:

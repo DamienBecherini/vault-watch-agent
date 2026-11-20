@@ -165,7 +165,9 @@ def leftovers(vault: Path, corrections: list[dict], limit: int = MAX_LEFTOVERS) 
     """Where the values these corrections remove (a version, a flag, a package variant) still appear.
 
     Text the corrections replace is skipped, and so are footnote definitions, which
-    record what a past source said. A hit is not an error: "fixed in 0.31.0" stays true.
+    record what a past source said, and the front matter (`verified_by: "Fable 5.1"` is not a
+    price list to update: 33 of the 35 hits of add-2026-11-20). A hit is not an error: "fixed in
+    0.31.0" stays true.
     """
     valid = _valid_source(vault, corrections)
     needles = {t: _needle(t) for c in valid for t in sorted(_tokens(c["current"]) - _tokens(c["proposed"]))}
@@ -179,8 +181,10 @@ def leftovers(vault: Path, corrections: list[dict], limit: int = MAX_LEFTOVERS) 
             if c["page"] == rel:
                 current = c["current"].replace("\r\n", "\n")
                 text = text.replace(current, re.sub(r"[^\n]", " ", current))  # blanked: line numbers stay right
+        head = FRONTMATTER.match(text)
+        skipped = head.group(0).count("\n") if head else 0  # the front matter: who verified the page, with what
         for number, line in enumerate(text.split("\n"), start=1):
-            if line.startswith("[^"):
+            if number <= skipped or line.startswith("[^"):
                 continue
             found = {t: m.start() for t, n in needles.items() if (m := n.search(line))}
             if found:

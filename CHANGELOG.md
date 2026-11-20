@@ -17,8 +17,10 @@ already knows, and what it sets aside as a possible addition is never written. [
 - The additions: the leads kept go to an addition run (`vault-watch fix <thread> --findings … --add`). Each lead is
   checked on primary sources on the web, then written where a reader would look for it, corrected where the guide
   states something superseded, or left with its reason; a subject that needs a page of its own is said, the page
-  is not written. Four leads per call (a round of search re-reads what the call gathered, so short calls cost
-  less), every call with the whole guide: cached and shared on the Claude API, one call after the other elsewhere.
+  is not written. One lead per call (the web of a call has a ceiling of 20 searches and 30 pages, which leads in
+  one call took from one another), every call with the whole guide: cached and shared on the Claude API, one call
+  after the other elsewhere. What two calls add to one page is put together by the program: a footnote marker both
+  chose is renamed, and two edits that write after the same passage both apply.
   Then the cross-check of a watch, the review, the mirrors, the guide's audits and the pull request, on a branch
   `feat/<thread>`.
 - A second way to find leads, from the web instead of the guide: the check « What is new: the web explored,
@@ -26,8 +28,10 @@ already knows, and what it sets aside as a possible addition is never written. [
   web and the whole guide, searches freely what moved on the chapter's subjects and keeps what no page says; its
   leads are facts with the sources that establish them, and go to the same addition run. It finds what nobody
   thought to ask, and pays for the web before the editor has seen anything; the cost follows the chapters ticked.
-- A lead can be dug deeper (a box beside it; `!` at the start of its line on the command line): a call of its own
-  in the addition run, the whole budget of searches for that one subject.
+- A lead can be dug deeper (a box beside it; `!` at the start of its line on the command line): its call in the
+  addition run is asked for a fuller look, on several independent sources and several pages if need be.
+- A lead its call could not look at (the web of the call ran out, the call failed) is marked « not checked by the
+  run » on its verification, with the reason and a button that puts it back among the leads to handle.
 - What an addition run does not write is said where the editor reads: the run never writes a new page, and the
   pages its leads would need are listed at the top of the review screen, of the report and of the pull request;
   the check cards carry the limit as a line of their own. The review also lists the leads left without an edit,
@@ -90,7 +94,11 @@ already knows, and what it sets aside as a possible addition is never written. [
   « Check the guide » offers the verifications older than the 20 newest, which no screen listed before.
 - Four steps more in the Settings (the leads, the exploration, the additions, the split into chapters), each of which can run on a model
   of its own. The button that creates an addition run shows an estimate that follows the leads ticked and dug.
-  The estimates are not measured yet.
+  The estimates of the leads and of an addition run are set on a first real run (2026-11-20, the IA on-prem
+  guide: 2.28 $ for 28 leads; 10.84 $ before the mirrors for a lead about six price lists and a lead dug deeper,
+  28 edits): ≈ 4.40 $ plus ≈ 2.90 $ per lead, ≈ 3.70 $ for a lead dug deeper. The exploration is not measured yet.
+- The values a run removes are looked for in the text of the pages only, no longer in their front matter
+  (`verified_by: "Fable 5.1"` was 33 of the 35 lines listed by the first addition run).
 - `prompts.fill` knows two markers more: `<<TODAY>>` and `<<BRIEF>>` (the guide's contract, put last).
   `compact.in_calls` is the part of the compaction proposals that makes several calls, now shared.
 - Fixed: on Windows a page of the interface could fail to read a check or the sources file at the instant the

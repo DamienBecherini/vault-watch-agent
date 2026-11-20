@@ -49,18 +49,22 @@ COMPACT_OUT_EACH = 8_500  # proposals, thinking included
 CROSS_IN_EACH = 2_000  # the trims of a finding, read by the cross-check
 CROSS_OUT, CROSS_OUT_EACH = 10_000, 800
 MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one page and a half per finding
-# « Look for what is new » (news.py), not measured yet (the constants are counted high, like the others). The leads:
-# one call that reads the whole guide and writes at most thirty leads. An addition run: its proposals write the
-# guide to the cache once, then each lead costs a few rounds of search (each round reads the guide from the cache,
-# and what the web returned so far at the input price: a claim checked on the web read 46 k tokens of sources on
-# 17/11/2026); then the cross-check of a watch (the guide written to its own cache, read three times, and each
-# source opened again), and the mirror of each page touched.
+# « Look for what is new » (news.py). The leads: one call that reads the whole guide and writes at most thirty leads.
+# An addition run: its proposals write the guide to the cache once, then each lead has a call of its own, of several
+# rounds of search (each round reads the guide from the cache, and what the web returned so far); then the
+# cross-check of a watch (the guide written to its own cache, each source opened again), and the mirror of each page
+# touched. Measured once (add-2026-11-20, the IA on-prem guide, Opus 5.5 at effort high, 10.84 $ before the mirrors):
+# a lead about six price lists took 21 rounds, 76 k tokens of web pages and wrote 22 k (2.72 $ besides the guide
+# written to the cache); a lead dug deeper 13 rounds, 100 k and 14 k (1.88 $); the cross-check of their 28 edits
+# 14 rounds, 111 k and 18 k (4.08 $). Two heavy leads: a version to check should cost less, not measured yet.
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
-ADD_ROUNDS_EACH = 4  # readings of the cached guide per lead, by the proposals
-ADD_WEB_IN_EACH = 46_000  # tokens of web pages read per lead, by the proposals
-ADD_OUT_EACH = 5_000
-ADD_CROSS_READS, ADD_CROSS_WEB_IN_EACH = 3, 15_000
+ADD_ROUNDS_EACH = 15  # readings of the cached guide per lead, by the proposals
+ADD_WEB_IN_EACH = 90_000  # tokens of web pages read per lead, by the proposals
+ADD_OUT_EACH = 16_000
+ADD_DEEP_ROUNDS, ADD_DEEP_WEB_IN, ADD_DEEP_OUT = 22, 120_000, 22_000  # a lead dug deeper: more sources, more pages
+ADD_CROSS_READS = 2  # the cross-check: readings of the cached guide whatever the leads
+ADD_CROSS_ROUNDS_EACH, ADD_CROSS_WEB_IN_EACH, ADD_CROSS_OUT_EACH = 7, 55_000, 9_000  # and per lead
 # A call that has the whole budget of searches for itself (a chapter explored, a lead dug deeper): about twenty-five
 # rounds, each reading the cached guide and what the web returned so far. Twenty searches read 638 k tokens of
 # sources on 17/11/2026 (the re-check of the dated claims).
@@ -136,6 +140,11 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
     chapters = len(by_chapter(vault_dir))
     claims, dead = known.get("claims"), known.get("dead")
     note = lambda fr_, en_: {"fr": fr_, "en": en_}  # noqa: E731
+    # What follows the proposals of a lead of an addition run: its share of the cross-check, and its mirror
+    add_after = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=ADD_CROSS_OUT_EACH,
+                      cache_read=ADD_CROSS_ROUNDS_EACH * fr, table=table)
+                 + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
+                    if vault.guide_of(vault_dir).mirrors else 0.0))
     return {
         "audits": {"tokens": 0, "usd": 0.0, "note": note("≈ 10 s", "≈ 10 s")},
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
@@ -171,16 +180,10 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                     "usd": _usd(of("add"), cache_write=fr, table=table)
                     + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, cache_read=ADD_CROSS_READS * fr, table=table),
                     "usd_each": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH,
-                                     cache_read=ADD_ROUNDS_EACH * fr, table=table)
-                    + _usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
-                    + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
-                       if vault.guide_of(vault_dir).mirrors else 0.0),
-                    # a lead dug deeper: a call of its own, instead of a quarter of one
-                    "usd_deep": _usd(of("add"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
-                                     cache_read=WEB_CALL_ROUNDS * fr, table=table)
-                    + _usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
-                    + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
-                       if vault.guide_of(vault_dir).mirrors else 0.0)},
+                                     cache_read=ADD_ROUNDS_EACH * fr, table=table) + add_after,
+                    # a lead dug deeper: the same call, asked for a fuller look
+                    "usd_deep": _usd(of("add"), tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT,
+                                     cache_read=ADD_DEEP_ROUNDS * fr, table=table) + add_after},
         "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},

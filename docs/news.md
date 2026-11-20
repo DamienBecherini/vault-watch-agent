@@ -107,9 +107,9 @@ For each lead, the model searches the web and opens primary sources, then decide
   hold and where; writing a new page stays your decision.
 
 **Dig deeper.** Beside each lead, a box « dig deeper » (on the command line, a `!` at the start of its line in the
-file). The lead then has a call of its own instead of a quarter of one, so the whole budget of searches goes to
-that one subject: several independent sources, what it replaces, how mature and available it is, what it changes
-for each kind of reader. It costs about what a chapter explored costs; keep it for the subjects that deserve it.
+file). Its call is then asked for a fuller look: several independent sources, what it replaces, how mature and
+available it is, what it changes for each kind of reader, on several pages if need be. It costs a little more
+than a lead; keep it for the subjects that deserve it.
 
 The review shows, above the corrections, the pages the run says would be needed, then the leads it left without
 an edit and why: what a search found without writing anything is a result too.
@@ -119,10 +119,13 @@ review, the mirrors, the guide's checks and the pull request, on a branch `feat/
 
 ## What each call reads, and what it costs
 
-The leads take one call that reads the whole guide. The additions take several calls, four leads each, grouped by
-the pages they name: every round of search re-reads what the call has gathered so far, so one long call costs
-much more than several short ones. Every call reads the whole guide. On the Claude API the first call writes it
-to the prompt cache and the others read it from there; with another engine the calls follow one another.
+The leads take one call that reads the whole guide. The additions take one call per lead. The web of a call has
+a ceiling (20 searches, 30 pages), and leads that shared a call took it from one another: on the first real run,
+a lead about six price lists left its three neighbours unchecked. A lead its call could not look at is marked
+« not checked by the run » on the verification, with a button that puts it back among the leads to handle. What
+two calls add to the same page is put together by the program (a footnote marker both chose is renamed, two rows
+after the same row both apply). Every call reads the whole guide. On the Claude API the first call writes it to
+the prompt cache and the others read it from there; with another engine the calls follow one another.
 
 The estimates below are for the IA on-prem guide (129 pages, about 430 000 tokens) with Opus 5.5 for the leads,
 the additions and the cross-check. Unless said otherwise they are not measured yet: the constants are counted high and will be set
@@ -132,7 +135,11 @@ on the first real runs.
 | :-- | :-- |
 | The leads, from the guide | ≈ 2.40 $ (2.28 $ measured on 2026-11-20 for 28 leads) |
 | The leads, from the web | ≈ 2 $, plus ≈ 4.75 $ per chapter explored |
-| An addition run | ≈ 4.40 $, plus ≈ 0.75 $ per lead kept, or ≈ 4.90 $ for a lead dug deeper |
+| An addition run | ≈ 4.40 $, plus ≈ 2.90 $ per lead kept, or ≈ 3.70 $ for a lead dug deeper |
+
+The addition run is set on one real run (2026-11-20: 10.84 $ before the mirrors, for a lead about six price lists
+and a lead dug deeper, 28 edits in all). Both were heavy: a lead that checks one version should cost less, which
+is not measured yet. Most of a lead's cost is the guide read again from the cache at each round of search.
 
 The steps « leads of what is new », « the web explored by chapter » and « additions checked on the web » appear in
 the Settings, where each can run on a model of its own. With an engine paid by a subscription nothing is billed,

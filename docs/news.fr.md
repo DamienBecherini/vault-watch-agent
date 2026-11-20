@@ -109,10 +109,9 @@ Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires,
   contiendrait et où ; écrire une nouvelle page reste votre décision.
 
 **Creuser.** À côté de chaque piste, une case « creuser » (en ligne de commande, un `!` en début de ligne dans le
-fichier). La piste a alors un appel pour elle seule au lieu d'un quart d'appel, donc tout le budget de recherches
-va à ce seul sujet : plusieurs sources indépendantes, ce qu'il remplace, sa maturité et sa disponibilité, ce qu'il
-change pour chaque type de lecteur. Cela coûte à peu près ce que coûte un chapitre exploré ; à garder pour les
-sujets qui le méritent.
+fichier). Son appel reçoit alors la consigne d'aller plus loin : plusieurs sources indépendantes, ce que le sujet
+remplace, sa maturité et sa disponibilité, ce qu'il change pour chaque type de lecteur, sur plusieurs pages s'il
+le faut. Cela coûte un peu plus qu'une piste ; à garder pour les sujets qui le méritent.
 
 La relecture montre, au-dessus des corrections, les pages que le passage dit nécessaires, puis les pistes qu'il a
 laissées sans modification et pourquoi : ce qu'une recherche a trouvé sans rien écrire est aussi un résultat.
@@ -123,10 +122,14 @@ rouverte), votre relecture, les miroirs, les contrôles du guide et la pull requ
 
 ## Ce que lit chaque appel, et ce que cela coûte
 
-Les pistes prennent un appel, qui lit tout le guide. Les ajouts prennent plusieurs appels, quatre pistes chacun,
-regroupées par les pages qu'elles nomment : chaque tour de recherche relit ce que l'appel a rassemblé jusque-là,
-donc un long appel coûte bien plus que plusieurs courts. Chaque appel lit tout le guide. Sur l'API Claude, le
-premier appel l'écrit dans le cache et les autres le lisent là ; avec un autre moteur, les appels se suivent.
+Les pistes prennent un appel, qui lit tout le guide. Les ajouts prennent un appel par piste. Le web d'un appel
+a un plafond (20 recherches, 30 pages), et des pistes réunies dans un appel se le disputaient : au premier
+passage réel, une piste sur six grilles de prix a laissé ses trois voisines sans vérification. Une piste que son
+appel n'a pas pu regarder est marquée « pas vérifiée par la passe » sur la vérification, avec un bouton qui la
+remet parmi les pistes à traiter. Ce que deux appels ajoutent à la même page est assemblé par le programme (un
+numéro de note choisi par les deux est renommé, deux lignes ajoutées après la même ligne s'appliquent toutes les
+deux). Chaque appel lit tout le guide. Sur l'API Claude, le premier appel l'écrit dans le cache et les autres le
+lisent là ; avec un autre moteur, les appels se suivent.
 
 Les estimations ci-dessous valent pour le guide IA on-prem (129 pages, environ 430 000 tokens), avec Opus 5.5
 pour les pistes, les ajouts et la relecture croisée. Sauf mention, elles ne sont pas encore mesurées : les constantes sont
@@ -136,7 +139,12 @@ comptées large et seront réglées sur les premiers passages réels.
 | :-- | :-- |
 | Les pistes, depuis le guide | ≈ 2,40 $ (2,28 $ mesurés le 20/11/2026 pour 28 pistes) |
 | Les pistes, depuis le web | ≈ 2 $, plus ≈ 4,75 $ par chapitre exploré |
-| Un passage d'ajouts | ≈ 4,40 $, plus ≈ 0,75 $ par piste gardée, ou ≈ 4,90 $ pour une piste creusée |
+| Un passage d'ajouts | ≈ 4,40 $, plus ≈ 2,90 $ par piste gardée, ou ≈ 3,70 $ pour une piste creusée |
+
+Le passage d'ajouts est réglé sur un passage réel (20/11/2026 : 10,84 $ avant les miroirs, pour une piste sur six
+grilles de prix et une piste creusée, 28 modifications en tout). Les deux étaient lourdes : une piste qui vérifie
+une seule version devrait coûter moins, ce qui n'est pas encore mesuré. L'essentiel du coût d'une piste est le
+guide relu depuis le cache à chaque tour de recherche.
 
 Les étapes « pistes de nouveautés », « exploration du web par chapitre » et « ajouts vérifiés sur le web »
 apparaissent dans les Réglages, où chacune peut tourner sur un modèle à elle. Avec un moteur payé par un

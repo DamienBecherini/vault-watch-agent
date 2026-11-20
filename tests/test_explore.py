@@ -137,7 +137,7 @@ def test_another_engine_explores_one_chapter_after_the_other(guide):
     assert seen == ["verify explore 02-materiel", "verify explore 03-stack"]
 
 
-def test_a_lead_dug_deeper_has_a_call_of_its_own(guide):
+def test_a_lead_dug_deeper_is_headed_as_such(guide):
     leads = [f"[Found on the web] 03-stack/models.md: lead {n}. Sources: https://example.org/{n}" for n in range(1, 7)]
     calls = {}
 
@@ -150,12 +150,12 @@ def test_a_lead_dug_deeper_has_a_call_of_its_own(guide):
                                    corrections=[]), {"node": node, "cost_usd": 1.0}
 
     items, proposals, _ = news.propose(guide, leads, Llm(), deep={leads[1], "a lead that is not in the run"})
-    assert calls == {"add 1/3": ("Leads", ["F1", "F3", "F4", "F5"]), "add 2/3": ("Leads", ["F6"]),
-                     "add 3/3": ("Lead to dig deeper", ["F2"])}
+    assert calls == {"add 1/6": ("Leads", ["F1"]), "add 2/6": ("Leads", ["F3"]), "add 3/6": ("Leads", ["F4"]),
+                     "add 4/6": ("Leads", ["F5"]), "add 5/6": ("Leads", ["F6"]), "add 6/6": ("Lead to dig deeper", ["F2"])}
     assert [i["id"] for i in items] == ["F1", "F2", "F3", "F4", "F5", "F6"]
     calls.clear()
     news.propose(guide, leads[:2], Llm())
-    assert calls == {"add": ("Leads", ["F1", "F2"])}
+    assert calls == {"add 1/2": ("Leads", ["F1"]), "add 2/2": ("Leads", ["F2"])}
 
 
 class RunLLM:

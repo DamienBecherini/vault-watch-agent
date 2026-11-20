@@ -432,6 +432,7 @@ def test_the_sweep_turns_remaining_values_into_corrections(setup):
 def test_leftovers_find_variants_and_skip_replaced_text_and_footnotes(tmp_path):
     page = """---
 title: x
+verified_by: "Relecteur 0.31"
 ---
 
 Installez la roue cu129 si besoin.
@@ -450,7 +451,8 @@ Ancien texte en 0.31.0 avec CUDA 12.9 et -cu129 et --old-flag.
     c = {"id": "C1", "page": "p.md", "check": "ok", "proposed": "Nouveau texte en 0.33.0.",
          "current": "Ancien texte en 0.31.0 avec CUDA 12.9 et -cu129 et --old-flag."}
     hits = {h["line"]: h["tokens"] for h in vault.leftovers(tmp_path, [c])}
-    assert hits == {5: ["cu129"], 7: ["CUDA 12"], 11: ["--old-flag", "0.31"]}
+    # The front matter is not text of the page: `verified_by: "Fable 5.1"` was 33 of the 35 hits of add-2026-11-20
+    assert hits == {6: ["cu129"], 8: ["CUDA 12"], 12: ["--old-flag", "0.31"]}
     assert vault.leftovers(tmp_path, [{**c, "check": "text-not-found"}]) == []  # an invalid edit removes nothing
 
 

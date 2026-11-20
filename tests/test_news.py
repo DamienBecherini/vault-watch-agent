@@ -101,14 +101,19 @@ class FakeLLM:
             assert web and "You review proposed corrections" in system
             return CrossCheck(reviews=[CorrectionReview(id="C1", verdict="keep", reason="the release notes say so", revised="")],
                               consistency_edits=[], other_findings=[]), usage
-        assert node == "add" and web and "Leads:" in prompt and '<lead id="F2">' in prompt
+        ids = [part.split('"')[0] for part in prompt.split('<lead id="')[1:]]
+        assert node.startswith("add") and web and "Leads:" in prompt and len(ids) == 1  # one lead per call
+        outcomes = {"F1": ItemOutcome(item_id="F1", event="", no_change_reason="the vendor's page shows no newer generation"),
+                    "F2": ItemOutcome(item_id="F2", event="2026-10-20: Ollama 0.14 runs speech models", no_change_reason=""),
+                    "F3": ItemOutcome(item_id="F3", event="", no_change_reason="needs a page: the obligations, under 06-ops")}
+        for i, reason in getattr(self, "reasons", {}).items():  # a test's own outcome for a lead
+            outcomes[i] = ItemOutcome(item_id=i, event="", no_change_reason=reason)
         return ClusterProposal(
-            outcomes=[ItemOutcome(item_id="F1", event="", no_change_reason="the vendor's page shows no newer generation"),
-                      ItemOutcome(item_id="F2", event="2026-10-20: Ollama 0.14 runs speech models", no_change_reason=""),
-                      ItemOutcome(item_id="F3", event="", no_change_reason="needs a page: the obligations, under 06-ops")],
+            outcomes=[outcomes[i] for i in ids],
             corrections=[Correction(item_ids=["F2"], page="03-stack/engines.md", current="| vLLM | 0.33 |",
                                     proposed="| vLLM | 0.33 |\n| Ollama (voix) | 0.14 |", severity="Major", group="",
-                                    source_url="https://example.org/ollama-014", rationale="speech models, new in 0.14")],
+                                    source_url="https://example.org/ollama-014", rationale="speech models, new in 0.14")]
+            if "F2" in ids else [],
         ), usage
 
 
@@ -177,12 +182,17 @@ def test_the_leads_read_the_guide_and_the_candidates_and_verify_nothing(setup):
 
 
 # -- the additions: a run of the graph -------------------------------------------------------------------------------
-def test_the_leads_are_grouped_a_few_per_call_by_the_pages_they_share():
+def test_each_lead_has_its_call_and_a_group_asked_for_goes_by_the_pages_shared():
     #                       0           1      2           3      4       5
     pages = [["a/x.md", "b/y.md"], ["c/z.md"], ["b/y.md"], [], ["a/w.md"], ["c/z.md"]]
     assert news.batches(pages, 3) == [[0, 2, 4], [1, 3, 5]]  # the same page first, then the same chapter
     assert news.batches(pages, 4) == [[0, 1, 2, 4], [3, 5]] and news.batches([], 4) == []
-    assert [len(b) for b in news.batches([[]] * 9)] == [4, 4, 1]
+    # By default a lead does not share the web of its call (20 searches, 30 pages): on 2026-11-20 one lead about six
+    # price lists took all of it, and the three others of its call came back unchecked
+    assert news.batches([[]] * 9) == [[n] for n in range(9)]
+    assert "about 20 searches and 30 pages" in news.ADD.replace("<<SEARCHES>>", "20").replace("<<PAGES>>", "30")
+    assert news.NOT_CHECKED.match("Not checked in this call: the search budget ran out before the releases could be opened.")
+    assert news.NOT_CHECKED.match("not handled, the call failed: cut") and not news.NOT_CHECKED.match("nothing new since 0.33")
 
 
 def test_every_call_reads_the_whole_guide_and_the_web(setup):
@@ -205,7 +215,7 @@ def test_every_call_reads_the_whole_guide_and_the_web(setup):
                 begun.set()
                 started()
             ids = [part.split('"')[0] for part in prompt.split('<lead id="')[1:]]
-            if node == "add 2/2":
+            if node == "add 2/5":
                 error = ModelError("add: the answer was cut before its end")
                 error.usage = {"node": node, "cost_usd": 2.0, "cut": True}
                 raise error
@@ -213,9 +223,10 @@ def test_every_call_reads_the_whole_guide_and_the_web(setup):
                                    corrections=[]), {"node": node, "cost_usd": 1.0}
 
     items, proposals, usages = news.propose(deps.vault, leads, Api())
-    assert order == [("add 1/2", True, False), ("add 2/2", False, True)]
-    assert [i["id"] for i in items] == ["F1", "F2", "F3", "F4", "F5"] and len(proposals[0]["item_ids"]) == 4
-    assert "the call failed" in proposals[1]["outcomes"][0]["no_change_reason"] and sum(u["cost_usd"] for u in usages) == 3.0
+    # One call leads and writes the cache; the four others start together once it has begun to answer
+    assert order[0] == ("add 1/5", True, False) and sorted(order[1:]) == [(f"add {n}/5", False, True) for n in range(2, 6)]
+    assert [i["id"] for i in items] == ["F1", "F2", "F3", "F4", "F5"] and [p["item_ids"] for p in proposals] == [[f"F{n}"] for n in range(1, 6)]
+    assert "the call failed" in proposals[1]["outcomes"][0]["no_change_reason"] and sum(u["cost_usd"] for u in usages) == 6.0
 
     seen = []
 
@@ -228,7 +239,7 @@ def test_every_call_reads_the_whole_guide_and_the_web(setup):
                                    corrections=[]), {"node": node, "cost_usd": 1.0}
 
     news.propose(deps.vault, leads, Other())
-    assert seen == ["add 1/2", "add 2/2"]
+    assert seen == [f"add {n}/5" for n in range(1, 6)]
     state = fix.initial_state("add-2026-11-20", items, proposals, usages, "add-2026-11-20", "add")
     assert state["mode"] == "add" and state["branch_name"] == "feat/add-2026-11-20"
     assert state["title"] == "feat(content): reviewed additions to the guide (add-2026-11-20)"
@@ -259,7 +270,7 @@ def test_the_leads_of_the_check_go_to_an_addition_run(setup, tmp_path):
         time.sleep(0.05)
     assert run["status"] == "review" and run["mode"] == "add"
     assert [(x["id"], x["page"], x["check"]) for x in run["corrections"]] == [("C1", "03-stack/engines.md", "ok")]
-    assert ("add", True) in llm.calls and ("crosscheck", True) in llm.calls  # the web for the additions and their review
+    assert ("add 2/3", True) in llm.calls and ("crosscheck", True) in llm.calls  # the web for the additions and their review
     assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 3, "dismissed": 0}
     report = (deps.home / "reports" / f"feat-{thread}.md").read_text(encoding="utf-8")
     assert "needs a page: the obligations, under 06-ops" in report and "| Ollama (voix) | 0.14 |" in report
@@ -294,3 +305,66 @@ def test_the_pull_request_of_an_addition_run_says_what_it_did_not_write():
                          [], [correction])
     assert "never writes a new page. None of its leads asked for one." in none
     assert "## New pages" not in render_report({**state, "mode": "fix"}, state["proposals"], [correction])  # an addition run only
+
+
+def test_what_two_calls_add_to_one_page_fits_together(setup):
+    from vault_watch_agent import vault
+    from vault_watch_agent.graph import mark_conflicts
+
+    deps, _ = setup
+    last = "[^1]: vLLM, notes de version 0.33, <https://example.org/vllm-033>."
+    row = "| vLLM | 0.33 |"
+
+    def edit(n, call, current, proposed):
+        return {"id": f"C{n}", "proposal": call, "group": f"C{1 + 2 * call}", "page": "03-stack/engines.md", "check": "ok",
+                "current": current, "proposed": proposed}
+
+    # Each call saw the page with [^1] as its last note: both name their new note [^2] and write it after [^1]
+    corrections = [edit(1, 0, row, row + "\n| Ollama (voix) | 0.14[^2] |"), edit(2, 0, last, last + "\n[^2]: Ollama, notes de la 0.14."),
+                   edit(3, 1, row, row + "\n| SGLang | 0.6[^2] |"), edit(4, 1, last, last + "\n[^2]: SGLang, notes de la 0.6."),
+                   edit(5, 2, "vLLM 0.33 est la version minimale recommandée au T2 2026[^1].", "vLLM 0.34 est la version minimale[^1].")]
+    news.merge(deps.vault, corrections)
+    assert corrections[0]["proposed"].endswith("0.14[^2] |") and corrections[1]["proposed"].endswith("[^2]: Ollama, notes de la 0.14.")
+    assert corrections[2]["proposed"].endswith("0.6[^3] |") and corrections[3]["proposed"].endswith("[^3]: SGLang, notes de la 0.6.")
+    assert corrections[4]["proposed"].endswith("[^1].")  # a note of the page, cited again: not renamed
+    mark_conflicts(deps.vault, corrections)
+    assert [c["check"] for c in corrections] == ["ok"] * 5  # two edits that write after the same passage both apply
+    for c in corrections:
+        vault.apply(deps.vault, c["page"], c["current"], c["proposed"], "2026-11-20")
+    text = (deps.vault / "03-stack/engines.md").read_text(encoding="utf-8")
+    assert "0.14[^2] |" in text and "0.6[^3] |" in text and text.count("[^2]: ") == 1 and text.count("[^3]: ") == 1
+
+    # Two edits that rewrite the same passage still cannot both apply
+    twice = [edit(1, 0, "| vLLM | 0.34 |", "| vLLM | 0.35 |"), edit(2, 1, "| vLLM | 0.34 |", "| vLLM | 0.36 |"),
+             edit(3, 2, "| vLLM | 0.34 |", "| vLLM | 0.34 |\n| TGI | 3 |")]
+    (deps.vault / "03-stack/engines.md").write_text(text.replace(row, "| vLLM | 0.34 |"), encoding="utf-8", newline="\n")
+    mark_conflicts(deps.vault, twice)
+    assert [c["check"] for c in twice] == ["ok", "conflict with C1", "conflict with C1"]
+
+
+def test_a_lead_its_run_could_not_look_at_can_be_sent_again(setup, tmp_path):
+    from vault_watch_agent.web import Settings, create_app
+
+    deps, llm = setup
+    why = "Not checked in this call: the search budget ran out before the vendor's page could be opened."
+    llm.reasons = {"F1": why}
+    act = {"X-Vault-Watch": "1"}
+    c = TestClient(create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    vid = c.post("/api/verifications", json={"checks": ["news"]}, headers=act).json()["id"]
+    for _ in range(200):
+        if not c.get(f"/api/verifications/{vid}").json()["running"]:
+            break
+        time.sleep(0.05)
+    thread = c.post("/api/fix", json={"text": "\n".join(LEADS), "verification": vid, "mode": "add"}, headers=act).json()["thread"]
+    for _ in range(200):
+        if c.get(f"/api/runs/{thread}").json()["status"] != "running":
+            break
+        time.sleep(0.05)
+    v = c.get(f"/api/verifications/{vid}").json()
+    assert v["unchecked"] == {LEADS[0]: why} and v["counts"] == {"open": 0, "fix": 3, "dismissed": 0}
+    assert all(x["unchecked"] == {} for x in c.get("/api/verifications").json())  # a list reads no run
+    # « Put back to handle »: the lead is open again, and can go to another run
+    assert c.post(f"/api/verifications/{vid}/leads", json={"findings": [LEADS[0]], "status": "open"}, headers=act).json() \
+        == {"open": 1, "fix": 2, "dismissed": 0}
+    assert c.get(f"/api/verifications/{vid}").json()["unchecked"] == {}

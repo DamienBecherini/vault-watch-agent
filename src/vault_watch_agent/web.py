@@ -969,8 +969,9 @@ def create_app(settings: Settings) -> FastAPI:
     def verif_files() -> list[Path]:
         return sorted(verifs.glob("verif-*.json"), reverse=True) if verifs.is_dir() else []
 
-    def verif_view(path: Path) -> dict:
-        """The verification with what became of its findings: open, sent to a fix run, or dismissed."""
+    def verif_view(path: Path, detail: bool = False) -> dict:
+        """The verification with what became of its findings: open, sent to a fix run, or dismissed. `detail` (one
+        verification looked at, not a list): the leads an addition run could not look at, read from its state."""
         data = read_json(path)
         job = jobs.get(data["id"])
         data["running"] = bool(job and not job.done)
@@ -998,6 +999,14 @@ def create_app(settings: Settings) -> FastAPI:
             if h.get("status") == "fix" and h["thread"] not in data["runs"]:
                 s = summary(h["thread"])
                 data["runs"][h["thread"]] = {"status": s["status"], "pr_url": s["pr_url"]}
+        # A lead its addition run could not look at (the web of its call ran out, the call failed): {lead: why}.
+        # The page says so on the lead and offers to put it back among those to handle.
+        data["unchecked"] = {}
+        for thread, run in data["runs"].items() if detail else ():
+            values = viewer.get_state(config(thread)).values if run["status"] != "running" else {}
+            if values.get("mode") == "add":
+                data["unchecked"].update({u["lead"]: u["why"] for u in news.unchanged(values)
+                                          if news.NOT_CHECKED.match(u["why"]) and handled.get(u["lead"], {}).get("thread") == thread})
         data["status"] = ("running" if data["running"] else "to-handle" if counts["open"]
                           else "handled" if every else "clear")
         return data
@@ -1095,7 +1104,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/verifications/{vid}")
     def verif_get(vid: str):
-        return verif_view(verif_path(vid))
+        return verif_view(verif_path(vid), detail=True)
 
     @app.post("/api/verifications")
     def verif_start(body: Verification):

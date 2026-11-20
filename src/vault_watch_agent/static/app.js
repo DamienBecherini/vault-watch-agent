@@ -138,7 +138,8 @@ const TEXTS = {
       tickCard: n => `Cocher / décocher les ${n}`,
       toHandleTitle: "À traiter", newCheck: "Nouvelle vérification", fixRuns: "Passes fix lancées depuis cette vérification",
       warning: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
-      sent: "→ passe fix", dismissed: "écartée", reopen: "Rétablir", dismiss: n => `Écarter ${n} piste(s)`,
+      sent: "→ passe fix", dismissed: "écartée", reopen: "Rétablir",
+      unchecked: "pas vérifiée par la passe", resend: "Remettre à traiter", dismiss: n => `Écarter ${n} piste(s)`,
       interrupted: "interrompue",
       interruptedText: names => `Cette vérification s'est arrêtée avant la fin (serveur fermé pendant qu'elle tournait). Contrôles non faits : ${names}. Ce qu'elle a trouvé reste utilisable ; pour le reste, lance une nouvelle vérification.`,
       remove: "Supprimer cette vérification",
@@ -368,7 +369,8 @@ const TEXTS = {
       tickCard: n => `Tick / untick the ${n}`,
       toHandleTitle: "To handle", newCheck: "New check", fixRuns: "Fix runs started from this check",
       warning: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
-      sent: "→ fix run", dismissed: "dismissed", reopen: "Reopen", dismiss: n => `Dismiss ${n} lead(s)`,
+      sent: "→ fix run", dismissed: "dismissed", reopen: "Reopen",
+      unchecked: "not checked by the run", resend: "Put back to handle", dismiss: n => `Dismiss ${n} lead(s)`,
       interrupted: "interrupted",
       interruptedText: names => `This check stopped before its end (the server was closed while it ran). Checks not done: ${names}. What it found stays usable; for the rest, start a new check.`,
       remove: "Delete this check",
@@ -1220,7 +1222,9 @@ async function viewCheck(id) {
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
       return `<li class="handled">${num} <span class="badge ok">${V.sent}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a>
-        ${run.status ? badge(run.status) : ""}${run.pr_url ? ` ${extLink(run.pr_url, "PR")}` : ""} · ${esc(f)}</li>`;
+        ${run.status ? badge(run.status) : ""}${run.pr_url ? ` ${extLink(run.pr_url, "PR")}` : ""} · ${esc(f)}${
+        v.unchecked?.[f] ? `<div class="unchecked"><span class="badge attention">${V.unchecked}</span> <button class="small-button" data-reopen="${esc(f)}">${V.resend}</button>
+          <span class="small">${esc(v.unchecked[f])}</span></div>` : ""}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
     return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span>${esc(f)}</span></label>${
