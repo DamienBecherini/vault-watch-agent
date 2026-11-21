@@ -28,6 +28,24 @@ current text, give the new one and cite a source. It re-reads them with the whol
 review, applies what you accepted on a branch, translates the changes into the guide's mirrors, runs the guide's
 own checks and, after a second yes, opens the pull request.
 
+**The idea.** Three pieces, each in its own repository. You write a technical guide in
+[Obsidian](https://obsidian.md), as plain Markdown notes in a git repository. An engine,
+[starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine), publishes the vault on the
+web as an [Astro Starlight](https://starlight.astro.build) site (wiki links, Mermaid diagrams, both languages, a
+« Give my opinion » window), rebuilt by the guide's CI at each merge. And this agent takes the upkeep off your hands:
+a guide on a fast-moving field goes stale faster than one person can follow it.
+
+```mermaid
+flowchart LR
+  you(["You"]) -->|write| vault["Obsidian vault<br/>Markdown, wiki links,<br/>French + English"]
+  vault -->|"merge on main"| engine["starlight-obsidian-engine<br/>builds the site"]
+  engine --> site["The guide on the web"]
+  field["What changes in the field<br/>releases, advisories, prices"] --> agent["vault-watch-agent<br/>keeps it true"]
+  agent -->|"pull request,<br/>after your review"| vault
+  classDef person fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class you person
+```
+
 **Your guide.** Any Markdown guide in a git repository, described by a small manifest (`vault-watch.toml`): where the
 pages are, in which language, which folders mirror them, where its watch comes from, which of its own checks to run.
 Hosted on GitHub, on a Gitea server, or kept local. The agent edits the Markdown and stops at the pull request: if
@@ -199,13 +217,10 @@ in English, whose biweekly watch is collected by a GitHub workflow. It is the gu
 below. A second guide, private, written in French only and hosted on a self-hosted Gitea, checked that the manifest
 and the forges work on a guide the agent was not written for.
 
-**Three repositories, one guide.** The content is an [Obsidian](https://obsidian.md) vault: Markdown pages, wiki
-links and footnotes, French at the root and English under `en/`, readable in Obsidian as it is. The site is built
-by [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine), which turns the vault
-into an [Astro Starlight](https://starlight.astro.build) site (wiki links, Mermaid diagrams, both languages, the
-« Give my opinion » window); the guide's CI rebuilds and deploys it at each merge on `main` that changes a page. vault-watch-agent keeps
-the content up to date and knows nothing of the engine: it reads and edits the vault's Markdown, runs the guide's
-own checks, and opens a pull request; the merge then redeploys the site.
+**How it is made.** An Obsidian vault: Markdown pages, wiki links and footnotes, French at the root and English
+under `en/`, readable in Obsidian as it is. The guide's CI rebuilds the site with starlight-obsidian-engine at each
+merge on `main` that changes a page. The agent knows nothing of the engine: it reads and edits the vault's
+Markdown, runs the guide's own checks, and opens a pull request; the merge then redeploys the site.
 
 **Produced.** Nineteen pull requests of the guide made by the agent and merged after review (as of 20 November
 2026), for example [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a watch),

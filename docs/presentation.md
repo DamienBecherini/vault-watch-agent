@@ -10,6 +10,24 @@
 
 ---
 
+## The idea: write, publish, keep true
+
+Three pieces, each in its own repository: the guide is an [Obsidian](https://obsidian.md) vault you write in;
+[starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine) publishes it on the web;
+vault-watch-agent takes its upkeep off your hands. The agent works on any Markdown guide in git, published or not;
+this is the setup it was written for.
+
+```mermaid
+flowchart LR
+  you(["You"]) -->|write| vault["Obsidian vault<br/>Markdown, wiki links,<br/>French + English"]
+  vault -->|"merge on main"| engine["starlight-obsidian-engine<br/>builds the site"]
+  engine --> site["The guide on the web"]
+  field["What changes in the field<br/>releases, advisories, prices"] --> agent["vault-watch-agent<br/>keeps it true"]
+  agent -->|"pull request,<br/>after your review"| vault
+  classDef person fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class you person
+```
+
 ## The problem: a technical guide goes stale fast
 
 [Zero to Hero: On-Premise AI](https://ia-on-prem.damien.becherini.fr/) describes self-hosted LLM stacks: inference

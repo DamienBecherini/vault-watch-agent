@@ -28,6 +28,24 @@ le texte actuel, donnent le nouveau et citent une source. Il les relit avec tout
 relecture, applique sur une branche ce que vous avez accepté, traduit les changements dans les copies du guide en
 d'autres langues, lance les contrôles propres au guide et, après un second oui, ouvre la pull request.
 
+**L'idée de départ.** Trois pièces, chacune dans son dépôt. Vous écrivez un guide technique dans
+[Obsidian](https://obsidian.md), en simples notes Markdown dans un dépôt git. Un moteur,
+[starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine), publie le coffre sur le web
+en site [Astro Starlight](https://starlight.astro.build) (liens wiki, diagrammes Mermaid, les deux langues, une
+fenêtre « Donner mon avis »), reconstruit par la CI du guide à chaque fusion. Et cet agent vous décharge de
+l'entretien : un guide sur un domaine qui bouge vite vieillit plus vite qu'une personne seule ne peut le suivre.
+
+```mermaid
+flowchart LR
+  you(["Vous"]) -->|écrivez| vault["Coffre Obsidian<br/>Markdown, liens wiki,<br/>français + anglais"]
+  vault -->|"fusion sur main"| engine["starlight-obsidian-engine<br/>construit le site"]
+  engine --> site["Le guide en ligne"]
+  field["Ce qui change dans le domaine<br/>versions, avis de sécurité, prix"] --> agent["vault-watch-agent<br/>le garde juste"]
+  agent -->|"pull request,<br/>après votre relecture"| vault
+  classDef person fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class you person
+```
+
 **Votre guide.** N'importe quel guide Markdown dans un dépôt git, décrit par un petit manifeste
 (`vault-watch.toml`) : où sont les pages, dans quelle langue, quels dossiers en sont la copie traduite, d'où vient
 sa veille, quels contrôles du guide lancer. Hébergé sur GitHub, sur un serveur Gitea, ou gardé en local. L'agent modifie le Markdown et s'arrête à la pull
@@ -203,13 +221,11 @@ copie anglaise, dont la veille de quinzaine est collectée par un workflow GitHu
 sont mesurés ci-dessous. Un second guide, privé, en français seulement et hébergé sur un Gitea auto-hébergé, a
 vérifié que le manifeste et les forges fonctionnent sur un guide pour lequel l'agent n'a pas été écrit.
 
-**Trois dépôts, un guide.** Le contenu est un coffre [Obsidian](https://obsidian.md) : des pages Markdown, des liens
-wiki et des notes de bas de page, le français à la racine et l'anglais sous `en/`, lisible tel quel dans Obsidian.
-Le site est construit par [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine),
-qui fait du coffre un site [Astro Starlight](https://starlight.astro.build) (liens wiki, diagrammes Mermaid, les deux
-langues, la fenêtre « Donner mon avis ») ; la CI du guide le reconstruit et le déploie à chaque fusion sur `main` qui touche une page.
-vault-watch-agent tient le contenu à jour et ignore tout du moteur : il lit et modifie le Markdown du coffre, lance
-les contrôles du guide et ouvre une pull request ; la fusion redéploie ensuite le site.
+**Comment il est fait.** Un coffre Obsidian : des pages Markdown, des liens wiki et des notes de bas de page, le
+français à la racine et l'anglais sous `en/`, lisible tel quel dans Obsidian. La CI du guide reconstruit le site avec
+starlight-obsidian-engine à chaque fusion sur `main` qui touche une page. L'agent ignore tout du moteur : il lit et
+modifie le Markdown du coffre, lance les contrôles du guide et ouvre une pull request ; la fusion redéploie ensuite
+le site.
 
 **Produit.** Dix-neuf pull requests du guide faites par l'agent et fusionnées après relecture (au 20 novembre
 2026), par exemple [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une veille),

@@ -10,6 +10,24 @@
 
 ---
 
+## L'idée : écrire, publier, garder juste
+
+Trois pièces, chacune dans son dépôt : le guide est un coffre [Obsidian](https://obsidian.md) dans lequel vous
+écrivez ; [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine) le publie sur le
+web ; vault-watch-agent vous décharge de son entretien. L'agent travaille sur n'importe quel guide Markdown dans git,
+publié ou non ; c'est l'ensemble pour lequel il a été écrit.
+
+```mermaid
+flowchart LR
+  you(["Vous"]) -->|écrivez| vault["Coffre Obsidian<br/>Markdown, liens wiki,<br/>français + anglais"]
+  vault -->|"fusion sur main"| engine["starlight-obsidian-engine<br/>construit le site"]
+  engine --> site["Le guide en ligne"]
+  field["Ce qui change dans le domaine<br/>versions, avis de sécurité, prix"] --> agent["vault-watch-agent<br/>le garde juste"]
+  agent -->|"pull request,<br/>après votre relecture"| vault
+  classDef person fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class you person
+```
+
 ## Le problème : un guide technique périme vite
 
 [Zero to Hero: On-Premise AI](https://ia-on-prem.damien.becherini.fr/) décrit les piles de LLM auto-hébergés : moteurs

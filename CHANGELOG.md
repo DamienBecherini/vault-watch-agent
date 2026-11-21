@@ -19,8 +19,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   [Chapters](docs/chapters.md) has a diagram of where a page's chapter comes from. New screenshots, in both
   languages: the catalogue of « Check the guide », the « Costs » page, the Settings (« Models and effort »), the
   « Sources » page.
-- The README says how the reference guide is made: an Obsidian vault, published as a site by
-  starlight-obsidian-engine through the guide's CI; the agent edits the Markdown only and stops at the pull request.
+- The idea the project comes from, at the top of the README and of the overview, with a diagram: a guide written as an
+  Obsidian vault, starlight-obsidian-engine that publishes it on the web, and the agent that keeps it true. The agent
+  edits the Markdown only and stops at the pull request; it works on any Markdown guide, published or not.
 - A page of its own on the chapters, [docs/chapters.md](docs/chapters.md) (and in French): the three steps that work
   by chapter and what the number and the size of the chapters change for each, where the chapters come from, the
   automatic rule, why 150 KB and 20 KB (set on the IA on-prem guide, fixed in the code), what a split that fits
