@@ -5,6 +5,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **The page « Languages » shows what changed**: each page ahead of its mirror (or edited in the folder) lists
+  its changed zones, two lines of context above and below, the change as a word-level diff (`mirrors.hunks`).
 - **The translation beside its source**: the `mirror` step keeps, for each page, what changed in the source and what
   the translator made of it (`mirror_pairs`); the publish screen shows them side by side, as word-level diffs. A
   « Sync the languages » run stops after the translation for its review (`translation`, `POST

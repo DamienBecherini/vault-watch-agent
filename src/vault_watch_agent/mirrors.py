@@ -86,6 +86,27 @@ def changes(old: str, new: str) -> list[tuple[str, str]]:
     return out
 
 
+def hunks(old: str, new: str, field: str | None = None, context: int = 2) -> list[dict]:
+    """What changed between two versions of a page, line by line, to be read before a sync: each changed zone with
+    `context` lines above and below, {above: [lines], old: text, new: text, below: [lines]}. A change of the date line
+    alone is left out (`apply` bumps it)."""
+    a, b = old.replace("\r\n", "\n").split("\n"), new.replace("\r\n", "\n").split("\n")
+    out = []
+    for group in difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_grouped_opcodes(context):
+        first, last = group[0], group[-1]
+        above = a[first[1]:first[2]] if first[0] == "equal" else []
+        below = a[last[1]:last[2]] if last[0] == "equal" else []
+        middle = [op for op in group if op not in (first, last) or op[0] != "equal"]
+        if not middle:  # the two versions are the same
+            continue
+        old_zone = "\n".join(a[middle[0][1]:middle[-1][2]])
+        new_zone = "\n".join(b[middle[0][3]:middle[-1][4]])
+        if field and vault.date_bump_only(old_zone, new_zone, field):
+            continue
+        out.append({"above": above, "old": old_zone, "new": new_zone, "below": below})
+    return out
+
+
 def git(worktree: Path, *args: str) -> str:
     return subprocess.run(["git", *args], cwd=worktree, check=True, capture_output=True, text=True,
                           encoding="utf-8").stdout

@@ -270,6 +270,7 @@ const TEXTS = {
       aheadHelp: base => `Déjà sur <code>${base}</code>, modifiées depuis la dernière fois que leur miroir a changé : la traduction part de là.`,
       elsewhere: pages => `Pas proposées : ${pages}. Dans ton dossier, ces pages ne partent pas de la version fusionnée (une autre branche, ou un dossier en retard) : les copier sur une branche de la branche principale déferait ce qu'elle a reçu depuis. Reviens sur la branche principale à jour pour les synchroniser.`,
       passages: n => `${n} passage${n > 1 ? "s" : ""} modifié${n > 1 ? "s" : ""}`, since: c => `depuis ${c}`,
+      zones: n => n > 1 ? `Les ${n} zones modifiées, deux lignes autour` : "La zone modifiée, deux lignes autour",
       tickAll: "Tout cocher", untickAll: "Tout décocher",
       button: (n, c) => n ? `Traduire ${n} page${n > 1 ? "s" : ""} · ${c}` : "Coche au moins une page",
     },
@@ -552,6 +553,7 @@ const TEXTS = {
       aheadHelp: base => `Already on <code>${base}</code>, changed since their mirror last moved: the translation starts from there.`,
       elsewhere: pages => `Not offered: ${pages}. In your folder these pages do not start from the merged version (another branch, or a folder behind): copied onto a branch of the main branch, they would undo what it received since. Come back to the main branch, up to date, to sync them.`,
       passages: n => `${n} passage${n > 1 ? "s" : ""} changed`, since: c => `since ${c}`,
+      zones: n => n > 1 ? `The ${n} zones changed, two lines around` : "The zone changed, two lines around",
       tickAll: "Tick all", untickAll: "Untick all",
       button: (n, c) => n ? `Translate ${n} page${n > 1 ? "s" : ""} · ${c}` : "Tick a page at least",
     },
@@ -1895,7 +1897,13 @@ async function viewLanguages() {
   const card = (p, kind) => `<div class="card check-card"><label class="option">
       <input type="checkbox" data-kind="${kind}" data-page="${esc(p.page)}" data-usd="${p.usd}" checked>
       <div><div class="header"><code>${esc(p.page)}</code> <span class="badge attention">${costOf("mirror", `≈ ${dollars(p.usd)}`)}</span></div>
-        <p class="muted small">${L.passages(p.passages)}${p.since ? ` · ${L.since(esc(p.since.slice(0, 7)))}` : ""}</p></div></label></div>`;
+        <p class="muted small">${L.passages(p.passages)}${p.since ? ` · ${L.since(esc(p.since.slice(0, 7)))}` : ""}</p></div></label>
+      ${(p.hunks || []).length ? `<details class="hunks" open><summary>${L.zones(p.hunks.length)}</summary>${p.hunks.map(hunk).join("")}</details>` : ""}</div>`;
+  // A changed zone of the page, two lines of context above and below it, the change as a word-level diff
+  const around = lines => lines.length ? `<div class="context">${lines.map(l => esc(l) || "&nbsp;").join("\n")}</div>` : "";
+  const hunk = h => { const [before, after] = wordDiff(h.old, h.new);
+    return `<div class="hunk">${around(h.above)}${h.old ? `<div class="diff before">${before}</div>` : ""}${
+      h.new ? `<div class="diff after">${after}</div>` : ""}${around(h.below)}</div>`; };
   const any = d.ahead.length + d.hand.length;
   page.innerHTML = `
     <h1>${L.title}</h1>

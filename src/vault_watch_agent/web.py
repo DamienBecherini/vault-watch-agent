@@ -1327,9 +1327,15 @@ def create_app(settings: Settings) -> FastAPI:
                                      tokens_out=int(moved / verify.BYTES_PER_TOKEN * 0.7) + 300, table=table)
             return round(total, 4)
 
+        field = vault.guide_of(settings.vault).modified_field
+        current = lambda p: vault.read(settings.vault / p) if (settings.vault / p).is_file() else ""  # noqa: E731
+        # Each page with its changed zones, two lines around each: what the translation will follow, read before
         ahead = [{"page": p, "since": found["since"][p], "passages": n,
-                  "usd": usd(p, mirrors.edits_of_commit(copy, p, found["since"][p]))} for p, n in found["ahead"].items()]
-        hand = [{"page": p, "passages": n, "usd": usd(p, mirrors.edits_of(settings.vault, p, "HEAD"))}
+                  "usd": usd(p, mirrors.edits_of_commit(copy, p, found["since"][p])),
+                  "hunks": mirrors.hunks(mirrors.show(copy, found["since"][p], p), mirrors.show(copy, "HEAD", p), field)}
+                 for p, n in found["ahead"].items()]
+        hand = [{"page": p, "passages": n, "usd": usd(p, mirrors.edits_of(settings.vault, p, "HEAD")),
+                 "hunks": mirrors.hunks(mirrors.show(settings.vault, "HEAD", p), current(p), field)}
                 for p, n in found["hand"].items()]
         return {"languages": [{"code": c, "name": guide_mod.language_name(c), "folder": f} for c, f in found["languages"].items()],
                 "ahead": ahead, "hand": hand, "elsewhere": found["elsewhere"], "model": model, "base": found["base"]}

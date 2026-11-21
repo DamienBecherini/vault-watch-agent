@@ -235,3 +235,12 @@ def test_settle_puts_back_a_local_copy_identical_to_what_is_merged(tmp_path):
     sh("git", "merge", "-q", "--ff-only", "merged", cwd=root)
     assert (root / "a.md").read_text(encoding="utf-8") == "un bis\n"
     assert (root / "b.md").read_text(encoding="utf-8") == "deux, un brouillon\n"
+
+
+def test_hunks_show_each_zone_changed_with_two_lines_around():
+    old = "---\nlast_modified: 2026-11-01\n---\n\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\n"
+    new = "---\nlast_modified: 2026-11-21\n---\n\na\nb\nc\nD\ne\nf\ng\nh\ni\nj\nk\nl\n"
+    found = mirrors.hunks(old, new, "last_modified")
+    assert found == [{"above": ["b", "c"], "old": "d", "new": "D", "below": ["e", "f"]},
+                     {"above": ["j", "k"], "old": "", "new": "l", "below": [""]}]
+    assert mirrors.hunks(old, old) == []

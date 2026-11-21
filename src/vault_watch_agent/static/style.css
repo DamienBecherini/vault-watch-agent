@@ -450,3 +450,7 @@ footer a { display: inline-block; padding: 4px 0; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 10px 0; border-top: 1px solid var(--border); }
 .pair textarea { min-height: 70px; font-size: 15px; margin-top: 6px; }
 @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+.hunks { margin: 4px 0 0 30px; } .hunks summary { font-size: 13px; color: var(--muted); cursor: pointer; }
+.hunk { border-top: 1px solid var(--border); padding: 6px 0; }
+.hunk .context { white-space: pre-wrap; font-size: 13px; color: var(--muted); padding: 0 10px; }
+@media (max-width: 760px) { .hunks { margin-left: 0; } }
