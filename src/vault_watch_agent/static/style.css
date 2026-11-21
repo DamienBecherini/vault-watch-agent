@@ -447,3 +447,6 @@ footer a { display: inline-block; padding: 4px 0; }
 .retouch textarea { min-height: 90px; font-size: 15px; }
 .retouch { margin: 8px 0; }
 #page-other { flex: 1; min-width: 220px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 10px 0; border-top: 1px solid var(--border); }
+.pair textarea { min-height: 70px; font-size: 15px; margin-top: 6px; }
+@media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }

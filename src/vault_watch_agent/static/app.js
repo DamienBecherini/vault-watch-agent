@@ -152,7 +152,7 @@ const TEXTS = {
     loading: "Chargement…",
     serverDown: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passages en pause n'ont rien perdu.",
     statuses: {
-      new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", publish: "Publication à valider",
+      new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", translation: "Traduction à relire", publish: "Publication à valider",
       published: "PR créée", "nothing-applied": "Rien appliqué", "not-published": "Non publié", stopped: "Interrompu",
       closed: "Traitée hors agent", merged: "✓ Terminée · PR fusionnée", "pr-open": "PR à fusionner",
       "pr-closed": "PR fermée sans fusion",
@@ -161,13 +161,13 @@ const TEXTS = {
       collect: "Récupération de la veille", triage: "Tri des éléments", locate: "Recherche des pages concernées",
       propose: "Propositions de corrections", number: "Numérotation et contrôle des citations",
       crosscheck: "Relecture avec tout le guide et le web", report: "Rapport", review: "Ta relecture",
-      apply: "Application sur une branche", retouch: "Tes retouches", mirror: "Traduction anglaise", audits: "Contrôles du guide (npm test)",
+      apply: "Application sur une branche", retouch: "Tes retouches", mirror: "Traduction anglaise", translation: "Ta relecture de la traduction", audits: "Contrôles du guide (npm test)",
       links: "Vérification des liens", publish: "Push et pull request",
     },
     watches: "Veilles",
     watchesIntro: () => `Une veille est publiée par ${forgeName()} tous les 15 jours. L'agent l'analyse, tu relis ses propositions, puis il ouvre la pull request.`,
     analyse: c => `Analyser · ${c}`, merge: () => `Fusionner sur ${forgeName()}`,
-    buttons: { review: "Relire", retouch: "Retoucher", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
+    buttons: { review: "Relire", retouch: "Retoucher", translation: "Relire la traduction", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
     issue: open => `issue ${open ? "ouverte" : "fermée"}`, watchFile: n => n == null ? "fichier de veille" : `fichier de veille, ${n} élément(s) retenu(s)`,
     count: (n, a) => `${n} correction(s), ${a} appliquée(s)`,
@@ -230,6 +230,15 @@ const TEXTS = {
       new: () => "Ce passage n'a pas commencé.",
     },
     resume: "Reprendre", applied: "Appliquées",
+    pairs: {
+      title: "La traduction, à côté de sa source",
+      intro: "À gauche, ce qui a changé dans la page source ; à droite, ce que le modèle de traduction en a fait dans le miroir. Juge la traduction phrase à phrase.",
+      edit: "Tu peux retoucher la traduction à droite : ton texte remplace celui du modèle, puis les contrôles du guide et les liens passent dessus.",
+      source: "Source", target: "Traduction", none: "Rien de traduit pour ce passage.", removed: "(passage supprimé)",
+      retouched: "retouchée", problem: "Le traducteur a signalé",
+      ok: n => n ? `Valider avec ${n} retouche${n > 1 ? "s" : ""}` : "Valider la traduction",
+      runTitle: "Synchronisation des langues",
+    },
     retouchPause: {
       intro: "Les corrections sont appliquées sur la branche du passage ; rien n'est encore traduit ni publié. Tu peux relire les pages et retoucher le texte, dans ton Obsidian ou ici. Tes retouches seront commitées à ton nom, les miroirs les suivront, et les contrôles du guide passeront dessus. Ou passe cette étape.",
       pages: "Les pages modifiées par ce passage :",
@@ -427,7 +436,7 @@ const TEXTS = {
     loading: "Loading…",
     serverDown: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
     statuses: {
-      new: "To analyse", running: "Running", review: "Review pending", retouch: "Retouches possible", publish: "Publish pending",
+      new: "To analyse", running: "Running", review: "Review pending", retouch: "Retouches possible", translation: "Translation to review", publish: "Publish pending",
       published: "PR opened", "nothing-applied": "Nothing applied", "not-published": "Not published", stopped: "Stopped",
       closed: "Handled without the agent", merged: "✓ Done · PR merged", "pr-open": "PR to merge",
       "pr-closed": "PR closed unmerged",
@@ -436,13 +445,13 @@ const TEXTS = {
       collect: "Download the watch", triage: "Triage the items", locate: "Find the pages concerned",
       propose: "Propose corrections", number: "Number them, check the quotes",
       crosscheck: "Cross-check with the whole guide and the web", report: "Report", review: "Your review",
-      apply: "Apply on a branch", retouch: "Your retouches", mirror: "English translation", audits: "Guide audits (npm test)",
+      apply: "Apply on a branch", retouch: "Your retouches", mirror: "English translation", translation: "Your review of the translation", audits: "Guide audits (npm test)",
       links: "Link checks", publish: "Push and pull request",
     },
     watches: "Watches",
     watchesIntro: () => `${forgeName()} publishes a watch every two weeks. The agent analyses it, you review its proposals, then it opens the pull request.`,
     analyse: c => `Analyse · ${c}`, merge: () => `Merge on ${forgeName()}`,
-    buttons: { review: "Review", retouch: "Retouch", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
+    buttons: { review: "Review", retouch: "Retouch", translation: "Review the translation", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
     issue: open => `issue ${open ? "open" : "closed"}`, watchFile: n => n == null ? "watch file" : `watch file, ${n} item(s) kept`,
     count: (n, a) => `${n} correction(s), ${a} applied`,
@@ -503,6 +512,15 @@ const TEXTS = {
       new: () => "This run has not started.",
     },
     resume: "Resume", applied: "Applied",
+    pairs: {
+      title: "The translation, beside its source",
+      intro: "Left, what changed in the source page; right, what the translation model made of it in the mirror. Judge the translation sentence by sentence.",
+      edit: "You can retouch the translation on the right: your text replaces the model's, then the guide's checks and the links run on it.",
+      source: "Source", target: "Translation", none: "Nothing translated for this passage.", removed: "(passage removed)",
+      retouched: "retouched", problem: "The translator said",
+      ok: n => n ? `Approve with ${n} retouch${n > 1 ? "es" : ""}` : "Approve the translation",
+      runTitle: "Sync of the languages",
+    },
     retouchPause: {
       intro: "The corrections are applied on the run's branch; nothing is translated or published yet. You can read the pages and retouch the text, in your Obsidian or here. Your retouches will be committed as yours, the mirrors will follow them, and the guide's checks will run on them. Or skip this step.",
       pages: "The pages this run changed:",
@@ -572,7 +590,7 @@ let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").start
 let T = TEXTS[lang];
 
 const CLASSES = {
-  running: "attention", review: "attention", retouch: "attention", publish: "attention", "pr-open": "attention",
+  running: "attention", review: "attention", retouch: "attention", translation: "attention", publish: "attention", "pr-open": "attention",
   published: "ok", merged: "ok", stopped: "error",
 };
 // Nothing left to do: the card is dimmed
@@ -982,18 +1000,20 @@ async function viewChapters() {
 // --- One run ---------------------------------------------------------------------------------------
 async function viewRun(thread) {
   const r = await api(`/api/runs/${encodeURIComponent(thread)}`);
-  const title = `<h1>${esc(r.source || thread)} ${badge(r.status)}</h1>
-    <p class="subtitle">${r.as_of ? `${T.watchUpTo(r.as_of)} · ` : ""}${esc(T.usageLine(r.usage))}</p>`;
+  const name = r.mode === "mirror" ? T.pairs.runTitle : r.source || thread;
+  const title = `<h1>${esc(name)} ${badge(r.status)}</h1>
+    <p class="subtitle">${r.as_of && !r.mode ? `${T.watchUpTo(r.as_of)} · ` : ""}${esc(T.usageLine(r.usage))}</p>`;
   if (r.status === "running") return viewRunning(r, title);
   if (r.status === "review") return viewReview(r, title);
   if (r.status === "publish") return viewPublish(r, title);
   if (r.status === "retouch") return viewRetouch(r, title);
+  if (r.status === "translation") return viewTranslation(r, title);
   viewEnd(r, title);
 }
 
 function viewRunning(r, title) {
   const doneSteps = new Set(r.job.events.map(e => e.node));
-  const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", retouch: "retouch", mirror: "mirror", publish: "publish", resume: null }[r.job.action];
+  const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", retouch: "retouch", mirror: "mirror", translation: "translation", publish: "publish", resume: null }[r.job.action];
   const steps = r.steps.slice(first ? r.steps.indexOf(first) : 0);
   const cost = r.job.events.reduce((m, e) => e.cost ?? m, 0);
   page.innerHTML = `${title}
@@ -1263,6 +1283,61 @@ async function asideBanner() {
   if (b) b.onclick = async () => { try { await api(`/api/folder/aside/${encodeURIComponent(x.thread)}`, {}); asideBanner(); } catch (e) { div.append(` ${e.message}`); } };
 }
 
+// --- The source beside its translation (graph.mirror keeps the pairs); editable at the pause of a sync ---------
+const TRANSLATED = {};  // the translations retouched, by run and "<mirror page>#<n>", kept while the page is open
+
+function pairsBlock(r, editable) {
+  const P = T.pairs, mine = TRANSLATED[r.thread] ||= {};
+  return `${r.mirror_pairs.filter(x => x.target.length || x.problem).map(x => {
+    const rows = Math.max(x.source.length, x.target.length);
+    return `<div class="card pair-page"><div class="header"><code>${esc(x.page)}</code> → <code>${esc(x.mirror)}</code></div>
+      ${x.problem ? `<p class="small attention-text">${P.problem}${T.colon}${esc(x.problem)}</p>` : ""}
+      ${Array.from({ length: rows }, (_, i) => {
+        const src = x.source[i], tgt = x.target[i], key = `${x.mirror}#${i}`;
+        const [sb, sa] = src ? wordDiff(src[0], src[1]) : ["", ""];
+        const text = mine[key] ?? tgt?.[1];
+        const [tb, ta] = tgt ? wordDiff(tgt[0], text) : ["", ""];
+        return `<div class="pair">
+          <div><p class="muted small">${P.source}</p>${src ? `<div class="diff before" lang="fr">${sb}</div><div class="diff after" lang="fr">${sa || `<span class="muted">${P.removed}</span>`}</div>` : `<p class="muted small">—</p>`}</div>
+          <div><p class="muted small">${P.target}${tgt?.[2] ? ` · <span class="badge ok">${P.retouched}</span>` : ""}</p>${tgt ? `<div class="diff before" lang="en">${tb}</div>
+            <div class="diff after" lang="en" data-pair-after="${esc(key)}">${ta || `<span class="muted">${P.removed}</span>`}</div>
+            ${editable && tgt[1].trim() ? `<textarea data-pair="${esc(key)}" lang="en" spellcheck="true">${esc(text)}</textarea>` : ""}` : `<p class="muted small">${P.none}</p>`}</div>
+        </div>`;
+      }).join("")}</div>`;
+  }).join("")}`;
+}
+
+function viewTranslation(r, title) {
+  const P = T.pairs, mine = TRANSLATED[r.thread] ||= {};
+  page.innerHTML = `${title}
+    <h2>${P.title}</h2>
+    <p class="muted small">${P.intro} ${P.edit}</p>
+    ${pairsBlock(r, true)}
+    <div class="bar"><button class="primary" id="ok"></button></div>`;
+  const target = key => { const [page, n] = [key.slice(0, key.lastIndexOf("#")), Number(key.slice(key.lastIndexOf("#") + 1))];
+    return r.mirror_pairs.find(x => x.mirror === page).target[n]; };
+  const changed = () => Object.entries(mine).filter(([key, text]) => text !== target(key)[1]);
+  const label = () => { $("#ok").textContent = P.ok(changed().length); };
+  page.querySelectorAll("[data-pair]").forEach(t => {
+    const fit = () => { t.style.height = "auto"; t.style.height = `${t.scrollHeight + 4}px`; };
+    fit();
+    t.oninput = () => {
+      const key = t.dataset.pair, tgt = target(key);
+      mine[key] = t.value;
+      page.querySelector(`[data-pair-after="${CSS.escape(key)}"]`).innerHTML = wordDiff(tgt[0], t.value)[1];
+      fit();
+      label();
+    };
+  });
+  label();
+  $("#ok").onclick = async () => {
+    $("#ok").disabled = true;
+    await api(`/api/runs/${encodeURIComponent(r.thread)}/translation`, { edits: Object.fromEntries(changed()) });
+    delete TRANSLATED[r.thread];
+    route();
+  };
+}
+
 async function viewPublish(r, title) {
   const p = { mirror_problems: [], link_problems: [], ...r.pause };
   const linksChecked = p.link_problems !== null;   // null: the guide declares no source audit
@@ -1270,8 +1345,10 @@ async function viewPublish(r, title) {
   const diff = await api(`/api/runs/${encodeURIComponent(r.thread)}/diff`).catch(() => "");
   const color = l => l.startsWith("+") && !l.startsWith("+++") ? "plus" : l.startsWith("-") && !l.startsWith("---") ? "minus" : "";
   const figures = [r.applied.length, r.mirrored.length, p.audit_ok === null ? T.notChecked : p.audit_ok ? "OK" : T.failed, linksChecked ? p.link_problems.length : T.notChecked];
+  const shown = figures.map((n, i) => [n, T.publishFigures[i]]).filter((_, i) => i || r.mode !== "mirror");  // a sync applies no correction
+  const paired = (r.mirror_pairs || []).some(x => x.target.length);  // the source beside its translation, when the run kept them
   page.innerHTML = `${title}
-    <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.publishFigures[i]}</div>`).join("")}</div>
+    <div class="figures">${shown.map(([n, label]) => `<div><b>${n}</b>${label}</div>`).join("")}</div>
     <div class="card">
       ${r.error ? `<p class="error-text"><b>${T.publishFailed}</b> ${esc(r.error)}</p>` : ""}
       <p>${T.branchReady(esc(p.branch))}</p>
@@ -1280,7 +1357,8 @@ async function viewPublish(r, title) {
       ${p.mirror_problems.length ? `<p><b>${T.translation}</b></p><ul>${p.mirror_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${p.link_problems.length ? `<p><b>${T.linksTitle}</b> ${T.linksNew}</p><ul>${p.link_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">${linksChecked ? T.linksOk : T.linksNotChecked}</p>`}
     </div>
-    <details open><summary>${T.changes}</summary>
+    ${paired ? `<details${r.mode === "mirror" ? " open" : ""}><summary>${T.pairs.title}</summary>${pairsBlock(r, false)}</details>` : ""}
+    <details${r.mode === "mirror" && paired ? "" : " open"}><summary>${T.changes}</summary>
       <pre>${diff.split("\n").map(l => `<span class="${color(l)}">${esc(l)}</span>`).join("\n") || esc(p.diffstat)}</pre></details>
     <div class="bar">
       <button id="no">${T.doNotPublish}</button>

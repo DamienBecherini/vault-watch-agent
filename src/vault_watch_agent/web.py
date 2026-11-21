@@ -53,14 +53,15 @@ AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 FEEDBACK_EMAIL = "vault-watch@damien.becherini.fr"
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
-         "apply", "retouch", "mirror", "audits", "links", "publish"]
+         "apply", "retouch", "mirror", "translation", "audits", "links", "publish"]
 # What a running job is doing, in the health response.
 # The effort each step of a role asks for in the code (graph.py, crosscheck.py, fix.py, verify.py), for the Settings
 # page: what "lower" and "higher" make of them. To keep in step with the code when an effort changes there.
 # What each step of a role runs at, shown in the Settings: read from the one table of the steps (steps.py)
 STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role in ("reasoning", "translator")}
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming",
-              "sources": "checking the sources", "mirror": "syncing the languages", "retouch": "after the retouches"}
+              "sources": "checking the sources", "mirror": "syncing the languages", "retouch": "after the retouches",
+              "translation": "after the review of the translation"}
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -141,6 +142,10 @@ class Lend(BaseModel):
 class PageText(BaseModel):
     path: str
     text: str
+
+
+class TranslationReview(BaseModel):
+    edits: dict[str, str] = {}  # {"<mirror page>#<n>": the translation retouched}
 
 
 class Retouched(BaseModel):
@@ -267,6 +272,7 @@ def create_app(settings: Settings) -> FastAPI:
         "fr": {"review": ("Relecture à faire", "{n} correction(s) proposée(s) : à toi de trancher."),
                "publish": ("Publication à valider", "Corrections appliquées et contrôlées : la PR attend ton feu vert."),
                "retouch": ("Retouches possibles", "Corrections appliquées sur la branche : relis et retouche, ou passe."),
+               "translation": ("Traduction à relire", "Le français et sa traduction, côte à côte : valide ou retouche."),
                "pr": ("Pull request ouverte", "À relire et fusionner sur {forge}."),
                "nothing-applied": ("Passage clos", "Aucune correction appliquée."),
                "error": ("Passage interrompu", "Erreur : {error}"),
@@ -274,6 +280,7 @@ def create_app(settings: Settings) -> FastAPI:
         "en": {"review": ("Review pending", "{n} correction(s) proposed: your call."),
                "publish": ("Publish pending", "Corrections applied and checked: the PR waits for your go-ahead."),
                "retouch": ("Retouches possible", "Corrections applied on the branch: read and retouch, or skip."),
+               "translation": ("Translation to review", "The source and its translation, side by side: approve or retouch."),
                "pr": ("Pull request opened", "To review and merge on {forge}."),
                "nothing-applied": ("Run closed", "No correction applied."),
                "error": ("Run stopped", "Error: {error}"),
@@ -715,6 +722,8 @@ def create_app(settings: Settings) -> FastAPI:
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
             "mirrored": v.get("mirrored", []), "mirror_problems": v.get("mirror_problems", []),
             "retouched": v.get("retouched", []),
+            # what changed in each source page beside what the translator made of it (graph.mirror)
+            "mirror_pairs": v.get("mirror_pairs", []), "translation_retouched": v.get("translation_retouched", []),
             "link_problems": v.get("link_problems", []), "audit_ok": v.get("audit_ok"),
             "audit_log": v.get("audit_log", ""), "report_path": v.get("report_path", ""),
             "steps": STEPS,
@@ -1269,6 +1278,16 @@ def create_app(settings: Settings) -> FastAPI:
             raise folder_error(e) from e
         answer = "done" if body.keep else "skip"
         start(thread, "retouch", "watch", lambda g, job: follow(g, job, Command(resume=answer)))
+        return {"thread": thread}
+
+    @app.post("/api/runs/{thread}/translation")
+    def translation_done(thread: str, body: TranslationReview):
+        """The translation of a « Sync the languages » run reviewed: as it is, or with passages retouched."""
+        snapshot = viewer.get_state(config(thread))
+        pending = [i.value for t in snapshot.tasks for i in t.interrupts]
+        if not pending or pending[0].get("step") != "translation":
+            raise HTTPException(409, f"{thread} is not paused at the translation")
+        start(thread, "translation", "watch", lambda g, job: follow(g, job, Command(resume={"edits": body.edits})))
         return {"thread": thread}
 
     @app.get("/api/folder/aside")

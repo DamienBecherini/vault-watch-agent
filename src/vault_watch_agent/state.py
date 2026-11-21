@@ -115,6 +115,8 @@ class WatchState(TypedDict, total=False):
     retouch_offered: bool  # the run stops after apply for the editor's retouches (runs from 1.6.0 on)
     applied_tip: str  # the commit of the corrections, before the retouches
     retouched: list[str]  # the files the editor retouched at the pause
+    mirror_pairs: list[dict]  # per mirror page: {page, mirror, source: [[old, new]], target: [[current, proposed, (the translator's)]], problem}
+    translation_retouched: list[str]  # the mirror pages whose translation the editor retouched
     mirrored: list[str]  # EN pages updated
     mirror_problems: list[str]
     link_problems: list[str] | None  # external sources of the changed pages that do not answer; None: not checked

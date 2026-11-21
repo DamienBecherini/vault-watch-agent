@@ -330,7 +330,7 @@ def build(deps: Deps, checkpointer=None):
         guide = vault.guide_of(wt)
         base = git("merge-base", deps.base, "HEAD", cwd=wt).strip()
         since = {page: base for page in mirrors.changed_pages(wt, base)} | dict(state.get("mirror_since") or {})
-        mirrored, problems, usage = [], [], []
+        mirrored, problems, usage, pairs = [], [], [], []
         for (code, folder), page in ((m, p) for m in sorted(guide.mirrors.items()) for p in sorted(since)):
             changed = mirrors.edits_of(wt, page, since[page])
             if not changed:
@@ -351,21 +351,59 @@ def build(deps: Deps, checkpointer=None):
             usage.append(u)
             if result.problem:
                 problems.append(f"{en}: {result.problem}")
-            done = 0
+            done = []
             for e in result.edits:
                 if vault.date_bump_only(e.current, e.proposed, guide.modified_field) or e.current == e.proposed:
                     continue  # apply bumps the date itself; an edit the mirror already carries changes nothing
                 if vault.check(wt, en, e.current) == "ok":
                     vault.apply(wt, en, e.current, e.proposed, deps.today)
-                    done += 1
+                    done.append([e.current, e.proposed])
                 else:
                     problems.append(f"{en}: quoted text not found exactly once in the mirror, edit skipped")
+            # What changed in the source page beside what the translator made of it: shown side by side, so that the
+            # translation can be judged (and, in a « Sync the languages » run, retouched)
+            pairs.append({"page": page, "mirror": en, "source": [list(c) for c in changed], "target": done,
+                          "problem": result.problem})
             if done:
                 mirrored.append(en)
         if mirrored:
             git("add", *mirrored, cwd=wt)
             git("commit", "-m", "chore(i18n): sync the mirrors with the source pages", cwd=wt)
-        return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage}
+        return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage, "mirror_pairs": pairs}
+
+    # -- translation (interrupt): a « Sync the languages » run shows the translation beside its source, editable ---
+    def translation(state: WatchState) -> dict:
+        """The pause of a « Sync the languages » run after the mirrors: each passage of the source beside its
+        translation, the translation editable. A text retouched replaces the translator's in the mirror page (found
+        once, as any edit), committed as the editor's; the guide's checks and the links run after. Other runs go on."""
+        if state.get("mode") != "mirror" or not any(p["target"] for p in state.get("mirror_pairs", [])):
+            return {}
+        answer = interrupt({"step": "translation", "pages": [p["mirror"] for p in state["mirror_pairs"] if p["target"]],
+                            "question": "The translation, beside its source: 'ok', or {'edits': {'<mirror page>#<n>': text}}"})
+        edits = (answer or {}).get("edits") or {} if isinstance(answer, dict) else {}
+        wt = Path(state["worktree"])
+        pairs = [dict(p, target=[list(t) for t in p["target"]]) for p in state["mirror_pairs"]]
+        problems, changed = list(state.get("mirror_problems", [])), set()
+        for key, text in edits.items():
+            page, _, n = key.rpartition("#")
+            pair = next((p for p in pairs if p["mirror"] == page), None)
+            if not pair or not n.isdigit() or int(n) >= len(pair["target"]):
+                continue
+            target = pair["target"][int(n)]
+            text = text.replace("\r\n", "\n")
+            if text == target[1] or not target[1].strip():
+                continue  # unchanged, or a passage the translation removed: nothing to retouch
+            if vault.check(wt, page, target[1]) != "ok":
+                problems.append(f"{page}: the translation retouched could not be placed (its text is not found once)")
+                continue
+            vault.apply(wt, page, target[1], text, deps.today)
+            target.extend([target[1]])  # [current, text applied, the translator's]
+            target[1] = text
+            changed.add(page)
+        if changed:
+            git("add", *sorted(changed), cwd=wt)
+            git("commit", "-q", "-m", "chore(i18n): the translation retouched at the review", cwd=wt)
+        return {"mirror_pairs": pairs, "mirror_problems": problems, "translation_retouched": sorted(changed)}
 
     # -- audits (the guide's own checks, [checks] audits, no model) ---------------
     def audits(state: WatchState) -> dict:
@@ -421,7 +459,8 @@ def build(deps: Deps, checkpointer=None):
     g = StateGraph(WatchState)
     for name, fn in [("collect", collect), ("triage", triage), ("locate", locate), ("propose", propose),
                      ("number", number), ("crosscheck", crosscheck_node), ("report", report),
-                     ("review", review), ("apply", apply), ("retouch", retouch_node), ("mirror", mirror), ("audits", audits),
+                     ("review", review), ("apply", apply), ("retouch", retouch_node), ("mirror", mirror), ("translation", translation),
+        ("audits", audits),
                      ("links", links), ("publish", publish)]:
         g.add_node(name, fn)
     g.add_edge(START, "collect")
@@ -435,7 +474,8 @@ def build(deps: Deps, checkpointer=None):
     g.add_conditional_edges("review", lambda s: "apply" if s.get("accepted") else END, ["apply", END])
     g.add_edge("apply", "retouch")
     g.add_edge("retouch", "mirror")
-    g.add_edge("mirror", "audits")
+    g.add_edge("mirror", "translation")
+    g.add_edge("translation", "audits")
     g.add_edge("audits", "links")
     g.add_edge("links", "publish")
     g.add_edge("publish", END)
@@ -787,9 +827,10 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
 
 def _checks_lines(state: WatchState) -> str:
     """The guide's audits, the mirrors and the external sources, as every pull request says them."""
-    retouched = state.get("retouched") or []
+    retouched, translated = state.get("retouched") or [], state.get("translation_retouched") or []
     return (
         (f"Retouched by the editor before the mirrors: {', '.join(f'`{p}`' for p in retouched)}.\n\n" if retouched else "")
+        + (f"Translation retouched by the editor: {', '.join(f'`{p}`' for p in translated)}.\n\n" if translated else "")
         + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
             state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
         f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"

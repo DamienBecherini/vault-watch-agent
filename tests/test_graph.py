@@ -219,6 +219,8 @@ def test_run_pauses_twice_and_applies_only_accepted(setup):
     english = (wt / "en" / "03-stack" / "engines.md").read_text(encoding="utf-8")
     assert "vLLM 0.33 is the recommended" in english and 'last_modified: "2026-11-08"' in english
     assert state["mirrored"] == ["en/03-stack/engines.md"]
+    pair = state["mirror_pairs"][0]  # the source beside its translation, for the publish screen
+    assert pair["mirror"] == "en/03-stack/engines.md" and pair["source"] and len(pair["target"]) == 2
     assert "0.31" in (deps.vault / "03-stack" / "engines.md").read_text(encoding="utf-8")  # main untouched
 
     graph.invoke(Command(resume=False), config)  # no push

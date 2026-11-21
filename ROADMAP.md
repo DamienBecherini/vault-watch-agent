@@ -560,7 +560,8 @@ hand. It should translate what really changed in each source page, paragraph by 
 - [x] **H1.2 The pages ahead of their mirror.** The guide's own check when the manifest declares one (`audit:i18n`
   for the IA on-prem guide), else git: the last commit of the source page after the last commit of its mirror. The
   diff to translate starts at the commit where the two were last in step.
-- [x] **H1.3 « Sync the languages »** in the interface (and `vault-watch mirror`): the pages ahead of their mirror,
+- [x] **H1.3 « Sync the languages »** (2026-11-21, with a review of the translation beside its source, asked by the
+  user after the first real run: the translation could not be retouched, and could not be judged without the source) in the interface (and `vault-watch mirror`): the pages ahead of their mirror,
   ticked, an estimate (the translator model, a few cents a page), then a mirror-only run: the English diff in the
   review, a branch, the guide's checks, the links, the pull request. For what the editor changed by hand in
   Obsidian, without a terminal.

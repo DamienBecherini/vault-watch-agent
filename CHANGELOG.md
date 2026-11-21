@@ -5,6 +5,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **The translation beside its source**: the `mirror` step keeps, for each page, what changed in the source and what
+  the translator made of it (`mirror_pairs`); the publish screen shows them side by side, as word-level diffs. A
+  « Sync the languages » run stops after the translation for its review (`translation`, `POST
+  /api/runs/<run>/translation`): the translation can be retouched there, the translator's text kept. The screens of a
+  run that is not a watch no longer say « Watch up to » nor count corrections it does not have.
 - **A pause to retouch the pages** (H3 of phase H): after the corrections are applied on the branch and before the
   mirrors, the run stops (`retouch`). « Lend my folder to this run » puts the guide's folder on the branch, detached
   at its tip, for Obsidian; what it held and was not committed is set aside in a stash named after the run and put

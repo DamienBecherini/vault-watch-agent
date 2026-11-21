@@ -125,6 +125,9 @@ machine. The screen shows the corrections applied, the mirror pages updated, whe
 red audit means a red pull request), the translation problems, the sources of the changed pages that do not answer
 (« NEW » for those this run added), and the diff of the branch.
 
+Every run that translates shows, above the diff, the passages of the source beside their translation, as the review
+of a sync does.
+
 « Push and open the pull request » pushes the branch and opens it, with the corrections and their sources in its
 description; the watch's issue closes when it is merged. « Do not publish » keeps the branch locally. A guide with
 no repository keeps the branch in any case.
@@ -158,6 +161,14 @@ interface (`vault-watch mirror` on the command line) lists two kinds of pages:
   the dates, finds what a check of dates misses: on 21 November 2026 it found a bullet added to a French page of
   the IA on-prem guide in its first pull request and never carried to the English one.
 
+![The page « Languages »: a page ahead of its mirror, its passages changed, its estimate, and the button that translates it](images/sync-languages.png)
+
 You tick the pages; each shows its passages changed and its estimate (the translation model, about a cent a page on
-the IA on-prem guide). The run then enters the graph as if `apply` had just run: `mirror`, the guide's checks, the
-links, and the pause before the pull request, where the diff of the branch shows the translation.
+the IA on-prem guide; the first one, on 21 November 2026, cost 0.01 $). The run then enters the graph as if `apply`
+had just run: `mirror` translates, then the run stops to **review the translation**: each passage of the source,
+before and after, beside what the translator made of it in the mirror, both as word-level diffs, so that the
+translation can be judged sentence by sentence. The translation can be retouched there: your text replaces the
+model's (kept in the run), and is committed as such. Then the guide's checks, the links, and the pause before the
+pull request.
+
+![The publish screen of a sync of the languages: the mirror page updated, the guide's audits, the links, and the diff of the branch with the passage translated](images/sync-publish.png)

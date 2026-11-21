@@ -129,6 +129,9 @@ que sur cette machine. L'écran montre les corrections appliquées, les pages mi
 du guide passent (un contrôle rouge, c'est une pull request rouge), les problèmes de traduction, les sources des
 pages modifiées qui ne répondent pas (« NEW » pour celles que ce passage a ajoutées), et le diff de la branche.
 
+Tout passage qui traduit montre, au-dessus du diff, les passages de la source à côté de leur traduction, comme la
+relecture d'une synchronisation.
+
 « Pousser et ouvrir la pull request » pousse la branche et l'ouvre, avec les corrections et leurs sources dans sa
 description ; l'issue de la veille se ferme quand elle est fusionnée. « Ne pas publier » garde la branche en local.
 Un guide sans dépôt garde la branche dans tous les cas.
@@ -164,7 +167,14 @@ l'interface (`vault-watch mirror` en ligne de commande) liste deux sortes de pag
   dates, trouve ce qu'un contrôle des dates manque : le 21 novembre 2026, une puce ajoutée à une page française du
   guide IA on-prem dans sa première pull request, jamais reportée dans la page anglaise.
 
+![La page « Langues » : une page en avance sur son miroir, ses passages modifiés, son estimation, et le bouton qui la traduit](../images/sync-languages.fr.png)
+
 Vous cochez les pages ; chacune montre ses passages modifiés et son estimation (le modèle de traduction, environ
-un centime par page sur le guide IA on-prem). Le passage entre ensuite dans le graphe comme si `apply` venait de
-tourner : `mirror`, les contrôles du guide, les liens, et la pause avant la pull request, où le diff de la branche
-montre la traduction.
+un centime par page sur le guide IA on-prem ; la première, le 21 novembre 2026, a coûté 0,01 $). Le passage entre
+ensuite dans le graphe comme si `apply` venait de tourner : `mirror` traduit, puis le passage s'arrête pour **relire
+la traduction** : chaque passage de la source, avant et après, à côté de ce que le traducteur en a fait dans le
+miroir, les deux en diff mot à mot, pour juger la traduction phrase à phrase. La traduction s'y retouche : votre
+texte remplace celui du modèle (gardé dans le passage), et il est commité tel quel. Puis les contrôles du guide, les
+liens, et la pause avant la pull request.
+
+![L'écran de publication d'une synchronisation des langues : la page miroir mise à jour, les contrôles du guide, les liens, et le diff de la branche avec le passage traduit](../images/sync-publish.fr.png)

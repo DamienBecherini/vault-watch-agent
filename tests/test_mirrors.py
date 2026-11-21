@@ -163,15 +163,26 @@ def test_sync_the_languages_of_a_page_edited_by_hand(setup, tmp_path):  # noqa: 
 
     thread = c.post("/api/mirrors", json={"hand": ["03-stack/engines.md"]}, headers=ACT).json()["thread"]
     run = wait(c, thread)
-    assert run["status"] == "publish" and run["mode"] == "mirror", run
+    assert run["status"] == "translation" and run["mode"] == "mirror", run  # the translation beside its source
     assert run["mirrored"] == ["en/03-stack/engines.md"] and run["mirror_problems"] == []
+    pair = run["mirror_pairs"][0]
+    assert pair["mirror"] == "en/03-stack/engines.md" and pair["source"] == [["Ollama reste le plus simple pour démarrer.",
+                                                                              "Ollama reste le plus simple pour commencer."]]
+    assert pair["target"] == [["Ollama remains the easiest way to start.", "Ollama remains the easiest way to begin."]]
+    c.post(f"/api/runs/{thread}/translation", json={"edits": {"en/03-stack/engines.md#0": "Ollama is still the easiest way to begin."}},
+           headers=ACT)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and run["translation_retouched"] == ["en/03-stack/engines.md"]
+    assert run["mirror_pairs"][0]["target"][0] == ["Ollama remains the easiest way to start.", "Ollama is still the easiest way to begin.",
+                                                   "Ollama remains the easiest way to begin."]  # the translator's kept
     prompt = deps.llm.prompts[0]
     assert "pour démarrer." in prompt and "pour commencer." in prompt and "vLLM 0.31 est" not in prompt  # what changed only
     diff = c.get(f"/api/runs/{thread}/diff").text
-    assert "pour commencer." in diff and "easiest way to begin." in diff
+    assert "pour commencer." in diff and "Ollama is still the easiest way to begin." in diff
     log = subprocess.run(["git", "log", "--format=%s", f"main..{run['branch']}"], cwd=folder, capture_output=True,
                          text=True).stdout
-    assert log.splitlines() == ["chore(i18n): sync the mirrors with the source pages", "docs: edits by hand"]
+    assert log.splitlines() == ["chore(i18n): the translation retouched at the review",
+                                "chore(i18n): sync the mirrors with the source pages", "docs: edits by hand"]
     assert "pour commencer." in vault.read(page)  # the folder keeps its copy, untouched
 
     c.post(f"/api/runs/{thread}/publish", json={"go": False}, headers=ACT)
