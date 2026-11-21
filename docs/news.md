@@ -1,4 +1,4 @@
-*[Version française](news.fr.md)*
+*[Version française](fr/news.md)*
 
 # Look for what is new: what a reader would look for and not find
 
@@ -94,7 +94,7 @@ vault-watch --guide ../my-guide fix add-2026-11-20 --findings leads.txt --add
 In the interface: tick the leads, then « Create an addition run »; the button shows an estimate that follows the
 number of leads ticked.
 
-![The leads of a check: each open lead with the passage of the guide it is about, the box « dig deeper », the list that chooses what each call reads, and the button with its estimate](leads.png)
+![The leads of a check: each open lead with the passage of the guide it is about, the box « dig deeper », the list that chooses what each call reads, and the button with its estimate](images/leads.png)
 
 For each lead, the model searches the web and opens primary sources, then decides:
 

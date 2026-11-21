@@ -8,14 +8,14 @@
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.2-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
-[![Claude](https://img.shields.io/badge/Claude-API%20ou%20abonnement-D97757?logo=anthropic&logoColor=white)](docs/choose-a-model.fr.md)
+[![Claude](https://img.shields.io/badge/Claude-API%20ou%20abonnement-D97757?logo=anthropic&logoColor=white)](docs/fr/choose-a-model.md)
 [![FastAPI](https://img.shields.io/badge/FastAPI-interface%20web-009688?logo=fastapi&logoColor=white)](#linterface-web)
 [![Humain dans la boucle](https://img.shields.io/badge/humain-dans%20la%20boucle-FFC107)](#principes)
 [![Licence : MIT](https://img.shields.io/badge/Licence-MIT-blue.svg)](LICENSE)
 
 [English](README.md) · **Français**
 
-[Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Compactage](docs/compact.fr.md) · [Nouveautés](docs/news.fr.md) · [Chapitres](docs/chapters.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Sécurité](docs/security.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md) · [Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
+**[Toute la documentation](docs/fr/README.md)** · [Brancher son guide](docs/fr/connect-your-guide.md) · [Collecter une veille](docs/fr/collect.md) · [Compactage](docs/fr/compact.md) · [Nouveautés](docs/fr/news.md) · [Chapitres](docs/fr/chapters.md) · [Choisir un modèle](docs/fr/choose-a-model.md) · [Sécurité](docs/fr/security.md) · [Ce qui reste stable](docs/fr/compatibility.md) · [Présentation avec schémas](docs/fr/presentation.md) · [Structure du code](docs/fr/code.md)
 
 </div>
 
@@ -34,12 +34,12 @@ sa veille, quels contrôles du guide lancer. Hébergé sur GitHub, sur un serveu
 
 **Votre modèle.** Claude par Claude Code sur un abonnement Claude (rien de facturé à l'appel) ou par l'API ; ou tout
 serveur compatible OpenAI, local ou hébergé. Le projet ne mesure et ne garantit que Claude Opus 5.5 et Sonnet 5.5 :
-voir [Choisir un modèle](docs/choose-a-model.fr.md).
+voir [Choisir un modèle](docs/fr/choose-a-model.md).
 
 **Votre décision.** Le modèle n'écrit jamais un fichier. Rien n'est appliqué avant votre relecture, rien n'est poussé
 avant votre feu vert, et c'est vous qui fusionnez la pull request.
 
-![L'écran de relecture : chaque correction proposée avec sa source, le verdict de la relecture croisée et un diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/review.fr.png)
+![L'écran de relecture : chaque correction proposée avec sa source, le verdict de la relecture croisée et un diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/images/review.fr.png)
 
 *L'écran de relecture sur une vraie veille du guide de référence (avis de sécurité de LiteLLM).*
 
@@ -57,7 +57,7 @@ vault-watch serve           # http://127.0.0.1:4430/ : veilles, relecture, publi
 
 `init` devine la langue, les copies traduites, le dépôt GitHub du remote `origin` (un dépôt Gitea, c'est trois
 lignes à ajouter) et les scripts du guide ; chaque clé du manifeste, et ce que débloque chaque partie facultative,
-sont dans [Brancher son guide](docs/connect-your-guide.fr.md). Un guide d'exemple dans [`examples/`](examples/)
+sont dans [Brancher son guide](docs/fr/connect-your-guide.md). Un guide d'exemple dans [`examples/`](examples/)
 montre le minimum.
 
 Ce qu'il faut :
@@ -67,7 +67,7 @@ Ce qu'il faut :
 | tout guide | Python 3.11+, git |
 | le modèle | un moteur : Claude Code connecté avec un abonnement Claude, une clé d'API Claude, ou un serveur compatible OpenAI ([réglages](#le-modèle)) |
 | un guide sur GitHub | la CLI GitHub `gh`, connectée (`gh auth login`) |
-| un guide sur Gitea | un jeton Gitea, donné par référence ([Brancher son guide](docs/connect-your-guide.fr.md), [Sécurité](docs/security.fr.md)) |
+| un guide sur Gitea | un jeton Gitea, donné par référence ([Brancher son guide](docs/fr/connect-your-guide.md), [Sécurité](docs/fr/security.md)) |
 | les contrôles du guide | ce qu'ils lancent (Node.js pour un `npm test`, par exemple) |
 
 ## Déroulé d'un passage
@@ -87,7 +87,7 @@ flowchart TD
 
 | Étape | Ce qu'elle fait |
 | :-- | :-- |
-| `collect` | Lit la veille que nomme le manifeste : un fichier `watch.json`, une issue de la forge et l'artefact de son run de workflow, ou la collecte de l'agent lui-même depuis les flux du guide ([format de la veille](docs/watch-format.fr.md)) |
+| `collect` | Lit la veille que nomme le manifeste : un fichier `watch.json`, une issue de la forge et l'artefact de son run de workflow, ou la collecte de l'agent lui-même depuis les flux du guide ([format de la veille](docs/fr/watch-format.md)) |
 | `triage` | Le modèle trie les éléments : correction, candidat à un ajout, ou rien pour le guide (la consigne éditoriale du guide dit ce qui compte) |
 | `locate` | Trouve les pages concernées et regroupe les éléments qui touchent les mêmes pages ou le même outil |
 | `propose` | Une branche parallèle par groupe : des corrections qui citent le texte actuel, donnent le nouveau texte et une source |
@@ -106,9 +106,9 @@ transforme des erreurs signalées (par un lecteur, par une vérification) en cor
 **vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide. Un **passage de
 compactage** empêche le guide de s'alourdir : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est
 répété, empilé ou plus long que nécessaire, et les allègements que vous gardez sont relus comme des corrections
-([Compactage](docs/compact.fr.md)). Un **passage d'ajouts** cherche ce qu'aucune source de la veille n'annonce : un
+([Compactage](docs/fr/compact.md)). Un **passage d'ajouts** cherche ce qu'aucune source de la veille n'annonce : un
 contrôle liste ce qu'un lecteur chercherait et ne trouve pas, et chaque piste que vous gardez est vérifiée sur le
-web, puis écrite là où elle a sa place ([Nouveautés](docs/news.fr.md)).
+web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
 
 ## Principes
 
@@ -139,7 +139,7 @@ passage s'arrête et peut être repris plus tard (`resume --retry`) ou avec un a
 
 Les clés ne sont jamais stockées : les réglages prennent une référence, `env:NOM`, `sops:fichier#NOM` (un fichier
 chiffré avec [sops](https://github.com/getsops/sops)) ou `file:chemin`, et refusent une clé en clair. Un autre
-moteur peut s'ajouter sous forme de paquet ([Écrire un moteur](docs/write-an-engine.fr.md)).
+moteur peut s'ajouter sous forme de paquet ([Écrire un moteur](docs/fr/write-an-engine.md)).
 
 ## L'interface web
 
@@ -156,15 +156,15 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 | Page | À quoi elle sert |
 | :-- | :-- |
 | Veilles | Les veilles avec leur état, un bouton pour en analyser une, et les autres passages (correction, compactage, ajouts) |
-| Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/collect.fr.md#quelles-sources-méritent-leur-place)) |
+| Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
 | Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage |
 | Signaler ou proposer | Des erreurs à corriger, ou une idée ou une nouvelle à vérifier et à écrire |
-| Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/chapters.fr.md) |
+| Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
 | Coûts | Ce que coûte l'entretien, par mois et par passage |
 | Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
 | Donner mon avis | Une note, un bug, une idée : vous l'envoyez vous-même, par une issue GitHub ou un e-mail ; l'agent n'envoie rien |
 
-![Les pistes de nouveautés : chaque piste avec le passage du guide qu'elle concerne, une case pour creuser, ce que lit chaque appel, et l'estimation du passage](docs/leads.fr.png)
+![Les pistes de nouveautés : chaque piste avec le passage du guide qu'elle concerne, une case pour creuser, ce que lit chaque appel, et l'estimation du passage](docs/images/leads.fr.png)
 
 *Les pistes de « nouveautés » sur le guide de référence : trois sont cochées, le bouton dit ce que coûterait le
 passage d'ajouts.*
@@ -172,7 +172,7 @@ passage d'ajouts.*
 Chaque écran qui lance une étape payante dit ce qu'elle coûtera et ce qui la fera tourner (moteur, modèle, effort)
 avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
 au choix. Un passage lancé ici peut être repris en ligne de commande, et l'inverse. Le serveur n'écoute que sur
-127.0.0.1 ([Sécurité](docs/security.fr.md)).
+127.0.0.1 ([Sécurité](docs/fr/security.md)).
 
 ## La ligne de commande
 
@@ -248,7 +248,7 @@ token, c'est ce que vous paieriez.
 
 Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 270 tests (pytest) font tourner tout le
 graphe avec un faux modèle et un dépôt git jetable ; un contrat de moteur vérifie n'importe quel moteur. Comment les
-modules s'emboîtent : [docs/code.fr.md](docs/code.fr.md).
+modules s'emboîtent : [docs/fr/code.md](docs/fr/code.md).
 
 ## Choix de conception
 
@@ -275,7 +275,7 @@ modules s'emboîtent : [docs/code.fr.md](docs/code.fr.md).
 - **Les dates sont difficiles.** Une version a une date de création, une date de tag et une date de publication ;
   quand ses sources ne tranchent pas, l'agent s'abstient plutôt que de deviner.
 - **Mesuré sur Claude seulement.** Un autre modèle tourne, mais la qualité de ses corrections n'est pas mesurée :
-  relisez avec soin ses « rien à changer » ([Choisir un modèle](docs/choose-a-model.fr.md)).
+  relisez avec soin ses « rien à changer » ([Choisir un modèle](docs/fr/choose-a-model.md)).
 
 ## Organisation du dépôt
 
@@ -302,7 +302,7 @@ src/vault_watch_agent/
 tests/           faux modèle, dépôt git jetable, contrat de moteur
 examples/        un guide d'exemple et son manifeste
 metrics/         journal des coûts et résultats d'évaluation du guide de référence
-docs/            la documentation liée plus haut
+docs/            la documentation (index : docs/fr/README.md), en anglais dans docs/, captures dans docs/images/
 ```
 
 Étapes suivantes : [ROADMAP.md](ROADMAP.md). Changements : [CHANGELOG.md](CHANGELOG.md).

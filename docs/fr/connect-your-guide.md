@@ -1,4 +1,4 @@
-*[English version](connect-your-guide.md)*
+*[English version](../connect-your-guide.md)*
 
 # Brancher son guide
 
@@ -57,14 +57,14 @@ source = "file"
 path = "watch.json"
 ```
 
-Un guide qui utilise toutes les parties : [`examples/manifests/ia-on-prem-vault.toml`](../examples/manifests/ia-on-prem-vault.toml).
+Un guide qui utilise toutes les parties : [`examples/manifests/ia-on-prem-vault.toml`](../../examples/manifests/ia-on-prem-vault.toml).
 
 Une clé inconnue, ou une valeur du mauvais type, arrête l'agent avec un message qui nomme la clé : une faute de
 frappe ne doit pas désactiver une partie sans rien dire.
 
 ### `schema`
 
-`1`, la version du format. Facultatif (1 par défaut). Figé à partir de 1.0 : ce qui peut changer, et comment, est dans [compatibility.fr.md](compatibility.fr.md).
+`1`, la version du format. Facultatif (1 par défaut). Figé à partir de 1.0 : ce qui peut changer, et comment, est dans [fr/compatibility.md](compatibility.md).
 
 ### `[guide]`
 
@@ -103,7 +103,7 @@ D'où viennent les éléments d'une veille.
 
 Quelle que soit la source, `feeds` (un `feeds.json`), `floors` et `seen` permettent à `vault-watch collect` de
 rassembler une veille depuis les flux du guide, sans modèle ; le workflow GitHub réutilisable le fait chaque semaine
-et ouvre l'issue : [Collecter une veille](collect.fr.md).
+et ouvre l'issue : [Collecter une veille](collect.md).
 
 `changes_page` (quelle que soit la source) désigne une page où la veille note les changements en lignes datées, comme
 « Ce qui a changé depuis » : chaque étape de proposition la voit en entier, quels que soient les mots-clés de
@@ -111,7 +111,7 @@ l'élément, et ajoute une ligne en citant la dernière ligne de la page (ou une
 de la nouvelle. Elle ne doit pas être en lecture seule.
 
 Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) ; son
-format, clé par clé : [Le format d'une veille](watch-format.fr.md).
+format, clé par clé : [Le format d'une veille](watch-format.md).
 
 ```json
 {
@@ -132,7 +132,7 @@ de la fenêtre de veille, la date du rapport du passage.
 ### `[rules]`
 
 Vos propres consignes pour le modèle, sous forme de fichiers du guide. Sans elles, l'agent prend les siennes, dans
-[`src/vault_watch_agent/defaults/`](../src/vault_watch_agent/defaults/) : lisez-les avant d'écrire les vôtres.
+[`src/vault_watch_agent/defaults/`](../../src/vault_watch_agent/defaults/) : lisez-les avant d'écrire les vôtres.
 
 | Clé | Ce qu'elle règle |
 | :-- | :-- |
@@ -166,17 +166,17 @@ de ce qu'elle pesait, est signalée comme ayant beaucoup grossi. `page_kb` et `[
 facultatif, en Ko, pour toutes les pages, et un autre pour les pages d'un dossier (`"00-lexique/**" = 8` sous
 `[budget.pages]` ; le premier motif qui correspond l'emporte) ; aucun par défaut, puisque la bonne longueur d'une
 page dépend de son sujet. Une page signalée est un avertissement de `vault-watch doctor`, de `vault-watch compact`
-et du contrôle « Taille des pages », jamais un échec : elle dit où un [compactage](compact.fr.md) doit regarder
+et du contrôle « Taille des pages », jamais un échec : elle dit où un [compactage](compact.md) doit regarder
 d'abord. Une page en lecture seule est listée avec son poids et jamais signalée.
 
 ### `[[chapter]]`
 
 Les chapitres sont les pages sur lesquelles l'agent travaille ensemble. Trois étapes passent chapitre par
-chapitre : l'exploration du web ([les nouveautés](news.fr.md), un appel payant par chapitre), le contrôle des
+chapitre : l'exploration du web ([les nouveautés](news.md), un appel payant par chapitre), le contrôle des
 traductions (un appel par chapitre), et toute étape qui lit le guide entier quand la fenêtre du modèle est trop
 petite pour lui. Un bon chapitre réunit les pages qu'un lecteur consulterait ensemble et qu'une même actualité
 ferait changer. Pourquoi les chapitres comptent, pourquoi les seuils ci-dessous, et ce que coûte un découpage mal
-adapté : [Chapitres](chapters.fr.md).
+adapté : [Chapitres](chapters.md).
 
 Facultatif. Sans cela, une règle automatique s'applique : un chapitre par dossier de premier niveau (les pages à
 la racine en forment un) ; un dossier de plus de 150 Ko est découpé selon ses sous-dossiers, ou en tranches de
@@ -218,7 +218,7 @@ Trois façons d'écrire ces tables, toutes relues par vous avant d'atteindre le 
   avant tout enregistrement.
 - **À la main dans le manifeste.**
 
-![La page Chapitres : le découpage en vigueur, ici déclaré dans le manifeste du guide, chaque chapitre avec ses pages, son poids et s'il est exploré par défaut sur le web ; dessous, la proposition du modèle et la modification à la main](chapters.fr.png)
+![La page Chapitres : le découpage en vigueur, ici déclaré dans le manifeste du guide, chaque chapitre avec ses pages, son poids et s'il est exploré par défaut sur le web ; dessous, la proposition du modèle et la modification à la main](../images/chapters.fr.png)
 
 Enregistrer depuis la page écrit le manifeste sur une branche du guide (`chore/chapters-<date>`) et ouvre une
 pull request quand le guide a un dépôt ; le découpage s'applique une fois fusionné. `vault-watch chapters --propose

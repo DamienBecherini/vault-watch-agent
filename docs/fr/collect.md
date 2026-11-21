@@ -1,11 +1,11 @@
-*[English version](collect.md)*
+*[English version](../collect.md)*
 
 # Collecter une veille (`vault-watch collect`)
 
 Une veille liste ce qui a changé dans le domaine du guide sur quelques jours. L'agent peut la collecter lui-même :
 vous listez dans un `feeds.json` les flux à lire, et `vault-watch collect` rassemble les éléments de la fenêtre,
 écarte la routine par règles, garde les notes de version et le texte des avis, puis écrit un
-[`watch.json`](watch-format.fr.md). Aucun modèle n'est appelé : une collecte ne coûte rien.
+[`watch.json`](watch-format.md). Aucun modèle n'est appelé : une collecte ne coûte rien.
 
 ```bash
 vault-watch --guide ../mon-guide collect                  # les 8 derniers jours ; rapport Markdown sur la sortie
@@ -47,7 +47,7 @@ Sans `floors`, l'agent prend le fichier de `[checks] version_floors` quand le gu
 }
 ```
 
-Le guide d'exemple en a un complet : [`examples/sample-guide/feeds.json`](../examples/sample-guide/feeds.json).
+Le guide d'exemple en a un complet : [`examples/sample-guide/feeds.json`](../../examples/sample-guide/feeds.json).
 
 | Clé | Ce que c'est |
 | :-- | :-- |
@@ -187,7 +187,7 @@ des flux cités dans les mêmes pages ; corrigez-le dans la pull request s'il es
 
 ## Chaque semaine, sur GitHub
 
-Le workflow réutilisable [`collect.yml`](../.github/workflows/collect.yml) fait la collecte sur GitHub. Il installe
+Le workflow réutilisable [`collect.yml`](../../.github/workflows/collect.yml) fait la collecte sur GitHub. Il installe
 l'agent, collecte, garde `watch.json` comme artefact et ouvre une issue avec le rapport. Ajoutez ce fichier au guide
 sous le nom `.github/workflows/watch.yml` :
 

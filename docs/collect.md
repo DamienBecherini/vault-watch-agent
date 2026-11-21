@@ -1,4 +1,4 @@
-*[Version française](collect.fr.md)*
+*[Version française](fr/collect.md)*
 
 # Collecting a watch (`vault-watch collect`)
 

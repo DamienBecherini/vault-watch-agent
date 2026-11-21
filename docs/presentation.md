@@ -4,7 +4,7 @@
 
 **How a 400 k-token technical guide stays true, two weeks at a time, with a human deciding every change.**
 
-**English** · [Français](presentation.fr.md) · [README](../README.md)
+**English** · [Français](fr/presentation.md) · [README](../README.md)
 
 </div>
 

@@ -15,7 +15,7 @@
 
 **English** · [Français](README.fr.md)
 
-[Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Chapters](docs/chapters.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+**[All the documentation](docs/README.md)** · [Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Chapters](docs/chapters.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
 
 </div>
 
@@ -39,7 +39,7 @@ or any OpenAI-compatible server, local or hosted. The project measures and commi
 **Your decision.** The model never writes a file. Nothing is applied before your review, nothing is pushed before
 your go-ahead, and the pull request is merged by you.
 
-![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](docs/review.png)
+![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](docs/images/review.png)
 
 *The review screen on a real watch of the reference guide (security advisories of LiteLLM).*
 
@@ -161,7 +161,7 @@ problems, the diff of the branch), then the pull request. Around them:
 | Settings | The gear: engine, model and effort of each role or of one step, prices and where they come from, what the guide provides |
 | Give my opinion | A note, a bug, an idea: you send it yourself, as a GitHub issue or an e-mail; the agent sends nothing |
 
-![The leads of what is new: each lead with the passage of the guide it is about, a box to dig deeper, what each call reads, and the estimate of the run](docs/leads.png)
+![The leads of what is new: each lead with the passage of the guide it is about, a box to dig deeper, what each call reads, and the estimate of the run](docs/images/leads.png)
 
 *The leads of « what is new » on the reference guide: three are ticked, the button says what the addition run would
 cost.*
@@ -293,7 +293,7 @@ src/vault_watch_agent/
 tests/           fake model, throwaway git repository, engine contract
 examples/        a sample guide and its manifest
 metrics/         the reference guide's cost journal and evaluation results
-docs/            the documentation linked above
+docs/            the documentation (index: docs/README.md), in French in docs/fr/, screenshots in docs/images/
 ```
 
 Next steps: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md).

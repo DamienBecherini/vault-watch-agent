@@ -1,4 +1,4 @@
-*[English version](compatibility.md)*
+*[English version](../compatibility.md)*
 
 # Ce qui reste stable
 
@@ -8,9 +8,9 @@ changement de sens silencieux.
 
 | Format | Où | Numéro | Écrit par |
 | :-- | :-- | :-- | :-- |
-| Le manifeste d'un guide | `vault-watch.toml` à la racine du guide | `schema = 1` | vous ([connect-your-guide.fr.md](connect-your-guide.fr.md)) |
-| Une veille | `watch.json` | `"schema": 1` | votre collecteur ou `vault-watch collect` ([watch-format.fr.md](watch-format.fr.md)) |
-| Le protocole des moteurs | `llm.Engine`, `llm.EngineKind` | `EngineKind.protocol = 1` | un paquet de moteur ([write-an-engine.fr.md](write-an-engine.fr.md)) |
+| Le manifeste d'un guide | `vault-watch.toml` à la racine du guide | `schema = 1` | vous ([fr/connect-your-guide.md](connect-your-guide.md)) |
+| Une veille | `watch.json` | `"schema": 1` | votre collecteur ou `vault-watch collect` ([fr/watch-format.md](watch-format.md)) |
+| Le protocole des moteurs | `llm.Engine`, `llm.EngineKind` | `EngineKind.protocol = 1` | un paquet de moteur ([fr/write-an-engine.md](write-an-engine.md)) |
 | Les réglages | `~/.vault-watch/settings.json` | `"schema": 1` | la page Réglages, ou vous |
 
 ## Les règles

@@ -1,4 +1,4 @@
-*[Version française](chapters.fr.md)*
+*[Version française](fr/chapters.md)*
 
 # Chapters: how the agent splits a guide
 

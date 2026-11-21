@@ -4,7 +4,7 @@
 
 **Comment un guide technique de 400 k tokens reste juste, quinzaine après quinzaine, avec un humain qui décide de chaque changement.**
 
-[English](presentation.md) · **Français** · [README](../README.fr.md)
+[English](../presentation.md) · **Français** · [README](../../README.fr.md)
 
 </div>
 
@@ -65,10 +65,10 @@ En plus de la veille de quinzaine, quatre autres entrées réutilisent le même 
   avec une estimation du coût avant de les lancer.
 - **Passages de compactage** : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est répété, empilé ou
   plus long que nécessaire, et les allègements que l'éditeur garde sont relus comme des corrections
-  ([Compactage](compact.fr.md)).
+  ([Compactage](compact.md)).
 - **Passages d'ajouts** : ce qu'aucune source de la veille n'annonce. Un contrôle liste ce qu'un lecteur chercherait
   et ne trouve pas, et chaque piste que l'éditeur garde est vérifiée sur le web, puis écrite là où elle a sa place
-  ([Nouveautés](news.fr.md)).
+  ([Nouveautés](news.md)).
 
 ## Le graphe de l'agent
 
@@ -139,11 +139,11 @@ Dix-neuf pull requests du guide, toutes relues et fusionnées, du 8 au 20 novemb
 | Sources de la veille | [#88](https://github.com/DamienBecherini/ia-on-prem-vault/pull/88) | 21 flux ajoutés après un contrôle des sources (des outils que le guide cite et qu'aucun flux ne suivait) |
 
 Sur le rejeu des veilles passées, aucune proposition arrivée à la relecture n'était fausse ; les oublis sont analysés
-dans le [README](../README.fr.md#le-guide-de-référence).
+dans le [README](../../README.fr.md#le-guide-de-référence).
 
 ## Ce qu'il coûte
 
-Chaque appel au modèle est noté dans [`metrics/usage.jsonl`](../metrics/usage.jsonl), au prix catalogue. Le journal au
+Chaque appel au modèle est noté dans [`metrics/usage.jsonl`](../../metrics/usage.jsonl), au prix catalogue. Le journal au
 20 novembre 2026 (192 $ : 99 $ jusqu'au 17 novembre, surtout le jour de la mise en route et pour la première
 vérification de tout le guide, puis le premier compactage et les premiers ajouts, lancés plusieurs fois chacun pour
 les régler) :
@@ -188,20 +188,20 @@ flowchart LR
 ```
 
 La phase G est faite : écrit pour ce seul guide, l'agent tient maintenant n'importe quel guide en Markdown, décrit
-par un manifeste qui lui est propre ([Brancher son guide](connect-your-guide.fr.md)), avec un choix de modèles et
-des prix dont l'origine est affichée ([le plan](modular-plan.md), en anglais). Les phases A, B, C et F sont faites
+par un manifeste qui lui est propre ([Brancher son guide](connect-your-guide.md)), avec un choix de modèles et
+des prix dont l'origine est affichée ([le plan](../modular-plan.md), en anglais). Les phases A, B, C et F sont faites
 aussi ; la phase E l'est en partie (liens vérifiés avant publication, vérification à la demande, sources de la
 veille contrôlées, compactage). La découverte (phase D) a commencé : depuis la 1.3.0, un passage d'ajouts écrit,
-après relecture, ce qu'apporte une recherche de pistes ou l'éditeur ([Nouveautés](news.fr.md)) ; il reste à suivre
-des candidats dans le temps, d'une veille à l'autre. Détails et mesures : [ROADMAP.md](../ROADMAP.md) (en anglais).
+après relecture, ce qu'apporte une recherche de pistes ou l'éditeur ([Nouveautés](news.md)) ; il reste à suivre
+des candidats dans le temps, d'une veille à l'autre. Détails et mesures : [ROADMAP.md](../../ROADMAP.md) (en anglais).
 
 ## Pour aller plus loin
 
-- [README](../README.fr.md) : utilisation (interface web et ligne de commande), fonctions de LangGraph utilisées, choix
+- [README](../../README.fr.md) : utilisation (interface web et ligne de commande), fonctions de LangGraph utilisées, choix
   de conception, limites.
-- [Brancher son guide](connect-your-guide.fr.md) : le manifeste d'un guide, `vault-watch init` et `doctor`.
-- [Collecter une veille](collect.fr.md), [Compactage](compact.fr.md), [Nouveautés](news.fr.md) : la veille sans
+- [Brancher son guide](connect-your-guide.md) : le manifeste d'un guide, `vault-watch init` et `doctor`.
+- [Collecter une veille](collect.md), [Compactage](compact.md), [Nouveautés](news.md) : la veille sans
   modèle, et les deux passages à côté d'elle.
-- [Structure du code](code.fr.md) : modules, état du graphe, appels au modèle, pause et reprise.
-- [ROADMAP.md](../ROADMAP.md) : phases, mesures, suite.
+- [Structure du code](code.md) : modules, état du graphe, appels au modèle, pause et reprise.
+- [ROADMAP.md](../../ROADMAP.md) : phases, mesures, suite.
 - Le guide : [site](https://ia-on-prem.damien.becherini.fr/) · [dépôt](https://github.com/DamienBecherini/ia-on-prem-vault).

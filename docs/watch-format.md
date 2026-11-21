@@ -1,4 +1,4 @@
-*[Version française](watch-format.fr.md)*
+*[Version française](fr/watch-format.md)*
 
 # The watch format (`watch.json`)
 

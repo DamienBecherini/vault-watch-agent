@@ -1,4 +1,4 @@
-*[Version française](security.fr.md)*
+*[Version française](fr/security.md)*
 
 # Security
 

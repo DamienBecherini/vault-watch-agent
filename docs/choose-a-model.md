@@ -1,4 +1,4 @@
-*[Version française](choose-a-model.fr.md)*
+*[Version française](fr/choose-a-model.md)*
 
 # Choose a model
 

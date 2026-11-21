@@ -1,4 +1,4 @@
-*[English version](security.md)*
+*[English version](../security.md)*
 
 # Sécurité
 

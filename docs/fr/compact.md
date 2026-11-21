@@ -1,4 +1,4 @@
-*[English version](compact.md)*
+*[English version](../compact.md)*
 
 # Compactage : empêcher un guide de s'alourdir
 
@@ -124,7 +124,7 @@ Elles peuvent avoir leur propre modèle, les veilles gardant le leur : dans les 
 « Régler une étape à part », choisissez un modèle (et un effort si vous le voulez fixe) pour « ce qui alourdit le
 guide » (le rapport) et « allègements proposés » (les allègements). La relecture croisée des allègements est
 l'étape « relecture croisée », commune avec les veilles : elle suit le rôle tant que vous ne la réglez pas à part
-elle aussi. Voir [Choisir un modèle](choose-a-model.fr.md#un-modèle-pour-une-seule-étape).
+elle aussi. Voir [Choisir un modèle](choose-a-model.md#un-modèle-pour-une-seule-étape).
 
 Les estimations affichées avant chaque partie suivent le prix du modèle de chaque étape. Sur le guide IA on-prem
 (environ 434 k tokens), aux prix publics de novembre 2026 :

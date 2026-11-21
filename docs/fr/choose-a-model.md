@@ -1,9 +1,9 @@
-*[English version](choose-a-model.md)*
+*[English version](../choose-a-model.md)*
 
 # Choisir un modèle
 
 Depuis la 0.6.0, l'agent tourne sur n'importe quel moteur : l'API Claude, Claude Code, ou tout serveur de l'API de
-chat d'OpenAI, hébergé ou local ([Écrire un moteur](write-an-engine.fr.md)). Tourner n'est pas bien faire le travail.
+chat d'OpenAI, hébergé ou local ([Écrire un moteur](write-an-engine.md)). Tourner n'est pas bien faire le travail.
 Cette page dit avec quels modèles l'agent est utilisé, ce qui a été essayé au-delà, et pourquoi rien de plus n'est
 promis.
 
@@ -21,7 +21,7 @@ par l'API Claude (facturée au token) ou par Claude Code (l'abonnement). Chaque 
 relecture et une pull request qu'un humain fusionne : c'est cette relecture, pas un score, qui garantit le guide.
 
 Ce sont les seuls modèles sur lesquels le projet s'engage. Avec un autre, le moteur fonctionne (il passe les
-[tests de contrat](../tests/engine_contract.py)), la qualité des corrections n'est pas mesurée, et il faut vérifier
+[tests de contrat](../../tests/engine_contract.py)), la qualité des corrections n'est pas mesurée, et il faut vérifier
 ses propositions avant de croire une veille qui dit « rien à changer ».
 
 ## Ce que chaque étape demande au modèle
@@ -46,7 +46,7 @@ alors sur le modèle choisi pour elle, et à l'effort choisi pour elle s'il y en
 quel, alors que « plus bas » et « plus haut » du rôle décalent d'un cran toutes les autres étapes. Tout le reste
 suit le rôle.
 
-L'usage pour lequel c'est fait : le [compactage](compact.fr.md) sur le modèle le plus fort, quelques fois par an,
+L'usage pour lequel c'est fait : le [compactage](compact.md) sur le modèle le plus fort, quelques fois par an,
 pendant que les veilles hebdomadaires restent sur le modèle mesuré ici. Les estimations et le journal des coûts
 suivent le modèle de chaque étape. Dans `settings.json` :
 `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
@@ -107,4 +107,4 @@ un modèle local). Lire le résultat avec ses limites :
   relu, pas une vérité indépendante. Une veille traitée à la main (comme la #30) est un test plus juste.
 - **Une veille est un cas.** Plusieurs veilles, de plusieurs natures (sécurité, versions, prix), avant de décider.
 
-Les fichiers de résultat des essais ci-dessus sont dans [`metrics/eval/`](../metrics/eval/).
+Les fichiers de résultat des essais ci-dessus sont dans [`metrics/eval/`](../../metrics/eval/).

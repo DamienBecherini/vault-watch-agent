@@ -1,4 +1,4 @@
-*[English version](write-an-engine.md)*
+*[English version](../write-an-engine.md)*
 
 # Écrire un moteur
 
@@ -70,7 +70,7 @@ Un `llm.EngineKind` dit à l'agent comment créer le moteur et ce qu'il propose 
 | `check(options)` | Facultatif. Il vérifie les options du moteur (`settings["engines"]["<nom>"]`), complète les valeurs par défaut et lève une erreur sur une mauvaise valeur. |
 | `model_of(settings, role)` | Le modèle d'un rôle. |
 | `options` | Les valeurs par défaut de ses options. |
-| `protocol` | La version du protocole des moteurs qu'il implémente : `1` (par défaut, `llm.ENGINE_PROTOCOL`). Un moteur d'un autre protocole n'est pas chargé ([compatibility.fr.md](compatibility.fr.md)). |
+| `protocol` | La version du protocole des moteurs qu'il implémente : `1` (par défaut, `llm.ENGINE_PROTOCOL`). Un moteur d'un autre protocole n'est pas chargé ([fr/compatibility.md](compatibility.md)). |
 
 Pointez vers lui un point d'entrée du groupe `vault_watch_agent.engines`, dans le `pyproject.toml` de votre paquet :
 
@@ -84,7 +84,7 @@ sans lui.
 
 ## L'exemple : l'API propre d'Ollama
 
-[`examples/engines/ollama_engine.py`](../examples/engines/ollama_engine.py) est un moteur complet en 90 lignes,
+[`examples/engines/ollama_engine.py`](../../examples/engines/ollama_engine.py) est un moteur complet en 90 lignes,
 pour `POST /api/chat` :
 - le schéma va dans `format`, qu'Ollama impose ;
 - le contexte ouvre le message système ;
@@ -95,7 +95,7 @@ C'est un exemple : Ollama parle aussi le protocole OpenAI, donc le moteur `opena
 
 ## Les tests de contrat
 
-[`tests/engine_contract.py`](../tests/engine_contract.py) vérifie un moteur avec des réponses enregistrées, sans
+[`tests/engine_contract.py`](../../tests/engine_contract.py) vérifie un moteur avec des réponses enregistrées, sans
 réseau et sans modèle :
 
 | Scénario | Ce que le moteur doit faire |
@@ -124,7 +124,7 @@ def test_mon_moteur(tmp_path):
     check_engine(MonAdaptateur(), tmp_path)
 ```
 
-[`tests/test_engine_contract.py`](../tests/test_engine_contract.py) contient les adaptateurs des moteurs de l'agent
+[`tests/test_engine_contract.py`](../../tests/test_engine_contract.py) contient les adaptateurs des moteurs de l'agent
 et de l'exemple. Ils remplacent :
 - le client du SDK, pour `api` ;
 - `claude -p`, pour `claude-code` ;

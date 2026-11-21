@@ -4,7 +4,7 @@
 
 **A reading guide for developers: modules, the graph state, where the model is called, and how a paused run survives.**
 
-**English** · [Français](code.fr.md) · [Overview](presentation.md) · [README](../README.md)
+**English** · [Français](fr/code.md) · [Overview](presentation.md) · [README](../README.md)
 
 </div>
 

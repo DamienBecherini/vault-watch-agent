@@ -1,4 +1,4 @@
-*[Version française](compact.fr.md)*
+*[Version française](fr/compact.md)*
 
 # Compaction: keep a guide from growing heavy
 

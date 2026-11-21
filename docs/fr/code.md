@@ -4,15 +4,15 @@
 
 **Un guide de lecture pour développeurs : les modules, l'état du graphe, où le modèle est appelé, et comment un passage en pause survit.**
 
-[English](code.md) · **Français** · [Présentation](presentation.fr.md) · [README](../README.fr.md)
+[English](../code.md) · **Français** · [Présentation](presentation.md) · [README](../../README.fr.md)
 
 </div>
 
 ---
 
-Environ 10 500 lignes de Python dans [`src/vault_watch_agent/`](../src/vault_watch_agent/), une page statique sans étape
+Environ 10 500 lignes de Python dans [`src/vault_watch_agent/`](../../src/vault_watch_agent/), une page statique sans étape
 de build (environ 3 500 lignes de JavaScript et de CSS), et des tests qui font tourner tout le graphe avec un faux modèle sur un dépôt git jetable. Commencez par
-[`graph.py`](../src/vault_watch_agent/graph.py) : tout le reste l'alimente ou le pilote.
+[`graph.py`](../../src/vault_watch_agent/graph.py) : tout le reste l'alimente ou le pilote.
 
 ## Les modules et leurs dépendances
 
@@ -62,15 +62,15 @@ flowchart TB
 
 Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle de chaque module. Deux règles donnent sa forme au code :
 
-- **Une seule porte vers le modèle.** Seuls [`llm.py`](../src/vault_watch_agent/llm.py) et les moteurs qu'il charge appellent un modèle. Tous les autres modules reçoivent un objet doté d'une méthode
+- **Une seule porte vers le modèle.** Seuls [`llm.py`](../../src/vault_watch_agent/llm.py) et les moteurs qu'il charge appellent un modèle. Tous les autres modules reçoivent un objet doté d'une méthode
   `parse(system, prompt, schema, effort, node, context, web)` (le protocole `LLM`) : les tests le remplacent par un
   faux. Trois moteurs l'implémentent : `Claude` (l'API), `ClaudeCode` (`claude -p` sur un abonnement Claude) et
-  `OpenAICompatible` (tout serveur compatible OpenAI, dans [`openai_compat.py`](../src/vault_watch_agent/openai_compat.py)),
+  `OpenAICompatible` (tout serveur compatible OpenAI, dans [`openai_compat.py`](../../src/vault_watch_agent/openai_compat.py)),
   et un autre paquet peut ajouter le sien (un point d'entrée `EngineKind`) ; `create(role, journal, settings)`
   choisit d'après les réglages de l'utilisateur.
 - **Une seule porte vers le guide.** Lire, chercher et modifier les pages passe par
-  [`vault.py`](../src/vault_watch_agent/vault.py) ; les appels à `git` et aux scripts du guide passent par
-  [`inputs.py`](../src/vault_watch_agent/inputs.py), ceux de la forge (`gh`) par [`forge.py`](../src/vault_watch_agent/forge.py). Le modèle ne touche jamais un fichier.
+  [`vault.py`](../../src/vault_watch_agent/vault.py) ; les appels à `git` et aux scripts du guide passent par
+  [`inputs.py`](../../src/vault_watch_agent/inputs.py), ceux de la forge (`gh`) par [`forge.py`](../../src/vault_watch_agent/forge.py). Le modèle ne touche jamais un fichier.
 
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
@@ -108,7 +108,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `store.py` | 53 | La base des passages gardée légère : seul le dernier point de contrôle de chaque passage reste, l'espace est rendu au disque |
 | `notify.py` | 47 | Notifications Windows de `serve --notify` |
 
-La page est du JavaScript sans outillage dans [`static/`](../src/vault_watch_agent/static/), chargé tel quel :
+La page est du JavaScript sans outillage dans [`static/`](../../src/vault_watch_agent/static/), chargé tel quel :
 `app.js` (le routeur, les textes dans les deux langues, chaque écran), `settings.js` (la fenêtre des Réglages),
 `feedback.js` (« Donner mon avis »), `themes.js` et `boot.js` (clair ou sombre, les palettes, la taille du texte,
 appliqués avant le premier affichage), `notify.js` (les notifications du navigateur).
@@ -155,7 +155,7 @@ avec des faux.
 
 ## L'état qui le traverse
 
-`WatchState` ([`state.py`](../src/vault_watch_agent/state.py)) est un `TypedDict` de valeurs JSON simples : un passage en
+`WatchState` ([`state.py`](../../src/vault_watch_agent/state.py)) est un `TypedDict` de valeurs JSON simples : un passage en
 pause est sérialisé tel quel par le checkpointer. Chaque étape ne renvoie que les clés qu'elle change.
 
 ```mermaid
@@ -256,31 +256,31 @@ des allègements proposés par `compact.py`, avec une relecture croisée écrite
 
 | Fichier | Ce qu'il couvre |
 | :-- | :-- |
-| [`tests/test_graph.py`](../tests/test_graph.py) | Tout le graphe avec un `FakeLLM` qui répond selon le schéma demandé, sur un dépôt git jetable qui tient lieu de guide : les deux pauses, apply, mirror, texte de la PR |
-| [`tests/test_web.py`](../tests/test_web.py) | Les routes FastAPI, les tâches de fond, le contrat de santé |
-| [`tests/test_quotes.py`](../tests/test_quotes.py) | Retrouver un passage : correspondance exacte, fenêtre la plus proche |
-| [`tests/test_costs.py`](../tests/test_costs.py) | Totaux du journal des coûts |
-| [`tests/test_llm.py`](../tests/test_llm.py) | Le moteur Claude Code avec un faux `claude` : la commande lancée, ce qu'il en lit, ce qu'il refuse |
-| [`tests/test_config.py`](../tests/test_config.py) | Les réglages de l'utilisateur : valeurs par défaut, ce qui est refusé, une clé qui n'est jamais qu'une référence |
-| [`tests/test_guide.py`](../tests/test_guide.py), [`tests/test_onboard.py`](../tests/test_onboard.py) | Le manifeste : ce qu'il accepte et refuse, le dossier de travail d'un guide ; `init` et `doctor` |
-| [`tests/test_sample_guide.py`](../tests/test_sample_guide.py) | Un passage entier sur le guide d'exemple de `examples/`, avec ses erreurs placées exprès |
-| [`tests/test_engine_contract.py`](../tests/test_engine_contract.py), [`tests/test_openai_compat.py`](../tests/test_openai_compat.py) | Chaque moteur face aux mêmes réponses enregistrées ([Écrire un moteur](write-an-engine.fr.md)) ; le moteur compatible OpenAI et ses outils web |
-| [`tests/test_collect.py`](../tests/test_collect.py), [`tests/test_sources.py`](../tests/test_sources.py), [`tests/test_sourcecheck.py`](../tests/test_sourcecheck.py) | La collecte d'une veille et son pré-tri ; ce que chaque source a apporté ; le contrôle des sources |
-| [`tests/test_compact.py`](../tests/test_compact.py), [`tests/test_sizes.py`](../tests/test_sizes.py) | Le compactage : le rapport, les allègements, les notes retirées avec eux ; le poids et la croissance des pages |
-| [`tests/test_news.py`](../tests/test_news.py), [`tests/test_explore.py`](../tests/test_explore.py), [`tests/test_chapters.py`](../tests/test_chapters.py) | Les pistes, les ajouts (une piste par appel, ce que lit chaque appel, une piste restée sans vérification), le web exploré par chapitre ; les chapitres |
-| [`tests/test_forge.py`](../tests/test_forge.py) | GitHub et Gitea derrière la même interface |
+| [`tests/test_graph.py`](../../tests/test_graph.py) | Tout le graphe avec un `FakeLLM` qui répond selon le schéma demandé, sur un dépôt git jetable qui tient lieu de guide : les deux pauses, apply, mirror, texte de la PR |
+| [`tests/test_web.py`](../../tests/test_web.py) | Les routes FastAPI, les tâches de fond, le contrat de santé |
+| [`tests/test_quotes.py`](../../tests/test_quotes.py) | Retrouver un passage : correspondance exacte, fenêtre la plus proche |
+| [`tests/test_costs.py`](../../tests/test_costs.py) | Totaux du journal des coûts |
+| [`tests/test_llm.py`](../../tests/test_llm.py) | Le moteur Claude Code avec un faux `claude` : la commande lancée, ce qu'il en lit, ce qu'il refuse |
+| [`tests/test_config.py`](../../tests/test_config.py) | Les réglages de l'utilisateur : valeurs par défaut, ce qui est refusé, une clé qui n'est jamais qu'une référence |
+| [`tests/test_guide.py`](../../tests/test_guide.py), [`tests/test_onboard.py`](../../tests/test_onboard.py) | Le manifeste : ce qu'il accepte et refuse, le dossier de travail d'un guide ; `init` et `doctor` |
+| [`tests/test_sample_guide.py`](../../tests/test_sample_guide.py) | Un passage entier sur le guide d'exemple de `examples/`, avec ses erreurs placées exprès |
+| [`tests/test_engine_contract.py`](../../tests/test_engine_contract.py), [`tests/test_openai_compat.py`](../../tests/test_openai_compat.py) | Chaque moteur face aux mêmes réponses enregistrées ([Écrire un moteur](write-an-engine.md)) ; le moteur compatible OpenAI et ses outils web |
+| [`tests/test_collect.py`](../../tests/test_collect.py), [`tests/test_sources.py`](../../tests/test_sources.py), [`tests/test_sourcecheck.py`](../../tests/test_sourcecheck.py) | La collecte d'une veille et son pré-tri ; ce que chaque source a apporté ; le contrôle des sources |
+| [`tests/test_compact.py`](../../tests/test_compact.py), [`tests/test_sizes.py`](../../tests/test_sizes.py) | Le compactage : le rapport, les allègements, les notes retirées avec eux ; le poids et la croissance des pages |
+| [`tests/test_news.py`](../../tests/test_news.py), [`tests/test_explore.py`](../../tests/test_explore.py), [`tests/test_chapters.py`](../../tests/test_chapters.py) | Les pistes, les ajouts (une piste par appel, ce que lit chaque appel, une piste restée sans vérification), le web exploré par chapitre ; les chapitres |
+| [`tests/test_forge.py`](../../tests/test_forge.py) | GitHub et Gitea derrière la même interface |
 
 Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est la mesure sur de vraies veilles (résultats dans
-[`metrics/eval/`](../metrics/eval/)).
+[`metrics/eval/`](../../metrics/eval/)).
 
 ## Par où commencer la lecture
 
-1. [`state.py`](../src/vault_watch_agent/state.py) : ce qu'un passage sait à chaque étape.
-2. [`graph.py`](../src/vault_watch_agent/graph.py), `build()` : les étapes et les arêtes, puis l'étape qui vous intéresse.
-3. [`llm.py`](../src/vault_watch_agent/llm.py) : les moteurs, cache, outils web, journal des coûts.
-4. [`vault.py`](../src/vault_watch_agent/vault.py), `check()` et `apply()` : pourquoi le modèle ne peut pas abîmer une
+1. [`state.py`](../../src/vault_watch_agent/state.py) : ce qu'un passage sait à chaque étape.
+2. [`graph.py`](../../src/vault_watch_agent/graph.py), `build()` : les étapes et les arêtes, puis l'étape qui vous intéresse.
+3. [`llm.py`](../../src/vault_watch_agent/llm.py) : les moteurs, cache, outils web, journal des coûts.
+4. [`vault.py`](../../src/vault_watch_agent/vault.py), `check()` et `apply()` : pourquoi le modèle ne peut pas abîmer une
    page.
-5. [`web.py`](../src/vault_watch_agent/web.py) ou [`cli.py`](../src/vault_watch_agent/cli.py) : comment les passages sont
+5. [`web.py`](../../src/vault_watch_agent/web.py) ou [`cli.py`](../../src/vault_watch_agent/cli.py) : comment les passages sont
    lancés, mis en pause et repris.
 
 Les schémas sont en Mermaid : GitHub les affiche ; dans VS Code ou Cursor, l'aperçu Markdown a besoin de l'extension

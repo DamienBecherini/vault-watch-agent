@@ -1,4 +1,4 @@
-*[Version française](compatibility.fr.md)*
+*[Version française](fr/compatibility.md)*
 
 # What stays stable
 

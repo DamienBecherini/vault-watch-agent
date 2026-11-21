@@ -5,6 +5,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- The documentation is easier to find one's way in: an index, [docs/README.md](docs/README.md) (and in French), with
+  every page grouped by the question it answers and a map; the French pages moved to `docs/fr/`, under the same
+  names as the English ones, which stay where they were; the screenshots moved to `docs/images/`.
 - A page of its own on the chapters, [docs/chapters.md](docs/chapters.md) (and in French): the three steps that work
   by chapter and what the number and the size of the chapters change for each, where the chapters come from, the
   automatic rule, why 150 KB and 20 KB (set on the IA on-prem guide, fixed in the code), what a split that fits

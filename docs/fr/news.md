@@ -1,4 +1,4 @@
-*[English version](news.md)*
+*[English version](../news.md)*
 
 # Chercher les nouveautés : ce qu'un lecteur chercherait et ne trouve pas
 
@@ -59,7 +59,7 @@ vault-watch --guide ../mon-guide news --explore --chapters 02-materiel,03-stack
 Dans l'interface : le contrôle « Nouveautés : exploration du web, chapitre par chapitre » ; le cocher affiche les
 chapitres avec leur poids, et le coût suit les chapitres gardés. Tous sont cochés, sauf ceux que le guide déclare
 avec `explore = false` (un lexique, les pages sur le projet). Ce qu'est un chapitre, et ce que sa taille change
-pour cette exploration : [Chapitres](chapters.fr.md).
+pour cette exploration : [Chapitres](chapters.md).
 
 Un appel par chapitre. Chacun lit tout le guide et cherche sur le web les sujets de son chapitre (environ 12
 recherches et 15 pages), ouvre des sources primaires, et garde ce qu'aucune page du guide ne dit, huit pistes au
@@ -97,7 +97,7 @@ vault-watch --guide ../mon-guide fix add-2026-11-20 --findings pistes.txt --add
 Dans l'interface : cochez les pistes, puis « Créer une passe ajouts » ; le bouton affiche une estimation qui suit
 le nombre de pistes cochées.
 
-![Les pistes d'une vérification : chaque piste ouverte avec le passage du guide qu'elle concerne, la case « creuser », la liste qui choisit ce que lit chaque appel, et le bouton avec son estimation](leads.fr.png)
+![Les pistes d'une vérification : chaque piste ouverte avec le passage du guide qu'elle concerne, la case « creuser », la liste qui choisit ce que lit chaque appel, et le bouton avec son estimation](../images/leads.fr.png)
 
 Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires, puis décide :
 

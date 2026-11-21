@@ -1,4 +1,4 @@
-*[English version](chapters.md)*
+*[English version](../chapters.md)*
 
 # Chapitres : comment l'agent découpe un guide
 
@@ -11,9 +11,9 @@ pourquoi la règle automatique a les seuils qu'elle a, et ce que coûte un déco
 
 | Étape | À quoi sert un chapitre | Ce que changent le nombre et la taille des chapitres |
 | :-- | :-- | :-- |
-| Le web exploré pour les [nouveautés](news.fr.md#les-pistes-depuis-le-web) | Un appel payant par chapitre coché : il cherche sur le web les sujets de son chapitre (environ 12 recherches et 15 pages lues), compare avec tout le guide et garde huit pistes au plus | **Le coût suit le nombre de chapitres** : chaque appel lit tout le guide depuis le cache et a le même budget web, quelle que soit la taille de son chapitre (environ 4,75 $ par chapitre sur le guide IA on-prem, estimé). **La taille décide de la façon dont chaque sujet est cherché** : un chapitre de quarante sujets partage sa douzaine de recherches entre eux |
+| Le web exploré pour les [nouveautés](news.md#les-pistes-depuis-le-web) | Un appel payant par chapitre coché : il cherche sur le web les sujets de son chapitre (environ 12 recherches et 15 pages lues), compare avec tout le guide et garde huit pistes au plus | **Le coût suit le nombre de chapitres** : chaque appel lit tout le guide depuis le cache et a le même budget web, quelle que soit la taille de son chapitre (environ 4,75 $ par chapitre sur le guide IA on-prem, estimé). **La taille décide de la façon dont chaque sujet est cherché** : un chapitre de quarante sujets partage sa douzaine de recherches entre eux |
 | Le contrôle des traductions | Un appel par chapitre : ses pages dans la langue source et leurs miroirs, côte à côte | Peu de chose : le guide est lu une fois en tout ; plus de chapitres, c'est un peu plus de consignes et de réponses |
-| Toute étape qui lit tout le guide, quand il ne tient pas dans la fenêtre du modèle | La relecture croisée, son balayage et le contrôle de cohérence font alors un appel par chapitre, avec les pages que les corrections modifient ([`reading.py`](../src/vault_watch_agent/reading.py)) | Un chapitre doit tenir dans la fenêtre. Un fait énoncé dans deux chapitres n'est plus vu d'une seule lecture : le rapport et la vue du passage disent que le guide a été lu par chapitre |
+| Toute étape qui lit tout le guide, quand il ne tient pas dans la fenêtre du modèle | La relecture croisée, son balayage et le contrôle de cohérence font alors un appel par chapitre, avec les pages que les corrections modifient ([`reading.py`](../../src/vault_watch_agent/reading.py)) | Un chapitre doit tenir dans la fenêtre. Un fait énoncé dans deux chapitres n'est plus vu d'une seule lecture : le rapport et la vue du passage disent que le guide a été lu par chapitre |
 
 Sur le guide IA on-prem avec Claude (une fenêtre d'un million de tokens), le troisième cas n'arrive jamais : le
 guide est lu en entier. Les chapitres y comptent surtout pour l'exploration du web.
@@ -23,7 +23,7 @@ guide est lu en entier. Les chapitres y comptent surtout pour l'exploration du w
 1. **Le manifeste du guide**, quand il les déclare : des tables `[[chapter]]`, chacune avec un nom, ses chemins, et
    `explore = false` pour un chapitre laissé décoché quand le web est exploré. Une page va au premier chapitre qui
    la prend. Les clés, et comment les écrire (à la main, ou à partir d'une proposition d'un modèle relue sur la
-   page « Chapitres ») : [Brancher son guide](connect-your-guide.fr.md#chapter).
+   page « Chapitres ») : [Brancher son guide](connect-your-guide.md#chapter).
 2. **La règle automatique**, pour les pages qu'aucun chapitre déclaré ne prend, et pour un guide qui n'en déclare
    aucun.
 
@@ -69,14 +69,14 @@ mêmes pages font maintenant deux chapitres, deux appels quand le web est explor
 pas savoir que ces pages vont ensemble ; un chapitre déclaré, si.
 
 **Ils sont fixés dans le code**, pas dans le manifeste : `BIG_KB` et `SMALL_KB` dans
-[`chapters.py`](../src/vault_watch_agent/chapters.py). Un guide que la règle découpe mal ne les change pas : il
+[`chapters.py`](../../src/vault_watch_agent/chapters.py). Un guide que la règle découpe mal ne les change pas : il
 déclare ses chapitres, qui l'emportent sur la règle page par page. Le manifeste peut ne déclarer que ce que la règle
 fait mal.
 
 150 Ko sert à deux autres endroits :
 
 - **La proposition du modèle** : il lui est demandé des chapitres d'environ cette taille
-  ([Brancher son guide](connect-your-guide.fr.md#chapter)).
+  ([Brancher son guide](connect-your-guide.md#chapter)).
 - **Un chapitre déclaré de plus de 225 Ko** (une fois et demie 150) est signalé par `vault-watch doctor` et sur la
   page « Chapitres » : un appel sur lui lit et écrit beaucoup. C'est un avertissement, jamais un refus. Le lexique
   du guide IA on-prem (221 Ko) est juste en dessous ; il est déclaré avec `explore = false`, donc ne coûte rien
