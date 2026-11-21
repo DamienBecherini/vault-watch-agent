@@ -283,7 +283,8 @@ const TEXTS = {
         found: (n, c) => n ? `${n} remarque${n > 1 ? "s" : ""} · ${c}` : `Rien à corriger · ${c}`,
         notes: "Doutes, sans correction proposée", source: "source", notFound: "texte introuvable dans la page",
         apply: n => n ? `Appliquer ${n} correction${n > 1 ? "s" : ""} dans mon dossier` : "Ne rien appliquer",
-        failed: "Pas appliquées (la page a changé depuis la vérification) :",
+        failed: "Pas appliquées (leur texte a changé depuis la vérification, par une autre correction ou dans ton dossier) :",
+        overlaps: ids => `reprend le même passage que ${ids} : coche l'une ou l'autre`,
       },
     },
     reportTitle: "Signaler une erreur ou proposer un sujet",
@@ -578,7 +579,8 @@ const TEXTS = {
         found: (n, c) => n ? `${n} finding${n > 1 ? "s" : ""} · ${c}` : `Nothing to fix · ${c}`,
         notes: "Doubts, without a fix proposed", source: "source", notFound: "text not found in the page",
         apply: n => n ? `Apply ${n} fix${n > 1 ? "es" : ""} in my folder` : "Apply nothing",
-        failed: "Not applied (the page changed since the check):",
+        failed: "Not applied (their text changed since the check, by another fix or in your folder):",
+        overlaps: ids => `covers the same passage as ${ids}: tick one or the other`,
       },
     },
     reportTitle: "Report an error or suggest a subject",
@@ -2013,11 +2015,12 @@ function checkFound(c) {
     ${c.error ? `<p class="error-text small">${C.error}${T.colon}${esc(c.error)}</p>` : ""}
     <p class="muted small">${C.found(c.fixes.length, dollars(c.cost))}</p>
     ${Object.entries(byPage).map(([p, fixes]) => `<div class="pair-page"><div class="header"><code>${esc(p)}</code></div>
-      ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok";
-        return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${ok ? " checked" : " disabled"}>
+      ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
+        return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${!ok ? " disabled" : over ? "" : " checked"}>
           <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${esc(f.reason)}${
             f.source_url ? ` · <a href="${esc(f.source_url)}" target="_blank" rel="noopener">${C.source}</a>` : ""}${
-            ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}</p>
+            ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}${
+            over ? ` · <span class="attention-text">${C.overlaps(f.overlaps.join(", "))}</span>` : ""}</p>
           <div class="diff before">${before}</div><div class="diff after">${after || `<span class="muted">—</span>`}</div>
           ${ok ? `<textarea data-fix-text="${esc(f.id)}" spellcheck="true">${esc(f.proposed)}</textarea>` : ""}</div></label>`; }).join("")}
     </div>`).join("")}
@@ -2038,7 +2041,9 @@ function bindCheck(d, boxes) {
     page.querySelectorAll("[data-fix]").forEach(b => { b.onchange = label; });
     page.querySelectorAll("[data-fix-text]").forEach(t => {
       const f = c.fixes.find(x => x.id === t.dataset.fixText);
-      t.oninput = () => { t.previousElementSibling.innerHTML = wordDiff(f.current, t.value)[1]; };
+      const fit = () => { t.style.height = "auto"; t.style.height = `${t.scrollHeight + 4}px`; };
+      fit();
+      t.oninput = () => { t.previousElementSibling.innerHTML = wordDiff(f.current, t.value)[1]; fit(); };
     });
     label();
     $("#check-apply").onclick = async () => {

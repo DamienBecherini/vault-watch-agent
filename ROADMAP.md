@@ -635,7 +635,10 @@ and put back untouched, and its pull request passes the guide's checks.
   Obsidian), then asks here for the other languages to follow; the agent translates what changed, the checks and the
   pull request follow.
 - [x] **H4.2 An optional check of the edits before the sync** (2026-11-21, `proofread.py`: the fixes accepted are
-  written in the guide's folder, as if typed, before the sync starts; not tried on the real guide yet), ticked per run with its estimate: spelling and
+  written in the guide's folder, as if typed, before the sync starts. Tried on the guide the same day, on the
+  subscription: a typo and a wrong date added to `00-lexique/thunderbolt.md` were found by the spelling and the facts
+  (Intel's announcement as the source), the consistency revised the whole passage over them: a fix over the same
+  passage as another is now unticked and says so), ticked per run with its estimate: spelling and
   grammar of the passages changed (the translation model is enough), and, on request, their facts checked on the
   web (true, current, relevant to the page: the reasoning model, with web search, as the cross-check does). Its
   findings shown beside each zone changed, each one to accept (a retouch of the source, committed as the editor's

@@ -80,3 +80,12 @@ def test_the_edits_are_checked_and_the_fixes_accepted_go_into_the_folder(setup, 
     assert "vLLM 0.31 est le minimum conseillé[^1]." in vault.read(page)  # the editor's own text
     plan = c.get("/api/mirrors").json()
     assert plan["check"] is None and [h["page"] for h in plan["hand"]] == [PAGE] and plan["hand"][0]["passages"] == 2
+
+
+def test_a_fix_over_the_same_passage_as_another_says_so():
+    fixes = [{"id": "F1", "page": "a.md", "current": "fondamentalle", "check": "ok"},
+             {"id": "F2", "page": "a.md", "current": "lancé en 2021", "check": "ok"},
+             {"id": "F3", "page": "a.md", "current": "sa limite fondamentalle : lancé en 2021, réservé", "check": "ok"},
+             {"id": "F4", "page": "b.md", "current": "fondamentalle", "check": "ok"},
+             {"id": "F5", "page": "a.md", "current": "fondamentalle", "check": "text-not-found"}]
+    assert [f["overlaps"] for f in proofread.overlapping(fixes)] == [[], [], ["F1", "F2"], [], []]

@@ -124,7 +124,19 @@ def run(folder: Path, changes: list[tuple[str, list[tuple[str, str]]]], checks: 
         fixes += _fixes(folder, "consistency", found, len(fixes))
         notes += [f.problem for f in result.other_findings]
         usage.append(u)
-    return {"fixes": fixes, "notes": notes, "usage": usage}
+    return {"fixes": overlapping(fixes), "notes": notes, "usage": usage}
+
+
+def overlapping(fixes: list[dict]) -> list[dict]:
+    """A fix whose quote holds another fix's quote, or is held by it, on the same page, says so (`overlaps`: the
+    earlier ones): once one is applied, the other's quote is gone. The cross-check often revises a whole passage
+    the spelling and the facts already fixed in parts; the page offers the first ones ticked, the others to choose."""
+    out = []
+    for f in fixes:
+        same = [g["id"] for g in out if g["page"] == f["page"] and g["check"] == "ok" and f["check"] == "ok"
+                and (g["current"] in f["current"] or f["current"] in g["current"])]
+        out.append({**f, "overlaps": same})
+    return out
 
 
 def accept(folder: Path, fixes: list[dict], ids: list[str], edits: dict[str, str], today: str) -> dict:
