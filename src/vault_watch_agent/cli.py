@@ -502,6 +502,8 @@ def main(argv: list[str] | None = None) -> None:
     answer.add_argument("--accept", help="all, none, or ids like C1,C3")
     answer.add_argument("--publish", choices=["yes", "no"])
     answer.add_argument("--retry", action="store_true", help="a run stopped by an error: run again from its last finished step")
+    s.add_argument("--edit", action="append", metavar="ID=FILE", help="with --accept: the text of a correction retouched "
+                   "by you, read from a file (repeat for several); it replaces the proposal and goes through the free checks again")
     st = sub.add_parser("status")
     st.add_argument("thread")
     x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole guide")
@@ -725,6 +727,12 @@ def main(argv: list[str] | None = None) -> None:
             elif args.cmd == "resume":
                 if args.accept is not None:
                     value = args.accept if args.accept in ("all", "none") else args.accept.split(",")
+                    edits = {}
+                    for given in args.edit or []:  # C3=path: the text retouched, read from a file
+                        cid, _, path = given.partition("=")
+                        edits[cid.strip()] = Path(path).read_text(encoding="utf-8").rstrip("\n")
+                    if edits:
+                        value = {"accepted": value, "edits": edits}
                 else:
                     value = args.publish == "yes"
                 graph.invoke(Command(resume=value), config)

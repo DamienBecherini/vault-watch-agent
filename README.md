@@ -199,6 +199,7 @@ run started here can be resumed from the command line, and the reverse. The serv
 ```bash
 vault-watch run --watch-json watch.json     # or --issue 50 for a forge issue; stops at the review
 vault-watch resume <run> --accept C1,C3     # or all / none; applies, translates, checks, stops again
+                     --edit C3=my-text.md   # a proposal retouched by you before it applies
 vault-watch resume <run> --publish yes      # push the branch and open the pull request
 vault-watch status <run>
 vault-watch fix <run> --findings errors.txt # reported errors → checked corrections, same review and PR

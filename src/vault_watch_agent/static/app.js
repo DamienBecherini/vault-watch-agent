@@ -193,6 +193,9 @@ const TEXTS = {
     noNewPage: "Cette passe ajoute dans les pages existantes : elle n'écrit jamais de nouvelle page.",
     unchanged: n => `Pistes sans modification, et pourquoi (${n})`,
     pagesToWrite: n => n ? `${n} piste(s) demanderaient une page à elles. À toi de décider de les écrire :` : "Aucune de ses pistes n'en demandait une.",
+    retouch: "Retoucher", retouchBack: "Revenir à la proposition", retouched: "retouchée",
+    retouchHelp: "Ton texte remplace la proposition. Les contrôles gratuits le revérifient ; aucun modèle n'est rappelé. La proposition reste dans le rapport.",
+    retouchProblem: check => `ne s'appliquera pas : ${check}`, retouchChecking: "vérification…",
     reviewHelp: "Coche ce qui doit être appliqué. Les corrections liées (une phrase et sa note, par exemple) forment un groupe : elles se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier.",
     group: g => `Groupe ${g}`, groupLeftOut: " · écarté : un membre ne s'applique pas",
     noCorrection: "Aucune correction proposée.",
@@ -443,6 +446,9 @@ const TEXTS = {
     noNewPage: "This run adds to existing pages: it never writes a new page.",
     unchanged: n => `Leads without an edit, and why (${n})`,
     pagesToWrite: n => n ? `${n} lead(s) would need a page of their own. Writing them is your decision:` : "None of its leads asked for one.",
+    retouch: "Retouch", retouchBack: "Back to the proposal", retouched: "retouched",
+    retouchHelp: "Your text replaces the proposal. The free checks run again on it; no model is called again. The proposal stays in the report.",
+    retouchProblem: check => `will not apply: ${check}`, retouchChecking: "checking…",
     reviewHelp: "Tick what should be applied. Related corrections (a sentence and its footnote, for instance) form a group and are ticked together. A group with a member that cannot apply is left out whole.",
     group: g => `Group ${g}`, groupLeftOut: " · left out: a member does not apply",
     noCorrection: "No correction proposed.",
@@ -996,9 +1002,14 @@ function excerpts(list) {
         <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(row).join("")}</div></div>`).join("")}</div>`;
 }
 
+// The texts retouched in the review, by run and correction: kept while the page is open, sent with the review
+const RETOUCH = {};
+const mineOf = (r, id) => RETOUCH[r.thread]?.[id];
+
 function correctionCard(c, r) {
   const valid = c.check === "ok";
-  const [before, after] = wordDiff(c.current, c.proposed);
+  const mine = mineOf(r, c.id), text = mine ?? c.proposed;
+  const [before, after] = wordDiff(c.current, text);
   const sources = (c.item_ids || [c.item_id]).map(id => r.items[id]).filter(Boolean)
     .map(i => i.url ? extLink(i.url, esc(i.title)) : esc(i.title)).join(" · ");
   return `<div class="card correction${valid ? "" : " rejected"}">
@@ -1010,9 +1021,15 @@ function correctionCard(c, r) {
       ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${esc(c.review)}</p>` : ""}
       ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${esc(c.warning)}</p>` : ""}
       ${c.lost?.length ? `<p class="small">⚠️ ${T.lostValues}${T.colon}${esc(c.lost.join(", "))}</p>` : ""}
-      <div class="diff before" lang="fr">${before}</div>
-      <div class="diff after" lang="fr">${after || `<span class="muted">${T.removedWhole}</span>`}</div>
-      <div class="muted small">${T.from} ${sources || "—"}${c.source_url ? ` · ${extLink(c.source_url, "source")}` : ""}</div>
+      <div class="diff before" lang="fr" data-before="${c.id}">${before}</div>
+      <div class="diff after" lang="fr" data-after="${c.id}">${after || `<span class="muted">${T.removedWhole}</span>`}</div>
+      ${c.retouchable ? `<div class="retouch" data-retouch="${c.id}" ${mine === undefined ? "hidden" : ""}>
+        <p class="muted small">${T.retouchHelp}</p>
+        <textarea data-text="${c.id}" lang="fr" spellcheck="true">${esc(text)}</textarea>
+        <p class="small"><span data-retouch-state="${c.id}"></span>
+          <button type="button" class="small-button" data-retouch-back="${c.id}">${T.retouchBack}</button></p></div>` : ""}
+      <div class="muted small">${T.from} ${sources || "—"}${c.source_url ? ` · ${extLink(c.source_url, "source")}` : ""}
+        ${c.retouchable ? ` · <button type="button" class="small-button" data-retouch-open="${c.id}"${mine === undefined ? "" : " hidden"}>✎ ${T.retouch}</button>` : ""}</div>
     </div>
   </div>`;
 }
@@ -1063,13 +1080,70 @@ function viewReview(r, title) {
     count();
   });
   count();
-  const send = async accept => {
+  const send = async (accept, edits = {}) => {
     page.querySelectorAll(".bar button").forEach(b => b.disabled = true);
-    await api(`/api/runs/${encodeURIComponent(r.thread)}/review`, { accept });
+    await api(`/api/runs/${encodeURIComponent(r.thread)}/review`, { accept, edits });
+    delete RETOUCH[r.thread];
     route();
   };
-  $("#apply").onclick = () => send(boxes.filter(i => i.checked).map(i => i.dataset.id));
+  bindRetouches(r, boxes);
+  const edits = () => Object.fromEntries(Object.entries(RETOUCH[r.thread] || {})
+    .filter(([id, text]) => text !== r.corrections.find(c => c.id === id)?.proposed));
+  $("#apply").onclick = () => send(boxes.filter(i => i.checked).map(i => i.dataset.id), edits());
   $("#nothing").onclick = () => confirm(T.confirmNothing) && send("none");
+}
+
+// « Retouch » on the cards of a review: the text follows the typing in the diff, the free checks are asked a moment
+// after the last key (POST /api/runs/<run>/retouch), and a retouched correction is ticked with its group
+function bindRetouches(r, boxes) {
+  const mine = RETOUCH[r.thread] ||= {};
+  const proposal = id => r.corrections.find(c => c.id === id);
+  const timers = {};
+  const show = (id, text) => {
+    const c = proposal(id), [before, after] = wordDiff(c.current, text);
+    page.querySelector(`[data-before="${id}"]`).innerHTML = before;
+    page.querySelector(`[data-after="${id}"]`).innerHTML = after || `<span class="muted">${T.removedWhole}</span>`;
+  };
+  const ask = id => {
+    clearTimeout(timers[id]);
+    const state = page.querySelector(`[data-retouch-state="${id}"]`);
+    if (mine[id] === undefined || mine[id] === proposal(id).proposed) { state.innerHTML = ""; return; }
+    state.innerHTML = `<span class="muted">${T.retouchChecking}</span>`;
+    timers[id] = setTimeout(async () => {
+      const said = await api(`/api/runs/${encodeURIComponent(r.thread)}/retouch`, { edits: { [id]: mine[id] } }).catch(e => ({ [id]: { check: e.message } }));
+      const x = said[id] || {};
+      state.innerHTML = `<span class="badge ${x.check === "ok" ? "ok" : "error"}">${x.check === "ok" ? T.retouched : esc(T.retouchProblem(x.check))}</span>${
+        x.warning ? ` <span class="small">⚠️ ${T.sourceMissing}${T.colon}${esc(x.warning)}</span>` : ""}`;
+    }, 500);
+  };
+  const fit = t => { t.style.height = "auto"; t.style.height = `${t.scrollHeight + 4}px`; };  // the whole text, no inner scroll
+  const tick = id => {
+    const box = boxes.find(b => b.dataset.id === id);
+    if (box && !box.disabled && !box.checked) { box.checked = true; box.onchange(); }
+  };
+  page.querySelectorAll("[data-retouch-open]").forEach(b => b.onclick = () => {
+    const id = b.dataset.retouchOpen;
+    mine[id] = mine[id] ?? proposal(id).proposed;
+    page.querySelector(`[data-retouch="${id}"]`).hidden = false;
+    b.hidden = true;
+    fit(page.querySelector(`[data-text="${id}"]`));
+    page.querySelector(`[data-text="${id}"]`).focus();
+  });
+  page.querySelectorAll("[data-text]").forEach(t => {
+    const id = t.dataset.text;
+    t.oninput = () => { mine[id] = t.value; show(id, t.value); tick(id); ask(id); fit(t); };
+    if (!t.closest("[hidden]")) fit(t);
+    ask(id);
+  });
+  page.querySelectorAll("[data-retouch-back]").forEach(b => b.onclick = () => {
+    const id = b.dataset.retouchBack;
+    delete mine[id];
+    page.querySelector(`[data-text="${id}"]`).value = proposal(id).proposed;
+    page.querySelector(`[data-retouch="${id}"]`).hidden = true;
+    page.querySelector(`[data-retouch-open="${id}"]`).hidden = false;
+    show(id, proposal(id).proposed);
+    ask(id);
+  });
 }
 
 async function viewPublish(r, title) {

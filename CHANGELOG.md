@@ -5,6 +5,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **A proposal retouched in the review** (H2 of phase H): « Retouch » on a card makes its text editable, the diff
+  following; the free checks run again on it while typing (`POST /api/runs/<run>/retouch`, `graph.retouched`), and
+  the review sends the texts with the ids (`{"accept": [...], "edits": {"C3": "..."}}`; `resume --edit C3=file`).
+  The editor's text applies and its mirror follows; the model's is kept (`proposed_model`) and in the report; the
+  pull request marks the correction ✍️ and counts the retouches.
 - **Sync the languages** (H1 of phase H): the page « Languages » and `vault-watch mirror` list the source pages ahead
   of their mirror (from git: the text changed since the last commit of the mirror, not the dates) and those changed
   in the guide's folder and not committed; the pages ticked are translated, passage by passage, in a run that ends

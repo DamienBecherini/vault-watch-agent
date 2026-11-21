@@ -77,6 +77,14 @@ Ce qu'il montre, de haut en bas :
 - **Une carte par correction** : son numéro, sa gravité et sa page ; la source sur laquelle elle s'appuie ; le
   verdict et la raison de la relecture croisée (« keep », « revised », « added by the cross-check for C1, C3 »,
   « added by the sweep ») ; un diff mot à mot de la page. Une correction qui ne peut pas s'appliquer dit pourquoi.
+- **« Retoucher »** sur une carte : son texte proposé devient modifiable, le diff suit la frappe, et les contrôles
+  gratuits repassent sur votre texte un instant après la dernière touche (un texte qui ne change rien, une note
+  perdue, une version qu'aucune de ses notes ne mentionne). La citation du texte actuel ne change pas : votre texte
+  s'applique là où le modèle a trouvé le passage. Aucun modèle n'est rappelé : votre texte fait foi, les miroirs le
+  traduisent, et la pull request marque la correction ✍️ ; le rapport garde la proposition du modèle à côté de la
+  vôtre. Une correction dont la citation est introuvable, ou en conflit avec une autre, ne se retouche pas : aucun
+  texte ne répare l'endroit où elle s'applique. En ligne de commande :
+  `vault-watch resume <passage> --accept C1,C3 --edit C3=mon-texte.md`.
 - **Les groupes** : les corrections qui n'ont de sens qu'ensemble (une phrase et sa note, un chiffre et le tableau
   qui le reprend) se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier :
   en appliquer la moitié laisserait le guide incohérent.

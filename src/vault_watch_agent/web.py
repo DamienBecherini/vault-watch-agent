@@ -44,7 +44,7 @@ from . import chapters as chapters_mod
 from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, sourcecheck, sources, steps, store, vault, verify
 from . import guide as guide_mod
 from . import watches as watches_mod
-from .graph import Deps, build, usage_line
+from .graph import Deps, build, retouchable, retouched, usage_line
 
 STATIC = Path(__file__).parent / "static"
 AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
@@ -131,6 +131,11 @@ class Analyse(BaseModel):
 
 class Review(BaseModel):
     accept: list[str] | str  # "all", "none" or ids
+    edits: dict[str, str] = {}  # the texts the editor retouched in the review: {id: text}
+
+
+class Retouch(BaseModel):
+    edits: dict[str, str]  # {id: text}, to check before the review is sent
 
 
 class Publish(BaseModel):
@@ -679,7 +684,8 @@ def create_app(settings: Settings) -> FastAPI:
                     "error": job.error} if job else None,
             "triage": {a: sum(1 for d in decisions if d["action"] == a) for a in ("correct", "addition", "drop")},
             "items": items,
-            "corrections": v.get("corrections", []),
+            # each with whether the editor can retouch its text (graph.retouchable)
+            "corrections": [{**c, "retouchable": retouchable(c)} for c in v.get("corrections", [])],
             "additions": [{**items.get(d["item_id"], {}), "reason": d["reason"]} for d in decisions if d["action"] == "addition"],
             "findings": v.get("findings", []),
             "finding_excerpts": v.get("finding_excerpts", {}),
@@ -768,8 +774,19 @@ def create_app(settings: Settings) -> FastAPI:
         accept = body.accept.strip() if isinstance(body.accept, str) else body.accept
         answer = accept if accept in ("all", "none") else [
             i.strip() for i in (accept.split(",") if isinstance(accept, str) else accept) if i.strip()]
-        start(thread, "review", "watch", lambda g, job: follow(g, job, Command(resume=answer)))
+        value = {"accepted": answer, "edits": body.edits} if body.edits else answer
+        start(thread, "review", "watch", lambda g, job: follow(g, job, Command(resume=value)))
         return {"thread": thread}
+
+    @app.post("/api/runs/{thread}/retouch")
+    def retouch(thread: str, body: Retouch):
+        """What the free checks say of texts retouched in the review, before it is sent: for each id, its check and
+        its warning. Nothing is kept: the review sends the texts again."""
+        v = viewer.get_state(config(thread)).values
+        if not v.get("corrections"):
+            raise HTTPException(404, f"no correction to retouch in {thread}")
+        out = retouched(settings.vault, v["corrections"], body.edits, v.get("mode"))
+        return {c["id"]: {"check": c["check"], "warning": c.get("warning", "")} for c in out if c["id"] in body.edits}
 
     @app.post("/api/runs/{thread}/publish")
     def publish(thread: str, body: Publish):

@@ -203,6 +203,7 @@ au choix. Un passage lancé ici peut être repris en ligne de commande, et l'inv
 ```bash
 vault-watch run --watch-json watch.json     # ou --issue 50 pour une issue de la forge ; s'arrête à la relecture
 vault-watch resume <passage> --accept C1,C3 # ou all / none ; applique, traduit, contrôle, s'arrête de nouveau
+                         --edit C3=mon-texte.md # une proposition retouchée par vous avant de s'appliquer
 vault-watch resume <passage> --publish yes  # pousse la branche et ouvre la pull request
 vault-watch status <passage>
 vault-watch fix <passage> --findings erreurs.txt  # erreurs signalées → corrections contrôlées, même relecture et PR

@@ -234,9 +234,18 @@ def build(deps: Deps, checkpointer=None):
                     for c in corrections
                 ],
                 "question": "Which corrections to apply? 'all' (valid ones), 'none', or ids like C1,C3. "
-                "A group is applied whole: naming one member accepts the others.",
+                "A group is applied whole: naming one member accepts the others. "
+                "Or {'accepted': [...], 'edits': {'C3': 'the text retouched'}}.",
             }
         )
+        # The editor's texts, retouched in the review: they replace the proposals, go through the free checks again
+        # and are kept beside the model's (`proposed_model`); no model is called again
+        edits = {}
+        if isinstance(answer, dict):
+            edits, answer = answer.get("edits") or {}, answer.get("accepted")
+        if edits:
+            corrections = retouched(deps.vault, corrections, edits, state.get("mode"))
+            note_retouches(state.get("report_path", ""), corrections)
         if answer == "all":
             asked = {c["id"] for c in corrections}
         elif answer == "none" or not answer:
@@ -251,7 +260,7 @@ def build(deps: Deps, checkpointer=None):
             # The watch is handled: its issue closes (a PR closes it on merge otherwise, see pr_body)
             forge.get().close_issue(deps.repo, state["issue"],
                                     f"Reviewed with vault-watch-agent: no correction applied ({len(corrections)} proposed).")
-        return {"accepted": accepted}
+        return {"accepted": accepted, **({"corrections": corrections} if edits else {})}
 
     # -- apply ----------------------------------------------------------------
     def apply(state: WatchState) -> dict:
@@ -490,6 +499,55 @@ def mark_unsafe(corrections: list[dict], trims: bool = False) -> None:
         lost = set() if trims else set(FOOTNOTE_DEF.findall(c["current"])) - added[c.get("group") or c["id"]]
         if lost:
             c["check"] = "drops footnote " + ", ".join(f"[^{n}]" for n in sorted(lost))
+
+
+RETOUCHABLE = ("ok", "no change")  # and « drops footnote … »: what the text proposed decides, not where it applies
+
+
+def retouchable(c: dict) -> bool:
+    """A correction whose text the editor can retouch: one that applies, or that fails on its new text only. A quote
+    not found, a conflict, a rejection by the cross-check are about where it applies or whether: no text mends them."""
+    return c["check"] in RETOUCHABLE or c["check"].startswith("drops footnote")
+
+
+def retouched(vault_dir: Path, corrections: list[dict], edits: dict[str, str], mode: str | None = None) -> list[dict]:
+    """The corrections with the texts the editor retouched at the review. Each retouched one keeps the model's text
+    (`proposed_model`, its first one), takes the editor's as `proposed`, and goes through the free checks again: the
+    quote still found once (it is unchanged), a text that changes something, the footnotes it removes put back
+    elsewhere in its group (for trims, the notes left without a sentence), a version none of its footnotes mentions.
+    The others are left as they were. A text identical to the proposal is no retouch."""
+    out = [dict(c) for c in corrections]
+    changed = []
+    for c in out:
+        text = (edits.get(c["id"]) or "").replace("\r\n", "\n")
+        if c["id"] not in edits or not retouchable(c) or text == c["proposed"]:
+            continue
+        c.setdefault("proposed_model", c["proposed"])
+        c["proposed"], c["edited"] = text, True
+        c["check"] = vault.check(vault_dir, c["page"], c["current"])
+        changed.append(c)
+    if changed:
+        mark_conflicts(vault_dir, out, mode == "compact")
+        if mode not in ("compact", "translation"):
+            unsourced = vault.unsourced_versions(vault_dir, out)
+            for c in changed:
+                c["warning"] = unsourced.get(c["id"], "")
+    return out
+
+
+def note_retouches(report: str, corrections: list[dict]) -> None:
+    """The report of the run, written before the review, gets the corrections retouched there: the model's text and
+    the editor's, side by side."""
+    done = [c for c in corrections if c.get("edited")]
+    if not report or not done or not Path(report).is_file():
+        return
+    lines = ["", "## Retouched at the review", ""]
+    for c in done:
+        lines += [f"### {c['id']} `{c['page']}` ({c['check']})", "", "Proposed:", "",
+                  *[f"> {line}" for line in c["proposed_model"].splitlines()], "", "Retouched:", "",
+                  *[f"> {line}" for line in c["proposed"].splitlines()], ""]
+    with open(report, "a", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 
 
 def mark_conflicts(vault_dir: Path, corrections: list[dict], trims: bool = False) -> None:
@@ -731,8 +789,12 @@ def _mirror_pr_body(state: WatchState) -> str:
 def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str:
     applied = [c for c in state["corrections"] if c["id"] in state.get("applied", [])]
     cut = lambda text: text if not why or len(text) <= why else text[:why].rstrip() + "…"  # noqa: E731
-    rows = "\n".join(f"| {c['id']} | {c['severity']} | `{c['page']}` | {_cell(cut(c['rationale']))} | {c['source_url']} |"
-                     for c in applied[:rows_kept])
+    rows = "\n".join(f"| {c['id']}{' ✍️' if c.get('edited') else ''} | {c['severity']} | `{c['page']}` | "
+                     f"{_cell(cut(c['rationale']))} | {c['source_url']} |" for c in applied[:rows_kept])
+    retouches = sum(1 for c in applied if c.get("edited"))
+    if retouches:
+        rows += (f"\n\n✍️ {retouches} correction(s) retouched by the editor at the review: the text applied is theirs, "
+                 "the model's proposal is in the report of the run.")
     if rows_kept < len(applied):
         rows += (f"\n\n{len(applied) - rows_kept} more, {applied[rows_kept]['id']} to {applied[-1]['id']}: the commit "
                  "message of the branch names every one.")

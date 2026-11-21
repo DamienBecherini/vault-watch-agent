@@ -77,6 +77,13 @@ What it shows, top to bottom:
 - **One card per correction**: its number, its severity and its page; the source it relies on; the cross-check's
   verdict and reason (« keep », « revised », « added by the cross-check for C1, C3 », « added by the sweep »); a
   word-level diff of the page. A correction that cannot apply says why.
+- **« Retouch »** on a card: its proposed text becomes editable, the diff follows as you type, and the free checks
+  run again on your text a moment after the last key (a text that changes nothing, a footnote dropped, a version
+  none of its footnotes mentions). The quote of the current text does not change, so your text applies where the
+  model found the passage. No model is called again: your text stands, the mirrors translate it, and the pull
+  request marks the correction ✍️; the report keeps the model's proposal beside yours. A correction whose quote is
+  not found, or that conflicts with another, cannot be retouched: no text mends where it applies. On the command
+  line: `vault-watch resume <run> --accept C1,C3 --edit C3=my-text.md`.
 - **The groups**: corrections that only make sense together (a sentence and its footnote, a figure and the table
   that repeats it) are ticked together. A group with a member that cannot apply is left out whole: applying half
   of it would leave the guide inconsistent.

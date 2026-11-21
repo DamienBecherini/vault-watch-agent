@@ -570,15 +570,16 @@ their English mirror only, with `audit:i18n:strict` passing.
 
 ### H2. Retouch a proposal in the review (1.5.0)
 
-- [ ] **H2.1 The text proposed, editable in its card**, the word-level diff updated as one types; `current` (the
+- [x] **H2.1 The text proposed, editable in its card**, the word-level diff updated as one types; `current` (the
   quote) never editable, so the edit applies where the model found it.
-- [ ] **H2.2 The answer of the review carries the edits** (`{"accepted": [...], "edits": {"C3": "..."}}`; a plain
+- [x] **H2.2 The answer of the review carries the edits** (`{"accepted": [...], "edits": {"C3": "..."}}`; a plain
   list or « all » still accepted, from the command line or an older page). The free checks run again on the text
   retouched (no change, a footnote dropped, a version none of its footnotes mentions); no model is called again:
   the human's text stands.
-- [ ] **H2.3 Both texts kept.** The report and the pull request say « retouched at the review », with the model's
+- [x] **H2.3 Both texts kept.** The report and the pull request say « retouched at the review », with the model's
   proposal; the run keeps both, so `eval` and the costs page can count how many corrections the editor rewrote, and
-  how much.
+  how much. (2026-11-21: kept in the state, `proposed_model` and `edited`, and counted in the pull request; the count
+  in `eval` and on the pages is left for later.)
 
 Done when: a watch of the IA on-prem guide goes to a pull request with one correction retouched at the review, its
 English mirror following the retouched text.
