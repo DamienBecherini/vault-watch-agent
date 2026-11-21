@@ -4,8 +4,9 @@
 
 A watch lists what changed in your guide's field over a few days. The agent can collect it itself: you list the
 feeds to read in a `feeds.json`, and `vault-watch collect` gathers the items of the window, drops the routine by
-rules, keeps the release notes and advisory texts, and writes a [`watch.json`](watch-format.md). No model is called:
-a collection costs nothing.
+rules, keeps the release notes and advisory texts, and writes a [`watch.json`](watch-format.md). An item kept whose
+feed gives no text (a blog post, a press release, a model page) gets the start of its own page instead: the model
+reads the primary source rather than a title alone. No model is called: a collection costs nothing.
 
 ```bash
 vault-watch --guide ../my-guide collect                  # the last 8 days; Markdown report on stdout

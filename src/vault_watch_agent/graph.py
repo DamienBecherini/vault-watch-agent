@@ -19,7 +19,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, quotes, reading, retouch, steps, vault
+from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, quotes, reading, retouch, steps, vault, verify
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -703,7 +703,8 @@ def render_report(state: WatchState, proposals: list[dict], corrections: list[di
         "| :-- | :-- |",
         f"| Triage | {len(items)} items → correct {count['correct']} · addition {count['addition']} · drop {count['drop']} |",
         f"| Proposals | Critical {sev['Critical']} · Major {sev['Major']} · Minor {sev['Minor']} |",
-        f"| Claims past « Recheck by » | {len(state.get('claims_due', []))} (listed below, not re-checked yet) |",
+        f"| Claims past « Recheck by » | {len(state.get('claims_due', []))} (listed below; re-checked on the web by "
+        f"the check « claims » of « Check the guide », ≈ {verify.CLAIM_USD} $ each) |",
         *([f"| Cross-check | {state['reading']['note']} |"] if state.get("reading") else []),
         f"| Model usage | {usage_line(state.get('usage', []))} |",
         *_weight_rows(corrections),

@@ -34,8 +34,12 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
   becomes useful past the context budget. Re-run B1 to compare.
 - [x] **C2. Replace, do not pile up** (2026-11-19, `prompts.REPLACE` in the proposals and the fix runs). A page states the current fact; a correction replaces the old one,
   history stays in Git and in the source note. Say it in the instructions.
-- [ ] **C3. Web verification when cached notes are empty** (vLLM 0.33 and Mistral Large 4 had none), with a
-  web fetch tool limited to tier A domains; also re-checks the watchlist claims past their date (12 today).
+- [x] **C3. Web verification when cached notes are empty** (2026-11-21). Measured first: since 1.3.0 the agent's
+  own collector keeps the release notes (vLLM 0.34: 4,000 characters; vLLM 0.33 had none with the guide's old
+  script), so the items still empty were blog posts, press releases and model pages (20 of 115 kept on 19/11, their
+  feed gives a title only). Each now gets the start of its own page, read at collection without a model: the
+  primary source, free, instead of a web tool for the model. The watchlist claims past their date are re-checked on
+  the web by the check « claims » of « Check the guide » (E8); the report of a watch points to it.
 
 ## Phase D — discovery
 
@@ -614,6 +618,17 @@ or skips it. The graph becomes `review → apply → ⏸ retouch → mirror → 
 
 Done when: a run of the IA on-prem guide is retouched in Obsidian at the pause, with a draft of the editor set aside
 and put back untouched, and its pull request passes the guide's checks.
+
+### H4. The page « Languages » as the editor's way to publish (proposed by the user, 2026-11-21)
+
+- [ ] **H4.1 Say what the page is for**, at its top and in the docs: the editor writes in their own language (in
+  Obsidian), then asks here for the other languages to follow; the agent translates what changed, the checks and the
+  pull request follow.
+- [ ] **H4.2 An optional check of the edits before the sync**, ticked per run with its estimate: spelling and
+  grammar of the passages changed (the translation model is enough), and, on request, their facts checked on the
+  web (true, current, relevant to the page: the reasoning model, with web search, as the cross-check does). Its
+  findings shown beside each zone changed, each one to accept (a retouch of the source, committed as the editor's
+  before the translation) or to leave.
 
 ## Known issues and checks to do
 

@@ -316,3 +316,46 @@ def test_a_watched_page_tells_when_it_no_longer_says_what_it_said(tmp_path):
         collect.check({"feeds": [{"id": "p", "domain": "d", "type": "page"}]})
     with pytest.raises(collect.CollectError, match="watch is not a valid regular expression"):
         collect.check({"feeds": [{"id": "p", "domain": "d", "type": "page", "url": "https://x.example", "watch": "("}]})
+
+
+def test_an_item_without_text_gets_the_start_of_its_own_page(monkeypatch):
+    feed = {"id": "blog", "domain": "models", "type": "rss", "url": "https://blog.example/feed", "tier": "A"}
+    xml = """<?xml version="1.0"?><rss version="2.0"><channel>
+<item><title>A new model</title><link>https://blog.example/new-model</link>
+  <pubDate>Tue, 17 Nov 2026 09:00:00 GMT</pubDate></item>
+<item><title>A page that cannot be read</title><link>https://blog.example/gone</link>
+  <pubDate>Tue, 17 Nov 2026 08:00:00 GMT</pubDate></item>
+</channel></rss>"""
+    page = "<html><nav>Menu</nav><main><h1>A new model</h1><p>" + "It runs on 24 GB of VRAM. " * 12 + "</p></main></html>"
+
+    def get(url, **kw):
+        if url == feed["url"]:
+            return xml
+        if url.endswith("/new-model"):
+            return page
+        raise RuntimeError("HTTP 404")
+
+    monkeypatch.setattr("vault_watch_agent.webtools.public", lambda url: None)  # no name lookup in a test
+    items = by_title(Collector(feeds=[feed], get=get, now=lambda: NOW).collect(days=8))
+    notes = items["A new model"]["notes"]
+    assert notes.startswith("(read from https://blog.example/new-model)\n# A new model")
+    assert "24 GB of VRAM" in notes and "Menu" not in notes
+    assert "notes" not in items["A page that cannot be read"]
+    off = by_title(Collector(feeds=[feed], get=get, now=lambda: NOW, read_pages=False).collect(days=8))
+    assert "notes" not in off["A new model"]
+
+
+def test_a_repository_gives_its_readme_and_a_video_page_is_not_read(monkeypatch):
+    monkeypatch.setattr("vault_watch_agent.webtools.public", lambda url: None)
+    asked = []
+
+    def get(url, **kw):
+        asked.append(url)
+        if url == "https://raw.githubusercontent.com/acme/tool/HEAD/README.md":
+            return "# Tool\n\n" + "Runs a 7B model on a laptop GPU. " * 10
+        return "<html><nav>Skip to content</nav><p>" + "menus " * 60 + "</p></html>"
+
+    c = Collector(feeds=[], get=get, now=lambda: NOW)
+    notes = c.page_notes("https://github.com/acme/tool")
+    assert notes.startswith("(read from https://github.com/acme/tool)\n# Tool") and "laptop GPU" in notes
+    assert c.page_notes("https://www.youtube.com/watch?v=abc") == "" and not any("youtube" in u for u in asked)

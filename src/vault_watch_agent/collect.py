@@ -17,9 +17,11 @@ Atom), youtube, huggingface-author, and two discovery types, huggingface-trendin
   - Hugging Face quantized variants, adapters, and third-party fine-tunes found by discovery;
   - anything whose URL is in the guide's list of items already seen.
 High and Critical advisories not covered by a floor are `urgent`. The notes of kept items (release notes, advisory
-texts) are cached in the watch so that the model does not fetch them again.
+texts) are cached in the watch so that the model does not fetch them again; a kept item its feed gives without
+text (a blog post, a press release, a model page) gets the start of its own page instead (`page_notes`).
 
-Only the standard library: the reusable workflow installs nothing else to collect.
+Only the standard library to read the feeds; the pages of items without text are read with the agent's page reader
+(`webtools`), installed with it.
 """
 
 from __future__ import annotations
@@ -37,7 +39,7 @@ from functools import cmp_to_key
 from pathlib import Path
 from typing import Callable
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlsplit
 from urllib.request import Request, urlopen
 
 from . import __version__
@@ -54,6 +56,8 @@ PAGE_CHARS = 40_000    # of text kept, for a page watched whole
 PAGE_CUMULATE = 30     # days: changes that close together are told as one, from what the page said before them
 # Shown last, as leads: discovery feeds, and tier C sources (a lead, never a citation).
 LEAD_DOMAINS = ("discovery", "signals")
+PAGE_TEXT_MIN = 200    # characters: less is a page that could not be read (a sign-in wall, a script-only page)
+SCRIPT_ONLY_HOSTS = ("youtube.com", "youtu.be", "m.youtube.com")  # pages whose text is drawn by scripts: menus only
 
 
 class CollectError(ValueError):
@@ -306,6 +310,7 @@ class Collector:
     previous: dict[str, dict] = field(default_factory=dict)  # the watched pages as the last watch left them
     pages: dict[str, dict] = field(default_factory=dict)     # as this collection leaves them (the watch's `pages`)
     triage_on: bool = True
+    read_pages: bool = True  # a kept item whose feed gives no text: its own page is read, its start kept as notes
     get: Callable | None = None                             # (url, as_json=, github=, token=) -> text or JSON; http_get
     now: Callable[[], datetime] | None = None               # the clock (tests)
 
@@ -514,12 +519,41 @@ class Collector:
         out = []
         for i in fresh[: self.max_items]:
             verdict, reason, urgent = self.triage(feed, i)
+            if verdict == "keep" and not (i.get("notes") or "").strip() and self.read_pages:
+                i = {**i, "notes": self.page_notes(i.get("url"))}
             rest = {k: v for k, v in i.items() if k not in ("tags", "notes", "vulns")}
             out.append({"feed": feed["id"], "domain": "discovery" if feed.get("discovery") else feed["domain"],
                         **({"tier": feed["tier"]} if "tier" in feed else {}), **rest,
                         "triage": verdict, "reason": reason, "urgent": urgent,
                         **({"notes": i["notes"]} if verdict == "keep" and i.get("notes") else {})})
         return out
+
+    def page_notes(self, url) -> str:
+        """The start of the readable text of an item's own page, for an item its feed gives without text (a blog
+        post, a press release, a model page): what the run reads instead of nothing, from the primary source and
+        without a model. "" when the page cannot be read (an error, a private address, too little text)."""
+        from . import webtools  # its page reader (httpx, installed with the agent): only when a page is read
+
+        url = str(url or "")
+        host = (urlsplit(url).hostname or "").removeprefix("www.")
+        if host in SCRIPT_ONLY_HOSTS:
+            return ""
+        # A repository's page: its README as written, not the page around it (menus, file list)
+        repo = re.fullmatch(r"https://github\.com/([\w.-]+)/([\w.-]+)/?", url)
+        tries = [f"https://raw.githubusercontent.com/{repo[1]}/{repo[2]}/HEAD/README.md"] if repo else []
+        body = ""
+        for address in [*tries, url]:
+            try:
+                webtools.public(address)
+                body = self._get(address)
+                break
+            except Exception:  # noqa: BLE001 - the next address, else the item stays as its feed gave it
+                continue
+        if not body:
+            return ""
+        body = str(body).lstrip("\ufeff")  # a README saved with a byte order mark
+        text = webtools.readable(body)[1] if "<" in body[:3000] else body.strip()
+        return cut(f"(read from {url})\n{text}", NOTES_MAX) if len(text) >= PAGE_TEXT_MIN else ""
 
     def selected(self, only: set[str] | None = None) -> list[dict]:
         return [f for f in self.feeds if not only or f["domain"] in only]

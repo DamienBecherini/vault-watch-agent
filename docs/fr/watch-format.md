@@ -50,7 +50,7 @@ Les autres clés (comptes, version du collecteur) sont permises et ignorées.
 | `reason` | non | Pourquoi le collecteur l'a retenu ou écarté, en une ligne. |
 | `urgent` | non | `true` pour un avis de sécurité à traiter avant les autres : il passe en tête du passage. |
 | `severity` | non | La gravité donnée par l'avis lui-même (`Critical`, `High`…). |
-| `notes` | non | Ce que le modèle lit de l'élément : les notes de version, le texte de l'avis, mis en cache à la collecte. Plus elles contiennent de faits (versions, dates, chiffres), moins le modèle devine. Coupées à 4 000 caractères. Sans `notes`, `summary` est lu. |
+| `notes` | non | Ce que le modèle lit de l'élément : les notes de version, le texte de l'avis, mis en cache à la collecte ; pour un élément que son flux donne sans texte, le début de sa propre page (précédé de `(read from <url>)`). Plus elles contiennent de faits (versions, dates, chiffres), moins le modèle devine. Coupées à 4 000 caractères. Sans `notes`, `summary` est lu. |
 | `feed`, `domain` | non | De quel flux et de quelle partie du guide vient l'élément ; affichés dans le rapport. |
 | `tier` | non | La confiance due à la source : `A` primaire (notes de version, page de l'éditeur, avis), `B` secondaire réputée, `C` simple piste. |
 

@@ -49,7 +49,7 @@ Other keys (counts, the collector's version) are allowed and ignored.
 | `reason` | no | Why the collector kept or dropped it, one line. |
 | `urgent` | no | `true` for a security advisory to handle before the others: they come first in the run. |
 | `severity` | no | The advisory's own severity (`Critical`, `High`…), as the source gives it. |
-| `notes` | no | What the model reads about the item: the release notes, the advisory's text, cached when the watch was collected. The more facts they hold (versions, dates, figures), the less the model guesses. Cut at 4,000 characters. `summary` is read when there are no `notes`. |
+| `notes` | no | What the model reads about the item: the release notes, the advisory's text, cached when the watch was collected; for an item its feed gives without text, the start of its own page (`(read from <url>)` first). The more facts they hold (versions, dates, figures), the less the model guesses. Cut at 4,000 characters. `summary` is read when there are no `notes`. |
 | `feed`, `domain` | no | Which feed and which part of the guide the item comes from; shown in the report. |
 | `tier` | no | How far the source can be trusted: `A` primary (release notes, the vendor's page, the advisory), `B` reputable secondary, `C` a lead only. |
 

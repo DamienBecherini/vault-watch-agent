@@ -3,6 +3,17 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **An item without text reads its own page** (C3 of the roadmap): a kept item whose feed gives no text (a blog
+  post, a press release, a model page: 20 of the 115 kept by the watch of 19 November 2026) gets the start of its
+  own page as notes, read at collection without a model (`Collector.page_notes`, the agent's page reader; public
+  addresses only, `read_pages=False` to turn it off); a GitHub repository gives its README, a video page (YouTube,
+  drawn by scripts) is not read. On the guide's collection of 21 November 2026: 37 of the 77 items kept, 17 seconds
+  for the whole collection. The model reads the primary source instead of a title.
+- The report of a watch says where the claims past their « Recheck by » date are re-checked: the check « claims »
+  of « Check the guide ».
+
 ## 1.4.0 (2026-11-21)
 
 Phase H, the editor's hand: the human writes the final text. A proposal can be retouched in its card, the pages of

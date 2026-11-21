@@ -5,7 +5,9 @@
 Une veille liste ce qui a changé dans le domaine du guide sur quelques jours. L'agent peut la collecter lui-même :
 vous listez dans un `feeds.json` les flux à lire, et `vault-watch collect` rassemble les éléments de la fenêtre,
 écarte la routine par règles, garde les notes de version et le texte des avis, puis écrit un
-[`watch.json`](watch-format.md). Aucun modèle n'est appelé : une collecte ne coûte rien.
+[`watch.json`](watch-format.md). Un élément retenu dont le flux ne donne aucun texte (un billet de blog, un
+communiqué, la page d'un modèle) reçoit à la place le début de sa propre page : le modèle lit la source primaire
+plutôt qu'un titre seul. Aucun modèle n'est appelé : une collecte ne coûte rien.
 
 ```bash
 vault-watch --guide ../mon-guide collect                  # les 8 derniers jours ; rapport Markdown sur la sortie
