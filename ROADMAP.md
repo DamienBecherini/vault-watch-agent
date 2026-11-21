@@ -541,6 +541,74 @@ the most value is M0, M1, prices, M3, then M4.
   milestone. No milestone leaves the IA on-prem guide behind.
 - What is found on the way and is not in the task goes to the roadmap, not into the commit.
 
+## Phase H — the editor's hand
+
+Today the editor sorts what the model proposes: accept or refuse, never reword. This phase lets the human write the
+final text: retouch a proposal, retouch the pages of the branch before the pull request, and have the mirrors follow
+whatever changed, by hand or not. It is what makes « written by a human, kept up to date with an AI » true of every
+page. Decided with the user on 2026-11-21: before C3 and phase D, in the order below, each milestone a version.
+
+### H1. Mirrors that follow the diff, and « Sync the languages » (1.4.0)
+
+The `mirror` step translates correction by correction (`current` → `proposed`): it cannot follow an edit made by
+hand. It should translate what really changed in each source page, paragraph by paragraph, from the git diff.
+
+- [ ] **H1.1 Mirror from the diff.** For each source page changed on the branch, the paragraphs that differ from the
+  base, with their neighbours as context, sent to the translator as edits of the mirror page; each quote of the
+  mirror checked as today (found once, else skipped and listed). Corrections and edits by hand take the same path.
+  The tests: a page changed by a correction, by hand, by both; a paragraph removed, added, moved.
+- [ ] **H1.2 The pages ahead of their mirror.** The guide's own check when the manifest declares one (`audit:i18n`
+  for the IA on-prem guide), else git: the last commit of the source page after the last commit of its mirror. The
+  diff to translate starts at the commit where the two were last in step.
+- [ ] **H1.3 « Sync the languages »** in the interface (and `vault-watch mirror`): the pages ahead of their mirror,
+  ticked, an estimate (the translator model, a few cents a page), then a mirror-only run: the English diff in the
+  review, a branch, the guide's checks, the links, the pull request. For what the editor changed by hand in
+  Obsidian, without a terminal.
+
+Done when: two paragraphs changed by hand in a French page of the IA on-prem guide come back as a pull request of
+their English mirror only, with `audit:i18n:strict` passing.
+
+### H2. Retouch a proposal in the review (1.5.0)
+
+- [ ] **H2.1 The text proposed, editable in its card**, the word-level diff updated as one types; `current` (the
+  quote) never editable, so the edit applies where the model found it.
+- [ ] **H2.2 The answer of the review carries the edits** (`{"accepted": [...], "edits": {"C3": "..."}}`; a plain
+  list or « all » still accepted, from the command line or an older page). The free checks run again on the text
+  retouched (no change, a footnote dropped, a version none of its footnotes mentions); no model is called again:
+  the human's text stands.
+- [ ] **H2.3 Both texts kept.** The report and the pull request say « retouched at the review », with the model's
+  proposal; the run keeps both, so `eval` and the costs page can count how many corrections the editor rewrote, and
+  how much.
+
+Done when: a watch of the IA on-prem guide goes to a pull request with one correction retouched at the review, its
+English mirror following the retouched text.
+
+### H3. A pause to retouch the pages, before the mirrors (1.6.0)
+
+After `apply` and before `mirror`, an optional pause: the editor reads the pages of the branch and retouches them,
+or skips it. The graph becomes `review → apply → ⏸ retouch → mirror → audits → links → ⏸ publish`.
+
+- [ ] **H3.1 Three choices at the pause.** « Retouch in Obsidian »: the agent puts the guide's folder on the run's
+  branch, the editor works in their usual Obsidian, then « I am done ». « Retouch here »: a Markdown editor in the page,
+  on the pages the run changed (and any page of the guide on request). « Skip ». Both editors can be mixed: when the
+  folder is on the branch, the page's editor writes into it, so Obsidian sees its changes and the other way round;
+  otherwise it writes into the run's worktree.
+- [ ] **H3.2 A folder fit to switch.** What does not count: Obsidian's own state, which the guide ignores
+  (`.obsidian/workspace.json`). What stops the switch, listed with the files concerned: pages changed and not
+  committed, new files not tracked (the editor chooses: « set them aside and put them back », a stash named after the
+  run and restored when the folder comes back, or « retouch here »); a merge or a rebase in progress (« retouch
+  here » only). A folder on another branch than the base comes back to that branch, not to the base. A banner stays
+  until what was set aside is put back, with the button to do it, even if the run stopped. The page says not to type
+  in Obsidian during the switch.
+- [ ] **H3.3 « I am done »**: the agent commits the retouches as a commit of their own, authored by the editor
+  (« Retouches at the review »), brings the folder back, and resumes: the mirrors follow the diff (H1), then the
+  guide's checks and the links run on the human's text as on the model's. The pull request lists the pages retouched
+  by hand.
+- [ ] **H3.4 Runs paused before 1.6.0** keep the graph they were started with and resume as before.
+
+Done when: a run of the IA on-prem guide is retouched in Obsidian at the pause, with a draft of the editor set aside
+and put back untouched, and its pull request passes the guide's checks.
+
 ## Known issues and checks to do
 
 Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
