@@ -3,7 +3,13 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.4.0 (2026-11-21)
+
+Phase H, the editor's hand: the human writes the final text. A proposal can be retouched in its card, the pages of
+the branch can be retouched before the pull request (in Obsidian or in the page), and the mirrors follow whatever
+changed, by hand or not. Tested for real on the IA on-prem guide: a sync of the languages (PR #105), a run of
+corrections retouched in its card and in the folder lent to Obsidian, with a draft set aside and put back untouched
+(PR #107), « Skip » after a retouch in the lent folder (nothing kept), and the folder clean after each merge.
 
 - **The page « Languages » shows what changed**: each page ahead of its mirror (or edited in the folder) lists
   its changed zones, two lines of context above and below, the change as a word-level diff (`mirrors.hunks`).

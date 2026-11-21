@@ -163,7 +163,9 @@ interface (`vault-watch mirror` on the command line) lists two kinds of pages:
 
 ![The page « Languages »: a page ahead of its mirror, its passages changed, its estimate, and the button that translates it](images/sync-languages.png)
 
-You tick the pages; each shows its passages changed and its estimate (the translation model, about a cent a page on
+Each page shows its zones changed, two lines of context above and below, the change as a word-level diff: what
+the translation will follow, read before it is paid for. You tick the pages; each shows its passages changed and its
+estimate (the translation model, about a cent a page on
 the IA on-prem guide; the first one, on 21 November 2026, cost 0.01 $). The run then enters the graph as if `apply`
 had just run: `mirror` translates, then the run stops to **review the translation**: each passage of the source,
 before and after, beside what the translator made of it in the mirror, both as word-level diffs, so that the

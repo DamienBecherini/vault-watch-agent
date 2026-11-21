@@ -169,7 +169,9 @@ l'interface (`vault-watch mirror` en ligne de commande) liste deux sortes de pag
 
 ![La page « Langues » : une page en avance sur son miroir, ses passages modifiés, son estimation, et le bouton qui la traduit](../images/sync-languages.fr.png)
 
-Vous cochez les pages ; chacune montre ses passages modifiés et son estimation (le modèle de traduction, environ
+Chaque page montre ses zones modifiées, deux lignes de contexte au-dessus et en dessous, le changement en diff mot
+à mot : ce que la traduction va suivre, lu avant de la payer. Vous cochez les pages ; chacune montre ses passages
+modifiés et son estimation (le modèle de traduction, environ
 un centime par page sur le guide IA on-prem ; la première, le 21 novembre 2026, a coûté 0,01 $). Le passage entre
 ensuite dans le graphe comme si `apply` venait de tourner : `mirror` traduit, puis le passage s'arrête pour **relire
 la traduction** : chaque passage de la source, avant et après, à côté de ce que le traducteur en a fait dans le

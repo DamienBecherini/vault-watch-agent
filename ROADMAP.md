@@ -547,7 +547,9 @@ Today the editor sorts what the model proposes: accept or refuse, never reword. 
 final text: retouch a proposal, retouch the pages of the branch before the pull request, and have the mirrors follow
 whatever changed, by hand or not. It is what makes « written by a human, kept up to date with an AI » true of every
 page. Decided with the user on 2026-11-21: before C3 and phase D, in the order below; the three milestones ship together
-as 1.4.0, once tested for real on the IA on-prem guide (the user's choice, 2026-11-21).
+as 1.4.0, once tested for real on the IA on-prem guide (the user's choice, 2026-11-21). Tested on 2026-11-21:
+PR #105 (a sync), PR #107 (a correction retouched in its card and in the lent folder, a draft set aside and put back),
+« Skip » after a retouch in the lent folder, the folder clean after each merge.
 
 ### H1. Mirrors that follow the diff, and « Sync the languages » (1.4.0)
 
@@ -597,7 +599,8 @@ or skips it. The graph becomes `review → apply → ⏸ retouch → mirror → 
   folder is on the branch, the page's editor writes into it, so Obsidian sees its changes and the other way round;
   otherwise it writes into the run's worktree.
 - [x] **H3.2 A folder fit to switch.** What does not count: Obsidian's own state, which the guide ignores
-  (`.obsidian/workspace.json`). What stops the switch, listed with the files concerned: pages changed and not
+  (`.obsidian/workspace.json`). The settings the guide tracks do count: Obsidian rewrote `.obsidian/app.json` and
+  `appearance.json` when the vault was opened, so they were committed to the guide (PR #106) before the real test. What stops the switch, listed with the files concerned: pages changed and not
   committed, new files not tracked (the editor chooses: « set them aside and put them back », a stash named after the
   run and restored when the folder comes back, or « retouch here »); a merge or a rebase in progress (« retouch
   here » only). A folder on another branch than the base comes back to that branch, not to the base. A banner stays
