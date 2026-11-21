@@ -8,6 +8,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - The documentation is easier to find one's way in: an index, [docs/README.md](docs/README.md) (and in French), with
   every page grouped by the question it answers and a map; the French pages moved to `docs/fr/`, under the same
   names as the English ones, which stay where they were; the screenshots moved to `docs/images/`.
+- Three new pages, in English and French: [A run, step by step](docs/run.md) (what each step of a watch reads and
+  decides, what can stop an edit, the watch of 16 November 2026 with the cost of each step, the review and publish
+  screens); [Check the guide](docs/check.md) (the eleven checks with their estimate and what they cost, the life of
+  a lead, the runs the leads go to, « Report or suggest »); [Costs](docs/costs.md) (what makes the price of a call,
+  the prompt cache, where the money goes by kind of run, how the estimates are made and why they miss, where the
+  prices come from, the journal, what lowers the cost).
 - A page of its own on the chapters, [docs/chapters.md](docs/chapters.md) (and in French): the three steps that work
   by chapter and what the number and the size of the chapters change for each, where the chapters come from, the
   automatic rule, why 150 KB and 20 KB (set on the IA on-prem guide, fixed in the code), what a split that fits

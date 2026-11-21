@@ -15,7 +15,7 @@
 
 [English](README.md) · **Français**
 
-**[Toute la documentation](docs/fr/README.md)** · [Brancher son guide](docs/fr/connect-your-guide.md) · [Collecter une veille](docs/fr/collect.md) · [Compactage](docs/fr/compact.md) · [Nouveautés](docs/fr/news.md) · [Chapitres](docs/fr/chapters.md) · [Choisir un modèle](docs/fr/choose-a-model.md) · [Sécurité](docs/fr/security.md) · [Ce qui reste stable](docs/fr/compatibility.md) · [Présentation avec schémas](docs/fr/presentation.md) · [Structure du code](docs/fr/code.md)
+**[Toute la documentation](docs/fr/README.md)** · [Brancher son guide](docs/fr/connect-your-guide.md) · [Une veille étape par étape](docs/fr/run.md) · [Vérifier le guide](docs/fr/check.md) · [Collecter une veille](docs/fr/collect.md) · [Compactage](docs/fr/compact.md) · [Nouveautés](docs/fr/news.md) · [Chapitres](docs/fr/chapters.md) · [Choisir un modèle](docs/fr/choose-a-model.md) · [Coûts](docs/fr/costs.md) · [Sécurité](docs/fr/security.md) · [Ce qui reste stable](docs/fr/compatibility.md) · [Présentation avec schémas](docs/fr/presentation.md) · [Structure du code](docs/fr/code.md)
 
 </div>
 
@@ -101,6 +101,9 @@ flowchart TD
 | `links` | Vérifie les liens externes des pages modifiées |
 | `publish` | ⏸ Pause : sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
 
+Ce qui décide à chaque étape, un exemple avec son coût, et les deux écrans où vous décidez :
+[Une veille étape par étape](docs/fr/run.md).
+
 Deux autres sortes de passage passent par la même relecture et la même pull request : un **passage de correction**
 transforme des erreurs signalées (par un lecteur, par une vérification) en corrections contrôlées, et une
 **vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide. Un **passage de
@@ -157,10 +160,10 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 | :-- | :-- |
 | Veilles | Les veilles avec leur état, un bouton pour en analyser une, et les autres passages (correction, compactage, ajouts) |
 | Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
-| Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage |
+| Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
 | Signaler ou proposer | Des erreurs à corriger, ou une idée ou une nouvelle à vérifier et à écrire |
 | Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
-| Coûts | Ce que coûte l'entretien, par mois et par passage |
+| Coûts | Ce que coûte l'entretien, par mois et par passage ([Coûts](docs/fr/costs.md)) |
 | Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
 | Donner mon avis | Une note, un bug, une idée : vous l'envoyez vous-même, par une issue GitHub ou un e-mail ; l'agent n'envoie rien |
 
@@ -232,7 +235,8 @@ pèse sur les limites de l'abonnement.
 
 Ces montants sont indicatifs : c'est ce que valent les appels au prix public de l'API. Les appels de l'auteur sont
 passés par l'accès API de son abonnement Claude : il a payé son abonnement, rien de plus. Avec une clé facturée au
-token, c'est ce que vous paieriez.
+token, c'est ce que vous paieriez. Ce qui fait le prix, comment sont faites les estimations, et le journal :
+[Coûts](docs/fr/costs.md).
 
 ## Ce que montre ce dépôt
 

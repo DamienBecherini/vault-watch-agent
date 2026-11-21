@@ -1,0 +1,113 @@
+*[Version française](fr/run.md)*
+
+# A run, step by step
+
+The [README](../README.md#how-a-run-goes) gives the steps of a run in one table. This page follows one item of a
+watch through them: what each step reads, what decides there, and what can stop an edit before you see it. Then
+the two screens where you decide: the review, and the publish step.
+
+```mermaid
+flowchart TD
+  item["An item of the watch<br/>(a release, an advisory, an announcement)"] --> triage{"triage<br/>(model)"}
+  triage -->|drop| out1["not for the guide"]
+  triage -->|addition| add["addition candidate:<br/>listed, not drafted"]
+  triage -->|correct| locate{"locate<br/>(code): a page<br/>names it?"}
+  locate -->|no| add
+  locate -->|yes| group["grouped with the items<br/>on the same tool or pages"]
+  group --> propose{"propose<br/>(model)"}
+  propose -->|no change needed| why["an outcome and its reason"]
+  propose --> number{"number<br/>(code): the quote<br/>found once?"}
+  number -->|"no: not found, ambiguous,<br/>read-only, conflict"| refused["refused, shown<br/>with the reason"]
+  number -->|yes| cross{"cross-check<br/>(model, whole guide, web)"}
+  cross -->|reject| refused
+  cross -->|"keep / revise"| review{{"⏸ your review"}}
+  cross -->|"edits on other pages,<br/>checked the same way"| review
+  review -->|ticked| apply["apply, mirrors,<br/>audits, links"] --> publish{{"⏸ push + PR"}}
+  classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class review,publish human
+```
+
+## An example: the watch of 16 November 2026
+
+| Step | What happened | Cost at list price |
+| :-- | :-- | --: |
+| collect | 73 items, among them one security advisory | 0 $ |
+| triage | 6 items to correct, 67 not for the guide, no addition candidate | 0.17 $ (2 calls) |
+| locate, propose | 4 calls, one per group: 4 corrections | 0.30 $ |
+| cross-check | 1 kept, 3 revised, none rejected; 7 more edits on other pages for consistency | 2.70 $ (1 call) |
+| sweep | values removed still present elsewhere: 2, left as they were | 0.14 $ |
+| review | 11 corrections, 11 applied | |
+| mirror | the English pages of the pages changed | 0.13 $ (4 calls) |
+| publish | [pull request #78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78), merged | |
+
+3.44 $ in all, 12 calls. The cross-check is four fifths of it: it is the call that reads the whole guide
+([Costs](costs.md)). It also wrote most of what was applied: the proposals see excerpts of the guide, the
+cross-check sees every page.
+
+## What decides at each step
+
+| Step | What it reads | What decides | What can stop an edit |
+| :-- | :-- | :-- | :-- |
+| `collect` | The watch the manifest names, and the claims due of the guide's freshness script | The code | |
+| `triage` | 40 items per call: title, domain, tier, date, « URGENT », address, and the first 1,200 characters of the notes the collector cached | The model, with the guide's brief: correct (an existing sentence may change), addition (the guide does not cover it yet), drop. With search terms: the exact names the guide would use | An item the model returns no decision for is dropped, with that reason |
+| `locate` | The source pages, searched for the terms | The code: a « correct » item that no page names becomes an addition candidate (the guide may be missing the subject) | |
+| grouping | The pages each item touches | The code: items that share a search term (a tool's name) always go together; items that share a page too, except through a hub page cited for more than four items. Each item gets its own share of excerpts | |
+| `propose` | One call per group, in parallel: its items and their excerpts, and the guide's page of changes if the manifest names one | The model: corrections that quote the current text, give the new text, a severity and a primary source; corrections that only make sense together get a group. For an item that needs nothing, an outcome and its reason | |
+| `number` | The corrections and the pages | The code numbers them (C1, C2…) and checks each one | The quote is not in the page, or is there more than once; the page is read-only or missing; the edit changes nothing; it deletes a footnote that its group does not put back; it overlaps an earlier correction (« conflict with C3 ») |
+| `crosscheck` | The whole guide (from the cache), each correction, and the web: it opens the cited source | The model: keep, revise (the full revised text) or reject. Then the other passages that must change so the guide stays consistent, and what it noticed elsewhere | A rejection; its consistency edits go through the same checks as a correction. When the guide does not fit in the window, one call per chapter, said on the review ([Chapters](chapters.md)) |
+| sweep | The values the corrections remove (a version, a flag, an identifier) still found in other pages | The model: which of them must change too | What it leaves is listed: « removed values still present, left as they are » |
+| `report` | Everything above | The code writes the report; a correction that adds a version none of the footnotes it cites mentions carries a warning | |
+| `review` | ⏸ You | You tick | A group with one member that cannot apply is left out whole |
+| `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>` for a watch): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
+| `mirror` | Each mirror page, with the edits of its source page | The translator model: the same edits in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
+| `audits`, `links` | The branch | The guide's scripts: its audits, and the sources of the changed pages (new ones first) | Nothing is stopped: what fails is shown before you publish |
+| `publish` | ⏸ You | You say yes or no | |
+
+The addition candidates of a watch are not drafted: the review lists them with the reason, and the check « What
+is new » reads them later, with what other watches set aside ([What is new](news.md)).
+
+## The review screen
+
+![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](images/review.png)
+
+What it shows, top to bottom:
+
+- **Four figures**: the items of the watch, those that touch a page, the corrections proposed, the addition
+  candidates.
+- **One card per correction**: its number, its severity and its page; the source it relies on; the cross-check's
+  verdict and reason (« keep », « revised », « added by the cross-check for C1, C3 », « added by the sweep »); a
+  word-level diff of the page. A correction that cannot apply says why.
+- **The groups**: corrections that only make sense together (a sentence and its footnote, a figure and the table
+  that repeats it) are ticked together. A group with a member that cannot apply is left out whole: applying half
+  of it would leave the guide inconsistent.
+- **What the pages would weigh**: before and after, the pages that gain the most.
+- **Below**: the addition candidates (not drafted), what the cross-check noticed elsewhere in the guide (to fix
+  through « Report an error »), the claims due for a re-check, the values removed still present, and the full
+  report in Markdown.
+
+Nothing has touched the guide yet. « Apply nothing » closes the run (and the watch's issue, with a comment); « Apply
+n corrections » goes on.
+
+## The publish screen
+
+After the apply, the mirrors, the audits and the links, the run stops again. The branch exists only on this
+machine. The screen shows the corrections applied, the mirror pages updated, whether the guide's audits pass (a
+red audit means a red pull request), the translation problems, the sources of the changed pages that do not answer
+(« NEW » for those this run added), and the diff of the branch.
+
+« Push and open the pull request » pushes the branch and opens it, with the corrections and their sources in its
+description; the watch's issue closes when it is merged. « Do not publish » keeps the branch locally. A guide with
+no repository keeps the branch in any case.
+
+## Pauses, errors, resumes
+
+The state is saved after every step, in a SQLite database: you can close the page, and come back days later to a
+run paused at the review. A run that stops on an error (a network failure, a subscription limit reached) resumes
+from the last finished step, from the page or with `vault-watch resume --retry`; the agent never switches to a
+billed engine by itself ([How the code fits together](code.md#how-a-run-pauses-and-resumes)).
+
+## Other runs, same path
+
+A fix run, a translation fix, a compaction run and an addition run have no watch: they enter the graph at the
+proposals, with leads instead of items, and take the same path from `number` on ([Check the guide](check.md)). A
+translation fix skips the cross-check; a compaction run has its own, without the web.

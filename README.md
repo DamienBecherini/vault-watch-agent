@@ -15,7 +15,7 @@
 
 **English** · [Français](README.fr.md)
 
-**[All the documentation](docs/README.md)** · [Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Chapters](docs/chapters.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+**[All the documentation](docs/README.md)** · [Connect your guide](docs/connect-your-guide.md) · [A run, step by step](docs/run.md) · [Check the guide](docs/check.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Chapters](docs/chapters.md) · [Choose a model](docs/choose-a-model.md) · [Costs](docs/costs.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
 
 </div>
 
@@ -100,6 +100,9 @@ flowchart TD
 | `links` | Checks the external links of the changed pages |
 | `publish` | ⏸ Pause: on a yes, pushes the branch and opens the pull request (a local guide keeps the branch) |
 
+What decides at each step, an example with its cost, and the two screens where you decide:
+[A run, step by step](docs/run.md).
+
 Two more kinds of run use the same review and pull request: a **fix run** turns reported errors (a reader's, a
 check's) into checked corrections, and a **check of the guide**, on demand, looks for what is wrong or
 inconsistent in the whole guide. A **compaction run** keeps the guide from growing heavy: a watch only adds, so a
@@ -154,10 +157,10 @@ problems, the diff of the branch), then the pull request. Around them:
 | :-- | :-- |
 | Watches | The watches with their status, a button to analyse one, and the other runs (fix, compaction, additions) |
 | Sources | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
-| Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run |
+| Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run ([Check the guide](docs/check.md)) |
 | Report or suggest | Errors to fix, or an idea or a piece of news to check and write |
 | Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand: why and how, [Chapters](docs/chapters.md) |
-| Costs | What the upkeep costs, by month and by run |
+| Costs | What the upkeep costs, by month and by run ([Costs](docs/costs.md)) |
 | Settings | The gear: engine, model and effort of each role or of one step, prices and where they come from, what the guide provides |
 | Give my opinion | A note, a bug, an idea: you send it yourself, as a GitHub issue or an e-mail; the agent sends nothing |
 
@@ -226,7 +229,8 @@ Claude Code with a subscription, nothing is billed, but a cross-check weighs on 
 
 These amounts are indicative: they are what the calls are worth at the API's list price. The author's calls went
 through the API access of his Claude subscription: he paid his subscription and nothing more. With a key billed
-per token, they are what you would pay.
+per token, they are what you would pay. What makes the price, how the estimates are made, and the journal:
+[Costs](docs/costs.md).
 
 ## What this repository shows
 

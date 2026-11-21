@@ -1,0 +1,115 @@
+*[English version](../run.md)*
+
+# Une veille, étape par étape
+
+Le [README](../../README.fr.md#déroulé-dun-passage) donne les étapes d'un passage en un tableau. Cette page suit un
+élément d'une veille à travers elles : ce que lit chaque étape, ce qui y décide, et ce qui peut arrêter une
+modification avant que vous la voyiez. Puis les deux écrans où vous décidez : la relecture, et la publication.
+
+```mermaid
+flowchart TD
+  item["Un élément de la veille<br/>(une version, un avis de sécurité, une annonce)"] --> triage{"tri<br/>(modèle)"}
+  triage -->|écarter| out1["pas pour le guide"]
+  triage -->|ajout| add["piste d'ajout :<br/>listée, pas rédigée"]
+  triage -->|corriger| locate{"repérage<br/>(code) : une page<br/>le nomme ?"}
+  locate -->|non| add
+  locate -->|oui| group["regroupé avec les éléments<br/>sur le même outil ou les mêmes pages"]
+  group --> propose{"propositions<br/>(modèle)"}
+  propose -->|rien à changer| why["une issue et sa raison"]
+  propose --> number{"numérotation<br/>(code) : la citation<br/>trouvée une fois ?"}
+  number -->|"non : introuvable, ambiguë,<br/>lecture seule, conflit"| refused["refusée, affichée<br/>avec la raison"]
+  number -->|oui| cross{"relecture croisée<br/>(modèle, tout le guide, web)"}
+  cross -->|rejeter| refused
+  cross -->|"garder / réviser"| review{{"⏸ votre relecture"}}
+  cross -->|"modifications d'autres pages,<br/>vérifiées de la même façon"| review
+  review -->|cochées| apply["application, miroirs,<br/>contrôles, liens"] --> publish{{"⏸ push + PR"}}
+  classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class review,publish human
+```
+
+## Un exemple : la veille du 16 novembre 2026
+
+| Étape | Ce qui s'est passé | Coût au prix public |
+| :-- | :-- | --: |
+| collecte | 73 éléments, dont un avis de sécurité | 0 $ |
+| tri | 6 éléments à corriger, 67 pas pour le guide, aucune piste d'ajout | 0,17 $ (2 appels) |
+| repérage, propositions | 4 appels, un par groupe : 4 corrections | 0,30 $ |
+| relecture croisée | 1 gardée, 3 révisées, aucune rejetée ; 7 modifications de plus sur d'autres pages, par cohérence | 2,70 $ (1 appel) |
+| balayage | valeurs retirées encore présentes ailleurs : 2, laissées telles quelles | 0,14 $ |
+| relecture | 11 corrections, 11 appliquées | |
+| miroir | les pages anglaises des pages modifiées | 0,13 $ (4 appels) |
+| publication | [pull request #78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78), fusionnée | |
+
+3,44 $ en tout, 12 appels. La relecture croisée en fait les quatre cinquièmes : c'est l'appel qui lit tout le guide
+([Coûts](costs.md)). C'est aussi elle qui a écrit l'essentiel de ce qui a été appliqué : les propositions voient
+des extraits du guide, la relecture croisée voit toutes les pages.
+
+## Ce qui décide à chaque étape
+
+| Étape | Ce qu'elle lit | Ce qui décide | Ce qui peut arrêter une modification |
+| :-- | :-- | :-- | :-- |
+| `collect` | La veille que nomme le manifeste, et les affirmations dues du script de fraîcheur du guide | Le code | |
+| `triage` | 40 éléments par appel : titre, domaine, niveau, date, « URGENT », adresse, et les 1 200 premiers caractères des notes que le collecteur a gardées | Le modèle, avec le brief du guide : corriger (une phrase existante peut changer), ajout (le guide ne couvre pas encore le sujet), écarter. Avec des termes de recherche : les noms exacts qu'emploierait le guide | Un élément pour lequel le modèle ne rend pas de décision est écarté, avec cette raison |
+| `locate` | Les pages sources, cherchées avec les termes | Le code : un élément « corriger » qu'aucune page ne nomme devient une piste d'ajout (il manque peut-être le sujet au guide) | |
+| regroupement | Les pages que touche chaque élément | Le code : les éléments qui partagent un terme de recherche (le nom d'un outil) vont toujours ensemble ; ceux qui partagent une page aussi, sauf par une page carrefour citée pour plus de quatre éléments. Chaque élément a sa propre part d'extraits | |
+| `propose` | Un appel par groupe, en parallèle : ses éléments et leurs extraits, et la page des changements du guide si le manifeste en nomme une | Le modèle : des corrections qui citent le texte actuel, donnent le nouveau texte, une gravité et une source primaire ; les corrections qui n'ont de sens qu'ensemble forment un groupe. Pour un élément qui ne demande rien, une issue et sa raison | |
+| `number` | Les corrections et les pages | Le code les numérote (C1, C2…) et contrôle chacune | La citation n'est pas dans la page, ou y figure plusieurs fois ; la page est en lecture seule ou absente ; la modification ne change rien ; elle supprime une note que son groupe ne remet pas ailleurs ; elle chevauche une correction précédente (« conflit avec C3 ») |
+| `crosscheck` | Tout le guide (depuis le cache), chaque correction, et le web : elle ouvre la source citée | Le modèle : garder, réviser (le texte révisé en entier) ou rejeter. Puis les autres passages qui doivent changer pour que le guide reste cohérent, et ce qu'elle a remarqué ailleurs | Un rejet ; ses modifications de cohérence passent par les mêmes contrôles qu'une correction. Quand le guide ne tient pas dans la fenêtre, un appel par chapitre, signalé à la relecture ([Chapitres](chapters.md)) |
+| balayage | Les valeurs que les corrections retirent (une version, une option, un identifiant) encore présentes dans d'autres pages | Le modèle : lesquelles doivent changer aussi | Ce qu'il laisse est listé : « valeurs retirées encore présentes, laissées telles quelles » |
+| `report` | Tout ce qui précède | Le code écrit le rapport ; une correction qui ajoute une version qu'aucune des notes qu'elle cite ne mentionne porte un avertissement | |
+| `review` | ⏸ Vous | Vous cochez | Un groupe dont un membre ne peut pas s'appliquer est écarté en entier |
+| `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>` pour une veille) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
+| `mirror` | Chaque page miroir, avec les modifications de sa page source | Le modèle de traduction : les mêmes modifications dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
+| `audits`, `links` | La branche | Les scripts du guide : ses contrôles, et les sources des pages modifiées (les nouvelles d'abord) | Rien n'est arrêté : ce qui échoue est montré avant la publication |
+| `publish` | ⏸ Vous | Vous dites oui ou non | |
+
+Les pistes d'ajout d'une veille ne sont pas rédigées : la relecture les liste avec leur raison, et le contrôle
+« Nouveautés » les lit plus tard, avec ce que d'autres veilles ont mis de côté ([Nouveautés](news.md)).
+
+## L'écran de relecture
+
+![L'écran de relecture : chaque correction proposée avec sa source, le verdict de la relecture croisée et un diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](../images/review.fr.png)
+
+Ce qu'il montre, de haut en bas :
+
+- **Quatre chiffres** : les éléments de la veille, ceux qui touchent une page, les corrections proposées, les
+  pistes d'ajout.
+- **Une carte par correction** : son numéro, sa gravité et sa page ; la source sur laquelle elle s'appuie ; le
+  verdict et la raison de la relecture croisée (« keep », « revised », « added by the cross-check for C1, C3 »,
+  « added by the sweep ») ; un diff mot à mot de la page. Une correction qui ne peut pas s'appliquer dit pourquoi.
+- **Les groupes** : les corrections qui n'ont de sens qu'ensemble (une phrase et sa note, un chiffre et le tableau
+  qui le reprend) se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier :
+  en appliquer la moitié laisserait le guide incohérent.
+- **Ce que pèseraient les pages** : avant et après, les pages qui prennent le plus.
+- **En dessous** : les pistes d'ajout (pas rédigées), ce que la relecture croisée a remarqué ailleurs dans le guide
+  (à corriger par « Signaler une erreur »), les affirmations à revérifier, les valeurs retirées encore présentes, et
+  le rapport complet en Markdown.
+
+Rien n'a encore touché le guide. « Ne rien appliquer » clôt le passage (et l'issue de la veille, avec un
+commentaire) ; « Appliquer n corrections » continue.
+
+## L'écran de publication
+
+Après l'application, les miroirs, les contrôles et les liens, le passage s'arrête de nouveau. La branche n'existe
+que sur cette machine. L'écran montre les corrections appliquées, les pages miroirs mises à jour, si les contrôles
+du guide passent (un contrôle rouge, c'est une pull request rouge), les problèmes de traduction, les sources des
+pages modifiées qui ne répondent pas (« NEW » pour celles que ce passage a ajoutées), et le diff de la branche.
+
+« Pousser et ouvrir la pull request » pousse la branche et l'ouvre, avec les corrections et leurs sources dans sa
+description ; l'issue de la veille se ferme quand elle est fusionnée. « Ne pas publier » garde la branche en local.
+Un guide sans dépôt garde la branche dans tous les cas.
+
+## Pauses, erreurs, reprises
+
+L'état est enregistré après chaque étape, dans une base SQLite : vous pouvez fermer la page, et revenir des jours
+plus tard à un passage en pause à la relecture. Un passage qui s'arrête sur une erreur (une coupure réseau, une
+limite d'abonnement atteinte) reprend à la dernière étape terminée, depuis la page ou avec
+`vault-watch resume --retry` ; l'agent ne passe jamais de lui-même à un moteur facturé
+([Structure du code](code.md#comment-un-passage-se-met-en-pause-et-reprend)).
+
+## Les autres passages, même chemin
+
+Un passage de correction, une correction des traductions, un passage de compactage et un passage d'ajouts n'ont pas
+de veille : ils entrent dans le graphe aux propositions, avec des pistes au lieu d'éléments, et suivent le même
+chemin à partir de `number` ([Vérifier le guide](check.md)). Une correction des traductions saute la relecture
+croisée ; un passage de compactage a la sienne, sans le web.

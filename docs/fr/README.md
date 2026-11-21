@@ -15,11 +15,14 @@ flowchart LR
     collect --> format["Le format d'une veille"]
   end
   subgraph agent["Ce que fait l'agent"]
-    news["Nouveautés"] --> chapters["Chapitres"]
-    compact["Compactage"]
+    run["Une veille étape par étape"]
+    check["Vérifier le guide"] --> news["Nouveautés"]
+    check --> compact["Compactage"]
+    news --> chapters["Chapitres"]
   end
-  subgraph models["Modèles"]
+  subgraph models["Modèles et coûts"]
     model["Choisir un modèle"] --> engine["Écrire un moteur"]
+    costs["Coûts"]
   end
   subgraph trust["Sécurité et stabilité"]
     security["Sécurité"]
@@ -28,8 +31,9 @@ flowchart LR
   subgraph dev["Pour les développeurs"]
     code["Structure du code"] --> plan["Le plan modulaire<br/>(historique)"]
   end
-  connect --> news
-  connect --> compact
+  connect --> run
+  run --> check
+  run --> costs
   connect --> model
   connect --> security
   overview --> code
@@ -53,16 +57,19 @@ flowchart LR
 
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
+| [Une veille étape par étape](run.md) | Un élément d'une veille à travers chaque étape : ce que lit chacune, ce qui décide, ce qui peut arrêter une modification ; un exemple avec son coût ; l'écran de relecture et celui de publication ; pauses et reprises. Une capture de la relecture |
+| [Vérifier le guide](check.md) | Les onze contrôles : ce que lit chacun, son estimation et ce qu'il a coûté, ce qu'il trouve, où partent ses pistes ; la vie d'une piste ; les passages où elles partent ; « Signaler ou proposer » |
 | [Nouveautés](news.md) | Ce qu'un lecteur chercherait et ne trouve pas : les pistes tirées du guide et du web, une idée à soi, les ajouts et leur vérification sur le web, ce que lit et coûte chaque appel. Une capture des pistes |
 | [Chapitres](chapters.md) | Les trois étapes qui travaillent sur une partie du guide à la fois, d'où viennent les chapitres, la règle automatique et pourquoi 150 Ko et 20 Ko, ce que coûte un découpage mal adapté |
 | [Compactage](compact.md) | Empêcher un guide de s'alourdir : les tailles, le rapport, les coupes, quel modèle, ce que le code vérifie lui-même |
 
-## Modèles
+## Modèles et coûts
 
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
 | [Choisir un modèle](choose-a-model.md) | Les modèles mesurés sur le guide IA on-prem, ce que chaque étape demande à un modèle, un modèle pour une étape, ce qui a été essayé, mesurer son propre modèle |
 | [Écrire un moteur](write-an-engine.md) | Ce que le graphe demande à un moteur, comment le déclarer, l'exemple de l'API propre d'Ollama, les tests de contrat |
+| [Coûts](costs.md) | Ce qui fait le prix d'un appel (le cache de prompt avant tout), où part l'argent selon la sorte de passage, comment sont faites les estimations et pourquoi elles se trompent, d'où viennent les prix, le journal et la page « Coûts », ce qui fait baisser le coût |
 
 ## Sécurité et stabilité
 
