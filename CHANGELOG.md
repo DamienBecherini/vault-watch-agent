@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.4.1 (2026-11-21)
 
 - **The page « Languages » says what it is for, and checks the edits before the sync** (H4 of the roadmap, asked
   by the user): you write in the guide's language, then ask for the other languages to follow. Before translating,
