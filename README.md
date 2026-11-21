@@ -15,7 +15,7 @@
 
 **English** · [Français](README.fr.md)
 
-[Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+[Connect your guide](docs/connect-your-guide.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Chapters](docs/chapters.md) · [Choose a model](docs/choose-a-model.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
 
 </div>
 
@@ -156,7 +156,7 @@ problems, the diff of the branch), then the pull request. Around them:
 | Sources | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
 | Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run |
 | Report or suggest | Errors to fix, or an idea or a piece of news to check and write |
-| Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand ([`[[chapter]]`](docs/connect-your-guide.md#chapter)) |
+| Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand: why and how, [Chapters](docs/chapters.md) |
 | Costs | What the upkeep costs, by month and by run |
 | Settings | The gear: engine, model and effort of each role or of one step, prices and where they come from, what the guide provides |
 | Give my opinion | A note, a bug, an idea: you send it yourself, as a GitHub issue or an e-mail; the agent sends nothing |

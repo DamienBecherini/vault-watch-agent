@@ -172,7 +172,8 @@ and never flagged.
 The chapters are the pages the agent works on together. Three steps go chapter by chapter: the exploration of the
 web ([what is new](news.md), one paid call per chapter), the check of the translations (one call per chapter), and
 every step that reads the whole guide when the model's window is too small for it. A chapter is best a set of
-pages a reader would look up together and that the same news would change.
+pages a reader would look up together and that the same news would change. Why the chapters matter, why the
+thresholds below, and what a split that fits badly costs: [Chapters](chapters.md).
 
 Optional. Without it, an automatic rule applies: one chapter per top folder (the pages at the root form one); a
 folder heavier than 150 KB is split along its subfolders, or in slices of pages of similar weight when it has none;

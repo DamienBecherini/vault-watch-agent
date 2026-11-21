@@ -57,8 +57,8 @@ vault-watch --guide ../my-guide news --explore --chapters 02-hardware,03-stack
 
 In the interface: the check « What is new: the web explored, chapter by chapter »; ticking it shows the chapters
 with their weight, and the cost follows the chapters you keep. All are ticked, except those the guide declares
-with `explore = false` (a glossary, the pages about the project). What a chapter is, and how to have a model
-propose them: [`[[chapter]]` in the manifest](connect-your-guide.md#chapter).
+with `explore = false` (a glossary, the pages about the project). What a chapter is, and what its size changes for
+this exploration: [Chapters](chapters.md).
 
 One call per chapter. Each reads the whole guide and searches the web on the subjects of its chapter (about 12
 searches and 15 pages), opens primary sources, and keeps what no page of the guide says, eight leads at the most

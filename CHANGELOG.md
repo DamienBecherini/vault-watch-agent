@@ -3,6 +3,13 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- A page of its own on the chapters, [docs/chapters.md](docs/chapters.md) (and in French): the three steps that work
+  by chapter and what the number and the size of the chapters change for each, where the chapters come from, the
+  automatic rule, why 150 KB and 20 KB (set on the IA on-prem guide, fixed in the code), what a split that fits
+  badly costs, and the chapters the IA on-prem guide declares.
+
 ## 1.3.1 (2026-11-20)
 
 - Documentation read again against 1.3.0, in both languages: the pages of the interface and the commands in the

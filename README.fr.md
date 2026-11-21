@@ -15,7 +15,7 @@
 
 [English](README.md) · **Français**
 
-[Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Compactage](docs/compact.fr.md) · [Nouveautés](docs/news.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Sécurité](docs/security.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md) · [Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
+[Brancher son guide](docs/connect-your-guide.fr.md) · [Collecter une veille](docs/collect.fr.md) · [Compactage](docs/compact.fr.md) · [Nouveautés](docs/news.fr.md) · [Chapitres](docs/chapters.fr.md) · [Choisir un modèle](docs/choose-a-model.fr.md) · [Sécurité](docs/security.fr.md) · [Ce qui reste stable](docs/compatibility.fr.md) · [Présentation avec schémas](docs/presentation.fr.md) · [Structure du code](docs/code.fr.md)
 
 </div>
 
@@ -159,7 +159,7 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 | Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/collect.fr.md#quelles-sources-méritent-leur-place)) |
 | Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage |
 | Signaler ou proposer | Des erreurs à corriger, ou une idée ou une nouvelle à vérifier et à écrire |
-| Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main ([`[[chapter]]`](docs/connect-your-guide.fr.md#chapter)) |
+| Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/chapters.fr.md) |
 | Coûts | Ce que coûte l'entretien, par mois et par passage |
 | Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
 | Donner mon avis | Une note, un bug, une idée : vous l'envoyez vous-même, par une issue GitHub ou un e-mail ; l'agent n'envoie rien |

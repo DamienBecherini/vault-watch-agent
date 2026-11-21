@@ -175,7 +175,8 @@ Les chapitres sont les pages sur lesquelles l'agent travaille ensemble. Trois é
 chapitre : l'exploration du web ([les nouveautés](news.fr.md), un appel payant par chapitre), le contrôle des
 traductions (un appel par chapitre), et toute étape qui lit le guide entier quand la fenêtre du modèle est trop
 petite pour lui. Un bon chapitre réunit les pages qu'un lecteur consulterait ensemble et qu'une même actualité
-ferait changer.
+ferait changer. Pourquoi les chapitres comptent, pourquoi les seuils ci-dessous, et ce que coûte un découpage mal
+adapté : [Chapitres](chapters.fr.md).
 
 Facultatif. Sans cela, une règle automatique s'applique : un chapitre par dossier de premier niveau (les pages à
 la racine en forment un) ; un dossier de plus de 150 Ko est découpé selon ses sous-dossiers, ou en tranches de
