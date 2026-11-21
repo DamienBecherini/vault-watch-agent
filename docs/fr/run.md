@@ -59,7 +59,7 @@ des extraits du guide, la relecture croisée voit toutes les pages.
 | `report` | Tout ce qui précède | Le code écrit le rapport ; une correction qui ajoute une version qu'aucune des notes qu'elle cite ne mentionne porte un avertissement | |
 | `review` | ⏸ Vous | Vous cochez | Un groupe dont un membre ne peut pas s'appliquer est écarté en entier |
 | `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>` pour une veille) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
-| `mirror` | Chaque page miroir, avec les modifications de sa page source | Le modèle de traduction : les mêmes modifications dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
+| `mirror` | Chaque page miroir, avec ce qui a changé dans sa page source sur la branche, passage par passage (un paragraphe, une ligne de tableau, une ligne de liste) : les corrections, et toute modification à la main | Le modèle de traduction : les mêmes changements dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
 | `audits`, `links` | La branche | Les scripts du guide : ses contrôles, et les sources des pages modifiées (les nouvelles d'abord) | Rien n'est arrêté : ce qui échoue est montré avant la publication |
 | `publish` | ⏸ Vous | Vous dites oui ou non | |
 
@@ -113,3 +113,24 @@ Un passage de correction, une correction des traductions, un passage de compacta
 de veille : ils entrent dans le graphe aux propositions, avec des pistes au lieu d'éléments, et suivent le même
 chemin à partir de `number` ([Vérifier le guide](check.md)). Une correction des traductions saute la relecture
 croisée ; un passage de compactage a la sienne, sans le web.
+
+## Synchroniser les langues
+
+Une page modifiée à la main, dans Obsidian ou ailleurs, laisse son miroir en arrière. La page « Langues » de
+l'interface (`vault-watch mirror` en ligne de commande) liste deux sortes de pages :
+
+- **Modifiées dans votre dossier, pas encore commitées** : le passage les copie sur sa branche, dans un commit
+  « edits by hand », pour qu'une seule pull request porte les deux langues. Votre dossier n'est pas touché. Une
+  fois la pull request fusionnée, l'agent remet vos copies à l'identique de la branche principale à sa prochaine
+  mise à jour du dossier (git refuserait sinon : il n'écrase jamais une modification locale, même identique). Une
+  page dont le texte commité dans votre dossier n'est pas celui fusionné (une autre branche, un dossier en retard)
+  n'est pas proposée : copiée sur une branche de la branche principale, elle déferait ce que celle-ci a reçu depuis.
+- **En avance sur leur miroir** : déjà fusionnées, modifiées depuis le dernier commit qui a touché leur miroir. La
+  traduction part de ce commit : c'est ce qui a changé entre-temps qui est traduit. Comparer le texte, et non les
+  dates, trouve ce qu'un contrôle des dates manque : le 21 novembre 2026, une puce ajoutée à une page française du
+  guide IA on-prem dans sa première pull request, jamais reportée dans la page anglaise.
+
+Vous cochez les pages ; chacune montre ses passages modifiés et son estimation (le modèle de traduction, environ
+un centime par page sur le guide IA on-prem). Le passage entre ensuite dans le graphe comme si `apply` venait de
+tourner : `mirror`, les contrôles du guide, les liens, et la pause avant la pull request, où le diff de la branche
+montre la traduction.

@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, llm, news, prices, sourcecheck, sources, steps, store, vault, verify
+from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, sourcecheck, sources, steps, store, vault, verify
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, usage_line
@@ -60,7 +60,7 @@ STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "repo
 # What each step of a role runs at, shown in the Settings: read from the one table of the steps (steps.py)
 STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role in ("reasoning", "translator")}
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming",
-              "sources": "checking the sources"}
+              "sources": "checking the sources", "mirror": "syncing the languages"}
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -147,6 +147,12 @@ class Report(BaseModel):
     # an addition run: what each call reads, the whole guide or its lead's pages and the plan of the guide
     context: Literal["guide", "pages"] = news.CONTEXT
     steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
+
+
+class MirrorSync(BaseModel):
+    pages: list[str] = []  # source pages ahead of their mirror on the base branch (mirrors.behind)
+    hand: list[str] = []  # source pages edited in the guide's folder and not committed (mirrors.folder_changes)
+    steps: dict = {}  # for this run alone: {step: {engine, model, effort}}
 
 
 class Handle(BaseModel):
@@ -330,7 +336,7 @@ def create_app(settings: Settings) -> FastAPI:
             return "stopped"  # an error interrupted it; resume continues after the last finished step
         if v.get("pr_url"):
             return "published"
-        if not v.get("accepted"):
+        if not v.get("accepted") and v.get("mode") != "mirror":  # a mirror run has no correction to accept
             return "nothing-applied"
         return "not-published"
 
@@ -650,7 +656,7 @@ def create_app(settings: Settings) -> FastAPI:
         warm({t: known[t] for t in others})
         # A run just created has no checkpoint before its proposals are made, which takes minutes: listed all the
         # same, first, so that one can come back to it (it was only reachable from its verification)
-        starting = [t for t, job in jobs.items() if job.action == "fix" and not job.done and t not in known]
+        starting = [t for t, job in jobs.items() if job.action in ("fix", "mirror") and not job.done and t not in known]
         return [summary(t) for t in starting] + [summary(t, known[t]) for t in others]
 
     @app.get("/api/runs/{thread}")
@@ -1158,6 +1164,65 @@ def create_app(settings: Settings) -> FastAPI:
 
         start(vid, "verify", "verify", work)
         return {"id": vid}
+
+    # -- « Sync the languages »: the mirrors follow the source pages (mirrors.py) ---------------------------
+    def mirror_plan(steps: str = "") -> dict:
+        """What can be synced: the source pages ahead of their mirror on the base branch, and those edited in the
+        guide's folder and not committed, each with its passages and its estimate. A page of the folder is offered
+        only when its committed text is the merged one: copied onto a branch of the base, a page of another branch
+        or of an older base would undo what the base has since."""
+        found = mirrors.plan(settings.vault, settings.home)
+        if not found["languages"]:
+            return {"languages": [], "ahead": [], "hand": [], "elsewhere": [], "base": found["base"]}
+        copy = found["copy"]
+        cfg = user_settings.load(cfg_home)
+        cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
+        model, table = llm.step_model(cfg, "mirror"), price_table()
+
+        def usd(page: str, changed: list[tuple[str, str]]) -> float:
+            moved = sum(len(o.encode("utf-8")) + len(n.encode("utf-8")) for o, n in changed)
+            total = 0.0
+            for folder in found["languages"].values():
+                mirror = copy / f"{folder}{page}"
+                size = mirror.stat().st_size if mirror.is_file() else 0
+                total += verify._usd(model, tokens_in=int((size + moved) / verify.BYTES_PER_TOKEN) + 1500,
+                                     tokens_out=int(moved / verify.BYTES_PER_TOKEN * 0.7) + 300, table=table)
+            return round(total, 4)
+
+        ahead = [{"page": p, "since": found["since"][p], "passages": n,
+                  "usd": usd(p, mirrors.edits_of_commit(copy, p, found["since"][p]))} for p, n in found["ahead"].items()]
+        hand = [{"page": p, "passages": n, "usd": usd(p, mirrors.edits_of(settings.vault, p, "HEAD"))}
+                for p, n in found["hand"].items()]
+        return {"languages": [{"code": c, "name": guide_mod.language_name(c), "folder": f} for c, f in found["languages"].items()],
+                "ahead": ahead, "hand": hand, "elsewhere": found["elsewhere"], "model": model, "base": found["base"]}
+
+    @app.get("/api/mirrors")
+    def mirrors_view(steps: str = ""):
+        return mirror_plan(steps)
+
+    @app.post("/api/mirrors")
+    def mirrors_start(body: MirrorSync):
+        plan = mirror_plan()
+        ahead = {a["page"]: a["since"] for a in plan["ahead"]}
+        offered = {h["page"] for h in plan["hand"]}
+        unknown = [p for p in body.pages if p not in ahead] + [p for p in body.hand if p not in offered]
+        if unknown or not (body.pages or body.hand):
+            raise HTTPException(400, f"nothing to sync, or pages not offered: {unknown}")
+        existing = set(threads()) | set(jobs)
+        base_name = f"mirror-{date.today().isoformat()}"
+        thread = next(t for t in (base_name, *(f"{base_name}-{n}" for n in range(2, 100))) if t not in existing)
+        branch = f"i18n/{thread}"
+        keep_steps(thread, body.steps)
+
+        def work(graph, job: Job):
+            worktree = mirrors.prepare(settings.vault, settings.home, plan["base"], branch, body.hand)
+            graph.update_state(config(thread), mirrors.initial_state(
+                thread, branch, worktree, {p: ahead[p] for p in body.pages}, body.hand, date.today().isoformat()),
+                as_node="apply")
+            follow(graph, job, None)
+
+        start(thread, "mirror", "mirror", work)
+        return {"thread": thread}
 
     # -- the chapters of the guide (chapters.py): seen, proposed by a model, declared in the manifest -------
     chapters_pending = settings.home / "chapters-pr.json"  # the pull request of the last split, until it is merged

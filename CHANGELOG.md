@@ -3,6 +3,17 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **Sync the languages** (H1 of phase H): the page « Languages » and `vault-watch mirror` list the source pages ahead
+  of their mirror (from git: the text changed since the last commit of the mirror, not the dates) and those changed
+  in the guide's folder and not committed; the pages ticked are translated, passage by passage, in a run that ends
+  at the pull request like the others. The pages of the folder go onto the run's branch with their translation;
+  once merged, the folder's copies are put back in line before it moves forward (`vault.settle`).
+- The `mirror` step follows the diff of each source page on the branch (`mirrors.py`), paragraph by paragraph, a
+  table row or a list line at a time, instead of the corrections one by one: it carries whatever changed, edits by
+  hand included.
+
 ## 1.3.2 (2026-11-21)
 
 Documentation only: nothing changes in what the agent does.

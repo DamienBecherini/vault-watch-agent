@@ -116,7 +116,7 @@ flowchart TD
 | `report` | Écrit le rapport que vous relisez |
 | `review` | ⏸ Pause : vous acceptez tout, rien, ou une liste |
 | `apply` | Applique les corrections acceptées dans un worktree git sur une nouvelle branche et met à jour le champ de date des pages |
-| `mirror` | Traduit les passages modifiés dans les copies du guide (une copie anglaise sous `en/`, par exemple) |
+| `mirror` | Traduit dans les copies du guide (une copie anglaise sous `en/`, par exemple) ce qui a changé dans chaque page source sur la branche, passage par passage : les corrections, et toute modification à la main |
 | `audits` | Lance les contrôles du guide, si le manifeste en déclare |
 | `links` | Vérifie les liens externes des pages modifiées |
 | `publish` | ⏸ Pause : sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
@@ -182,6 +182,7 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 | Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
 | Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
 | Signaler ou proposer | Des erreurs à corriger, ou une idée ou une nouvelle à vérifier et à écrire |
+| Langues | Les pages en avance sur leur miroir, et celles que vous avez modifiées dans votre dossier sans les commiter : ce qui a changé est traduit, puis contrôles et pull request habituels ([Une veille étape par étape](docs/fr/run.md#synchroniser-les-langues)) |
 | Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
 | Coûts | Ce que coûte l'entretien, par mois et par passage ([Coûts](docs/fr/costs.md)) |
 | Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
@@ -209,6 +210,7 @@ vault-watch collect --json watch.json       # la veille depuis les flux du guide
 vault-watch compact                         # ce que pèse et a pris chaque page, sans modèle ; --report : quoi alléger
 vault-watch news                            # pistes : ce qu'un lecteur chercherait et ne trouve pas ; --explore : le web
 vault-watch chapters                        # les chapitres sur lesquels l'agent travaille ; --propose : un modèle les propose
+vault-watch mirror                          # les pages en avance sur leur miroir ; --yes : traduire ce qui a changé
 vault-watch costs --by month                # ou year, run, step
 vault-watch --guide ../autre-guide doctor   # n'importe quelle commande sur un autre guide
 ```

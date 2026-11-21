@@ -17,13 +17,18 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import compact, crosscheck, forge, inputs, news, prompts, quotes, reading, steps, vault
+from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, quotes, reading, steps, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
 
 TRIAGE_BATCH = 40  # items per triage call
 TRIAGE_NOTES = 1200  # characters of cached notes shown at triage
+MIRROR_NOTES = ("A passage whose new text is empty was removed: give the matching passage of the mirror page as "
+                "`current` and leave `proposed` empty. A passage whose new text begins or ends with its old text adds "
+                "what follows or precedes it: quote the matching mirror passage and add the translation next to it. "
+                "The mirror page may already say some of the new text (a page edited by hand in both languages): "
+                "give no edit for what it already says.")
 
 
 @dataclass
@@ -281,26 +286,28 @@ def build(deps: Deps, checkpointer=None):
 
     # -- mirror (the pages of each mirror of the manifest follow the edits of the source) ---------------
     def mirror(state: WatchState) -> dict:
+        """The mirrors follow what changed in the source pages on the branch, paragraph by paragraph (mirrors.py):
+        the corrections applied, and whatever was edited by hand. A page listed in `mirror_since` is translated from
+        that commit instead of the base (a page ahead of its mirror before the run)."""
         wt = Path(state["worktree"])
         translator = deps.translator or deps.llm
         guide = vault.guide_of(wt)
-        # Mirror pages edited directly (translation fixes) have nothing to follow
-        chosen = [c for c in state["corrections"] if c["id"] in state["applied"] and not vault.in_mirror(wt, c["page"])]
+        base = git("merge-base", deps.base, "HEAD", cwd=wt).strip()
+        since = {page: base for page in mirrors.changed_pages(wt, base)} | dict(state.get("mirror_since") or {})
         mirrored, problems, usage = [], [], []
-        for (code, folder), page in ((m, p) for m in sorted(guide.mirrors.items()) for p in sorted({c["page"] for c in chosen})):
+        for (code, folder), page in ((m, p) for m in sorted(guide.mirrors.items()) for p in sorted(since)):
+            changed = mirrors.edits_of(wt, page, since[page])
+            if not changed:
+                continue
             en = f"{folder}{page}"
             if not (wt / en).is_file():
                 problems.append(f"{en}: no mirror in {language_name(code)}")
                 continue
-            edits = "\n\n".join(
-                f"<edit>\n<old_source>\n{c['current']}\n</old_source>\n<new_source>\n{c['proposed']}\n</new_source>\n</edit>"
-                for c in chosen if c["page"] == page
-            )
+            edits = "\n\n".join(f"<edit>\n<old_source>\n{old}\n</old_source>\n<new_source>\n{new}\n</new_source>\n</edit>"
+                                for old, new in changed)
             prompt = (f"Page `{en}` of the {language_name(code)} mirror:\n\n<mirror_page>\n{vault.read(wt / en)}\n"
-                      f"</mirror_page>\n\nEdits of the {language_name(guide.language)} page:\n\n{edits}")
-            if any(not c["proposed"].strip() for c in chosen if c["page"] == page):  # a trim that removes a passage
-                prompt += ("\n\nAn edit whose new text is empty removes the passage: give the matching passage of the "
-                           "mirror page as `current` and leave `proposed` empty.")
+                      f"</mirror_page>\n\nWhat changed in the {language_name(guide.language)} page `{page}`, passage by "
+                      f"passage:\n\n{edits}\n\n{MIRROR_NOTES}")
             result, u = translator.parse(
                 system=prompts.mirror(wt, code), prompt=prompt, schema=MirrorResult, effort=steps.effort("mirror"),
                 node=f"mirror {en}",
@@ -310,18 +317,18 @@ def build(deps: Deps, checkpointer=None):
                 problems.append(f"{en}: {result.problem}")
             done = 0
             for e in result.edits:
-                if vault.date_bump_only(e.current, e.proposed, vault.guide_of(wt).modified_field):
-                    continue  # apply bumps the date itself
+                if vault.date_bump_only(e.current, e.proposed, guide.modified_field) or e.current == e.proposed:
+                    continue  # apply bumps the date itself; an edit the mirror already carries changes nothing
                 if vault.check(wt, en, e.current) == "ok":
                     vault.apply(wt, en, e.current, e.proposed, deps.today)
                     done += 1
                 else:
-                    problems.append(f"{en}: quoted English text not found exactly once, edit skipped")
+                    problems.append(f"{en}: quoted text not found exactly once in the mirror, edit skipped")
             if done:
                 mirrored.append(en)
         if mirrored:
             git("add", *mirrored, cwd=wt)
-            git("commit", "-m", "chore(i18n): sync the mirrors of the reviewed corrections", cwd=wt)
+            git("commit", "-m", "chore(i18n): sync the mirrors with the source pages", cwd=wt)
         return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage}
 
     # -- audits (the guide's own checks, [checks] audits, no model) ---------------
@@ -675,6 +682,8 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
     """The description of the pull request, under `limit` characters. A run with many corrections loses, in this
     order and only as far as needed: the passages under its findings, the end of its « Why » cells, the last rows of
     its table (the commit message of the branch names every correction)."""
+    if state.get("mode") == "mirror":
+        return _mirror_pr_body(state)[:limit]
     count = len([c for c in state["corrections"] if c["id"] in state.get("applied", [])])
     for passages, why, rows in ((True, 0, count), (False, 0, count), (False, 120, count)):
         body = _pr_body(state, passages, why, rows)
@@ -688,6 +697,35 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
         else:
             high = middle - 1
     return _pr_body(state, False, 120, low)
+
+
+def _checks_lines(state: WatchState) -> str:
+    """The guide's audits, the mirrors and the external sources, as every pull request says them."""
+    return (
+        "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
+            state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
+        f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
+        + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
+        + "\nExternal sources of the changed pages (the guide's source audit): "
+        + ("not checked (the guide declares no source audit).\n" if state.get("link_problems", []) is None else
+           "all answer.\n" if not state.get("link_problems") else
+           "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
+        + ("" if state.get("audit_ok") is not False else f"\n```\n{state.get('audit_log', '')}\n```\n")
+    )
+
+
+def _mirror_pr_body(state: WatchState) -> str:
+    """A « Sync the languages » run: no correction, the source pages the mirrors were brought in line with."""
+    hand = state.get("hand_pages", [])
+    since = state.get("mirror_since", {})
+    return (
+        "The mirrors follow their source pages, passage by passage: what changed since each mirror was last "
+        "translated, and what was edited by hand.\n\n"
+        + (f"Edited by hand, committed on this branch: {', '.join(f'`{p}`' for p in hand)}.\n\n" if hand else "")
+        + ("Ahead of their mirror on the base branch:\n\n"
+           + "".join(f"- `{p}`, translated from {c[:7]}\n" for p, c in sorted(since.items())) + "\n" if since else "")
+        + _checks_lines(state)
+    )
 
 
 def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str:

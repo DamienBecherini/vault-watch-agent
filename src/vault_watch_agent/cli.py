@@ -451,6 +451,36 @@ def serve(port: int, idle_exit: int = 0, notify_lang: str | None = None) -> None
     server.run()
 
 
+def mirror_command(args) -> bool:
+    """Lists what « Sync the languages » would translate; True when a run is to start (--yes), with the plan and the
+    pages chosen kept on `args` for it."""
+    from . import mirrors
+
+    found = mirrors.plan(VAULT, HOME)
+    if not found["languages"]:
+        print("The guide declares no mirror: nothing to sync.")
+        return False
+    for page, n in found["hand"].items():
+        print(f"  changed in the folder, not committed: {page} ({n} passage(s))")
+    for page, n in found["ahead"].items():
+        print(f"  ahead of its mirror since {found['since'][page][:7]}: {page} ({n} passage(s))")
+    for page in found["elsewhere"]:
+        print(f"  not offered (the folder's committed text is not the merged one): {page}")
+    offered = [*found["hand"], *found["ahead"]]
+    if not offered:
+        print("Everything is in step.")
+        return False
+    wanted = [p.strip() for p in args.pages.split(",")] if args.pages else offered
+    unknown = [p for p in wanted if p not in offered]
+    if unknown:
+        raise SystemExit(f"not offered: {', '.join(unknown)}")
+    if not args.yes:
+        print(f"{len(wanted)} page(s) to translate: run again with --yes to start (the translation model is billed on the API).")
+        return False
+    args.mirror_plan, args.mirror_pages = found, wanted
+    return True
+
+
 def main(argv: list[str] | None = None) -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(prog="vault-watch")
@@ -510,6 +540,11 @@ def main(argv: list[str] | None = None) -> None:
     ch.add_argument("--automatic", action="store_true", help="remove the chapters the manifest declares: back to the "
                     "automatic rule")
     ch.add_argument("--yes", action="store_true", help="--propose: run the model call without asking")
+    mi = sub.add_parser("mirror", help="the source pages ahead of their mirror, and those changed in the guide's folder "
+                        "and not committed; with --yes, a run that translates what changed, up to the pause before the "
+                        "pull request (then `resume`)")
+    mi.add_argument("--pages", help="some pages only, comma-separated (default: all those listed)")
+    mi.add_argument("--yes", action="store_true", help="start the run without asking")
     cp = sub.add_parser("compact", help="what the guide weighs, page by page (no model); --report lists what could be trimmed")
     cp.add_argument("--report", action="store_true", help="one model call reads the whole guide and lists what weighs; "
                     "nothing is edited")
@@ -572,6 +607,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "chapters":
         chapters_command(args)
         return
+    if args.cmd == "mirror":
+        HOME.mkdir(parents=True, exist_ok=True)
+        if not mirror_command(args):
+            return
     if args.cmd == "costs":
         from . import costs
 
@@ -607,6 +646,28 @@ def main(argv: list[str] | None = None) -> None:
             run_eval(args, deps, saver, judge)
             return
         graph = build(deps, saver)
+        if args.cmd == "mirror":
+            from datetime import date
+
+            from . import mirrors
+
+            found, wanted = args.mirror_plan, args.mirror_pages
+            thread = next(t for t in (f"mirror-{date.today().isoformat()}",
+                                      *(f"mirror-{date.today().isoformat()}-{n}" for n in range(2, 100)))
+                          if not graph.get_state({"configurable": {"thread_id": t}}).values)
+            for model in (deps.llm, deps.translator):
+                if model:
+                    model.run, model.kind = thread, "mirror"
+            branch = f"i18n/{thread}"
+            hand = [p for p in wanted if p in found["hand"]]
+            since = {p: found["since"][p] for p in wanted if p in found["since"]}
+            worktree = mirrors.prepare(VAULT, HOME, found["base"], branch, hand)
+            config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
+            graph.update_state(config, mirrors.initial_state(thread, branch, worktree, since, hand, date.today().isoformat()),
+                               as_node="apply")
+            graph.invoke(None, config)
+            show(graph, config)
+            return
         if args.cmd == "fix":
             from . import fix
 

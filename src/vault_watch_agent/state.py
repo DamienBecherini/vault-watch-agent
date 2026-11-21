@@ -110,6 +110,8 @@ class WatchState(TypedDict, total=False):
     branch: str
     worktree: str
     applied: list[str]
+    mirror_since: dict[str, str]  # source page -> commit to translate it from (a page ahead of its mirror); else the base
+    hand_pages: list[str]  # a « Sync the languages » run: the pages copied from the guide's folder, edited by hand
     mirrored: list[str]  # EN pages updated
     mirror_problems: list[str]
     link_problems: list[str] | None  # external sources of the changed pages that do not answer; None: not checked

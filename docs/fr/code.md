@@ -81,6 +81,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `llm.py` | 653 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
 | `verify.py` | 596 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
 | `news.py` | 422 | Chercher les nouveautés : la consigne des pistes, ce que les veilles passées ont mis de côté (lu dans leurs rapports), les pistes trouvées sur le web chapitre par chapitre, les ajouts pour les pistes gardées, une piste par appel avec le web, sur les pages que la piste désigne et le plan du guide, ou sur tout le guide (`compact.in_calls` fait les appels) ; ce que deux appels ajoutent à la même page réuni |
+| `mirrors.py` | 224 | Ce qui a changé dans une page source, en passages qu'un traducteur peut reporter dans son miroir (un paragraphe, une ligne de tableau, une ligne de liste, d'après git) ; les pages en avance sur leur miroir ; la branche et l'état d'un passage « Synchroniser les langues » |
 | `guide.py` | 407 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
 | `chapters.py` | 398 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
 | `sourcecheck.py` | 386 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
@@ -143,7 +144,7 @@ flowchart TB
 | `report` | `render_report` |  |
 | `review` | `interrupt()` | ⏸ humain |
 | `apply` | `git worktree`, `vault.apply` |  |
-| `mirror` | `translator.parse(MirrorResult)`, `prompts.mirror` | Claude |
+| `mirror` | `mirrors.changed_pages`, `mirrors.edits_of`, `translator.parse(MirrorResult)`, `prompts.mirror` | Claude |
 | `audits` | les contrôles du guide (`[checks] audits` de son manifeste) |  |
 | `links` | `link_problems` |  |
 | `publish` | `interrupt()`, `git push`, la pull request de la forge (`forge.py`) | ⏸ humain |
@@ -250,7 +251,9 @@ de `number`, c'est le même graphe, le même rapport, la même relecture et la m
 `mode` de l'état dit de quelle sorte de passage il s'agit, et trois autres sortes entrent de la même façon : une
 correction de traduction (`"translation"`, qui saute la relecture croisée), un passage de compactage (`"compact"`,
 des allègements proposés par `compact.py`, avec une relecture croisée écrite pour eux) et un passage d'ajouts
-(`"add"`, les pistes vérifiées sur le web par `news.py`).
+(`"add"`, les pistes vérifiées sur le web par `news.py`). Un passage « Synchroniser les langues » (`"mirror"`,
+`mirrors.py`) entre plus loin, comme si `apply` venait de tourner : sa branche porte les pages modifiées à la main, et
+`mirror_since` dit de quel commit part la traduction de chaque page en avance sur son miroir.
 
 ## Tests
 

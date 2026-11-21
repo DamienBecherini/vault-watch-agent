@@ -553,14 +553,14 @@ page. Decided with the user on 2026-11-21: before C3 and phase D, in the order b
 The `mirror` step translates correction by correction (`current` → `proposed`): it cannot follow an edit made by
 hand. It should translate what really changed in each source page, paragraph by paragraph, from the git diff.
 
-- [ ] **H1.1 Mirror from the diff.** For each source page changed on the branch, the paragraphs that differ from the
+- [x] **H1.1 Mirror from the diff.** For each source page changed on the branch, the paragraphs that differ from the
   base, with their neighbours as context, sent to the translator as edits of the mirror page; each quote of the
   mirror checked as today (found once, else skipped and listed). Corrections and edits by hand take the same path.
   The tests: a page changed by a correction, by hand, by both; a paragraph removed, added, moved.
-- [ ] **H1.2 The pages ahead of their mirror.** The guide's own check when the manifest declares one (`audit:i18n`
+- [x] **H1.2 The pages ahead of their mirror.** The guide's own check when the manifest declares one (`audit:i18n`
   for the IA on-prem guide), else git: the last commit of the source page after the last commit of its mirror. The
   diff to translate starts at the commit where the two were last in step.
-- [ ] **H1.3 « Sync the languages »** in the interface (and `vault-watch mirror`): the pages ahead of their mirror,
+- [x] **H1.3 « Sync the languages »** in the interface (and `vault-watch mirror`): the pages ahead of their mirror,
   ticked, an estimate (the translator model, a few cents a page), then a mirror-only run: the English diff in the
   review, a branch, the guide's checks, the links, the pull request. For what the editor changed by hand in
   Obsidian, without a terminal.

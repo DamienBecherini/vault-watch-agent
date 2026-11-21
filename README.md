@@ -114,7 +114,7 @@ flowchart TD
 | `report` | Writes the report you review |
 | `review` | ⏸ Pause: you accept all, none, or a list |
 | `apply` | Applies the accepted corrections on a git worktree of a new branch and bumps the pages' date field |
-| `mirror` | Translates the changed passages into the guide's mirrors (an English copy under `en/`, for instance) |
+| `mirror` | Translates into the guide's mirrors (an English copy under `en/`, for instance) what changed in each source page on the branch, passage by passage: the corrections, and any edit by hand |
 | `audits` | Runs the guide's own checks, if the manifest declares them |
 | `links` | Checks the external links of the changed pages |
 | `publish` | ⏸ Pause: on a yes, pushes the branch and opens the pull request (a local guide keeps the branch) |
@@ -178,6 +178,7 @@ problems, the diff of the branch), then the pull request. Around them:
 | Sources | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
 | Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run ([Check the guide](docs/check.md)) |
 | Report or suggest | Errors to fix, or an idea or a piece of news to check and write |
+| Languages | The pages ahead of their mirror, and those you changed in your folder without committing: what changed is translated, then the usual checks and pull request ([A run, step by step](docs/run.md#sync-the-languages)) |
 | Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand: why and how, [Chapters](docs/chapters.md) |
 | Costs | What the upkeep costs, by month and by run ([Costs](docs/costs.md)) |
 | Settings | The gear: engine, model and effort of each role or of one step, prices and where they come from, what the guide provides |
@@ -205,6 +206,7 @@ vault-watch collect --json watch.json       # the watch from the guide's feeds, 
 vault-watch compact                         # what each page weighs and gained, no model; --report: what to trim
 vault-watch news                            # leads: what a reader would look for and not find; --explore: the web
 vault-watch chapters                        # the chapters the agent works on; --propose: a model's split
+vault-watch mirror                          # the pages ahead of their mirror; --yes: translate what changed
 vault-watch costs --by month                # or year, run, step
 vault-watch --guide ../other-guide doctor   # any command on another guide
 ```

@@ -137,7 +137,7 @@ class FakeLLM:
                 CorrectionReview(id="C3", verdict="keep", reason="an old row", revised=""),
             ], consistency_edits=[], other_findings=[]), usage
         if schema is MirrorResult and "en/03-stack/engines.md" in prompt:
-            assert "An edit whose new text is empty removes the passage" in prompt
+            assert "A passage whose new text is empty was removed" in prompt
             return MirrorResult(problem="", edits=[
                 MirrorEdit(current="Previously, version 0.31.2 was enough[^2].", proposed=""),
                 MirrorEdit(current="| Old | 0.29 |", proposed=""),

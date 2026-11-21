@@ -254,9 +254,29 @@ def _sync(vault: Path, base: str) -> None:
         return
     inputs.run(["git", "fetch", "-q", "origin", base], cwd=vault)
     if inputs.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=vault).strip() == base:
+        settle(vault, f"origin/{base}")
         inputs.run(["git", "merge", "-q", "--ff-only", f"origin/{base}"], cwd=vault)
     else:
         inputs.run(["git", "fetch", "-q", "origin", f"{base}:{base}"], cwd=vault)  # fast-forward only
+
+
+def settle(vault: Path, target: str) -> list[str]:
+    """The files changed in the folder and not committed whose text is already the one of `target`: put back to
+    their last commit, so that moving to `target` can go on (git refuses to overwrite a local change, even one that
+    says the same). A page edited by hand and sent by « Sync the languages » is such a file once its pull request is
+    merged. Any other local change is left as it is. Returns the files put back."""
+    back = []
+    for name in inputs.run(["git", "diff", "--name-only", "HEAD"], cwd=vault).splitlines():
+        try:
+            merged = inputs.run(["git", "show", f"{target}:{name}"], cwd=vault)
+        except RuntimeError:
+            continue  # not in target
+        path = vault / name
+        if path.is_file() and read(path).replace("\r\n", "\n") == merged.replace("\r\n", "\n"):
+            back.append(name)
+    if back:
+        inputs.run(["git", "checkout", "-q", "--", *back], cwd=vault)
+    return back
 
 
 def reading_copy(vault: Path, home: Path, base: str = "main") -> Path:

@@ -17,7 +17,7 @@ let source = null;  // EventSource of the run being followed
 // --- Languages ---------------------------------------------------------------------------------------
 const TEXTS = {
   fr: {
-    nav: { watches: "Veilles", sources: "Sources", check: "Vérifier le guide", report: "Signaler ou proposer", costs: "Coûts" },
+    nav: { watches: "Veilles", sources: "Sources", check: "Vérifier le guide", report: "Signaler ou proposer", languages: "Langues", costs: "Coûts" },
     sources: {
       title: "Sources de la veille",
       intro: (p, runs, file) => `Ce que chaque source a apporté sur ${p.watches} veille(s), du ${p.since || "…"} au ${p.until}, et ce qu'il en est sorti dans ${runs} passage(s). Calculé sans modèle, à partir des veilles et des passages gardés sur cette machine. La liste est dans <code>${file}</code>.`,
@@ -227,6 +227,20 @@ const TEXTS = {
       new: () => "Ce passage n'a pas commencé.",
     },
     resume: "Reprendre", applied: "Appliquées",
+    languages: {
+      title: "Synchroniser les langues",
+      intro: names => `Les pages qui ont changé depuis la dernière traduction de leur miroir (${names}). L'agent traduit seulement les passages modifiés, avec le modèle de traduction, puis le passage suit le chemin habituel : contrôles du guide, liens, et la pull request après ton feu vert.`,
+      noMirror: "Le guide ne déclare aucun miroir : il n'y a rien à synchroniser.",
+      none: "Tout est synchronisé : aucune page n'est en avance sur son miroir.",
+      hand: "Modifiées dans ton dossier, pas encore commitées",
+      handHelp: "Le passage les copie sur sa branche (un commit « edits by hand ») avec leur traduction : une seule pull request pour les deux langues. Ton dossier n'est pas touché ; une fois la pull request fusionnée, l'agent remet tes copies à l'identique de la branche principale à sa prochaine mise à jour du dossier.",
+      ahead: "En avance sur leur miroir",
+      aheadHelp: base => `Déjà sur <code>${base}</code>, modifiées depuis la dernière fois que leur miroir a changé : la traduction part de là.`,
+      elsewhere: pages => `Pas proposées : ${pages}. Dans ton dossier, ces pages ne partent pas de la version fusionnée (une autre branche, ou un dossier en retard) : les copier sur une branche de la branche principale déferait ce qu'elle a reçu depuis. Reviens sur la branche principale à jour pour les synchroniser.`,
+      passages: n => `${n} passage${n > 1 ? "s" : ""} modifié${n > 1 ? "s" : ""}`, since: c => `depuis ${c}`,
+      tickAll: "Tout cocher", untickAll: "Tout décocher",
+      button: (n, c) => n ? `Traduire ${n} page${n > 1 ? "s" : ""} · ${c}` : "Coche au moins une page",
+    },
     reportTitle: "Signaler une erreur ou proposer un sujet",
     reportKinds: { fix: "Une erreur à corriger", add: "Une idée ou une information à creuser" },
     ideaIntro: "Un sujet par ligne : ce que tu as vu, ou ce qui manque d'après toi, avec une adresse si tu en as une. L'agent vérifie chaque sujet sur des sources primaires, avec tout le guide en contexte, puis propose où l'écrire ; tu relis comme pour une veille. Rien avant : pas de recherche de pistes.",
@@ -256,7 +270,7 @@ const TEXTS = {
     subscription: "abonnement, non facturé", local: "modèle local, non facturé", provider: "facturé par ton fournisseur",
   },
   en: {
-    nav: { watches: "Watches", sources: "Sources", check: "Check the guide", report: "Report or suggest", costs: "Costs" },
+    nav: { watches: "Watches", sources: "Sources", check: "Check the guide", report: "Report or suggest", languages: "Languages", costs: "Costs" },
     sources: {
       title: "Sources of the watch",
       intro: (p, runs, file) => `What each source brought over ${p.watches} watch(es), from ${p.since || "…"} to ${p.until}, and what came out of it in ${runs} run(s). Computed without a model, from the watches and the runs kept on this machine. The list is in <code>${file}</code>.`,
@@ -463,6 +477,20 @@ const TEXTS = {
       new: () => "This run has not started.",
     },
     resume: "Resume", applied: "Applied",
+    languages: {
+      title: "Sync the languages",
+      intro: names => `The pages that changed since their mirror was last translated (${names}). The agent translates only the passages that changed, with the translation model, then the run takes the usual path: the guide's checks, the links, and the pull request after your go-ahead.`,
+      noMirror: "The guide declares no mirror: there is nothing to sync.",
+      none: "Everything is in step: no page is ahead of its mirror.",
+      hand: "Changed in your folder, not committed yet",
+      handHelp: "The run copies them onto its branch (a commit « edits by hand ») with their translation: one pull request for both languages. Your folder is not touched; once the pull request is merged, the agent puts your copies back in line with the main branch the next time it updates the folder.",
+      ahead: "Ahead of their mirror",
+      aheadHelp: base => `Already on <code>${base}</code>, changed since their mirror last moved: the translation starts from there.`,
+      elsewhere: pages => `Not offered: ${pages}. In your folder these pages do not start from the merged version (another branch, or a folder behind): copied onto a branch of the main branch, they would undo what it received since. Come back to the main branch, up to date, to sync them.`,
+      passages: n => `${n} passage${n > 1 ? "s" : ""} changed`, since: c => `since ${c}`,
+      tickAll: "Tick all", untickAll: "Untick all",
+      button: (n, c) => n ? `Translate ${n} page${n > 1 ? "s" : ""} · ${c}` : "Tick a page at least",
+    },
     reportTitle: "Report an error or suggest a subject",
     reportKinds: { fix: "An error to fix", add: "An idea or a piece of news to dig into" },
     ideaIntro: "One subject per line: what you saw, or what you think is missing, with an address if you have one. The agent checks each subject on primary sources, with the whole guide in context, then proposes where to write it; you review as for a watch. Nothing before: no search for leads.",
@@ -694,6 +722,7 @@ async function route() {
     else if (h === "/sources") await viewSources();
     else if (h === "/report" || h === "/idea") await viewReport(h === "/idea");
     else if (h === "/costs") await viewCosts();
+    else if (h === "/languages") await viewLanguages();
     else if (h === "/chapters") await viewChapters();
     else await viewWatches();
   } catch (e) {
@@ -1385,7 +1414,6 @@ async function viewReport(idea = false) {
   };
 }
 
-// --- Costs -------------------------------------------------------------------------------------------------
 // --- Sources of the watch ----------------------------------------------------------------------------
 const SOURCE_ORDER = ["error", "noise", "silent", "leads", "quiet", "useful"];  // what to look at first
 const SOURCE_CLASS = { error: "error", noise: "attention", silent: "attention", leads: "neutral", quiet: "neutral", useful: "ok" };
@@ -1583,6 +1611,62 @@ async function viewSources() {
   if (busy) followTimer = setTimeout(() => viewSources().catch(() => {}), 1500);
 }
 
+// A language by its code, in the language of the page (« anglais », « English »); the server's name otherwise
+const languageName = (code, fallback) => { try { return new Intl.DisplayNames([lang], { type: "language" }).of(code) || fallback; } catch { return fallback; } };
+
+// --- Sync the languages: the mirrors follow the source pages (GET/POST /api/mirrors) --------------------------
+async function viewLanguages() {
+  await loadSteps();
+  const L = T.languages, d = await api(`/api/mirrors${stepsQuery()}`);
+  if (location.hash.slice(1) !== "/languages") return;  // left the page meanwhile
+  if (!d.languages.length) {
+    page.innerHTML = `<h1>${L.title}</h1><p class="muted">${L.noMirror}</p>`;
+    return;
+  }
+  const card = (p, kind) => `<div class="card check-card"><label class="option">
+      <input type="checkbox" data-kind="${kind}" data-page="${esc(p.page)}" data-usd="${p.usd}" checked>
+      <div><div class="header"><code>${esc(p.page)}</code> <span class="badge attention">${costOf("mirror", `≈ ${dollars(p.usd)}`)}</span></div>
+        <p class="muted small">${L.passages(p.passages)}${p.since ? ` · ${L.since(esc(p.since.slice(0, 7)))}` : ""}</p></div></label></div>`;
+  const any = d.ahead.length + d.hand.length;
+  page.innerHTML = `
+    <h1>${L.title}</h1>
+    <p class="subtitle">${L.intro(d.languages.map(l => esc(languageName(l.code, l.name))).join(", "))}</p>
+    ${any ? "" : `<p class="banner">${L.none}</p>`}
+    ${any > 1 ? `<p class="tick-row"><button type="button" class="small-button" data-tick="all">${L.tickAll}</button>
+      <button type="button" class="small-button" data-tick="none">${L.untickAll}</button></p>` : ""}
+    ${d.hand.length ? `<h2>${L.hand}</h2><p class="muted small">${L.handHelp}</p>${d.hand.map(p => card(p, "hand")).join("")}` : ""}
+    ${d.ahead.length ? `<h2>${L.ahead}</h2><p class="muted small">${L.aheadHelp(esc(d.base))}</p>${d.ahead.map(p => card(p, "ahead")).join("")}` : ""}
+    ${d.elsewhere.length ? `<p class="small attention-text">${L.elsewhere(d.elsewhere.map(p => `<code>${esc(p)}</code>`).join(", "))}</p>` : ""}
+    ${any ? `<details class="run-steps"${Object.keys(ownFor(["mirror"])).length ? " open" : ""}><summary>${T.perStep.title}</summary>
+      ${STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : ""}${stepLine("mirror", T.perStep.names.mirror)}</details>
+    <p><button class="primary" id="sync"></button> <span class="error-text small" id="sync-error"></span></p>` : ""}`;
+  bindSteps(page, () => viewLanguages());
+  const boxes = () => [...page.querySelectorAll("input[data-page]")];
+  const label = () => {
+    const on = boxes().filter(b => b.checked), button = $("#sync");
+    if (!button) return;
+    button.disabled = !on.length;
+    button.textContent = L.button(on.length, costOf("mirror", `≈ ${dollars(on.reduce((sum, b) => sum + Number(b.dataset.usd), 0))}`));
+  };
+  boxes().forEach(b => { b.onchange = label; });
+  page.querySelectorAll("[data-tick]").forEach(b => b.onclick = () => { boxes().forEach(x => { x.checked = b.dataset.tick === "all"; }); label(); });
+  label();
+  if (!$("#sync")) return;
+  $("#sync").onclick = async () => {
+    const on = boxes().filter(b => b.checked);
+    $("#sync").disabled = true;
+    try {
+      const { thread } = await api("/api/mirrors", { pages: on.filter(b => b.dataset.kind === "ahead").map(b => b.dataset.page),
+        hand: on.filter(b => b.dataset.kind === "hand").map(b => b.dataset.page), steps: ownFor(["mirror"]) });
+      location.hash = `/run/${encodeURIComponent(thread)}`;
+    } catch (e) {
+      $("#sync-error").textContent = e.message;
+      $("#sync").disabled = false;
+    }
+  };
+}
+
+// --- Costs -------------------------------------------------------------------------------------------------
 async function viewCosts() {
   const c = await api("/api/costs");
   const number = n => n.toLocaleString(lang);

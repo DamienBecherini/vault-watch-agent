@@ -59,7 +59,7 @@ cross-check sees every page.
 | `report` | Everything above | The code writes the report; a correction that adds a version none of the footnotes it cites mentions carries a warning | |
 | `review` | ⏸ You | You tick | A group with one member that cannot apply is left out whole |
 | `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>` for a watch): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
-| `mirror` | Each mirror page, with the edits of its source page | The translator model: the same edits in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
+| `mirror` | Each mirror page, with what changed in its source page on the branch, passage by passage (a paragraph, a table row, a list line): the corrections, and any edit by hand | The translator model: the same changes in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
 | `audits`, `links` | The branch | The guide's scripts: its audits, and the sources of the changed pages (new ones first) | Nothing is stopped: what fails is shown before you publish |
 | `publish` | ⏸ You | You say yes or no | |
 
@@ -111,3 +111,23 @@ billed engine by itself ([How the code fits together](code.md#how-a-run-pauses-a
 A fix run, a translation fix, a compaction run and an addition run have no watch: they enter the graph at the
 proposals, with leads instead of items, and take the same path from `number` on ([Check the guide](check.md)). A
 translation fix skips the cross-check; a compaction run has its own, without the web.
+
+## Sync the languages
+
+A page edited by hand, in Obsidian or anywhere else, leaves its mirror behind. The page « Languages » of the
+interface (`vault-watch mirror` on the command line) lists two kinds of pages:
+
+- **Changed in your folder, not committed yet**: the run copies them onto its branch, in a commit « edits by
+  hand », so that one pull request carries both languages. Your folder is not touched. Once the pull request is
+  merged, the agent puts your copies back in line with the main branch the next time it updates the folder (git
+  would refuse otherwise: it never overwrites a local change, even one that says the same). A page whose committed
+  text in your folder is not the merged one (another branch, a folder behind) is not offered: copied onto a branch
+  of the main branch, it would undo what that branch received since.
+- **Ahead of their mirror**: already merged, changed since the last commit that touched their mirror. The
+  translation starts from that commit, so what changed in between is what is translated. Comparing the text, not
+  the dates, finds what a check of dates misses: on 21 November 2026 it found a bullet added to a French page of
+  the IA on-prem guide in its first pull request and never carried to the English one.
+
+You tick the pages; each shows its passages changed and its estimate (the translation model, about a cent a page on
+the IA on-prem guide). The run then enters the graph as if `apply` had just run: `mirror`, the guide's checks, the
+links, and the pause before the pull request, where the diff of the branch shows the translation.

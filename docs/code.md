@@ -81,6 +81,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `llm.py` | 653 | The engines (API, Claude Code on a subscription, the OpenAI-compatible one, and those of other packages, `EngineKind`, protocol 1): structured output, prompt caching, web search and fetch, capabilities, cost journal |
 | `verify.py` | 596 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
 | `news.py` | 422 | Look for what is new: the prompt of the leads, what past watches set aside (read from their reports), the leads found on the web chapter by chapter, the additions for the leads kept, one lead per call with the web, on the pages the lead names and the plan of the guide, or on the whole guide (`compact.in_calls` makes the calls); what two calls add to the same page put together |
+| `mirrors.py` | 224 | What changed in a source page, as passages a translator can carry to its mirror (a paragraph, a table row, a list line, from git); the pages ahead of their mirror; the branch and the state of a « Sync the languages » run |
 | `guide.py` | 407 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
 | `chapters.py` | 398 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
 | `sourcecheck.py` | 386 | « Check the sources »: asks each source itself (network, no model), reads the guide again, proposes changes to the feeds file and rewrites it for a pull request |
@@ -143,7 +144,7 @@ flowchart TB
 | `report` | `render_report` |  |
 | `review` | `interrupt()` | ⏸ human |
 | `apply` | `git worktree`, `vault.apply` |  |
-| `mirror` | `translator.parse(MirrorResult)`, `prompts.mirror` | Claude |
+| `mirror` | `mirrors.changed_pages`, `mirrors.edits_of`, `translator.parse(MirrorResult)`, `prompts.mirror` | Claude |
 | `audits` | the guide's own checks (`[checks] audits` of its manifest) |  |
 | `links` | `link_problems` |  |
 | `publish` | `interrupt()`, `git push`, the forge's pull request (`forge.py`) | ⏸ human |
@@ -248,7 +249,9 @@ A fix run makes its own proposals, then tells LangGraph they came out of `propos
 graph, the same report, the same review and the same pull request as a watch. The state's `mode` says which kind
 of run it is, and three other kinds enter the same way: a translation fix (`"translation"`, which skips the
 cross-check), a compaction run (`"compact"`, trims proposed by `compact.py`, with a cross-check written for
-trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
+trims) and an addition run (`"add"`, the leads checked on the web by `news.py`). A « Sync the languages » run
+(`"mirror"`, `mirrors.py`) enters later, as if `apply` had just run: its branch holds the pages edited by hand, and
+`mirror_since` says from which commit each page ahead of its mirror is translated.
 
 ## Tests
 
