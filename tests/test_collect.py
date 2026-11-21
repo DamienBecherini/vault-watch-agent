@@ -359,3 +359,14 @@ def test_a_repository_gives_its_readme_and_a_video_page_is_not_read(monkeypatch)
     notes = c.page_notes("https://github.com/acme/tool")
     assert notes.startswith("(read from https://github.com/acme/tool)\n# Tool") and "laptop GPU" in notes
     assert c.page_notes("https://www.youtube.com/watch?v=abc") == "" and not any("youtube" in u for u in asked)
+
+
+def test_a_video_keeps_its_whole_description_as_notes():
+    xml = """<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+<entry><id>yt:video:abc</id><published>2026-11-17T09:00:00+00:00</published>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=abc"/><title>A local model in 8 GB</title>
+  <media:group><media:title>A local model in 8 GB</media:title>
+  <media:description>""" + "We run Qwen on a laptop with 8 GB of VRAM. " * 10 + """</media:description></media:group></entry>
+</feed>"""
+    item = collect.parse_feed(xml)[0]
+    assert len(item["summary"]) <= 220 and len(item["notes"]) > 400 and item["notes"].startswith("We run Qwen")

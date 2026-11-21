@@ -11,6 +11,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   addresses only, `read_pages=False` to turn it off); a GitHub repository gives its README, a video page (YouTube,
   drawn by scripts) is not read. On the guide's collection of 21 November 2026: 37 of the 77 items kept, 17 seconds
   for the whole collection. The model reads the primary source instead of a title.
+- A video keeps its whole description as notes (YouTube gives it in `media:description`; only its first 220
+  characters were kept, as the summary). On the guide's channel, the descriptions are mostly promotion: the
+  subtitles are where a video says something (D5 of the roadmap).
 - The report of a watch says where the claims past their « Recheck by » date are re-checked: the check « claims »
   of « Check the guide ».
 

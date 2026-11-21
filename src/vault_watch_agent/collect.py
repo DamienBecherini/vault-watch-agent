@@ -200,8 +200,10 @@ def parse_feed(xml: str) -> list[dict]:
     items = []
     for b in blocks:
         date = tag(b, "pubDate") or tag(b, "published") or tag(b, "updated") or tag(b, "dc:date")
-        raw = re.search(r"<content[^>]*>([\s\S]*?)</content>", b, re.I) or re.search(
-            r"<description>([\s\S]*?)</description>", b, re.I)
+        # The text of the item: its content, else its description; a YouTube video has it in media:description
+        raw = (re.search(r"<content[^>]*>([\s\S]*?)</content>", b, re.I)
+               or re.search(r"<description>([\s\S]*?)</description>", b, re.I)
+               or re.search(r"<media:description[^>]*>([\s\S]*?)</media:description>", b, re.I))
         when = parse_date(date)
         items.append({
             "notes": cut(html_text(raw.group(1)), NOTES_MAX) if raw else "",
