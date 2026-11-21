@@ -30,7 +30,8 @@ own checks and, after a second yes, opens the pull request.
 
 **Your guide.** Any Markdown guide in a git repository, described by a small manifest (`vault-watch.toml`): where the
 pages are, in which language, which folders mirror them, where its watch comes from, which of its own checks to run.
-Hosted on GitHub, on a Gitea server, or kept local.
+Hosted on GitHub, on a Gitea server, or kept local. The agent edits the Markdown and stops at the pull request: if
+the guide is published as a site, its own chain rebuilds it after the merge, whatever that chain is.
 
 **Your model.** Claude through Claude Code on a Claude subscription (nothing billed per call) or through the API;
 or any OpenAI-compatible server, local or hosted. The project measures and commits to Claude Opus 5.5 and Sonnet
@@ -197,6 +198,14 @@ The agent was built for [Zero to Hero: On-Premise AI](https://ia-on-prem.damien.
 in English, whose biweekly watch is collected by a GitHub workflow. It is the guide whose results are measured
 below. A second guide, private, written in French only and hosted on a self-hosted Gitea, checked that the manifest
 and the forges work on a guide the agent was not written for.
+
+**Three repositories, one guide.** The content is an [Obsidian](https://obsidian.md) vault: Markdown pages, wiki
+links and footnotes, French at the root and English under `en/`, readable in Obsidian as it is. The site is built
+by [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine), which turns the vault
+into an [Astro Starlight](https://starlight.astro.build) site (wiki links, Mermaid diagrams, both languages, the
+« Give my opinion » window); the guide's CI rebuilds and deploys it at each merge on `main` that changes a page. vault-watch-agent keeps
+the content up to date and knows nothing of the engine: it reads and edits the vault's Markdown, runs the guide's
+own checks, and opens a pull request; the merge then redeploys the site.
 
 **Produced.** Nineteen pull requests of the guide made by the agent and merged after review (as of 20 November
 2026), for example [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a watch),

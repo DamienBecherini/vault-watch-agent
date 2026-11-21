@@ -37,7 +37,7 @@ flowchart LR
     issue["Issue de veille<br/>+ artefact"]
     pr["Pull request"]
     ci["CI du guide<br/>(npm test)"]
-    site["Site publié<br/>FR + EN"]
+    site["Site publié, FR + EN<br/>(starlight-obsidian-engine)"]
   end
   subgraph agent["vault-watch-agent"]
     run["Passage LangGraph"]

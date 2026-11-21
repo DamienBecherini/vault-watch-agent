@@ -30,7 +30,9 @@ d'autres langues, lance les contrôles propres au guide et, après un second oui
 
 **Votre guide.** N'importe quel guide Markdown dans un dépôt git, décrit par un petit manifeste
 (`vault-watch.toml`) : où sont les pages, dans quelle langue, quels dossiers en sont la copie traduite, d'où vient
-sa veille, quels contrôles du guide lancer. Hébergé sur GitHub, sur un serveur Gitea, ou gardé en local.
+sa veille, quels contrôles du guide lancer. Hébergé sur GitHub, sur un serveur Gitea, ou gardé en local. L'agent modifie le Markdown et s'arrête à la pull
+request : si le guide est publié en site, c'est sa propre chaîne qui le reconstruit après la fusion, quelle qu'elle
+soit.
 
 **Votre modèle.** Claude par Claude Code sur un abonnement Claude (rien de facturé à l'appel) ou par l'API ; ou tout
 serveur compatible OpenAI, local ou hébergé. Le projet ne mesure et ne garantit que Claude Opus 5.5 et Sonnet 5.5 :
@@ -200,6 +202,14 @@ L'agent a été écrit pour [Zero to Hero : IA on-premise](https://ia-on-prem.da
 copie anglaise, dont la veille de quinzaine est collectée par un workflow GitHub. C'est le guide dont les résultats
 sont mesurés ci-dessous. Un second guide, privé, en français seulement et hébergé sur un Gitea auto-hébergé, a
 vérifié que le manifeste et les forges fonctionnent sur un guide pour lequel l'agent n'a pas été écrit.
+
+**Trois dépôts, un guide.** Le contenu est un coffre [Obsidian](https://obsidian.md) : des pages Markdown, des liens
+wiki et des notes de bas de page, le français à la racine et l'anglais sous `en/`, lisible tel quel dans Obsidian.
+Le site est construit par [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine),
+qui fait du coffre un site [Astro Starlight](https://starlight.astro.build) (liens wiki, diagrammes Mermaid, les deux
+langues, la fenêtre « Donner mon avis ») ; la CI du guide le reconstruit et le déploie à chaque fusion sur `main` qui touche une page.
+vault-watch-agent tient le contenu à jour et ignore tout du moteur : il lit et modifie le Markdown du coffre, lance
+les contrôles du guide et ouvre une pull request ; la fusion redéploie ensuite le site.
 
 **Produit.** Dix-neuf pull requests du guide faites par l'agent et fusionnées après relecture (au 20 novembre
 2026), par exemple [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une veille),
