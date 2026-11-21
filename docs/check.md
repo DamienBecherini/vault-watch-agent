@@ -118,6 +118,9 @@ The page « Report or suggest » skips the search for leads, when you already kn
 - **An idea or a piece of news to dig into**: one subject per line, with an address if you have one. It makes an
   addition run, as a lead of « What is new » would; a box asks to dig each subject deeper (several sources, more
   searches, a little more expensive), and the page shows the count before you start.
+- **Links to read whole**: one address per line (an article, a page, a PDF). Each link is read whole, then Claude
+  reads it with the whole guide and lists leads, which come on the page of a check « Links to read whole », to tick
+  and send to an addition run ([details](news.md#links-to-read-whole)).
 
 A line typed by hand has no framed passage: the run finds the pages itself, with the whole guide in context. What
 the cross-check of any run notices elsewhere in the guide, outside its corrections, is listed in its review under

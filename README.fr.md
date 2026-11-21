@@ -183,7 +183,7 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 | Veilles | Les veilles avec leur état, un bouton pour en analyser une, et les autres passages (correction, compactage, ajouts) |
 | Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
 | Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
-| Signaler ou proposer | Des erreurs à corriger, ou une idée ou une nouvelle à vérifier et à écrire |
+| Signaler ou proposer | Des erreurs à corriger, une idée ou une nouvelle à vérifier et à écrire, ou des liens à lire en entier (un article, une page, un PDF) pour les pistes qu'ils contiennent |
 | Langues | Les pages en avance sur leur miroir, et celles que vous avez modifiées dans votre dossier sans les commiter : ce qui a changé est traduit, puis contrôles et pull request habituels ([Une veille étape par étape](docs/fr/run.md#synchroniser-les-langues)) |
 | Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
 | Coûts | Ce que coûte l'entretien, par mois et par passage ([Coûts](docs/fr/costs.md)) |

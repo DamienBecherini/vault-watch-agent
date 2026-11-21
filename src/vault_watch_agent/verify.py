@@ -21,7 +21,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import compact, inputs, news, prompts, quotes, reading, sizes, steps, vault
+from . import compact, inputs, links, news, prompts, quotes, reading, sizes, steps, vault
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -60,6 +60,8 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # 12.78 $ before the mirrors for 13.12 $ announced): a version or a floor to check is no lighter (16, 18 and 25
 # rounds, 50 to 68 k of web pages, 8 to 13 k written: 1.82, 1.94 and 2.79 $), and the cross-check of the 13 edits
 # took 16 rounds, 87 k and 16 k (4.07 $). The mirrors of the first run: four pages, 0.17 $.
+LINK_IN = 12_000  # a link's text: an article of 5,000 words, the transcript of a talk of 30 minutes (not measured)
+LINK_OUT = 6_000  # its leads, thinking included (not measured)
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 # A third run read its leads' pages and the plan instead of the guide (add-2026-11-20-3, five leads, 8.41 $ before
@@ -191,6 +193,13 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                                  "modifié".replace(",", " "),
                                  f"one call per chapter chosen, with the web and the {fr:,} tokens of the guide; nothing is "
                                  "edited")},
+        # One call per link read: `usd` whatever the links (the guide written to the cache), `usd_link` for each
+        "links": {"tokens": fr + LINK_IN, "usd": _usd(of("links"), cache_write=fr, table=table),
+                  "usd_link": _usd(of("links"), tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr, table=table),
+                  "note": note(f"un appel par lien lu, sans le web, avec les {fr:,} tokens du guide ; rien n'est vérifié ni "
+                               "modifié".replace(",", " "),
+                               f"one call per link read, without the web, with the {fr:,} tokens of the guide; nothing is "
+                               "verified or edited")},
         # Not a check: the run the leads of « news » go to. `usd`: whatever the leads (the guide written to the cache
         # by the proposals, then the cross-check); `usd_each`: per lead sent to the run
         "add-run": {"tokens": 2 * fr + CROSS_OUT,
@@ -445,6 +454,27 @@ def run_explore(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
             **_findings(vault_dir, news.Leads(findings=kept), news.line), "usage": usages, "chapters": explored}
 
 
+def run_links(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
+    """What the links the editor gave say for the guide (links.py): each link read whole without a model, then one
+    call per link with the whole guide, without the web. The leads come with the link as their first source and edit
+    nothing; those the editor keeps go to an addition run, which checks them on primary sources."""
+    asked = [u for u in options(work).get("links") or [] if isinstance(u, str)][:links.MAX_LINKS]
+    sources = [links.read(u) for u in asked]
+    unread = [s for s in sources if not s.text]
+    found, usages, failed = links.leads(vault_dir, sources, llm)
+    guide = vault.guide_of(vault_dir)
+    kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]
+    done = len(sources) - len(unread) - len(failed)
+    missed = (f"; not read: {len(unread)}" if unread else "") + (f"; the call failed for {len(failed)}" if failed else "")
+    for s in sources:
+        if s.url in failed:
+            s.error = f"the call failed: {failed[s.url][:200]}"
+    return {"ok": not kept and not unread and not failed,
+            "summary": f"{len(kept)} leads from {done} link(s) read{missed}" if sources else "no link given",
+            **_findings(vault_dir, news.Leads(findings=kept), news.line), "usage": usages,
+            "links": [s.view() for s in sources]}
+
+
 def run_translation(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     findings, found, usages = [], {}, []
     guide = vault.guide_of(vault_dir)
@@ -581,10 +611,20 @@ CHECKS = [
                  "costs more than the check above, and the web is paid for before you have seen anything. The leads you "
                  "keep go to the same addition run, where you can have one dug deeper."},
           MODEL, fix_mode="add", limit=NO_NEW_PAGE),
+    Check("links", {"fr": "Nouveautés : des liens à lire en entier", "en": "What is new: links to read whole"},
+          {"fr": "Tu donnes des adresses (un article, une page, un PDF ; une vidéo plus tard, par dl-sub-dub). L'agent lit "
+                 "chacune en entier, sans modèle, puis Claude la lit avec tout le guide et liste ce qui le concerne : des "
+                 "pistes, rien n'est vérifié ni modifié. Les pistes gardées partent dans la passe d'ajouts, qui les "
+                 "vérifie sur des sources primaires.",
+           "en": "You give addresses (an article, a page, a PDF; a video later, through dl-sub-dub). The agent reads each "
+                 "one whole, without a model, then Claude reads it with the whole guide and lists what concerns it: leads, "
+                 "nothing is verified or edited. The leads you keep go to the addition run, which checks them on primary "
+                 "sources."},
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,
            "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks, "sizes": run_sizes,
-           "compaction": run_compaction, "news": run_news, "explore": run_explore}
+           "compaction": run_compaction, "news": run_news, "explore": run_explore, "links": run_links}
 BY_ID = {c.id: c for c in CHECKS}
 
 

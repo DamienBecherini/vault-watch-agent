@@ -3,6 +3,15 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **Links to read whole** (D5 of the roadmap, proposed by the user): « Report or suggest », tab « Links to read
+  whole », one address per line. Each link is read whole without a model (`links.py`: a page, a repository's README,
+  a PDF with the optional `pip install "vault-watch-agent[pdf]"`), then one call per link with the whole guide,
+  without the web (step `links`), lists what in it concerns the guide: leads « From a link », the link as their
+  first source, ticked on the page of the check and sent to an addition run, which checks them on primary sources.
+  Videos come next, through dl-sub-dub's route « text of a video » (its contract v1 is frozen).
+
 ## 1.4.1 (2026-11-21)
 
 - **The page « Languages » says what it is for, and checks the edits before the sync** (H4 of the roadmap, asked

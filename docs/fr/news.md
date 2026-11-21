@@ -88,6 +88,28 @@ d'ajouts.
 vault-watch --guide ../mon-guide fix mon-idee --findings idee.txt --add    # une ligne qui commence par ! est creusée
 ```
 
+## Des liens à lire en entier
+
+Un article, un rapport, la page d'un projet peuvent contenir plusieurs choses pour le guide, n'importe où dans leur
+texte ; une veille ne lit que le début d'un élément. « Signaler ou proposer », onglet « Des liens à lire en
+entier » (un lien sur « Vérifier le guide » y mène) : une adresse par ligne, 10 au plus.
+
+1. Chaque lien est lu en entier, sans modèle : le texte lisible d'une page, le README d'un dépôt GitHub, le texte
+   d'un PDF (avec le lecteur en option : `pip install "vault-watch-agent[pdf]"` ; sans lui, le PDF est dit non lu),
+   120 000 caractères au plus. Seulement des adresses publiques, comme le lecteur de pages de l'agent ; une page
+   dessinée par des scripts, avec trop peu de texte, est dite non lue.
+2. Un appel par lien, avec tout le guide (en cache et partagé sur l'API Claude, comme l'exploration) et le texte du
+   lien, sans le web : ce qui concerne les sujets du guide et changerait une décision du lecteur, en pistes « D'un
+   lien », chacune avec le lien comme première source. Rien n'est vérifié ni modifié. Le texte du lien est donné au
+   modèle comme une donnée, jamais comme une consigne.
+3. Les pistes arrivent sur la page du contrôle, comme celles des autres contrôles : vous cochez celles à garder,
+   en faites creuser une, et les envoyez dans un passage d'ajouts, qui vérifie chacune sur des sources primaires
+   (une vidéo, un blog ou une lettre d'information disent où chercher ; ce n'est jamais la source).
+
+La page du contrôle liste les liens, chacun avec ce qui a été lu (son nombre de caractères) ou pourquoi il ne l'a
+pas été. Une vidéo (YouTube, Arte…) se lira par [dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub),
+depuis la machine de l'éditeur ; tant qu'il n'est pas branché, un lien de vidéo est dit non lu.
+
 ## Les ajouts
 
 ```bash

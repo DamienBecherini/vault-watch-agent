@@ -64,12 +64,12 @@ passages at most); none for a subject no page covers. Write the leads in English
 MAX_LEADS = 30  # a list an editor can go through; each lead kept is then a few searches on the web
 MAX_READ = 6  # pages a lead asks to read besides those it concerns
 READ_ALSO = "Read also: "
-KINDS = {"newer": "Newer", "missing": "Missing", "candidate": "Seen by the watch", "found": "Found on the web"}
+KINDS = {"newer": "Newer", "missing": "Missing", "candidate": "Seen by the watch", "found": "Found on the web", "link": "From a link"}
 NO_PAGE = "no page yet"
 
 
 class Lead(BaseModel):
-    kind: Literal["newer", "missing", "candidate", "found"]
+    kind: Literal["newer", "missing", "candidate", "found", "link"]  # link: read in a link the editor gave (links.py)
     pages: list[str] = Field(description="Vault-relative paths of the pages concerned: where the addition would go, or "
                              "the page that states the older fact. Empty for a subject that fits no page.")
     problem: str = Field(description="One self-contained line, in English: what to look for and on which kind of "

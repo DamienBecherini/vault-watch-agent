@@ -113,6 +113,8 @@ const TEXTS = {
       none: "Aucune vérification pour l'instant.", running: "En cours…", leads: n => `${n} piste(s)`,
       chapters: c => `Chapitres à explorer, un appel par chapitre coché (chacun : ${c}) :`,
       ideaLink: "Tu as déjà une idée ou une information précise ? Fais-la vérifier et écrire directement, sans recherche de pistes.",
+      linksLink: "Un article, une page, un PDF à lire en entier ? Donne leurs adresses : l'agent en tire des pistes.",
+      linksRead: "Les liens", linkChars: (n, cut) => `${n.toLocaleString("fr")} caractères lus${cut ? " (coupé)" : ""}`,
       dig: "creuser (plusieurs sources, plus de recherches, un peu plus cher)",
       leadsAdd: "Une piste est une question à vérifier, pas une modification : rien n'est encore écrit. Le passage encadré est ce que le guide dit aujourd'hui (en surligné, la phrase visée ; les lignes voisines donnent le contexte). Pour chaque piste cochée, la passe d'ajouts lit les sources, puis propose de corriger ce qui est dépassé ou d'ajouter ce qui manque, dans toutes les pages concernées. Tu relis ces propositions avant qu'elles s'appliquent.",
       onlyFree: "Seulement les gratuits",
@@ -288,7 +290,13 @@ const TEXTS = {
       },
     },
     reportTitle: "Signaler une erreur ou proposer un sujet",
-    reportKinds: { fix: "Une erreur à corriger", add: "Une idée ou une information à creuser" },
+    reportKinds: { fix: "Une erreur à corriger", add: "Une idée ou une information à creuser", links: "Des liens à lire en entier" },
+    linksIntro: "Une adresse par ligne : un article, une page, un rapport en PDF, le dépôt d'un projet. L'agent lit chacune en entier, sans modèle, puis Claude la lit avec tout le guide et liste ce qui le concerne. Ce sont des pistes : rien n'est vérifié ni modifié. Tu coches celles à garder, et la passe d'ajouts les vérifie sur des sources primaires avant de proposer où les écrire.",
+    linksCost: (base, each, max) => `Compte ${base}, plus ${each} par lien lu (${max} liens au plus), puis la passe d'ajouts pour les pistes gardées.`,
+    linksExample: "https://example.org/un-article-sur-un-modele\nhttps://example.org/rapport-2026.pdf",
+    linksButton: n => n ? `Lire ${n} lien${n > 1 ? "s" : ""} et lister les pistes` : "Lire les liens et lister les pistes",
+    linksVideo: "Une vidéo (YouTube, Arte…) se lira par dl-sub-dub, pas encore branché : pour l'instant, colle ce qu'elle dit dans l'onglet précédent.",
+    linksTooMany: max => `${max} liens au plus par lecture.`,
     ideaIntro: "Un sujet par ligne : ce que tu as vu, ou ce qui manque d'après toi, avec une adresse si tu en as une. L'agent vérifie chaque sujet sur des sources primaires, avec tout le guide en contexte, puis propose où l'écrire ; tu relis comme pour une veille. Rien avant : pas de recherche de pistes.",
     ideaCost: (base, each, deep) => `Compte ${base}, plus ${each} par sujet (${deep} par sujet creusé).`,
     ideaExample: "Ollama fait tourner des modèles de voix en local depuis octobre : https://ollama.com/blog/speech-models",
@@ -299,7 +307,7 @@ const TEXTS = {
       cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
       restUnbilled: "le reste non facturé",
       effort: e => ({ low: "effort faible", medium: "effort moyen", high: "effort élevé", xhigh: "effort très élevé", max: "effort maximal" })[e] || e,
-      names: { fix: "Corrections", "fix-translation": "Corrections de traduction", compact: "Allègements", add: "Ajouts", crosscheck: "Relecture croisée", mirror: "Miroirs" },
+      names: { fix: "Corrections", "fix-translation": "Corrections de traduction", compact: "Allègements", add: "Ajouts", crosscheck: "Relecture croisée", mirror: "Miroirs", links: "Lecture des liens" },
       forced: e => `Le moteur de ce serveur est imposé (VAULT_WATCH_ENGINE=${e}) : il ne se change pas ici.` },
     reportIntro: "Une erreur par ligne : la page, ce qui est faux, et si possible la bonne information. L'agent vérifie chaque point sur des sources primaires, avec tout le guide en contexte, puis propose des corrections que tu relis comme pour une veille.",
     reportCost: "Compte 5 à 7 $.", reportSubscription: "Les appels passent par Claude Code sur ton abonnement : rien n'est facturé.",
@@ -412,6 +420,8 @@ const TEXTS = {
       none: "No check yet.", running: "Running…", leads: n => `${n} lead(s)`,
       chapters: c => `Chapters to explore, one call per chapter ticked (each: ${c}):`,
       ideaLink: "You already have an idea or a precise piece of news? Have it checked and written straight away, without a search for leads.",
+      linksLink: "An article, a page, a PDF to read whole? Give their addresses: the agent draws leads from them.",
+      linksRead: "The links", linkChars: (n, cut) => `${n.toLocaleString("en")} characters read${cut ? " (cut)" : ""}`,
       dig: "dig deeper (several sources, more searches, a little more expensive)",
       leadsAdd: "A lead is a question to check, not a change: nothing is written yet. The framed passage is what the guide says today (highlighted: the sentence concerned; the lines around give the context). For each lead ticked, the addition run reads the sources, then proposes to correct what is out of date or to add what is missing, in every page concerned. You review these proposals before they apply.",
       onlyFree: "Only the free ones",
@@ -584,7 +594,13 @@ const TEXTS = {
       },
     },
     reportTitle: "Report an error or suggest a subject",
-    reportKinds: { fix: "An error to fix", add: "An idea or a piece of news to dig into" },
+    reportKinds: { fix: "An error to fix", add: "An idea or a piece of news to dig into", links: "Links to read whole" },
+    linksIntro: "One address per line: an article, a page, a PDF report, a project's repository. The agent reads each one whole, without a model, then Claude reads it with the whole guide and lists what concerns it. These are leads: nothing is verified or edited. You tick those to keep, and the addition run checks them on primary sources before proposing where to write them.",
+    linksCost: (base, each, max) => `Count ${base}, plus ${each} per link read (${max} links at the most), then the addition run for the leads kept.`,
+    linksExample: "https://example.org/an-article-about-a-model\nhttps://example.org/report-2026.pdf",
+    linksButton: n => n ? `Read ${n} link${n > 1 ? "s" : ""} and list the leads` : "Read the links and list the leads",
+    linksVideo: "A video (YouTube, Arte…) will be read through dl-sub-dub, not connected yet: for now, paste what it says in the previous tab.",
+    linksTooMany: max => `${max} links at the most per reading.`,
     ideaIntro: "One subject per line: what you saw, or what you think is missing, with an address if you have one. The agent checks each subject on primary sources, with the whole guide in context, then proposes where to write it; you review as for a watch. Nothing before: no search for leads.",
     ideaCost: (base, each, deep) => `Count ${base}, plus ${each} per subject (${deep} per subject dug deeper).`,
     ideaExample: "Ollama has run speech models locally since October: https://ollama.com/blog/speech-models",
@@ -595,7 +611,7 @@ const TEXTS = {
       cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
       restUnbilled: "the rest not billed",
       effort: e => ({ low: "low effort", medium: "medium effort", high: "high effort", xhigh: "very high effort", max: "maximum effort" })[e] || e,
-      names: { fix: "Corrections", "fix-translation": "Translation fixes", compact: "Trims", add: "Additions", crosscheck: "Cross-check", mirror: "Mirrors" },
+      names: { fix: "Corrections", "fix-translation": "Translation fixes", compact: "Trims", add: "Additions", crosscheck: "Cross-check", mirror: "Mirrors", links: "Reading the links" },
       forced: e => `The engine of this server is forced (VAULT_WATCH_ENGINE=${e}): it cannot be changed here.` },
     reportIntro: "One error per line: the page, what is wrong, and the right information if you have it. The agent checks each point on primary sources, with the whole guide in context, then proposes corrections you review as for a watch.",
     reportCost: "About 5 to 7 $.", reportSubscription: "The calls go through Claude Code on your subscription: nothing is billed.",
@@ -805,13 +821,14 @@ async function route() {
     openSettings();
   }
   document.querySelectorAll("nav [data-nav]").forEach(a =>
-    a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : h === "/idea" ? a.dataset.nav === "report" : h.startsWith(`/${a.dataset.nav}`)));
+    a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : ["/idea", "/links"].includes(h) ? a.dataset.nav === "report" : h.startsWith(`/${a.dataset.nav}`)));
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
     else if (h === "/check") await viewChecks();
     else if (h === "/sources") await viewSources();
+    else if (h === "/links") await viewLinks();
     else if (h === "/report" || h === "/idea") await viewReport(h === "/idea");
     else if (h === "/costs") await viewCosts();
     else if (h === "/languages") await viewLanguages();
@@ -1447,14 +1464,14 @@ async function viewChecks() {
   page.innerHTML = `
     <h1>${V.title}</h1>
     <p class="subtitle">${V.intro}</p>
-    <p class="small"><a href="#/idea">${V.ideaLink}</a></p>
+    <p class="small"><a href="#/idea">${V.ideaLink}</a><br><a href="#/links">${V.linksLink}</a></p>
     ${pending.length ? `<h2>${V.toHandleTitle}</h2>${pending.map(checkCard).join("")}` : ""}
     <details class="new-check"${pending.length ? "" : " open"}><summary><h2>${V.newCheck}</h2></summary>
     ${remaining ? `<p class="attention-text">${V.warning(remaining)}</p>` : ""}
     <p class="tick-row"><button type="button" class="small-button" data-tick-checks="all">${V.tickAll}</button>
       <button type="button" class="small-button" data-tick-checks="none">${V.untickAll}</button>
       <button type="button" class="small-button" data-tick-checks="free">${V.onlyFree}</button></p>
-    ${options.map(o => `<div class="card check-card"><label class="option">
+    ${options.filter(o => !o.links_max).map(o => `<div class="card check-card"><label class="option">
       <input type="checkbox" data-check="${o.id}" ${(kept ? kept.checks.has(o.id) : !o.model) ? "checked" : ""}>
       <div>
         <div class="header"><b>${esc(o.title[lang])}</b>
@@ -1548,6 +1565,7 @@ async function viewCheck(id) {
           ${list(V.blocked, (r.blocked || []).map(d => `${extLink(d.url, esc(d.url))} (${esc(d.pages.join(", "))})`))}
           ${list(V.claims, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
+          ${list(V.linksRead, (r.links || []).map(l => `${extLink(l.url, esc(l.title || l.url))} — ${l.error ? `<span class="attention-text">${esc(l.error)}</span>` : V.linkChars(l.chars, l.cut)}`))}
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<p class="muted small">${V.leadsAdd}</p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
@@ -1691,7 +1709,7 @@ async function viewReport(idea = false) {
     : idea ? T.ideaCost(`≈ ${dollars(news.run_usd)}`, `≈ ${dollars(news.run_usd_each)}`, `≈ ${dollars(news.run_usd_deep)}`) : T.reportCost;
   page.innerHTML = `
     <h1>${T.reportTitle}</h1>
-    <p class="tabs"><a href="#/report"${idea ? "" : ' class="active"'}>${T.reportKinds.fix}</a><a href="#/idea"${idea ? ' class="active"' : ""}>${T.reportKinds.add}</a></p>
+    ${reportTabs(idea ? "idea" : "report")}
     <p class="subtitle">${idea ? T.ideaIntro : T.reportIntro} ${price}</p>
     ${idea ? `<p class="small attention-text">${T.ideaLimit}</p>` : ""}
     <textarea id="text" placeholder="${esc(idea ? T.ideaExample : T.reportExample)}">${esc(REPORT_TEXT)}</textarea>
@@ -1708,6 +1726,46 @@ async function viewReport(idea = false) {
     const { thread } = await api("/api/fix", { text, mode: kind, steps: ownFor(wanted), ...(idea && $("#deep").checked ? { deep: lines } : {}) });
     REPORT_TEXT = "";
     location.hash = `/run/${encodeURIComponent(thread)}`;
+  };
+}
+
+const reportTabs = on => `<p class="tabs">${[["report", "fix"], ["idea", "add"], ["links", "links"]].map(([h, k]) =>
+  `<a href="#/${h}"${h === on ? ' class="active"' : ""}>${T.reportKinds[k]}</a>`).join("")}</p>`;
+
+// Links to read whole (links.py): a check of its own, started here; its leads are ticked on the page of the check
+let LINKS_TEXT = "";
+async function viewLinks() {
+  await loadSteps();
+  const o = (await api(`/api/verifications/options${stepsQuery()}`)).find(x => x.id === "links") || {};
+  const max = o.links_max || 10;
+  const price = billedStep("links") ? T.linksCost(`≈ ${dollars(o.usd || 0)}`, `≈ ${dollars(o.usd_link || 0)}`, max)
+    : stepNow("links")?.billing === "subscription" ? T.reportSubscription : costOf("links", "");
+  page.innerHTML = `
+    <h1>${T.reportTitle}</h1>
+    ${reportTabs("links")}
+    <p class="subtitle">${T.linksIntro} ${price}</p>
+    <p class="small attention-text">${T.ideaLimit}</p>
+    <p class="muted small">${T.linksVideo}</p>
+    <textarea id="text" placeholder="${esc(T.linksExample)}">${esc(LINKS_TEXT)}</textarea>
+    <p class="small error-text" id="too-many" hidden>${T.linksTooMany(max)}</p>
+    <details class="run-steps"${Object.keys(ownFor(["links"])).length ? " open" : ""}><summary>${T.perStep.title}</summary>
+      ${STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : ""}${stepLine("links", T.perStep.names.links)}</details>
+    <p><button class="primary" id="send"></button></p>`;
+  const found = () => [...new Set(($("#text").value.match(/https?:\/\/[^\s<>"']+/g) || []).map(a => a.replace(/[.,;:!?)\]}»]+$/, "")))];
+  const count = () => {
+    const n = found().length;
+    $("#send").textContent = T.linksButton(n);
+    $("#send").disabled = !n || n > max;
+    $("#too-many").hidden = n <= max;
+  };
+  $("#text").oninput = count;
+  count();
+  bindSteps(page, () => { LINKS_TEXT = $("#text").value; viewLinks(); });
+  $("#send").onclick = async () => {
+    $("#send").disabled = true;
+    const { id } = await api("/api/verifications", { checks: ["links"], links: found(), steps: ownFor(["links"]) });
+    LINKS_TEXT = "";
+    location.hash = `/check/${encodeURIComponent(id)}`;
   };
 }
 

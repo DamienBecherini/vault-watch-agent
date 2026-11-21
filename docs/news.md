@@ -85,6 +85,28 @@ have one; a box asks that each be dug deeper. The subjects go straight to an add
 vault-watch --guide ../my-guide fix my-idea --findings idea.txt --add     # a line that begins with ! is dug deeper
 ```
 
+## Links to read whole
+
+An article, a report, a project's page may hold several things for the guide, anywhere in their text; a watch
+reads only the start of an item. « Report or suggest », tab « Links to read whole » (a link on « Check the guide »
+leads there): one address per line, 10 at the most.
+
+1. Each link is read whole, without a model: the readable text of a page, the README of a GitHub repository, the
+   text of a PDF (with the optional reader: `pip install "vault-watch-agent[pdf]"`; without it, the PDF is said not
+   read), at most 120,000 characters. Only public addresses, as the agent's page reader; a page drawn by scripts,
+   with too little text, is said not read.
+2. One call per link, with the whole guide (cached and shared on the Claude API, as the exploration does) and the
+   link's text, without the web: what in it concerns the guide's subjects and would change a decision of the
+   reader, as leads « From a link », each with the link as its first source. Nothing is verified or edited. The
+   link's text is given to the model as data, never as instructions.
+3. The leads come on the page of the check, as those of the other checks: you tick those to keep, have one dug
+   deeper, and send them to an addition run, which checks each one on primary sources (a video, a blog or a
+   newsletter tells where to look; it is never the source).
+
+The page of the check lists the links, each with what was read (its number of characters) or why it was not. A
+video (YouTube, Arte…) will be read through [dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub), from the
+editor's machine; until it is connected, a video link is said not read.
+
 ## The additions
 
 ```bash

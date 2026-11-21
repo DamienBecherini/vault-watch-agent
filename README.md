@@ -179,7 +179,7 @@ problems, the diff of the branch), then the pull request. Around them:
 | Watches | The watches with their status, a button to analyse one, and the other runs (fix, compaction, additions) |
 | Sources | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
 | Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run ([Check the guide](docs/check.md)) |
-| Report or suggest | Errors to fix, or an idea or a piece of news to check and write |
+| Report or suggest | Errors to fix, an idea or a piece of news to check and write, or links to read whole (an article, a page, a PDF) for the leads they hold |
 | Languages | The pages ahead of their mirror, and those you changed in your folder without committing: what changed is translated, then the usual checks and pull request ([A run, step by step](docs/run.md#sync-the-languages)) |
 | Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand: why and how, [Chapters](docs/chapters.md) |
 | Costs | What the upkeep costs, by month and by run ([Costs](docs/costs.md)) |

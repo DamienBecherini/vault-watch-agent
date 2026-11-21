@@ -123,6 +123,9 @@ La page « Signaler ou proposer » saute la recherche de pistes, quand vous save
 - **Une idée ou une information à creuser** : un sujet par ligne, avec une adresse si vous en avez une. Cela fait
   un passage d'ajouts, comme le ferait une piste de « Nouveautés » ; une case demande de creuser chaque sujet
   (plusieurs sources, plus de recherches, un peu plus cher), et la page donne le compte avant de lancer.
+- **Des liens à lire en entier** : une adresse par ligne (un article, une page, un PDF). Chaque lien est lu en
+  entier, puis Claude le lit avec tout le guide et liste des pistes, qui arrivent sur la page d'un contrôle « Des
+  liens à lire en entier », à cocher et à envoyer dans un passage d'ajouts ([détails](news.md#des-liens-à-lire-en-entier)).
 
 Une ligne tapée à la main n'a pas de passage encadré : le passage trouve les pages lui-même, avec tout le guide en
 contexte. Ce que la relecture croisée d'un passage remarque ailleurs dans le guide, hors de ses corrections, est

@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify
+from . import compact, costs, fix, forge, inputs, links, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line
@@ -208,6 +208,7 @@ class Later(BaseModel):
 class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
     chapters: list[str] = []  # the check « explore »: the chapters to explore (all of them when empty)
+    links: list[str] = []  # the check « links »: the addresses to read (links.py)
     steps: dict = {}  # for this verification alone: {step: {engine, model, effort}} (config.run_steps)
 
 
@@ -1156,7 +1157,8 @@ def create_app(settings: Settings) -> FastAPI:
                  # an addition run whose calls read their lead's pages and the plan, not the whole guide
                  **{f"run_{k}": est.get(f"{c.fix_mode}-run", {}).get(k) for k in ("usd_pages", "usd_each_pages", "usd_deep_pages")},
                  # the chapters a call can explore, each with its number of pages
-                 **({"chapters": explorable_view()} if c.id == "explore" else {})}
+                 **({"chapters": explorable_view()} if c.id == "explore" else {}),
+                 **({"links_max": links.MAX_LINKS} if c.id == "links" else {})}
                 for c in verify.CHECKS]
 
     def explorable_view() -> list[dict]:
@@ -1180,6 +1182,12 @@ def create_app(settings: Settings) -> FastAPI:
         unknown = set(body.checks) - set(verify.BY_ID)
         if not body.checks or unknown:
             raise HTTPException(400, f"unknown or no checks: {sorted(unknown)}")
+        if "links" in body.checks:
+            body.links = links.addresses("\n".join(body.links))
+            if not body.links:
+                raise HTTPException(400, "the check « links » needs at least one http(s) address")
+            if len(body.links) > links.MAX_LINKS:
+                raise HTTPException(400, f"at most {links.MAX_LINKS} links per check")
         vid = time.strftime("verif-%Y-%m-%d-%H%M%S")
         keep_steps(vid, body.steps)
         steps = verify.plan(body.checks)
@@ -1192,8 +1200,8 @@ def create_app(settings: Settings) -> FastAPI:
         def work(graph, job: Job):
             deps = settings.make_deps(vid, "verify")
             work_dir.mkdir(exist_ok=True)
-            if body.chapters:  # read by the check that takes them (verify.options)
-                write_json(work_dir / "options.json", {"chapters": body.chapters})
+            if body.chapters or body.links:  # read by the checks that take them (verify.options)
+                write_json(work_dir / "options.json", {"chapters": body.chapters, "links": body.links})
             # The guide as merged (main, up to date with origin), not the folder: it may be on another branch
             guide = vault.reading_copy(settings.vault, settings.home)
             data["commit"] = inputs.run(["git", "rev-parse", "--short", "HEAD"], cwd=guide).strip()
