@@ -96,11 +96,11 @@ flowchart TD
   locate -->|"Send: one branch per group"| propose --> number
   locate -->|nothing to check| number
   number --> crosscheck --> report --> review{{"⏸ human review"}}
-  review -->|accepted| apply --> mirror --> audits --> links --> publish{{"⏸ push + PR?"}}
+  review -->|accepted| apply --> retouch{{"⏸ your retouches (optional)"}} --> mirror --> audits --> links --> publish{{"⏸ push + PR?"}}
   review -->|none| stop((end))
   publish --> stop
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,publish human
+  class review,retouch,publish human
 ```
 
 | Step | What it does |
@@ -114,6 +114,7 @@ flowchart TD
 | `report` | Writes the report you review |
 | `review` | ⏸ Pause: you accept all, none, or a list |
 | `apply` | Applies the accepted corrections on a git worktree of a new branch and bumps the pages' date field |
+| `retouch` | ⏸ Optional pause: you read and retouch the pages of the branch, in your Obsidian (the guide's folder is lent to the run, what it held set aside and put back after) or in the page, or you skip; your retouches are committed as yours ([A run, step by step](docs/run.md#the-pause-to-retouch-the-pages)) |
 | `mirror` | Translates into the guide's mirrors (an English copy under `en/`, for instance) what changed in each source page on the branch, passage by passage: the corrections, and any edit by hand |
 | `audits` | Runs the guide's own checks, if the manifest declares them |
 | `links` | Checks the external links of the changed pages |
@@ -134,7 +135,8 @@ belongs ([What is new](docs/news.md)).
 
 - **The model proposes, the code decides.** Each correction quotes the current text; a deterministic check
   refuses it unless the quote occurs exactly once in the page. Pages declared read-only are never edited.
-- **Human in the loop, twice.** The run stops after the report (LangGraph `interrupt`), and again before
+- **Human in the loop, writing.** The run stops after the report (LangGraph `interrupt`), where each proposal can
+  be retouched; again after the corrections are applied, to retouch the pages themselves if you want; and before
   anything leaves the machine. A paused run is checkpointed in SQLite and resumed later, from another process,
   days later if needed.
 - **Evidence, not memory.** Proposals rely on the release notes and advisories of the watch, and the cross-check

@@ -82,6 +82,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `verify.py` | 596 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
 | `news.py` | 422 | Look for what is new: the prompt of the leads, what past watches set aside (read from their reports), the leads found on the web chapter by chapter, the additions for the leads kept, one lead per call with the web, on the pages the lead names and the plan of the guide, or on the whole guide (`compact.in_calls` makes the calls); what two calls add to the same page put together |
 | `mirrors.py` | 224 | What changed in a source page, as passages a translator can carry to its mirror (a paragraph, a table row, a list line, from git); the pages ahead of their mirror; the branch and the state of a « Sync the languages » run |
+| `retouch.py` | 175 | The pause to retouch the pages of a run's branch: the guide's folder lent to the run (detached at the branch's tip, what it held set aside in a stash named after the run), the retouches committed as the editor's, the branch moved forward, the folder given back |
 | `guide.py` | 407 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
 | `chapters.py` | 398 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
 | `sourcecheck.py` | 386 | « Check the sources »: asks each source itself (network, no model), reads the guide again, proposes changes to the feeds file and rewrites it for a pull request |
@@ -124,12 +125,12 @@ flowchart TB
   end
   subgraph after["After the review"]
     direction LR
-    apply --> mirror --> audits --> links --> publish
+    apply --> retouch --> mirror --> audits --> links --> publish
   end
   before -->|"accepted"| after
   classDef pause fill:#fff4d6,stroke:#a65f00,color:#3d2a00
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
-  class review,publish pause
+  class review,retouch,publish pause
   class triage,propose,crosscheck,mirror model
 ```
 
@@ -226,7 +227,7 @@ sequenceDiagram
   P2->>S: same thread_id
   P2->>P2: graph.invoke(Command(resume=["C1","C3"]))
   Note over P2: interrupt() returns the answer<br/>inside the review node
-  P2->>P2: apply → mirror → audits → links → publish (second interrupt)
+  P2->>P2: apply → retouch (an interrupt, skipped or not) → mirror → audits → links → publish
 ```
 
 The CLI and the web page share the same SQLite file and the same thread ids, so a run started from one can be

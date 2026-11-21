@@ -45,6 +45,9 @@ def test_review_and_publish_from_the_api(client):
 
     c.post(f"/api/runs/{thread}/review", json={"accept": ["C3"]}, headers=ACT)  # a group member: C1, C3, C5 go together
     run = wait(c, thread)
+    assert run["status"] == "retouch"  # H3: the pages of the branch can be retouched before the mirrors
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": False}, headers=ACT)  # skipped
+    run = wait(c, thread)
     assert run["status"] == "publish" and run["applied"] == ["C1", "C3", "C5"]
     assert "vLLM 0.33" in c.get(f"/api/runs/{thread}/diff").text
 

@@ -162,6 +162,7 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
             "title": f"chore(content): reviewed trims of the guide ({label})",
             "branch_name": f"compact/{thread or f'guide-{today}'}",
             "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": proposals, "usage": usages,
+            "retouch_offered": True,
         }
     if mode == "add":
         return {
@@ -169,6 +170,7 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
             "title": f"feat(content): reviewed additions to the guide ({label})",
             "branch_name": f"feat/{thread or f'additions-{today}'}",
             "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": proposals, "usage": usages,
+            "retouch_offered": True,
         }
     kind = "fix(i18n): reviewed translation fixes" if mode == "translation" else "fix(content): reviewed corrections"
     return {
@@ -184,4 +186,5 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
         "evidence": {},
         "proposals": proposals,
         "usage": usages,
+        "retouch_offered": True,  # the pause to retouch the pages before the mirrors (graph.retouch_node)
     }

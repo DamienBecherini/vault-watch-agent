@@ -77,6 +77,7 @@ def test_a_run_on_the_sample_guide_finds_the_planted_errors(sample_guide, tmp_pa
     assert llm.calls[0] == "triage" and llm.calls[-1] == "crosscheck"
 
     graph.invoke(Command(resume=[c["id"] for c in review["corrections"]]), config)
+    graph.invoke(Command(resume="skip"), config)  # the pause to retouch (H3): nothing retouched
     publish = graph.get_state(config).tasks[0].interrupts[0].value
     assert publish["step"] == "publish"
     wt = Path(graph.get_state(config).values["worktree"])

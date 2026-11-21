@@ -1,9 +1,11 @@
 """The graph: watch → triage → locate → propose (one branch per group) → cross-check
-→ report → human review → apply on a branch → English mirror → vault audits →
-link checks → human go-ahead → pull request.
+→ report → human review → apply on a branch → the editor's retouches → mirrors →
+vault audits → link checks → human go-ahead → pull request.
 
-Two interrupts keep a human in the loop: nothing touches the vault before the
-review, and nothing leaves the machine before the second go-ahead.
+Three interrupts keep a human in the loop: nothing touches the vault before the
+review (where a proposal can be retouched), the pages of the branch can be
+retouched before the mirrors follow them, and nothing leaves the machine before
+the last go-ahead.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, quotes, reading, steps, vault
+from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, quotes, reading, retouch, steps, vault
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -67,7 +69,7 @@ def build(deps: Deps, checkpointer=None):
             watch_json = Path(state["source"])
         items, until = inputs.load_items(watch_json)
         claims = inputs.claims_due(deps.vault, deps.home / "downloads" / f"freshness-{deps.today}.json")
-        return {"items": items, "as_of": until or deps.today, "claims_due": claims}
+        return {"items": items, "as_of": until or deps.today, "claims_due": claims, "retouch_offered": True}
 
     # -- triage -------------------------------------------------------------
     def triage(state: WatchState) -> dict:
@@ -291,7 +293,32 @@ def build(deps: Deps, checkpointer=None):
         git("add", *pages, cwd=worktree)
         summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
         git("commit", "-F", "-", cwd=worktree, text=f"{pr_title(state)}\n\n{summary}\n")  # the message on stdin: it can be long
-        return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen], "weight": weight}
+        return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen], "weight": weight,
+                "applied_tip": git("rev-parse", "HEAD", cwd=worktree).strip()}
+
+    # -- retouch (interrupt, H3): the editor retouches the pages of the branch before the mirrors, or skips ---------
+    def retouch_node(state: WatchState) -> dict:
+        """The pages of the branch, retouched by hand before the mirrors follow them. The page of the agent can lend
+        the guide's folder for it (retouch.py), and commits what was retouched there before it resumes; what was
+        retouched in the worktree is committed here. A run started before this pause existed does not stop."""
+        if not state.get("retouch_offered"):
+            return {}
+        wt = Path(state["worktree"])
+        base = git("merge-base", deps.base, "HEAD", cwd=wt).strip()
+        answer = interrupt({
+            "step": "retouch", "branch": state["branch"], "worktree": str(wt),
+            "pages": mirrors.changed_pages(wt, base),
+            "question": "Retouch the pages of the branch before the mirrors follow them? 'skip', or 'done' once the "
+                        "files of the worktree are retouched.",
+        })
+        done = answer in ("done", True) or (isinstance(answer, dict) and answer.get("action") == "done")
+        if done:
+            retouch.commit(wt)
+        elif retouch.changed(wt):  # skipped: what was typed in the worktree is dropped, not left out of the commits
+            git("checkout", "-q", "--", ".", cwd=wt)
+            git("clean", "-q", "-fd", cwd=wt)
+        tip = state.get("applied_tip", "")
+        return {"retouched": [n for n in git("diff", "--name-only", tip, "HEAD", cwd=wt).splitlines() if n] if tip else []}
 
     # -- mirror (the pages of each mirror of the manifest follow the edits of the source) ---------------
     def mirror(state: WatchState) -> dict:
@@ -394,7 +421,7 @@ def build(deps: Deps, checkpointer=None):
     g = StateGraph(WatchState)
     for name, fn in [("collect", collect), ("triage", triage), ("locate", locate), ("propose", propose),
                      ("number", number), ("crosscheck", crosscheck_node), ("report", report),
-                     ("review", review), ("apply", apply), ("mirror", mirror), ("audits", audits),
+                     ("review", review), ("apply", apply), ("retouch", retouch_node), ("mirror", mirror), ("audits", audits),
                      ("links", links), ("publish", publish)]:
         g.add_node(name, fn)
     g.add_edge(START, "collect")
@@ -406,7 +433,8 @@ def build(deps: Deps, checkpointer=None):
     g.add_edge("crosscheck", "report")
     g.add_edge("report", "review")
     g.add_conditional_edges("review", lambda s: "apply" if s.get("accepted") else END, ["apply", END])
-    g.add_edge("apply", "mirror")
+    g.add_edge("apply", "retouch")
+    g.add_edge("retouch", "mirror")
     g.add_edge("mirror", "audits")
     g.add_edge("audits", "links")
     g.add_edge("links", "publish")
@@ -759,8 +787,10 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
 
 def _checks_lines(state: WatchState) -> str:
     """The guide's audits, the mirrors and the external sources, as every pull request says them."""
+    retouched = state.get("retouched") or []
     return (
-        "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
+        (f"Retouched by the editor before the mirrors: {', '.join(f'`{p}`' for p in retouched)}.\n\n" if retouched else "")
+        + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
             state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
         f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
         + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
@@ -822,15 +852,7 @@ def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str
         f"{rows}\n\n"
         + (f"{'What weighed' if trims else 'Leads' if state.get('mode') == 'add' else 'Reported errors'}:\n\n{errors}\n"
            if errors else "")
-        + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
-            state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
-        f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"
-        + "".join(f"- ⚠️ {p}\n" for p in state.get("mirror_problems", []))
-        + "\nExternal sources of the changed pages (the guide's source audit): "
-        + ("not checked (the guide declares no source audit).\n" if state.get("link_problems", []) is None else
-           "all answer.\n" if not state.get("link_problems") else
-           "\n" + "".join(f"- {p}\n" for p in state["link_problems"]))
-        + ("" if state.get("audit_ok") is not False else f"\n```\n{state.get('audit_log', '')}\n```\n")
+        + _checks_lines(state)
         + shortened
         + (f"\nCloses #{state['issue']}.\n" if state.get("issue") else "")  # the watch is handled once merged
     )
@@ -838,5 +860,5 @@ def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str
 
 def describe(state: WatchState) -> str:
     """Short JSON view of a paused run for the CLI."""
-    keep = {k: state.get(k) for k in ("source", "as_of", "report_path", "accepted", "branch", "audit_ok", "pr_url")}
+    keep = {k: state.get(k) for k in ("source", "as_of", "report_path", "accepted", "branch", "worktree", "audit_ok", "pr_url")}
     return json.dumps(keep, ensure_ascii=False, indent=2)

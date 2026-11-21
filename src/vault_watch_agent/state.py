@@ -112,6 +112,9 @@ class WatchState(TypedDict, total=False):
     applied: list[str]
     mirror_since: dict[str, str]  # source page -> commit to translate it from (a page ahead of its mirror); else the base
     hand_pages: list[str]  # a « Sync the languages » run: the pages copied from the guide's folder, edited by hand
+    retouch_offered: bool  # the run stops after apply for the editor's retouches (runs from 1.6.0 on)
+    applied_tip: str  # the commit of the corrections, before the retouches
+    retouched: list[str]  # the files the editor retouched at the pause
     mirrored: list[str]  # EN pages updated
     mirror_problems: list[str]
     link_problems: list[str] | None  # external sources of the changed pages that do not answer; None: not checked

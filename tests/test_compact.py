@@ -286,6 +286,7 @@ def test_a_compaction_run_trims_on_a_branch_after_the_review(setup):
     assert sh("git", "diff", "--quiet", cwd=deps.vault) is None  # nothing touched before the review
 
     graph.invoke(Command(resume=["C1", "C2", "C3", "C4"]), config)  # C1 takes C5 with it; C4 cannot apply
+    graph.invoke(Command(resume="skip"), config)  # the pause to retouch (H3): nothing retouched
     state = graph.get_state(config).values
     assert state["applied"] == ["C1", "C2", "C3", "C5"] and state["branch"] == "compact/compact-test"
     wt = Path(state["worktree"])

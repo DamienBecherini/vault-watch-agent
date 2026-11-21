@@ -202,6 +202,9 @@ def test_run_pauses_twice_and_applies_only_accepted(setup):
     assert "0.31" in (deps.vault / "03-stack" / "engines.md").read_text(encoding="utf-8")  # untouched
 
     graph.invoke(Command(resume=["C1"]), config)  # naming C1 accepts its group (C3, C5)
+    pause = graph.get_state(config).tasks[0].interrupts[0].value
+    assert pause["step"] == "retouch" and pause["pages"] == ["03-stack/engines.md"]  # H3: before the mirrors
+    graph.invoke(Command(resume="skip"), config)
     second = graph.get_state(config).tasks[0].interrupts[0].value
     assert second["step"] == "publish" and second["audit_ok"] and second["mirror_problems"] == []
     # Only the sources of the changed pages, and only those that do not answer
@@ -511,6 +514,7 @@ def test_apply_commits_the_floors_the_guide_script_aligns(setup):
     config = {"configurable": {"thread_id": "floors"}}
     graph.invoke({"source": str(watch), "issue": None}, config)
     graph.invoke(Command(resume=["C1"]), config)
+    graph.invoke(Command(resume="skip"), config)  # the pause to retouch (H3): nothing retouched
     wt = Path(graph.get_state(config).values["worktree"])
     shown = subprocess.run(["git", "show", "HEAD~1:.agents/vault-maintenance/version-floors.json"], cwd=wt,
                            capture_output=True, text=True, check=True).stdout

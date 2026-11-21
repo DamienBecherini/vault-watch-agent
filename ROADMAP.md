@@ -589,23 +589,23 @@ English mirror following the retouched text.
 After `apply` and before `mirror`, an optional pause: the editor reads the pages of the branch and retouches them,
 or skips it. The graph becomes `review → apply → ⏸ retouch → mirror → audits → links → ⏸ publish`.
 
-- [ ] **H3.1 Three choices at the pause.** « Retouch in Obsidian »: the agent puts the guide's folder on the run's
+- [x] **H3.1 Three choices at the pause.** « Retouch in Obsidian »: the agent puts the guide's folder on the run's
   branch, the editor works in their usual Obsidian, then « I am done ». « Retouch here »: a Markdown editor in the page,
   on the pages the run changed (and any page of the guide on request). « Skip ». Both editors can be mixed: when the
   folder is on the branch, the page's editor writes into it, so Obsidian sees its changes and the other way round;
   otherwise it writes into the run's worktree.
-- [ ] **H3.2 A folder fit to switch.** What does not count: Obsidian's own state, which the guide ignores
+- [x] **H3.2 A folder fit to switch.** What does not count: Obsidian's own state, which the guide ignores
   (`.obsidian/workspace.json`). What stops the switch, listed with the files concerned: pages changed and not
   committed, new files not tracked (the editor chooses: « set them aside and put them back », a stash named after the
   run and restored when the folder comes back, or « retouch here »); a merge or a rebase in progress (« retouch
   here » only). A folder on another branch than the base comes back to that branch, not to the base. A banner stays
   until what was set aside is put back, with the button to do it, even if the run stopped. The page says not to type
   in Obsidian during the switch.
-- [ ] **H3.3 « I am done »**: the agent commits the retouches as a commit of their own, authored by the editor
+- [x] **H3.3 « I am done »**: the agent commits the retouches as a commit of their own, authored by the editor
   (« Retouches at the review »), brings the folder back, and resumes: the mirrors follow the diff (H1), then the
   guide's checks and the links run on the human's text as on the model's. The pull request lists the pages retouched
   by hand.
-- [ ] **H3.4 Runs paused before 1.6.0** keep the graph they were started with and resume as before.
+- [x] **H3.4 Runs paused before 1.6.0** keep the graph they were started with and resume as before.
 
 Done when: a run of the IA on-prem guide is retouched in Obsidian at the pause, with a draft of the editor set aside
 and put back untouched, and its pull request passes the guide's checks.

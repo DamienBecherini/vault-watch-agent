@@ -4,7 +4,7 @@
 
 The [README](../README.md#how-a-run-goes) gives the steps of a run in one table. This page follows one item of a
 watch through them: what each step reads, what decides there, and what can stop an edit before you see it. Then
-the two screens where you decide: the review, and the publish step.
+the screens where you decide: the review, the pause to retouch the pages, and the publish step.
 
 ```mermaid
 flowchart TD
@@ -22,9 +22,10 @@ flowchart TD
   cross -->|reject| refused
   cross -->|"keep / revise"| review{{"⏸ your review"}}
   cross -->|"edits on other pages,<br/>checked the same way"| review
-  review -->|ticked| apply["apply, mirrors,<br/>audits, links"] --> publish{{"⏸ push + PR"}}
+  review -->|ticked| apply["apply on a branch"] --> retouch{{"⏸ your retouches<br/>(optional)"}}
+  retouch --> rest["mirrors, audits, links"] --> publish{{"⏸ push + PR"}}
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,publish human
+  class review,retouch,publish human
 ```
 
 ## An example: the watch of 16 November 2026
@@ -59,6 +60,7 @@ cross-check sees every page.
 | `report` | Everything above | The code writes the report; a correction that adds a version none of the footnotes it cites mentions carries a warning | |
 | `review` | ⏸ You | You tick | A group with one member that cannot apply is left out whole |
 | `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>` for a watch): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
+| `retouch` | ⏸ You, if you want | You retouch the pages of the branch, in Obsidian or in the page, or skip | |
 | `mirror` | Each mirror page, with what changed in its source page on the branch, passage by passage (a paragraph, a table row, a list line): the corrections, and any edit by hand | The translator model: the same changes in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
 | `audits`, `links` | The branch | The guide's scripts: its audits, and the sources of the changed pages (new ones first) | Nothing is stopped: what fails is shown before you publish |
 | `publish` | ⏸ You | You say yes or no | |
@@ -94,6 +96,27 @@ What it shows, top to bottom:
 
 Nothing has touched the guide yet. « Apply nothing » closes the run (and the watch's issue, with a comment); « Apply
 n corrections » goes on.
+
+## The pause to retouch the pages
+
+Once the corrections are applied on the branch, and before the mirrors follow them, the run stops again: you can
+read the pages as they now are and retouch the text. It is optional: « Skip » goes on at once. Two ways, which can be
+mixed:
+
+- **In Obsidian.** « Lend my folder to this run » puts the guide's folder on the run's branch (detached at its last
+  commit: git does not open one branch in two places), so Obsidian shows the corrected pages. A folder that holds
+  changes not committed is lent only if you ask to set them aside: they go into a git stash named after the run, and
+  come back with the folder. A folder in the middle of a merge or a rebase is not lent. A banner stays on every page
+  while the folder is lent, or while something set aside has not come back.
+- **Here.** An editor in the page opens the pages the run changed, or any page of the guide by its path. It writes
+  into the lent folder when there is one (Obsidian sees what you save), else into the run's working copy.
+
+« I am done » commits what changed as yours (« Retouches at the review », with your own git identity), moves the
+branch to that commit, gives the folder back to where it was and puts back what was set aside. The run then goes on:
+the mirrors translate your retouches with the corrections, the guide's checks and the links run on your text, and
+the pull request lists the pages you retouched. « Skip » drops what was typed. On the command line:
+`vault-watch resume <run> --retouch done` once the files of the run's worktree are retouched (`vault-watch status`
+gives its path), or `--retouch skip`. A run started before this pause existed resumes without it.
 
 ## The publish screen
 

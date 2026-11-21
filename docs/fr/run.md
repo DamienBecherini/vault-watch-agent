@@ -4,7 +4,7 @@
 
 Le [README](../../README.fr.md#déroulé-dun-passage) donne les étapes d'un passage en un tableau. Cette page suit un
 élément d'une veille à travers elles : ce que lit chaque étape, ce qui y décide, et ce qui peut arrêter une
-modification avant que vous la voyiez. Puis les deux écrans où vous décidez : la relecture, et la publication.
+modification avant que vous la voyiez. Puis les écrans où vous décidez : la relecture, la pause pour retoucher les pages, et la publication.
 
 ```mermaid
 flowchart TD
@@ -22,9 +22,10 @@ flowchart TD
   cross -->|rejeter| refused
   cross -->|"garder / réviser"| review{{"⏸ votre relecture"}}
   cross -->|"modifications d'autres pages,<br/>vérifiées de la même façon"| review
-  review -->|cochées| apply["application, miroirs,<br/>contrôles, liens"] --> publish{{"⏸ push + PR"}}
+  review -->|cochées| apply["application sur une branche"] --> retouch{{"⏸ vos retouches<br/>(facultatif)"}}
+  retouch --> rest["miroirs, contrôles, liens"] --> publish{{"⏸ push + PR"}}
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,publish human
+  class review,retouch,publish human
 ```
 
 ## Un exemple : la veille du 16 novembre 2026
@@ -59,6 +60,7 @@ des extraits du guide, la relecture croisée voit toutes les pages.
 | `report` | Tout ce qui précède | Le code écrit le rapport ; une correction qui ajoute une version qu'aucune des notes qu'elle cite ne mentionne porte un avertissement | |
 | `review` | ⏸ Vous | Vous cochez | Un groupe dont un membre ne peut pas s'appliquer est écarté en entier |
 | `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>` pour une veille) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
+| `retouch` | ⏸ Vous, si vous le voulez | Vous retouchez les pages de la branche, dans Obsidian ou dans la page, ou vous passez | |
 | `mirror` | Chaque page miroir, avec ce qui a changé dans sa page source sur la branche, passage par passage (un paragraphe, une ligne de tableau, une ligne de liste) : les corrections, et toute modification à la main | Le modèle de traduction : les mêmes changements dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
 | `audits`, `links` | La branche | Les scripts du guide : ses contrôles, et les sources des pages modifiées (les nouvelles d'abord) | Rien n'est arrêté : ce qui échoue est montré avant la publication |
 | `publish` | ⏸ Vous | Vous dites oui ou non | |
@@ -95,6 +97,30 @@ Ce qu'il montre, de haut en bas :
 
 Rien n'a encore touché le guide. « Ne rien appliquer » clôt le passage (et l'issue de la veille, avec un
 commentaire) ; « Appliquer n corrections » continue.
+
+## La pause pour retoucher les pages
+
+Une fois les corrections appliquées sur la branche, et avant que les miroirs les suivent, le passage s'arrête de
+nouveau : vous pouvez relire les pages telles qu'elles sont maintenant et retoucher le texte. C'est facultatif :
+« Passer » continue aussitôt. Deux façons, qui se combinent :
+
+- **Dans Obsidian.** « Prêter mon dossier à ce passage » met le dossier du guide sur la branche du passage (détaché
+  sur son dernier commit : git n'ouvre pas une branche à deux endroits), et Obsidian montre les pages corrigées. Un
+  dossier qui contient des modifications non commitées n'est prêté que si vous demandez de les mettre de côté :
+  elles vont dans une remise git nommée d'après le passage, et reviennent avec le dossier. Un dossier au milieu d'une
+  fusion ou d'un rebase n'est pas prêté. Un bandeau reste sur chaque page tant que le dossier est prêté, ou tant que
+  ce qui a été mis de côté n'est pas revenu.
+- **Ici.** Un éditeur dans la page ouvre les pages modifiées par le passage, ou toute page du guide par son chemin.
+  Il écrit dans le dossier prêté s'il y en a un (Obsidian voit ce que vous enregistrez), sinon dans la copie de
+  travail du passage.
+
+« J'ai fini » commite ce qui a changé à votre nom (« Retouches at the review », avec votre propre identité git), fait
+avancer la branche jusqu'à ce commit, rend le dossier là où il était et remet ce qui avait été mis de côté. Le
+passage continue : les miroirs traduisent vos retouches avec les corrections, les contrôles du guide et les liens
+passent sur votre texte, et la pull request liste les pages retouchées. « Passer » abandonne ce qui a été tapé. En
+ligne de commande : `vault-watch resume <passage> --retouch done` une fois les fichiers de la copie de travail du
+passage retouchés (`vault-watch status` donne son chemin), ou `--retouch skip`. Un passage commencé avant que cette
+pause existe reprend sans elle.
 
 ## L'écran de publication
 

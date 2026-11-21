@@ -446,3 +446,4 @@ footer a { display: inline-block; padding: 4px 0; }
 .card.updating { opacity: .6; }   /* the result being computed again: for half a second, not a state to read */
 .retouch textarea { min-height: 90px; font-size: 15px; }
 .retouch { margin: 8px 0; }
+#page-other { flex: 1; min-width: 220px; }

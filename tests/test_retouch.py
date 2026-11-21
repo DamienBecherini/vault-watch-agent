@@ -76,5 +76,104 @@ def test_the_server_checks_a_retouch_then_sends_it(setup, tmp_path):  # noqa: F8
     assert checked == {"C1": {"check": "no change", "warning": ""}}  # the page already says that
     c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"], "edits": {"C1": MINE}}, headers=act)
     run = wait(c, thread)
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": False}, headers=act)  # H3: nothing more retouched
+    run = wait(c, thread)
     assert run["status"] == "publish" and MINE in c.get(f"/api/runs/{thread}/diff").text
     assert next(x for x in run["corrections"] if x["id"] == "C1")["edited"]
+
+
+# -- H3: the pause to retouch the pages of the branch, before the mirrors -------------------------------------
+
+import subprocess  # noqa: E402
+
+from vault_watch_agent import vault  # noqa: E402
+
+BY_HAND = "Ollama reste le plus simple pour démarrer, sur un poste seul."
+
+
+def git_out(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+
+
+def test_retouched_in_the_worktree_then_the_mirror_follows(setup):  # noqa: F811
+    deps, watch, llm = setup
+    graph, config = paused(deps, watch, "r3")
+    graph.invoke(Command(resume=["C1"]), config)
+    pause = graph.get_state(config).tasks[0].interrupts[0].value
+    assert pause["step"] == "retouch"
+    page = Path(pause["worktree"]) / "03-stack" / "engines.md"
+    text = vault.read(page)
+    vault.write(page, text.replace(text[text.index("Ollama reste"):text.index("\n", text.index("Ollama reste"))].rstrip("\r"),
+                                   BY_HAND))
+    graph.invoke(Command(resume="done"), config)
+    state = graph.get_state(config).values
+    assert state["retouched"] == ["03-stack/engines.md"]
+    assert git_out(Path(state["worktree"]), "log", "--format=%s", "-3").splitlines()[1] == "Retouches at the review"
+    assert BY_HAND in vault.read(Path(state["worktree"]) / "03-stack" / "engines.md")
+    assert "Retouched by the editor before the mirrors: `03-stack/engines.md`" in pr_body(state)
+    assert "0.31" in vault.read(deps.vault / "03-stack" / "engines.md")  # the guide's folder: untouched
+
+
+def test_the_folder_lent_with_a_draft_set_aside_and_put_back(setup, tmp_path):  # noqa: F811
+    deps, watch, _ = setup
+    folder = deps.vault
+    (folder / "brouillon.md").write_text("une idée pas finie\n", encoding="utf-8")  # a draft of the editor, new
+    c = TestClient(create_app(Settings(vault=folder, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    act = {"X-Vault-Watch": "1"}
+    from test_web import wait
+
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=act).json()["thread"]
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"]}, headers=act)
+    assert wait(c, thread)["status"] == "retouch"
+    seen = c.get(f"/api/runs/{thread}/folder").json()
+    assert seen["branch"] == "main" and seen["changes"] == ["brouillon.md"] and seen["lent_to"] == ""
+    assert c.post(f"/api/runs/{thread}/folder", json={}, headers=act).status_code == 409  # a draft: not without asking
+    assert c.post(f"/api/runs/{thread}/folder", json={"set_aside": True}, headers=act).status_code == 200
+    assert not (folder / "brouillon.md").exists()  # set aside
+    assert "vLLM 0.33" in vault.read(folder / "03-stack" / "engines.md")  # the folder shows the branch, as Obsidian will
+    assert c.get(f"/api/folder/aside").json() == [{"thread": thread, "lent": True, "aside": ["brouillon.md"]}]
+
+    # Retouched in Obsidian (the folder), and in the page of the agent: both land in the folder
+    page = folder / "03-stack" / "engines.md"
+    vault.write(page, vault.read(page).replace("Ollama reste le plus simple pour démarrer", "Ollama reste le plus simple"))
+    read = c.get(f"/api/runs/{thread}/page", params={"path": "03-stack/engines.md"}).json()
+    assert read["in"] == "folder" and "Ollama reste le plus simple (" in read["text"]
+    c.post(f"/api/runs/{thread}/page", json={"path": "03-stack/engines.md",
+                                             "text": read["text"].replace("Ollama reste le plus simple", BY_HAND[:-1])}, headers=act)
+    assert c.post(f"/api/runs/{thread}/page", json={"path": "../x.md", "text": "x"}, headers=act).status_code == 400
+    assert c.get(f"/api/runs/{thread}/page", params={"path": "scripts/run-audits.mjs"}).status_code == 400
+
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": True}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and run["retouched"] == ["03-stack/engines.md"]
+    assert git_out(folder, "rev-parse", "--abbrev-ref", "HEAD") == "main"  # given back
+    assert (folder / "brouillon.md").read_text(encoding="utf-8") == "une idée pas finie\n"  # put back, untouched
+    assert c.get("/api/folder/aside").json() == [] and git_out(folder, "stash", "list") == ""
+    assert "0.31" in vault.read(folder / "03-stack" / "engines.md")  # main itself: unchanged until the merge
+    log = git_out(folder, "log", "--format=%s|%an", f"main..{run['branch']}").splitlines()
+    assert "Retouches at the review|t" in log  # as the editor: the folder's own identity
+    assert BY_HAND[:-1] in c.get(f"/api/runs/{thread}/diff").text
+
+
+def test_skipped_retouches_are_dropped_and_the_folder_given_back(setup, tmp_path):  # noqa: F811
+    deps, watch, _ = setup
+    folder = deps.vault
+    c = TestClient(create_app(Settings(vault=folder, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    act = {"X-Vault-Watch": "1"}
+    from test_web import wait
+
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=act).json()["thread"]
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"]}, headers=act)
+    wait(c, thread)
+    assert c.post(f"/api/runs/{thread}/folder", json={}, headers=act).status_code == 200  # clean: lent at once
+    page = folder / "03-stack" / "engines.md"
+    vault.write(page, vault.read(page).replace("Ollama", "Olama"))  # a slip
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": False}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and run["retouched"] == []
+    assert git_out(folder, "status", "--porcelain") == "" and git_out(folder, "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert "Olama" not in c.get(f"/api/runs/{thread}/diff").text

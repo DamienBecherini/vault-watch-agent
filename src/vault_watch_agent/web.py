@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, sourcecheck, sources, steps, store, vault, verify
+from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, retouch, sourcecheck, sources, steps, store, vault, verify
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line
@@ -53,14 +53,14 @@ AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 FEEDBACK_EMAIL = "vault-watch@damien.becherini.fr"
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
-         "apply", "mirror", "audits", "links", "publish"]
+         "apply", "retouch", "mirror", "audits", "links", "publish"]
 # What a running job is doing, in the health response.
 # The effort each step of a role asks for in the code (graph.py, crosscheck.py, fix.py, verify.py), for the Settings
 # page: what "lower" and "higher" make of them. To keep in step with the code when an effort changes there.
 # What each step of a role runs at, shown in the Settings: read from the one table of the steps (steps.py)
 STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role in ("reasoning", "translator")}
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming",
-              "sources": "checking the sources", "mirror": "syncing the languages"}
+              "sources": "checking the sources", "mirror": "syncing the languages", "retouch": "after the retouches"}
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -132,6 +132,19 @@ class Analyse(BaseModel):
 class Review(BaseModel):
     accept: list[str] | str  # "all", "none" or ids
     edits: dict[str, str] = {}  # the texts the editor retouched in the review: {id: text}
+
+
+class Lend(BaseModel):
+    set_aside: bool = False  # the folder's changes not committed, set aside to lend it (put back after)
+
+
+class PageText(BaseModel):
+    path: str
+    text: str
+
+
+class Retouched(BaseModel):
+    keep: bool = True  # False: what was retouched is dropped, the run goes on as it was
 
 
 class Retouch(BaseModel):
@@ -253,12 +266,14 @@ def create_app(settings: Settings) -> FastAPI:
     MESSAGES = {
         "fr": {"review": ("Relecture à faire", "{n} correction(s) proposée(s) : à toi de trancher."),
                "publish": ("Publication à valider", "Corrections appliquées et contrôlées : la PR attend ton feu vert."),
+               "retouch": ("Retouches possibles", "Corrections appliquées sur la branche : relis et retouche, ou passe."),
                "pr": ("Pull request ouverte", "À relire et fusionner sur {forge}."),
                "nothing-applied": ("Passage clos", "Aucune correction appliquée."),
                "error": ("Passage interrompu", "Erreur : {error}"),
                "verif": ("Vérification terminée", "{n} piste(s) à traiter."), "verif-error": ("Vérification interrompue", "{error}")},
         "en": {"review": ("Review pending", "{n} correction(s) proposed: your call."),
                "publish": ("Publish pending", "Corrections applied and checked: the PR waits for your go-ahead."),
+               "retouch": ("Retouches possible", "Corrections applied on the branch: read and retouch, or skip."),
                "pr": ("Pull request opened", "To review and merge on {forge}."),
                "nothing-applied": ("Run closed", "No correction applied."),
                "error": ("Run stopped", "Error: {error}"),
@@ -699,6 +714,7 @@ def create_app(settings: Settings) -> FastAPI:
             "usage": usage_line(v.get("usage", [])),
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
             "mirrored": v.get("mirrored", []), "mirror_problems": v.get("mirror_problems", []),
+            "retouched": v.get("retouched", []),
             "link_problems": v.get("link_problems", []), "audit_ok": v.get("audit_ok"),
             "audit_log": v.get("audit_log", ""), "report_path": v.get("report_path", ""),
             "steps": STEPS,
@@ -779,7 +795,7 @@ def create_app(settings: Settings) -> FastAPI:
         return {"thread": thread}
 
     @app.post("/api/runs/{thread}/retouch")
-    def retouch(thread: str, body: Retouch):
+    def retouch_check(thread: str, body: Retouch):
         """What the free checks say of texts retouched in the review, before it is sent: for each id, its check and
         its warning. Nothing is kept: the review sends the texts again."""
         v = viewer.get_state(config(thread)).values
@@ -1181,6 +1197,92 @@ def create_app(settings: Settings) -> FastAPI:
 
         start(vid, "verify", "verify", work)
         return {"id": vid}
+
+    # -- the pause to retouch the pages of the branch (H3, retouch.py) -------------------------------------------
+    def paused_at_retouch(thread: str) -> dict:
+        """The state of a run paused at the retouches; 409 otherwise."""
+        snapshot = viewer.get_state(config(thread))
+        pending = [i.value for t in snapshot.tasks for i in t.interrupts]
+        if not pending or pending[0].get("step") != "retouch":
+            raise HTTPException(409, f"{thread} is not paused at the retouches")
+        return snapshot.values
+
+    def folder_error(e: Exception) -> HTTPException:
+        return HTTPException(409, str(e))
+
+    @app.get("/api/runs/{thread}/folder")
+    def folder_view(thread: str):
+        """Where the guide's folder is, whether it can be lent to this run, and to which run it is lent."""
+        paused_at_retouch(thread)
+        try:
+            now = retouch.state(settings.vault)
+        except retouch.FolderError as e:
+            raise folder_error(e) from e
+        return {**now, "lent_to": retouch.lent_to(settings.home), "path": str(settings.vault)}
+
+    @app.post("/api/runs/{thread}/folder")
+    def folder_lend(thread: str, body: Lend):
+        v = paused_at_retouch(thread)
+        tip = inputs.run(["git", "rev-parse", "HEAD"], cwd=Path(v["worktree"])).strip()
+        try:
+            return retouch.lend(settings.vault, settings.home, thread, tip, body.set_aside)
+        except retouch.FolderError as e:
+            raise folder_error(e) from e
+
+    def page_path(tree: Path, given: str) -> Path:
+        """A Markdown page of the tree, by its path in the guide: never outside, never another kind of file."""
+        rel = Path(given.replace("\\", "/"))
+        if rel.is_absolute() or ".." in rel.parts or rel.suffix not in (".md", ".mdx"):
+            raise HTTPException(400, f"not a page of the guide: {given}")
+        path = tree / rel
+        if not path.is_file():
+            raise HTTPException(404, f"no page {given}")
+        return path
+
+    @app.get("/api/runs/{thread}/page")
+    def page_read(thread: str, path: str):
+        v = paused_at_retouch(thread)
+        tree = retouch.where(settings.vault, settings.home, thread, Path(v["worktree"]))
+        return {"path": path, "text": vault.read(page_path(tree, path)).replace("\r\n", "\n"),
+                "in": "folder" if tree == settings.vault else "worktree"}
+
+    @app.post("/api/runs/{thread}/page")
+    def page_write(thread: str, body: PageText):
+        """Writes a page retouched in the page of the agent, with the line endings the file had."""
+        v = paused_at_retouch(thread)
+        tree = retouch.where(settings.vault, settings.home, thread, Path(v["worktree"]))
+        path = page_path(tree, body.path)
+        crlf = "\r\n" in vault.read(path)
+        text = body.text.replace("\r\n", "\n")
+        vault.write(path, text.replace("\n", "\r\n") if crlf else text)
+        return {"path": body.path, "changed": retouch.changed(tree)}
+
+    @app.post("/api/runs/{thread}/retouched")
+    def retouches_done(thread: str, body: Retouched):
+        """« Done » (keep) or « skip »: the retouches made in the folder are committed onto the branch, the folder is
+        given back with what was set aside, then the run resumes (the worktree's retouches are committed by the
+        graph). A failure leaves the run paused, the folder as it is, and says why."""
+        v = paused_at_retouch(thread)
+        try:
+            retouch.give_back(settings.vault, settings.home, thread, Path(v["worktree"]), keep=body.keep)
+        except retouch.FolderError as e:
+            raise folder_error(e) from e
+        answer = "done" if body.keep else "skip"
+        start(thread, "retouch", "watch", lambda g, job: follow(g, job, Command(resume=answer)))
+        return {"thread": thread}
+
+    @app.get("/api/folder/aside")
+    def folder_aside():
+        """What was set aside from the guide's folder and not put back yet, for a banner of the page."""
+        return retouch.pending(settings.home)
+
+    @app.post("/api/folder/aside/{thread}")
+    def folder_put_back(thread: str):
+        try:
+            retouch.put_back(settings.vault, settings.home, thread)
+        except retouch.FolderError as e:
+            raise folder_error(e) from e
+        return retouch.pending(settings.home)
 
     # -- « Sync the languages »: the mirrors follow the source pages (mirrors.py) ---------------------------
     def mirror_plan(steps: str = "") -> dict:

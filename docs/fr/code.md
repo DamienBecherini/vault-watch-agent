@@ -82,6 +82,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `verify.py` | 596 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
 | `news.py` | 422 | Chercher les nouveautés : la consigne des pistes, ce que les veilles passées ont mis de côté (lu dans leurs rapports), les pistes trouvées sur le web chapitre par chapitre, les ajouts pour les pistes gardées, une piste par appel avec le web, sur les pages que la piste désigne et le plan du guide, ou sur tout le guide (`compact.in_calls` fait les appels) ; ce que deux appels ajoutent à la même page réuni |
 | `mirrors.py` | 224 | Ce qui a changé dans une page source, en passages qu'un traducteur peut reporter dans son miroir (un paragraphe, une ligne de tableau, une ligne de liste, d'après git) ; les pages en avance sur leur miroir ; la branche et l'état d'un passage « Synchroniser les langues » |
+| `retouch.py` | 175 | La pause pour retoucher les pages de la branche d'un passage : le dossier du guide prêté au passage (détaché sur le dernier commit de la branche, ce qu'il contenait mis de côté dans une remise nommée d'après le passage), les retouches commitées au nom de l'éditeur, la branche avancée, le dossier rendu |
 | `guide.py` | 407 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
 | `chapters.py` | 398 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
 | `sourcecheck.py` | 386 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
@@ -124,12 +125,12 @@ flowchart TB
   end
   subgraph after["Après la relecture"]
     direction LR
-    apply --> mirror --> audits --> links --> publish
+    apply --> retouch --> mirror --> audits --> links --> publish
   end
   before -->|"acceptées"| after
   classDef pause fill:#fff4d6,stroke:#a65f00,color:#3d2a00
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
-  class review,publish pause
+  class review,retouch,publish pause
   class triage,propose,crosscheck,mirror model
 ```
 
@@ -227,7 +228,7 @@ sequenceDiagram
   P2->>S: même thread_id
   P2->>P2: graph.invoke(Command(resume=["C1","C3"]))
   Note over P2: interrupt() renvoie la réponse<br/>dans l'étape review
-  P2->>P2: apply → mirror → audits → links → publish (seconde interruption)
+  P2->>P2: apply → retouch (une interruption, passée ou non) → mirror → audits → links → publish
 ```
 
 La ligne de commande et la page web partagent le même fichier SQLite et les mêmes identifiants de passage : un passage

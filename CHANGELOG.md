@@ -5,6 +5,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **A pause to retouch the pages** (H3 of phase H): after the corrections are applied on the branch and before the
+  mirrors, the run stops (`retouch`). « Lend my folder to this run » puts the guide's folder on the branch, detached
+  at its tip, for Obsidian; what it held and was not committed is set aside in a stash named after the run and put
+  back after (`retouch.py`); an editor in the page writes into the lent folder, or into the run's worktree. « I am
+  done » commits the retouches as the editor's, moves the branch, gives the folder back, and the mirrors, the checks
+  and the links follow; « Skip » drops what was typed. `resume --retouch done|skip` on the command line. A banner
+  while the folder is lent or something set aside is not back. Runs started before resume without the pause.
 - **A proposal retouched in the review** (H2 of phase H): « Retouch » on a card makes its text editable, the diff
   following; the free checks run again on it while typing (`POST /api/runs/<run>/retouch`, `graph.retouched`), and
   the review sends the texts with the ids (`{"accept": [...], "edits": {"C3": "..."}}`; `resume --edit C3=file`).

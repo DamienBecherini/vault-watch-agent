@@ -98,11 +98,11 @@ flowchart TD
   locate -->|"Send : une branche par groupe"| propose --> number
   locate -->|rien à vérifier| number
   number --> crosscheck --> report --> review{{"⏸ relecture humaine"}}
-  review -->|acceptées| apply --> mirror --> audits --> links --> publish{{"⏸ push + PR ?"}}
+  review -->|acceptées| apply --> retouch{{"⏸ vos retouches (facultatif)"}} --> mirror --> audits --> links --> publish{{"⏸ push + PR ?"}}
   review -->|aucune| stop((fin))
   publish --> stop
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,publish human
+  class review,retouch,publish human
 ```
 
 | Étape | Ce qu'elle fait |
@@ -116,6 +116,7 @@ flowchart TD
 | `report` | Écrit le rapport que vous relisez |
 | `review` | ⏸ Pause : vous acceptez tout, rien, ou une liste |
 | `apply` | Applique les corrections acceptées dans un worktree git sur une nouvelle branche et met à jour le champ de date des pages |
+| `retouch` | ⏸ Pause facultative : vous relisez et retouchez les pages de la branche, dans votre Obsidian (le dossier du guide est prêté au passage, ce qu'il contenait mis de côté puis remis) ou dans la page, ou vous passez ; vos retouches sont commitées à votre nom ([Une veille étape par étape](docs/fr/run.md#la-pause-pour-retoucher-les-pages)) |
 | `mirror` | Traduit dans les copies du guide (une copie anglaise sous `en/`, par exemple) ce qui a changé dans chaque page source sur la branche, passage par passage : les corrections, et toute modification à la main |
 | `audits` | Lance les contrôles du guide, si le manifeste en déclare |
 | `links` | Vérifie les liens externes des pages modifiées |
@@ -138,8 +139,9 @@ web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
 - **Le modèle propose, le code décide.** Chaque correction cite le texte actuel ; un contrôle déterministe la refuse
   si la citation n'apparaît pas exactement une fois dans la page. Les pages déclarées en lecture seule ne sont
   jamais modifiées.
-- **Un humain dans la boucle, deux fois.** Le passage s'arrête après le rapport (`interrupt` de LangGraph), et de
-  nouveau avant que quoi que ce soit ne quitte la machine. Un passage en pause est sauvegardé dans SQLite et repris
+- **Un humain dans la boucle, qui écrit.** Le passage s'arrête après le rapport (`interrupt` de LangGraph), où chaque
+  proposition peut être retouchée ; de nouveau une fois les corrections appliquées, pour retoucher les pages
+  elles-mêmes si vous le voulez ; et avant que quoi que ce soit ne quitte la machine. Un passage en pause est sauvegardé dans SQLite et repris
   plus tard, depuis un autre processus, des jours après s'il le faut.
 - **Des preuves, pas la mémoire.** Les propositions s'appuient sur les notes de version et les avis de la veille, et
   la relecture croisée sur des sources primaires lues sur le web, jamais sur la seule mémoire du modèle.

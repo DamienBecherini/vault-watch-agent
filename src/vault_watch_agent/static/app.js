@@ -152,7 +152,7 @@ const TEXTS = {
     loading: "Chargement…",
     serverDown: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passages en pause n'ont rien perdu.",
     statuses: {
-      new: "À analyser", running: "En cours", review: "Relecture à faire", publish: "Publication à valider",
+      new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", publish: "Publication à valider",
       published: "PR créée", "nothing-applied": "Rien appliqué", "not-published": "Non publié", stopped: "Interrompu",
       closed: "Traitée hors agent", merged: "✓ Terminée · PR fusionnée", "pr-open": "PR à fusionner",
       "pr-closed": "PR fermée sans fusion",
@@ -161,13 +161,13 @@ const TEXTS = {
       collect: "Récupération de la veille", triage: "Tri des éléments", locate: "Recherche des pages concernées",
       propose: "Propositions de corrections", number: "Numérotation et contrôle des citations",
       crosscheck: "Relecture avec tout le guide et le web", report: "Rapport", review: "Ta relecture",
-      apply: "Application sur une branche", mirror: "Traduction anglaise", audits: "Contrôles du guide (npm test)",
+      apply: "Application sur une branche", retouch: "Tes retouches", mirror: "Traduction anglaise", audits: "Contrôles du guide (npm test)",
       links: "Vérification des liens", publish: "Push et pull request",
     },
     watches: "Veilles",
     watchesIntro: () => `Une veille est publiée par ${forgeName()} tous les 15 jours. L'agent l'analyse, tu relis ses propositions, puis il ouvre la pull request.`,
     analyse: c => `Analyser · ${c}`, merge: () => `Fusionner sur ${forgeName()}`,
-    buttons: { review: "Relire", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
+    buttons: { review: "Relire", retouch: "Retoucher", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
     issue: open => `issue ${open ? "ouverte" : "fermée"}`, watchFile: n => n == null ? "fichier de veille" : `fichier de veille, ${n} élément(s) retenu(s)`,
     count: (n, a) => `${n} correction(s), ${a} appliquée(s)`,
@@ -230,6 +230,26 @@ const TEXTS = {
       new: () => "Ce passage n'a pas commencé.",
     },
     resume: "Reprendre", applied: "Appliquées",
+    retouchPause: {
+      intro: "Les corrections sont appliquées sur la branche du passage ; rien n'est encore traduit ni publié. Tu peux relire les pages et retoucher le texte, dans ton Obsidian ou ici. Tes retouches seront commitées à ton nom, les miroirs les suivront, et les contrôles du guide passeront dessus. Ou passe cette étape.",
+      pages: "Les pages modifiées par ce passage :",
+      obsidian: "Dans Obsidian",
+      lend: "Prêter mon dossier à ce passage",
+      lendHelp: path => `Ton dossier du guide (<code>${path}</code>) passe sur la branche du passage le temps des retouches : Obsidian montre les pages corrigées. « J'ai fini » le remet où il était. Ne tape pas dans Obsidian pendant les deux secondes de la bascule.`,
+      dirty: n => `Ton dossier contient ${n} fichier${n > 1 ? "s" : ""} modifié${n > 1 ? "s" : ""} ou nouveau${n > 1 ? "x" : ""}, pas commité${n > 1 ? "s" : ""} :`,
+      setAside: "Les mettre de côté et prêter le dossier",
+      setAsideHelp: "Ils sont rangés dans une remise git nommée d'après ce passage, et remis en place quand le dossier revient.",
+      blocked: why => `Impossible de prêter le dossier : ${why}. Termine-le, ou retouche ici.`,
+      lentOther: t => `Ton dossier est prêté au passage ${t} : termine ses retouches d'abord, ou retouche ici.`,
+      lentNow: path => `Ton dossier <code>${path}</code> est sur la branche du passage : retouche dans Obsidian, puis « J'ai fini ».`,
+      here: "Ici",
+      hereHelp: lent => lent ? "L'éditeur écrit dans ton dossier prêté : Obsidian voit ce que tu enregistres ici." : "L'éditeur écrit dans la copie de travail du passage.",
+      other: "ou une autre page (chemin dans le guide)", open: "Ouvrir", save: "Enregistrer", saved: "Enregistré.",
+      skip: "Passer", done: "J'ai fini",
+      confirmSkip: "Passer cette étape et abandonner ce qui a été retouché ?",
+      banner: (t, lent, n) => lent ? `Ton dossier du guide est prêté au passage ${t}.` : `${n} fichier(s) de ton dossier mis de côté pour le passage ${t} ne sont pas encore remis.`,
+      putBack: "Les remettre", see: "Voir le passage",
+    },
     languages: {
       title: "Synchroniser les langues",
       intro: names => `Les pages qui ont changé depuis la dernière traduction de leur miroir (${names}). L'agent traduit seulement les passages modifiés, avec le modèle de traduction, puis le passage suit le chemin habituel : contrôles du guide, liens, et la pull request après ton feu vert.`,
@@ -407,7 +427,7 @@ const TEXTS = {
     loading: "Loading…",
     serverDown: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
     statuses: {
-      new: "To analyse", running: "Running", review: "Review pending", publish: "Publish pending",
+      new: "To analyse", running: "Running", review: "Review pending", retouch: "Retouches possible", publish: "Publish pending",
       published: "PR opened", "nothing-applied": "Nothing applied", "not-published": "Not published", stopped: "Stopped",
       closed: "Handled without the agent", merged: "✓ Done · PR merged", "pr-open": "PR to merge",
       "pr-closed": "PR closed unmerged",
@@ -416,13 +436,13 @@ const TEXTS = {
       collect: "Download the watch", triage: "Triage the items", locate: "Find the pages concerned",
       propose: "Propose corrections", number: "Number them, check the quotes",
       crosscheck: "Cross-check with the whole guide and the web", report: "Report", review: "Your review",
-      apply: "Apply on a branch", mirror: "English translation", audits: "Guide audits (npm test)",
+      apply: "Apply on a branch", retouch: "Your retouches", mirror: "English translation", audits: "Guide audits (npm test)",
       links: "Link checks", publish: "Push and pull request",
     },
     watches: "Watches",
     watchesIntro: () => `${forgeName()} publishes a watch every two weeks. The agent analyses it, you review its proposals, then it opens the pull request.`,
     analyse: c => `Analyse · ${c}`, merge: () => `Merge on ${forgeName()}`,
-    buttons: { review: "Review", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
+    buttons: { review: "Review", retouch: "Retouch", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
     issue: open => `issue ${open ? "open" : "closed"}`, watchFile: n => n == null ? "watch file" : `watch file, ${n} item(s) kept`,
     count: (n, a) => `${n} correction(s), ${a} applied`,
@@ -483,6 +503,26 @@ const TEXTS = {
       new: () => "This run has not started.",
     },
     resume: "Resume", applied: "Applied",
+    retouchPause: {
+      intro: "The corrections are applied on the run's branch; nothing is translated or published yet. You can read the pages and retouch the text, in your Obsidian or here. Your retouches will be committed as yours, the mirrors will follow them, and the guide's checks will run on them. Or skip this step.",
+      pages: "The pages this run changed:",
+      obsidian: "In Obsidian",
+      lend: "Lend my folder to this run",
+      lendHelp: path => `Your guide's folder (<code>${path}</code>) goes onto the run's branch for the retouches: Obsidian shows the corrected pages. « I am done » brings it back to where it was. Do not type in Obsidian during the two seconds of the switch.`,
+      dirty: n => `Your folder holds ${n} file${n > 1 ? "s" : ""} changed or new, not committed:`,
+      setAside: "Set them aside and lend the folder",
+      setAsideHelp: "They go into a git stash named after this run, and come back when the folder does.",
+      blocked: why => `The folder cannot be lent: ${why}. Finish it, or retouch here.`,
+      lentOther: t => `Your folder is lent to the run ${t}: finish its retouches first, or retouch here.`,
+      lentNow: path => `Your folder <code>${path}</code> is on the run's branch: retouch in Obsidian, then « I am done ».`,
+      here: "Here",
+      hereHelp: lent => lent ? "The editor writes into your lent folder: Obsidian sees what you save here." : "The editor writes into the run's working copy.",
+      other: "or another page (path in the guide)", open: "Open", save: "Save", saved: "Saved.",
+      skip: "Skip", done: "I am done",
+      confirmSkip: "Skip this step and drop what was retouched?",
+      banner: (t, lent, n) => lent ? `Your guide's folder is lent to the run ${t}.` : `${n} file(s) of your folder set aside for the run ${t} are not put back yet.`,
+      putBack: "Put them back", see: "See the run",
+    },
     languages: {
       title: "Sync the languages",
       intro: names => `The pages that changed since their mirror was last translated (${names}). The agent translates only the passages that changed, with the translation model, then the run takes the usual path: the guide's checks, the links, and the pull request after your go-ahead.`,
@@ -532,7 +572,7 @@ let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").start
 let T = TEXTS[lang];
 
 const CLASSES = {
-  running: "attention", review: "attention", publish: "attention", "pr-open": "attention",
+  running: "attention", review: "attention", retouch: "attention", publish: "attention", "pr-open": "attention",
   published: "ok", merged: "ok", stopped: "error",
 };
 // Nothing left to do: the card is dimmed
@@ -731,6 +771,7 @@ async function route() {
     else if (h === "/languages") await viewLanguages();
     else if (h === "/chapters") await viewChapters();
     else await viewWatches();
+    asideBanner();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
   }
@@ -946,12 +987,13 @@ async function viewRun(thread) {
   if (r.status === "running") return viewRunning(r, title);
   if (r.status === "review") return viewReview(r, title);
   if (r.status === "publish") return viewPublish(r, title);
+  if (r.status === "retouch") return viewRetouch(r, title);
   viewEnd(r, title);
 }
 
 function viewRunning(r, title) {
   const doneSteps = new Set(r.job.events.map(e => e.node));
-  const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", publish: "publish", resume: null }[r.job.action];
+  const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", retouch: "retouch", mirror: "mirror", publish: "publish", resume: null }[r.job.action];
   const steps = r.steps.slice(first ? r.steps.indexOf(first) : 0);
   const cost = r.job.events.reduce((m, e) => e.cost ?? m, 0);
   page.innerHTML = `${title}
@@ -1144,6 +1186,81 @@ function bindRetouches(r, boxes) {
     show(id, proposal(id).proposed);
     ask(id);
   });
+}
+
+// --- The pause to retouch the pages of the branch (H3): lend the folder to Obsidian, or edit here ---------------
+async function viewRetouch(r, title) {
+  const R = T.retouchPause, at = `/api/runs/${encodeURIComponent(r.thread)}`;
+  const f = await api(`${at}/folder`).catch(e => ({ error: e.message, changes: [] }));
+  const lent = f.lent_to === r.thread, pages = r.pause?.pages || [];
+  const folderCard = f.error ? `<p class="error-text">${esc(f.error)}</p>`
+    : lent ? `<p>${R.lentNow(esc(f.path))}</p>`
+    : f.lent_to ? `<p class="attention-text">${R.lentOther(esc(f.lent_to))}</p>`
+    : f.blocked ? `<p class="attention-text">${R.blocked(esc(f.blocked))}</p>`
+    : f.changes.length ? `<p>${R.dirty(f.changes.length)}</p><ul>${f.changes.map(c => `<li><code>${esc(c)}</code></li>`).join("")}</ul>
+        <p class="muted small">${R.setAsideHelp}</p><p><button id="lend" data-aside="1">${R.setAside}</button></p>`
+    : `<p class="muted small">${R.lendHelp(esc(f.path))}</p><p><button id="lend">${R.lend}</button></p>`;
+  page.innerHTML = `${title}
+    <div class="card"><p>${R.intro}</p>
+      ${pages.length ? `<p class="small">${R.pages} ${pages.map(p => `<code>${esc(p)}</code>`).join(", ")}</p>` : ""}</div>
+    <h2>${R.obsidian}</h2>
+    <div class="card">${folderCard}<p class="error-text small" id="lend-error"></p></div>
+    <h2>${R.here}</h2>
+    <div class="card"><p class="muted small">${R.hereHelp(lent)}</p>
+      <p class="tick-row"><select id="page-pick">${pages.map(p => `<option>${esc(p)}</option>`).join("")}</select>
+        <input id="page-other" type="text" placeholder="${esc(R.other)}" spellcheck="false">
+        <button type="button" id="page-open">${R.open}</button></p>
+      <div id="editor" hidden><textarea id="page-text" spellcheck="true"></textarea>
+        <p><button type="button" id="page-save">${R.save}</button> <span class="small" id="page-said"></span></p></div></div>
+    <p class="error-text" id="done-error"></p>
+    <div class="bar"><button id="skip">${R.skip}</button><button class="primary" id="done">${R.done}</button></div>`;
+  let open = "";
+  if ($("#lend")) $("#lend").onclick = async () => {
+    $("#lend").disabled = true;
+    try { await api(`${at}/folder`, { set_aside: !!$("#lend").dataset.aside }); route(); }
+    catch (e) { $("#lend-error").textContent = e.message; $("#lend").disabled = false; }
+  };
+  $("#page-open").onclick = async () => {
+    const path = $("#page-other").value.trim() || $("#page-pick").value;
+    if (!path) return;
+    try {
+      const p = await api(`${at}/page?path=${encodeURIComponent(path)}`);
+      open = p.path;
+      $("#page-text").value = p.text;
+      $("#editor").hidden = false;
+      $("#page-said").textContent = "";
+      $("#page-text").style.height = "auto";
+      $("#page-text").style.height = `${Math.min(window.innerHeight * 0.7, $("#page-text").scrollHeight + 4)}px`;
+    } catch (e) { $("#page-said").textContent = e.message; $("#editor").hidden = false; }
+  };
+  $("#page-save").onclick = async () => {
+    if (!open) return;
+    try { await api(`${at}/page`, { path: open, text: $("#page-text").value }); $("#page-said").textContent = R.saved; }
+    catch (e) { $("#page-said").textContent = e.message; }
+  };
+  const finish = async keep => {
+    page.querySelectorAll(".bar button").forEach(b => b.disabled = true);
+    try { await api(`${at}/retouched`, { keep }); route(); }
+    catch (e) { $("#done-error").textContent = e.message; page.querySelectorAll(".bar button").forEach(b => b.disabled = false); }
+  };
+  $("#done").onclick = () => finish(true);
+  $("#skip").onclick = () => (!lent && !open) || confirm(R.confirmSkip) ? finish(false) : null;
+}
+
+// A banner on every page while the guide's folder is lent to a run, or something set aside is not put back yet
+async function asideBanner() {
+  const list = await api("/api/folder/aside").catch(() => []);
+  document.querySelector("#aside-banner")?.remove();
+  if (!list.length) return;
+  const R = T.retouchPause, x = list[0];
+  const div = document.createElement("p");
+  div.id = "aside-banner";
+  div.className = "banner";
+  div.innerHTML = `${esc(R.banner(x.thread, x.lent, x.aside.length))} <a href="#/run/${encodeURIComponent(x.thread)}">${R.see}</a>${
+    x.lent ? "" : ` <button type="button" class="small-button" id="put-back">${R.putBack}</button>`}`;
+  page.prepend(div);
+  const b = div.querySelector("#put-back");
+  if (b) b.onclick = async () => { try { await api(`/api/folder/aside/${encodeURIComponent(x.thread)}`, {}); asideBanner(); } catch (e) { div.append(` ${e.message}`); } };
 }
 
 async function viewPublish(r, title) {

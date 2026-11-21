@@ -105,12 +105,12 @@ flowchart TD
   crosscheck --> report --> review{{"⏸ relecture humaine"}}
   review -->|"acceptées"| apply["apply<br/><i>worktree git</i>"]
   review -->|"aucune"| stop((fin))
-  apply --> mirror["mirror<br/><i>pages anglaises</i>"] --> audits["audits<br/><i>contrôles du guide</i>"]
+  apply --> retouch{{"⏸ retouches<br/><i>facultatives</i>"}} --> mirror["mirror<br/><i>pages anglaises</i>"] --> audits["audits<br/><i>contrôles du guide</i>"]
   audits --> links["links<br/><i>liens externes</i>"] --> publish{{"⏸ push + PR ?"}}
   publish --> stop
   classDef pause fill:#fff4d6,stroke:#a65f00,color:#3d2a00
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
-  class review,publish pause
+  class review,retouch,publish pause
   class triage,p1,p2,p3,crosscheck,mirror model
 ```
 
@@ -133,7 +133,10 @@ sequenceDiagram
   G-->>W: rapport (sauvegardé dans SQLite, le processus peut s'arrêter)
   E->>W: tout accepter, rien, ou une liste
   W->>G: Command(resume=réponse)
-  G->>G: apply, mirror, audits, links
+  G->>G: application sur une branche
+  E->>W: retoucher les pages (dans Obsidian ou ici), ou passer
+  W->>G: Command(resume=done)
+  G->>G: mirror, audits, links
   G-->>W: prêt à publier ?
   E->>W: oui
   G->>H: pousse la branche, ouvre la pull request
