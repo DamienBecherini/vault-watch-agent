@@ -546,7 +546,8 @@ the most value is M0, M1, prices, M3, then M4.
 Today the editor sorts what the model proposes: accept or refuse, never reword. This phase lets the human write the
 final text: retouch a proposal, retouch the pages of the branch before the pull request, and have the mirrors follow
 whatever changed, by hand or not. It is what makes « written by a human, kept up to date with an AI » true of every
-page. Decided with the user on 2026-11-21: before C3 and phase D, in the order below, each milestone a version.
+page. Decided with the user on 2026-11-21: before C3 and phase D, in the order below; the three milestones ship together
+as 1.4.0, once tested for real on the IA on-prem guide (the user's choice, 2026-11-21).
 
 ### H1. Mirrors that follow the diff, and « Sync the languages » (1.4.0)
 
@@ -569,7 +570,7 @@ hand. It should translate what really changed in each source page, paragraph by 
 Done when: two paragraphs changed by hand in a French page of the IA on-prem guide come back as a pull request of
 their English mirror only, with `audit:i18n:strict` passing.
 
-### H2. Retouch a proposal in the review (1.5.0)
+### H2. Retouch a proposal in the review (1.4.0)
 
 - [x] **H2.1 The text proposed, editable in its card**, the word-level diff updated as one types; `current` (the
   quote) never editable, so the edit applies where the model found it.
@@ -585,7 +586,7 @@ their English mirror only, with `audit:i18n:strict` passing.
 Done when: a watch of the IA on-prem guide goes to a pull request with one correction retouched at the review, its
 English mirror following the retouched text.
 
-### H3. A pause to retouch the pages, before the mirrors (1.6.0)
+### H3. A pause to retouch the pages, before the mirrors (1.4.0)
 
 After `apply` and before `mirror`, an optional pause: the editor reads the pages of the branch and retouches them,
 or skips it. The graph becomes `review → apply → ⏸ retouch → mirror → audits → links → ⏸ publish`.
@@ -606,7 +607,7 @@ or skips it. The graph becomes `review → apply → ⏸ retouch → mirror → 
   (« Retouches at the review »), brings the folder back, and resumes: the mirrors follow the diff (H1), then the
   guide's checks and the links run on the human's text as on the model's. The pull request lists the pages retouched
   by hand.
-- [x] **H3.4 Runs paused before 1.6.0** keep the graph they were started with and resume as before.
+- [x] **H3.4 Runs paused before 1.4.0** keep the graph they were started with and resume as before.
 
 Done when: a run of the IA on-prem guide is retouched in Obsidian at the pause, with a draft of the editor set aside
 and put back untouched, and its pull request passes the guide's checks.
