@@ -24,6 +24,7 @@ suggest »: the leads are ticked, dug deeper or dismissed on the page of the che
 from __future__ import annotations
 
 import io
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -112,6 +113,8 @@ def get(url: str, client: httpx.Client | None = None, check_address=webtools.pub
 def pdf_text(body: bytes) -> str:
     """The text of a PDF, page by page, until LINK_CHARS. ImportError without the optional pypdf."""
     from pypdf import PdfReader  # optional: pip install "vault-watch-agent[pdf]"
+
+    logging.getLogger("pypdf").setLevel(logging.ERROR)  # a warning per font it cannot fully parse, text read all the same
 
     out, size = [], 0
     for n, page in enumerate(PdfReader(io.BytesIO(body)).pages, start=1):
