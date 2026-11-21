@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, retouch, sourcecheck, sources, steps, store, vault, verify
+from . import compact, costs, fix, forge, inputs, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line
@@ -170,6 +170,19 @@ class Report(BaseModel):
     # an addition run: what each call reads, the whole guide or its lead's pages and the plan of the guide
     context: Literal["guide", "pages"] = news.CONTEXT
     steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
+
+
+class MirrorCheck(BaseModel):
+    """The editor's edits checked before a sync (proofread.py): the pages as GET /api/mirrors offers them."""
+    pages: list[str] = []
+    hand: list[str] = []
+    checks: list[str]  # spelling, facts, consistency
+    steps: dict = {}
+
+
+class Accept(BaseModel):
+    ids: list[str]  # the fixes to apply in the guide's folder
+    edits: dict[str, str] = {}  # the editor's own text for a fix: {id: text}
 
 
 class MirrorSync(BaseModel):
@@ -1317,6 +1330,17 @@ def create_app(settings: Settings) -> FastAPI:
         cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
         model, table = llm.step_model(cfg, "mirror"), price_table()
 
+        def check_usd(page: str, changed: list[tuple[str, str]]) -> dict:
+            """What each check costs for this page: spelling (the translation model, the passages), facts (the
+            reasoning model, the passages, the page and about ten pages of the web)."""
+            moved = sum(len(n.encode("utf-8")) for _, n in changed)
+            size = (settings.vault / page).stat().st_size if (settings.vault / page).is_file() else 0
+            b = verify.BYTES_PER_TOKEN
+            return {"spelling": round(verify._usd(llm.step_model(cfg, "proofread"), tokens_in=int(moved / b) + 900,
+                                                  tokens_out=int(moved / b * 0.3) + 200, table=table), 4),
+                    "facts": round(verify._usd(llm.step_model(cfg, "factcheck"), tokens_in=int((size + moved) / b) + 25_000,
+                                               tokens_out=2_000, table=table), 4)}
+
         def usd(page: str, changed: list[tuple[str, str]]) -> float:
             moved = sum(len(o.encode("utf-8")) + len(n.encode("utf-8")) for o, n in changed)
             total = 0.0
@@ -1332,17 +1356,100 @@ def create_app(settings: Settings) -> FastAPI:
         # Each page with its changed zones, two lines around each: what the translation will follow, read before
         ahead = [{"page": p, "since": found["since"][p], "passages": n,
                   "usd": usd(p, mirrors.edits_of_commit(copy, p, found["since"][p])),
+                  "check_usd": check_usd(p, mirrors.edits_of_commit(copy, p, found["since"][p])),
                   "hunks": mirrors.hunks(mirrors.show(copy, found["since"][p], p), mirrors.show(copy, "HEAD", p), field)}
                  for p, n in found["ahead"].items()]
         hand = [{"page": p, "passages": n, "usd": usd(p, mirrors.edits_of(settings.vault, p, "HEAD")),
+                 "check_usd": check_usd(p, mirrors.edits_of(settings.vault, p, "HEAD")),
                  "hunks": mirrors.hunks(mirrors.show(settings.vault, "HEAD", p), current(p), field)}
                 for p, n in found["hand"].items()]
         return {"languages": [{"code": c, "name": guide_mod.language_name(c), "folder": f} for c, f in found["languages"].items()],
-                "ahead": ahead, "hand": hand, "elsewhere": found["elsewhere"], "model": model, "base": found["base"]}
+                "ahead": ahead, "hand": hand, "elsewhere": found["elsewhere"], "model": model, "base": found["base"],
+                # the consistency reads the whole guide once (its cache written), whatever the pages
+                "consistency_usd": round(verify._usd(llm.step_model(cfg, "crosscheck"), tokens_out=3_000,
+                                                     cache_write=verify._tokens(vault.pages(settings.vault)), table=table), 2),
+                "check": latest_check()}
 
     @app.get("/api/mirrors")
     def mirrors_view(steps: str = ""):
         return mirror_plan(steps)
+
+    # -- the editor's edits checked before the sync (H4.2, proofread.py) ------------------------------------------
+    checks_dir = settings.home / "proofread"
+
+    def proofread_file(cid: str) -> Path:
+        if not re.fullmatch(r"proofread-[\d-]+", cid):
+            raise HTTPException(404, f"no check {cid}")
+        return checks_dir / f"{cid}.json"
+
+    def latest_check() -> dict | None:
+        """The last check of the edits, while some of its fixes are still to decide (else None)."""
+        files = sorted(checks_dir.glob("proofread-*.json")) if checks_dir.is_dir() else []
+        if not files:
+            return None
+        data = read_json(files[-1])
+        data["running"] = busy(data["id"])
+        return None if data.get("closed") else data
+
+    @app.post("/api/mirrors/check")
+    def mirrors_check(body: MirrorCheck):
+        asked = [c for c in proofread.CHECKS if c in body.checks]
+        if not asked or set(body.checks) - set(proofread.CHECKS):
+            raise HTTPException(400, f"checks: some of {', '.join(proofread.CHECKS)}")
+        plan = mirror_plan()
+        ahead = {a["page"]: a["since"] for a in plan["ahead"]}
+        offered = {h["page"] for h in plan["hand"]}
+        unknown = [p for p in body.pages if p not in ahead] + [p for p in body.hand if p not in offered]
+        if unknown or not (body.pages or body.hand):
+            raise HTTPException(400, f"nothing to check, or pages not offered: {unknown}")
+        cid = time.strftime("proofread-%Y-%m-%d-%H%M%S")
+        keep_steps(cid, body.steps)
+        checks_dir.mkdir(parents=True, exist_ok=True)
+        path = checks_dir / f"{cid}.json"
+        data = {"id": cid, "started": time.time(), "checks": asked, "pages": [*body.hand, *body.pages],
+                "fixes": [], "notes": [], "cost": 0.0, "done": False, "error": "", "applied": [], "failed": {}}
+        write_json(path, data)
+
+        def work(graph, job: Job):
+            deps = settings.make_deps(cid, "proofread")
+            try:
+                # The passages as the folder holds them: what the editor wrote, committed or not
+                copy = vault.reading_copy(settings.vault, settings.home) if body.pages else None
+                changes = [(p, mirrors.edits_of(settings.vault, p, "HEAD")) for p in body.hand]
+                changes += [(p, mirrors.edits_of_commit(copy, p, ahead[p])) for p in body.pages]
+                found = proofread.run(settings.vault, changes, set(asked), deps.translator or deps.llm, deps.llm)
+                data.update(fixes=found["fixes"], notes=found["notes"],
+                            cost=round(sum(u.get("cost_usd", 0) for u in found["usage"]), 2))
+            except Exception as e:  # shown on the page, the edits untouched
+                data["error"] = f"{type(e).__name__}: {e}"[:500]
+                if getattr(e, "usage", None):
+                    data["cost"] = round(data["cost"] + e.usage.get("cost_usd", 0), 2)
+            finally:
+                data["done"] = True
+                write_json(path, data)
+                job.events.append({"t": time.time(), "node": "proofread", "cost": data["cost"]})
+
+        start(cid, "proofread", "proofread", work)
+        return {"id": cid}
+
+    @app.get("/api/mirrors/check/{cid}")
+    def mirrors_check_view(cid: str):
+        data = read_json(proofread_file(cid))
+        data["running"] = busy(cid)
+        return data
+
+    @app.post("/api/mirrors/check/{cid}/accept")
+    def mirrors_check_accept(cid: str, body: Accept):
+        """The fixes accepted, applied in the guide's folder as if typed there; the others left. The check is then
+        closed: the page « Languages » shows the pages as they now are, to sync."""
+        path = proofread_file(cid)
+        if busy(cid):
+            raise HTTPException(409, "the check is still running")
+        data = read_json(path)
+        done = proofread.accept(settings.vault, data["fixes"], body.ids, body.edits, date.today().isoformat())
+        data.update(applied=done["applied"], failed=done["failed"], closed=True)
+        write_json(path, data)
+        return done
 
     @app.post("/api/mirrors")
     def mirrors_start(body: MirrorSync):
@@ -1366,6 +1473,9 @@ def create_app(settings: Settings) -> FastAPI:
             follow(graph, job, None)
 
         start(thread, "mirror", "mirror", work)
+        pending = latest_check()
+        if pending and not pending["running"]:  # a check left undecided: the sync goes without its fixes
+            write_json(proofread_file(pending["id"]), {**{k: v for k, v in pending.items() if k != "running"}, "closed": True})
         return {"thread": thread}
 
     # -- the chapters of the guide (chapters.py): seen, proposed by a model, declared in the manifest -------

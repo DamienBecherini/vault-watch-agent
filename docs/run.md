@@ -147,8 +147,10 @@ translation fix skips the cross-check; a compaction run has its own, without the
 
 ## Sync the languages
 
-A page edited by hand, in Obsidian or anywhere else, leaves its mirror behind. The page « Languages » of the
-interface (`vault-watch mirror` on the command line) lists two kinds of pages:
+This is the editor's way to publish: you write in the guide's language, in Obsidian, then you ask the page
+« Languages » for the other languages to follow. A page edited by hand, in Obsidian or anywhere else, leaves its
+mirror behind. The page « Languages » of the interface (`vault-watch mirror` on the command line) lists two kinds of
+pages:
 
 - **Changed in your folder, not committed yet**: the run copies them onto its branch, in a commit « edits by
   hand », so that one pull request carries both languages. Your folder is not touched. Once the pull request is
@@ -172,5 +174,24 @@ before and after, beside what the translator made of it in the mirror, both as w
 translation can be judged sentence by sentence. The translation can be retouched there: your text replaces the
 model's (kept in the run), and is committed as such. Then the guide's checks, the links, and the pause before the
 pull request.
+
+### Check before translating (optional)
+
+Under the pages, three checks can be ticked, each with its estimate, on the passages you changed in the pages
+ticked:
+
+- **Spelling and grammar**: the translation model, on the passages alone (a few cents);
+- **Truth and relevance, on the web**: the reasoning model looks for the primary source of each fact the passages
+  state, and says what is wrong or outdated (with its source), or doubtful (a note, without a fix);
+- **Consistency with the rest of the guide**: the cross-check reads the whole guide, your edits included, and lists
+  what they contradict or make outdated elsewhere (≈ 2 $ at list price on Opus, nothing on a subscription). A sync
+  does not go through the cross-check otherwise.
+
+Each finding comes as a fix to tick, with its reason, its word-level diff and its text, which you can retouch.
+« Apply in my folder » writes the fixes ticked into your folder, as if you had typed them (the quote found once,
+as any edit), and the page shows the pages as they now are: a fix of another page makes that page one more to
+sync. Nothing is changed until then; a sync started without deciding goes without the fixes.
+
+![The check before translating: a typo fixed, a quote not found greyed out, a page made consistent, a doubt without a fix, and the button that applies the fixes ticked in the folder](images/sync-check.png)
 
 ![The publish screen of a sync of the languages: the mirror page updated, the guide's audits, the links, and the diff of the branch with the passage translated](images/sync-publish.png)

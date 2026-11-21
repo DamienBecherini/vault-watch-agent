@@ -153,8 +153,10 @@ croisée ; un passage de compactage a la sienne, sans le web.
 
 ## Synchroniser les langues
 
-Une page modifiée à la main, dans Obsidian ou ailleurs, laisse son miroir en arrière. La page « Langues » de
-l'interface (`vault-watch mirror` en ligne de commande) liste deux sortes de pages :
+C'est la façon de publier de l'éditeur : vous écrivez dans la langue du guide, dans Obsidian, puis vous demandez à
+la page « Langues » que les autres langues suivent. Une page modifiée à la main, dans Obsidian ou ailleurs, laisse
+son miroir en arrière. La page « Langues » de l'interface (`vault-watch mirror` en ligne de commande) liste deux
+sortes de pages :
 
 - **Modifiées dans votre dossier, pas encore commitées** : le passage les copie sur sa branche, dans un commit
   « edits by hand », pour qu'une seule pull request porte les deux langues. Votre dossier n'est pas touché. Une
@@ -178,5 +180,26 @@ la traduction** : chaque passage de la source, avant et après, à côté de ce 
 miroir, les deux en diff mot à mot, pour juger la traduction phrase à phrase. La traduction s'y retouche : votre
 texte remplace celui du modèle (gardé dans le passage), et il est commité tel quel. Puis les contrôles du guide, les
 liens, et la pause avant la pull request.
+
+### Vérifier avant de traduire (facultatif)
+
+Sous les pages, trois vérifications se cochent, chacune avec son estimation, sur les passages que vous avez
+modifiés dans les pages cochées :
+
+- **Orthographe et grammaire** : le modèle de traduction, sur les passages seuls (quelques centimes) ;
+- **Véracité et pertinence, sur le web** : le modèle de raisonnement cherche la source primaire de chaque fait
+  qu'énoncent les passages, et dit ce qui est faux ou dépassé (avec sa source), ou douteux (une note, sans
+  correction) ;
+- **Cohérence avec le reste du guide** : la relecture croisée lit tout le guide, vos modifications comprises, et
+  liste ce qu'elles contredisent ou rendent obsolète ailleurs (≈ 2 $ au prix catalogue sur Opus, rien sur un
+  abonnement). Sans elle, une synchronisation ne passe pas par la relecture croisée.
+
+Chaque remarque arrive comme une correction à cocher, avec sa raison, son diff mot à mot et son texte, que vous
+pouvez retoucher. « Appliquer dans mon dossier » écrit les corrections cochées dans votre dossier, comme si vous les
+aviez tapées (la citation trouvée une seule fois, comme toute modification), et la page montre les pages telles
+qu'elles sont alors : une correction d'une autre page en fait une page de plus à synchroniser. Rien ne change
+avant ; une synchronisation lancée sans décider part sans les corrections.
+
+![La vérification avant de traduire : une faute corrigée, une citation introuvable grisée, une page rendue cohérente, un doute sans correction, et le bouton qui applique dans le dossier les corrections cochées](../images/sync-check.fr.png)
 
 ![L'écran de publication d'une synchronisation des langues : la page miroir mise à jour, les contrôles du guide, les liens, et le diff de la branche avec le passage traduit](../images/sync-publish.fr.png)

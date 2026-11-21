@@ -37,6 +37,8 @@ STEPS: dict[str, Step] = {s.id: s for s in (
     Step("chapters", "reasoning", "medium"),  # the split of the guide into chapters, from its outline (chapters.py)
     Step("claims", "reasoning", "high", ("web",)),
     Step("deadlinks", "reasoning", "medium", ("web",)),
+    Step("proofread", "translator", "medium"),  # the spelling of the passages the editor changed (proofread.py)
+    Step("factcheck", "reasoning", "high", ("web",)),  # their facts, on the web
     Step("mirror", "translator", "medium"),
     Step("translation", "translator", "medium"),
     Step("fix-translation", "translator", "medium"),
@@ -50,7 +52,8 @@ def effort(step: str) -> str:
 
 # The first word of a call's `node` (its label in the journal) -> its step. « verify <check> » names its check.
 NODES = {"triage": "triage", "propose": "proposals", "crosscheck": "crosscheck", "sweep": "crosscheck", "fix": "fix",
-         "compact": "compact", "add": "add", "mirror": "mirror", "judge": "judge", "chapters": "chapters"}
+         "compact": "compact", "add": "add", "mirror": "mirror", "judge": "judge", "chapters": "chapters",
+         "proofread": "proofread"}
 
 
 def of_node(node: str) -> str:
@@ -63,6 +66,10 @@ def of_node(node: str) -> str:
         return words[1] if len(words) > 1 and words[1] in STEPS else ""
     if words[:2] == ["fix", "translation"]:
         return "fix-translation"
+    if words[:2] == ["proofread", "facts"]:
+        return "factcheck"
+    if words[:2] == ["proofread", "consistency"]:
+        return "crosscheck"
     return NODES.get(words[0], "")
 
 

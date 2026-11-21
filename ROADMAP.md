@@ -631,10 +631,11 @@ and put back untouched, and its pull request passes the guide's checks.
 
 ### H4. The page « Languages » as the editor's way to publish (proposed by the user, 2026-11-21)
 
-- [ ] **H4.1 Say what the page is for**, at its top and in the docs: the editor writes in their own language (in
+- [x] **H4.1 Say what the page is for**, at its top and in the docs: the editor writes in their own language (in
   Obsidian), then asks here for the other languages to follow; the agent translates what changed, the checks and the
   pull request follow.
-- [ ] **H4.2 An optional check of the edits before the sync**, ticked per run with its estimate: spelling and
+- [x] **H4.2 An optional check of the edits before the sync** (2026-11-21, `proofread.py`: the fixes accepted are
+  written in the guide's folder, as if typed, before the sync starts; not tried on the real guide yet), ticked per run with its estimate: spelling and
   grammar of the passages changed (the translation model is enough), and, on request, their facts checked on the
   web (true, current, relevant to the page: the reasoning model, with web search, as the cross-check does). Its
   findings shown beside each zone changed, each one to accept (a retouch of the source, committed as the editor's

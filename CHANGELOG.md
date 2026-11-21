@@ -5,6 +5,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **The page « Languages » says what it is for, and checks the edits before the sync** (H4 of the roadmap, asked
+  by the user): you write in the guide's language, then ask for the other languages to follow. Before translating,
+  three optional checks, each with its estimate, on the passages changed (`proofread.py`, `POST /api/mirrors/check`):
+  spelling and grammar (the translation model, step `proofread`), truth and relevance on the web (the reasoning
+  model, step `factcheck`), consistency with the rest of the guide (the cross-check, the whole guide read). Each
+  finding is a fix to tick or leave, its text editable; the fixes ticked are written in the guide's folder as if
+  typed (`POST /api/mirrors/check/<id>/accept`), then translated with the rest.
 - **An item without text reads its own page** (C3 of the roadmap): a kept item whose feed gives no text (a blog
   post, a press release, a model page: 20 of the 115 kept by the watch of 19 November 2026) gets the start of its
   own page as notes, read at collection without a model (`Collector.page_notes`, the agent's page reader; public

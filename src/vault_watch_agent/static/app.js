@@ -261,7 +261,7 @@ const TEXTS = {
     },
     languages: {
       title: "Synchroniser les langues",
-      intro: names => `Les pages qui ont changé depuis la dernière traduction de leur miroir (${names}). L'agent traduit seulement les passages modifiés, avec le modèle de traduction, puis le passage suit le chemin habituel : contrôles du guide, liens, et la pull request après ton feu vert.`,
+      intro: names => `Tu écris dans la langue du guide, dans Obsidian ; ici, tu demandes que les autres langues suivent (${names}). La page liste les pages qui ont changé depuis leur dernière traduction, avec ce qui a changé. Tu peux d'abord faire vérifier tes modifications, puis l'agent traduit seulement les passages modifiés et le passage suit le chemin habituel : contrôles du guide, liens, et la pull request après ton feu vert.`,
       noMirror: "Le guide ne déclare aucun miroir : il n'y a rien à synchroniser.",
       none: "Tout est synchronisé : aucune page n'est en avance sur son miroir.",
       hand: "Modifiées dans ton dossier, pas encore commitées",
@@ -273,6 +273,18 @@ const TEXTS = {
       zones: n => n > 1 ? `Les ${n} zones modifiées, deux lignes autour` : "La zone modifiée, deux lignes autour",
       tickAll: "Tout cocher", untickAll: "Tout décocher",
       button: (n, c) => n ? `Traduire ${n} page${n > 1 ? "s" : ""} · ${c}` : "Coche au moins une page",
+      check: {
+        title: "Vérifier avant de traduire (facultatif)",
+        intro: "Sur les passages que tu as modifiés, dans les pages cochées. Rien ne change sans toi : chaque remarque s'accepte ou se laisse, et ce que tu acceptes s'écrit dans ton dossier comme si tu l'avais tapé, puis se traduit avec le reste.",
+        kinds: { spelling: "Orthographe et grammaire", facts: "Véracité et pertinence, sur le web", consistency: "Cohérence avec le reste du guide" },
+        what: { spelling: "le modèle de traduction, sur les passages seuls", facts: "le modèle de raisonnement cherche la source de chaque fait", consistency: "la relecture croisée lit tout le guide : ce que tes ajouts contredisent ou rendent obsolète ailleurs" },
+        button: c => `Vérifier · ${c}`, none: "Coche une vérification",
+        running: "Vérification en cours…", error: "La vérification n'a pas pu se faire",
+        found: (n, c) => n ? `${n} remarque${n > 1 ? "s" : ""} · ${c}` : `Rien à corriger · ${c}`,
+        notes: "Doutes, sans correction proposée", source: "source", notFound: "texte introuvable dans la page",
+        apply: n => n ? `Appliquer ${n} correction${n > 1 ? "s" : ""} dans mon dossier` : "Ne rien appliquer",
+        failed: "Pas appliquées (la page a changé depuis la vérification) :",
+      },
     },
     reportTitle: "Signaler une erreur ou proposer un sujet",
     reportKinds: { fix: "Une erreur à corriger", add: "Une idée ou une information à creuser" },
@@ -544,7 +556,7 @@ const TEXTS = {
     },
     languages: {
       title: "Sync the languages",
-      intro: names => `The pages that changed since their mirror was last translated (${names}). The agent translates only the passages that changed, with the translation model, then the run takes the usual path: the guide's checks, the links, and the pull request after your go-ahead.`,
+      intro: names => `You write in the guide's language, in Obsidian; here, you ask for the other languages to follow (${names}). The page lists the pages that changed since they were last translated, with what changed. You can have your edits checked first; then the agent translates only the passages that changed, and the run takes the usual path: the guide's checks, the links, and the pull request after your go-ahead.`,
       noMirror: "The guide declares no mirror: there is nothing to sync.",
       none: "Everything is in step: no page is ahead of its mirror.",
       hand: "Changed in your folder, not committed yet",
@@ -556,6 +568,18 @@ const TEXTS = {
       zones: n => n > 1 ? `The ${n} zones changed, two lines around` : "The zone changed, two lines around",
       tickAll: "Tick all", untickAll: "Untick all",
       button: (n, c) => n ? `Translate ${n} page${n > 1 ? "s" : ""} · ${c}` : "Tick a page at least",
+      check: {
+        title: "Check before translating (optional)",
+        intro: "On the passages you changed, in the pages ticked. Nothing changes without you: each finding is accepted or left, and what you accept is written in your folder as if you had typed it, then translated with the rest.",
+        kinds: { spelling: "Spelling and grammar", facts: "Truth and relevance, on the web", consistency: "Consistency with the rest of the guide" },
+        what: { spelling: "the translation model, on the passages alone", facts: "the reasoning model looks for the source of each fact", consistency: "the cross-check reads the whole guide: what your edits contradict or make outdated elsewhere" },
+        button: c => `Check · ${c}`, none: "Tick a check",
+        running: "Checking…", error: "The check could not run",
+        found: (n, c) => n ? `${n} finding${n > 1 ? "s" : ""} · ${c}` : `Nothing to fix · ${c}`,
+        notes: "Doubts, without a fix proposed", source: "source", notFound: "text not found in the page",
+        apply: n => n ? `Apply ${n} fix${n > 1 ? "es" : ""} in my folder` : "Apply nothing",
+        failed: "Not applied (the page changed since the check):",
+      },
     },
     reportTitle: "Report an error or suggest a subject",
     reportKinds: { fix: "An error to fix", add: "An idea or a piece of news to dig into" },
@@ -1914,19 +1938,21 @@ async function viewLanguages() {
     ${d.hand.length ? `<h2>${L.hand}</h2><p class="muted small">${L.handHelp}</p>${d.hand.map(p => card(p, "hand")).join("")}` : ""}
     ${d.ahead.length ? `<h2>${L.ahead}</h2><p class="muted small">${L.aheadHelp(esc(d.base))}</p>${d.ahead.map(p => card(p, "ahead")).join("")}` : ""}
     ${d.elsewhere.length ? `<p class="small attention-text">${L.elsewhere(d.elsewhere.map(p => `<code>${esc(p)}</code>`).join(", "))}</p>` : ""}
+    ${any ? `<section class="card" id="proofread">${d.check ? checkFound(d.check) : checkOffer()}</section>` : ""}
     ${any ? `<details class="run-steps"${Object.keys(ownFor(["mirror"])).length ? " open" : ""}><summary>${T.perStep.title}</summary>
       ${STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : ""}${stepLine("mirror", T.perStep.names.mirror)}</details>
     <p><button class="primary" id="sync"></button> <span class="error-text small" id="sync-error"></span></p>` : ""}`;
   bindSteps(page, () => viewLanguages());
   const boxes = () => [...page.querySelectorAll("input[data-page]")];
+  bindCheck(d, boxes);
   const label = () => {
     const on = boxes().filter(b => b.checked), button = $("#sync");
     if (!button) return;
     button.disabled = !on.length;
     button.textContent = L.button(on.length, costOf("mirror", `≈ ${dollars(on.reduce((sum, b) => sum + Number(b.dataset.usd), 0))}`));
   };
-  boxes().forEach(b => { b.onchange = label; });
-  page.querySelectorAll("[data-tick]").forEach(b => b.onclick = () => { boxes().forEach(x => { x.checked = b.dataset.tick === "all"; }); label(); });
+  boxes().forEach(b => { b.onchange = () => { label(); checkLabel(d, boxes); }; });
+  page.querySelectorAll("[data-tick]").forEach(b => b.onclick = () => { boxes().forEach(x => { x.checked = b.dataset.tick === "all"; }); label(); checkLabel(d, boxes); });
   label();
   if (!$("#sync")) return;
   $("#sync").onclick = async () => {
@@ -1940,6 +1966,106 @@ async function viewLanguages() {
       $("#sync-error").textContent = e.message;
       $("#sync").disabled = false;
     }
+  };
+}
+
+// --- The edits checked before the sync (H4.2: POST /api/mirrors/check, proofread.py) --------------------------
+const CHECK_STEP = { spelling: "proofread", facts: "factcheck", consistency: "crosscheck" };
+let checkTimer = null;
+
+function checkOffer() {
+  const C = T.languages.check;
+  return `<h2>${C.title}</h2><p class="muted small">${C.intro}</p>
+    ${Object.keys(C.kinds).map(k => `<label class="option"><input type="checkbox" data-check="${k}">
+      <div><b>${C.kinds[k]}</b> <span class="badge attention" data-check-usd="${k}"></span>
+      <p class="muted small">${C.what[k]}</p></div></label>`).join("")}
+    <p><button id="check-go"></button> <span class="error-text small" id="check-error"></span></p>`;
+}
+
+// What each check costs for the pages ticked: per page for the spelling and the facts, once for the consistency
+function checkCost(d, boxes, kind) {
+  if (kind === "consistency") return d.consistency_usd;
+  const on = new Set(boxes().filter(b => b.checked).map(b => b.dataset.page));
+  return [...d.hand, ...d.ahead].filter(p => on.has(p.page)).reduce((sum, p) => sum + (p.check_usd?.[kind] || 0), 0);
+}
+
+function checkLabel(d, boxes) {
+  const C = T.languages.check, go = $("#check-go");
+  if (!go) return;
+  let total = 0, paid = false, free = "";
+  page.querySelectorAll("[data-check-usd]").forEach(b => {
+    const k = b.dataset.checkUsd, usd = checkCost(d, boxes, k), shown = `≈ ${dollars(usd)}`, label = costOf(CHECK_STEP[k], shown);
+    b.textContent = label;
+    if (!page.querySelector(`[data-check="${k}"]`).checked) return;
+    if (label === shown) { total += usd; paid = true; } else free = label;  // a step on a subscription or a local model
+  });
+  const asked = [...page.querySelectorAll("[data-check]:checked")];
+  go.disabled = !asked.length || !boxes().some(b => b.checked);
+  go.textContent = asked.length ? C.button(paid ? `≈ ${dollars(total)}` : free) : C.none;
+}
+
+function checkFound(c) {
+  const C = T.languages.check;
+  if (c.running || !c.done) return `<h2>${C.title}</h2><p class="muted">${C.running}</p>`;
+  const byPage = {};
+  c.fixes.forEach(f => (byPage[f.page] ||= []).push(f));
+  return `<h2>${C.title}</h2>
+    ${c.error ? `<p class="error-text small">${C.error}${T.colon}${esc(c.error)}</p>` : ""}
+    <p class="muted small">${C.found(c.fixes.length, dollars(c.cost))}</p>
+    ${Object.entries(byPage).map(([p, fixes]) => `<div class="pair-page"><div class="header"><code>${esc(p)}</code></div>
+      ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok";
+        return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${ok ? " checked" : " disabled"}>
+          <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${esc(f.reason)}${
+            f.source_url ? ` · <a href="${esc(f.source_url)}" target="_blank" rel="noopener">${C.source}</a>` : ""}${
+            ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}</p>
+          <div class="diff before">${before}</div><div class="diff after">${after || `<span class="muted">—</span>`}</div>
+          ${ok ? `<textarea data-fix-text="${esc(f.id)}" spellcheck="true">${esc(f.proposed)}</textarea>` : ""}</div></label>`; }).join("")}
+    </div>`).join("")}
+    ${c.notes.length ? `<p class="small"><b>${C.notes}</b></p><ul class="small">${c.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    <p><button class="primary" id="check-apply"></button> <span class="error-text small" id="check-error"></span></p>`;
+}
+
+function bindCheck(d, boxes) {
+  const C = T.languages.check, c = d.check;
+  clearTimeout(checkTimer);
+  if (c && (c.running || !c.done)) {  // follow it until it is done
+    checkTimer = setTimeout(() => { if (location.hash.slice(1) === "/languages") viewLanguages(); }, 1500);
+    return;
+  }
+  if (c) {
+    const fixes = () => [...page.querySelectorAll("[data-fix]:checked")].map(b => b.dataset.fix);
+    const label = () => { $("#check-apply").textContent = C.apply(fixes().length); };
+    page.querySelectorAll("[data-fix]").forEach(b => { b.onchange = label; });
+    page.querySelectorAll("[data-fix-text]").forEach(t => {
+      const f = c.fixes.find(x => x.id === t.dataset.fixText);
+      t.oninput = () => { t.previousElementSibling.innerHTML = wordDiff(f.current, t.value)[1]; };
+    });
+    label();
+    $("#check-apply").onclick = async () => {
+      $("#check-apply").disabled = true;
+      const ids = fixes(), edits = {};
+      ids.forEach(id => { const t = page.querySelector(`[data-fix-text="${CSS.escape(id)}"]`), f = c.fixes.find(x => x.id === id);
+        if (t && t.value !== f.proposed) edits[id] = t.value; });
+      try {
+        const done = await api(`/api/mirrors/check/${encodeURIComponent(c.id)}/accept`, { ids, edits });
+        await viewLanguages();
+        const failed = Object.keys(done.failed);
+        if (failed.length) $("#proofread")?.insertAdjacentHTML("beforebegin", `<p class="banner">${C.failed} ${esc(failed.join(", "))}</p>`);
+      } catch (e) { $("#check-error").textContent = e.message; $("#check-apply").disabled = false; }
+    };
+    return;
+  }
+  page.querySelectorAll("[data-check]").forEach(b => { b.onchange = () => checkLabel(d, boxes); });
+  checkLabel(d, boxes);
+  $("#check-go").onclick = async () => {
+    const on = boxes().filter(b => b.checked), checks = [...page.querySelectorAll("[data-check]:checked")].map(b => b.dataset.check);
+    $("#check-go").disabled = true;
+    try {
+      await api("/api/mirrors/check", { pages: on.filter(b => b.dataset.kind === "ahead").map(b => b.dataset.page),
+        hand: on.filter(b => b.dataset.kind === "hand").map(b => b.dataset.page), checks,
+        steps: ownFor(checks.map(k => CHECK_STEP[k])) });
+      viewLanguages();
+    } catch (e) { $("#check-error").textContent = e.message; $("#check-go").disabled = false; }
   };
 }
 
