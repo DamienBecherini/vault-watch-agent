@@ -60,8 +60,10 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # 12.78 $ before the mirrors for 13.12 $ announced): a version or a floor to check is no lighter (16, 18 and 25
 # rounds, 50 to 68 k of web pages, 8 to 13 k written: 1.82, 1.94 and 2.79 $), and the cross-check of the 13 edits
 # took 16 rounds, 87 k and 16 k (4.07 $). The mirrors of the first run: four pages, 0.17 $.
-LINK_IN = 12_000  # a link's text: an article of 5,000 words, the transcript of a talk of 30 minutes (not measured)
-LINK_OUT = 6_000  # its leads, thinking included (not measured)
+# A link's text and its leads, measured on 2026-11-21 (Opus, effort high): the releases page of vLLM (92,538
+# characters, 30,000 tokens, 9,913 written) and a PDF guide of the ANSSI (75,930 characters, 34,550 tokens, 7,107 written)
+LINK_IN = 32_000
+LINK_OUT = 9_000
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 # A third run read its leads' pages and the plan instead of the guide (add-2026-11-20-3, five leads, 8.41 $ before
