@@ -107,8 +107,38 @@ entier » (un lien sur « Vérifier le guide » y mène) : une adresse par ligne
    (une vidéo, un blog ou une lettre d'information disent où chercher ; ce n'est jamais la source).
 
 La page du contrôle liste les liens, chacun avec ce qui a été lu (son nombre de caractères) ou pourquoi il ne l'a
-pas été. Une vidéo (YouTube, Arte…) se lira par [dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub),
-depuis la machine de l'éditeur ; tant qu'il n'est pas branché, un lien de vidéo est dit non lu.
+pas été.
+
+### Une vidéo
+
+Une vidéo (YouTube, Arte, Dailymotion, Vimeo, PeerTube) se lit par
+[dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub), sur la machine de l'éditeur, par sa route « texte
+d'une vidéo » (contrat 1) : les sous-titres écrits sur le site, sinon ceux que le site a générés, sinon l'audio
+transcrit par son serveur de transcription ; rien n'est traduit, et l'audio est effacé une fois transcrit. Le modèle
+lit ce que le site dit de la vidéo (sa description, qui cite souvent les sources, et ses chapitres), puis ses
+paroles en paragraphes d'une trentaine de secondes, chacun avec l'heure où il commence, pour qu'une piste dise « à
+12:34 ». Les sous-titres se lisent depuis la machine de l'éditeur, jamais depuis la collecte hebdomadaire : YouTube
+refuse souvent les adresses des centres de données.
+
+Pour le régler, une fois :
+
+1. dans dl-sub-dub, créez un jeton pour ce client (« Réglages › Autres programmes », ou
+   `<dossier de dl-sub-dub>/.venv/Scripts/python -m subtitles.web --token-add vault-watch-agent`) : il est écrit
+   dans un fichier du dossier des réglages de dl-sub-dub, lisible par vous seul ;
+2. dans les réglages de l'agent (`.vault-watch/settings.json`), donnez son adresse, la référence de ce fichier
+   (jamais le jeton lui-même) et la commande qui le démarre :
+
+```json
+"videos": {"url": "http://127.0.0.1:4420",
+           "token": "file:C:/Users/moi/.../dl-sub-dub/tokens/vault-watch-agent.token",
+           "start": "D:/dl-sub-dub/.venv/Scripts/python -m subtitles.web"}
+```
+
+L'onglet « Des liens à lire en entier » dit si dl-sub-dub est prêt. L'agent ne le démarre jamais : arrêté, il est
+dit avec la commande qui le démarre. Quand dl-sub-dub travaille pour un projet de sa propre page, une vidéo est dite
+« occupé », avec le temps restant : relisez le lien plus tard. dl-sub-dub garde ses propres limites (un quota par
+jeton, 3 heures de vidéo au plus, une demande de programme à la fois), et sa page peut arrêter une lecture à tout
+moment.
 
 ## Les ajouts
 

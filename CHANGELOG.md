@@ -7,10 +7,14 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 - **Links to read whole** (D5 of the roadmap, proposed by the user): « Report or suggest », tab « Links to read
   whole », one address per line. Each link is read whole without a model (`links.py`: a page, a repository's README,
-  a PDF with the optional `pip install "vault-watch-agent[pdf]"`), then one call per link with the whole guide,
+  a PDF with the optional `pip install "vault-watch-agent[pdf]"`; a video through dl-sub-dub), then one call per link with the whole guide,
   without the web (step `links`), lists what in it concerns the guide: leads « From a link », the link as their
   first source, ticked on the page of the check and sent to an addition run, which checks them on primary sources.
-  Videos come next, through dl-sub-dub's route « text of a video » (its contract v1 is frozen).
+- **A video among the links** (D5): read through [dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub)'s
+  route « text of a video » (contract 1, `videos.py`), on the editor's machine: its subtitles, or its audio
+  transcribed; the model reads the site's description and chapters, then the words in paragraphs with their time.
+  Set once in the settings (`videos`: its address, the reference of its token, the command that starts it); the tab
+  says whether it is ready, and the agent never starts it.
 
 ## 1.4.1 (2026-11-21)
 

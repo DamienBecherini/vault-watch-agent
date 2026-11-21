@@ -41,8 +41,8 @@ MAX_BYTES = 25_000_000  # a PDF report can be large
 MAX_LEADS = 8  # per link
 # Video sites: their text is the subtitles, read through dl-sub-dub (its route « text of a video »), not the page
 VIDEO_HOSTS = ("youtube.com", "youtu.be", "m.youtube.com", "arte.tv", "dailymotion.com", "vimeo.com")
-VIDEO_LATER = ("a video: its text is its subtitles, read through dl-sub-dub, which is not connected yet; paste what it "
-               "says as an idea instead")
+VIDEO_LATER = ("a video: its text is its subtitles, read through dl-sub-dub, which is not set (the settings' videos); "
+               "paste what it says as an idea instead")
 NEED_PDF = 'a PDF: its text needs the optional reader, `pip install "vault-watch-agent[pdf]"`'
 
 

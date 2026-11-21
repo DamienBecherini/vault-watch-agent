@@ -295,7 +295,9 @@ const TEXTS = {
     linksCost: (base, each, max) => `Compte ${base}, plus ${each} par lien lu (${max} liens au plus), puis la passe d'ajouts pour les pistes gardées.`,
     linksExample: "https://example.org/un-article-sur-un-modele\nhttps://example.org/rapport-2026.pdf",
     linksButton: n => n ? `Lire ${n} lien${n > 1 ? "s" : ""} et lister les pistes` : "Lire les liens et lister les pistes",
-    linksVideo: "Une vidéo (YouTube, Arte…) se lira par dl-sub-dub, pas encore branché : pour l'instant, colle ce qu'elle dit dans l'onglet précédent.",
+    linksVideo: "Une vidéo (YouTube, Arte…) se lit par dl-sub-dub, qui n'est pas réglé (settings.json : videos, voir la doc « Nouveautés ») : pour l'instant, colle ce qu'elle dit dans l'onglet précédent.",
+    linksVideoReady: "Une vidéo (YouTube, Arte…) se lit par dl-sub-dub, prêt : ses sous-titres, ou son audio transcrit sur cette machine (plusieurs minutes pour une longue vidéo).",
+    linksVideoDown: why => `Une vidéo se lit par dl-sub-dub, qui n'est pas prêt : ${why}.`,
     linksTooMany: max => `${max} liens au plus par lecture.`,
     ideaIntro: "Un sujet par ligne : ce que tu as vu, ou ce qui manque d'après toi, avec une adresse si tu en as une. L'agent vérifie chaque sujet sur des sources primaires, avec tout le guide en contexte, puis propose où l'écrire ; tu relis comme pour une veille. Rien avant : pas de recherche de pistes.",
     ideaCost: (base, each, deep) => `Compte ${base}, plus ${each} par sujet (${deep} par sujet creusé).`,
@@ -599,7 +601,9 @@ const TEXTS = {
     linksCost: (base, each, max) => `Count ${base}, plus ${each} per link read (${max} links at the most), then the addition run for the leads kept.`,
     linksExample: "https://example.org/an-article-about-a-model\nhttps://example.org/report-2026.pdf",
     linksButton: n => n ? `Read ${n} link${n > 1 ? "s" : ""} and list the leads` : "Read the links and list the leads",
-    linksVideo: "A video (YouTube, Arte…) will be read through dl-sub-dub, not connected yet: for now, paste what it says in the previous tab.",
+    linksVideo: "A video (YouTube, Arte…) is read through dl-sub-dub, which is not set (settings.json: videos, see the docs « What is new »): for now, paste what it says in the previous tab.",
+    linksVideoReady: "A video (YouTube, Arte…) is read through dl-sub-dub, ready: its subtitles, or its audio transcribed on this machine (several minutes for a long video).",
+    linksVideoDown: why => `A video is read through dl-sub-dub, which is not ready: ${why}.`,
     linksTooMany: max => `${max} links at the most per reading.`,
     ideaIntro: "One subject per line: what you saw, or what you think is missing, with an address if you have one. The agent checks each subject on primary sources, with the whole guide in context, then proposes where to write it; you review as for a watch. Nothing before: no search for leads.",
     ideaCost: (base, each, deep) => `Count ${base}, plus ${each} per subject (${deep} per subject dug deeper).`,
@@ -1736,7 +1740,8 @@ const reportTabs = on => `<p class="tabs">${[["report", "fix"], ["idea", "add"],
 let LINKS_TEXT = "";
 async function viewLinks() {
   await loadSteps();
-  const o = (await api(`/api/verifications/options${stepsQuery()}`)).find(x => x.id === "links") || {};
+  const [all, video] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api("/api/videos")]);
+  const o = all.find(x => x.id === "links") || {};
   const max = o.links_max || 10;
   const price = billedStep("links") ? T.linksCost(`≈ ${dollars(o.usd || 0)}`, `≈ ${dollars(o.usd_link || 0)}`, max)
     : stepNow("links")?.billing === "subscription" ? T.reportSubscription : costOf("links", "");
@@ -1745,7 +1750,7 @@ async function viewLinks() {
     ${reportTabs("links")}
     <p class="subtitle">${T.linksIntro} ${price}</p>
     <p class="small attention-text">${T.ideaLimit}</p>
-    <p class="muted small">${T.linksVideo}</p>
+    <p class="muted small">${video.ready ? T.linksVideoReady : video.set ? T.linksVideoDown(esc(video.why)) : T.linksVideo}</p>
     <textarea id="text" placeholder="${esc(T.linksExample)}">${esc(LINKS_TEXT)}</textarea>
     <p class="small error-text" id="too-many" hidden>${T.linksTooMany(max)}</p>
     <details class="run-steps"${Object.keys(ownFor(["links"])).length ? " open" : ""}><summary>${T.perStep.title}</summary>

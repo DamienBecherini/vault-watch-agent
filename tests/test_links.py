@@ -154,3 +154,20 @@ def test_the_links_check_reads_its_addresses_and_lists_leads(guide, tmp_path, mo
                              "which the guide names as the reference. Sources: https://example.org/alpha-4, "
                              "https://alpha.example/release-notes"]
     assert verify.BY_ID["links"].fix_mode == "add"
+
+
+def test_a_real_pdf_is_read_with_the_optional_reader():
+    pytest.importorskip("pypdf")
+    stream = b"BT /F1 18 Tf 20 100 Td (Alpha 4 runs on 24 GB cards) Tj ET"
+    objects = [b"<</Type/Catalog/Pages 2 0 R>>", b"<</Type/Pages/Kids[3 0 R]/Count 1>>",
+               b"<</Type/Page/Parent 2 0 R/MediaBox[0 0 400 144]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>",
+               b"<</Length %d>>stream\n" % len(stream) + stream + b"\nendstream",
+               b"<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>"]
+    body, offsets = b"%PDF-1.4\n", []
+    for n, obj in enumerate(objects, start=1):
+        offsets.append(len(body))
+        body += b"%d 0 obj" % n + obj + b"endobj\n"
+    xref = len(body)
+    body += b"xref\n0 6\n0000000000 65535 f \n" + b"".join(b"%010d 00000 n \n" % o for o in offsets)
+    body += b"trailer<</Size 6/Root 1 0 R>>\nstartxref\n%d\n%%%%EOF\n" % xref
+    assert links.pdf_text(body) == "[page 1]\nAlpha 4 runs on 24 GB cards"

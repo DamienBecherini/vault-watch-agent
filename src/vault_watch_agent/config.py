@@ -13,8 +13,11 @@ web interface or by hand. A missing file or a missing field means the default.
      "steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}},   a step set apart from its role:
                                                  its own engine, its own model, its own effort (low … max), or
                                                  any of them (steps.py)
-     "engines": {"openai": {"base_url": "http://127.0.0.1:8080/v1", "models": {...}, ...}}}   the options of the
+     "engines": {"openai": {"base_url": "http://127.0.0.1:8080/v1", "models": {...}, ...}},   the options of the
                                                  other engines, each checked by its engine (openai_compat.OPTIONS)
+     "videos": {"url": "http://127.0.0.1:4420", "token": "file:…", "start": "…"}}   dl-sub-dub, which reads the
+                                                 text of a video for the check « links » (videos.py): its address, the
+                                                 reference of its token, the command that starts it; no token: no video
 
 The effort of each call is set per step in the code (the triage at medium, the proposals and the cross-check at
 high…); the effort of a role moves every step of that role one level down or up (llm.shift_effort). A step listed
@@ -62,7 +65,8 @@ MODEL_ID = re.compile(r"claude-[a-z0-9][a-z0-9.-]{1,60}")  # the Claude engines'
 ANY_MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,159}")  # another engine's: qwen3.6, org/model:tag…
 EFFORTS = ("lower", "normal", "higher")  # relative to the effort the code gives each step
 DEFAULTS = {"schema": SCHEMA, "engine": "", "key": "env:ANTHROPIC_API_KEY", "models": {role: names[0] for role, names in MODELS.items()},
-            "effort": {role: "normal" for role in MODELS}, "steps": {}, "prices": {}, "engines": {}}
+            "effort": {role: "normal" for role in MODELS}, "steps": {}, "prices": {}, "engines": {},
+            "videos": {"url": "", "token": "", "start": ""}}
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # Windows: no console window when the server has none
 
 
@@ -119,7 +123,22 @@ def check(cfg: dict) -> dict:
         kind = llm.engines().get(name)
         engines[name] = kind.check(options) if kind and kind.check else dict(options)  # an engine not installed: kept
     return {"schema": SCHEMA, "engine": engine, "key": key, "models": models, "effort": effort, "steps": own,
-            "prices": prices, "engines": engines}
+            "prices": prices, "engines": engines, "videos": check_videos(cfg.get("videos") or {})}
+
+
+def check_videos(given) -> dict:
+    """dl-sub-dub for the videos of the check « links »: {url, token, start}, each "" when not set. The token is a
+    reference, as the API key is; the address, a local http(s) one (dl-sub-dub listens on 127.0.0.1)."""
+    if not isinstance(given, dict):
+        raise ConfigError("videos must be an object: {url, token, start}")
+    url, token, start = (str(given.get(k) or "").strip() for k in ("url", "token", "start"))
+    if url and not re.fullmatch(r"https?://(127\.0\.0\.1|localhost|\[::1\])(:\d{1,5})?/?", url):
+        raise ConfigError(f"videos.url: {url!r} is not a local address (http://127.0.0.1:<port>)")
+    if token and not token.startswith(REFERENCES):
+        raise ConfigError(f"videos.token: give a reference to where the token is ({KEY_FORMS}), never the token itself")
+    if len(start) > 400 or "\n" in start:
+        raise ConfigError("videos.start: one command line")
+    return {"url": url, "token": token, "start": start}
 
 
 RUN_STEPS = "runs"  # the folder, in a guide's working folder, of what each run set for itself (`<thread>.json`)

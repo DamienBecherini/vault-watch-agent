@@ -21,7 +21,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from . import compact, inputs, links, news, prompts, quotes, reading, sizes, steps, vault
+from . import compact, inputs, links, news, prompts, quotes, reading, sizes, steps, vault, videos
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -459,7 +459,8 @@ def run_links(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     call per link with the whole guide, without the web. The leads come with the link as their first source and edit
     nothing; those the editor keeps go to an addition run, which checks them on primary sources."""
     asked = [u for u in options(work).get("links") or [] if isinstance(u, str)][:links.MAX_LINKS]
-    sources = [links.read(u) for u in asked]
+    reader = videos.Videos.of({"videos": options(work).get("videos")})  # dl-sub-dub, when the settings name it
+    sources = [links.read(u, video=reader.read if reader else None) for u in asked]
     unread = [s for s in sources if not s.text]
     found, usages, failed = links.leads(vault_dir, sources, llm)
     guide = vault.guide_of(vault_dir)

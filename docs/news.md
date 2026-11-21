@@ -103,9 +103,36 @@ leads there): one address per line, 10 at the most.
    deeper, and send them to an addition run, which checks each one on primary sources (a video, a blog or a
    newsletter tells where to look; it is never the source).
 
-The page of the check lists the links, each with what was read (its number of characters) or why it was not. A
-video (YouTube, Arte…) will be read through [dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub), from the
-editor's machine; until it is connected, a video link is said not read.
+The page of the check lists the links, each with what was read (its number of characters) or why it was not.
+
+### A video
+
+A video (YouTube, Arte, Dailymotion, Vimeo, PeerTube) is read through
+[dl-sub-dub](https://github.com/DamienBecherini/dl-sub-dub), on the editor's machine, by its route « text of a
+video » (contract 1): the subtitles written on the site, else those the site generated, else the audio transcribed
+by its transcription server; nothing is translated, and the audio is deleted once transcribed. The model reads what
+the site says of the video (its description, which often cites the sources, and its chapters), then its words in
+paragraphs of about 30 seconds, each with the time it starts at, so that a lead says « at 12:34 ». Subtitles are read
+from the editor's machine, never from the weekly collection: YouTube often refuses the addresses of data centres.
+
+To set it up, once:
+
+1. in dl-sub-dub, create a token for this client (« Settings › Other programs », or
+   `<dl-sub-dub's folder>/.venv/Scripts/python -m subtitles.web --token-add vault-watch-agent`): it is written in a
+   file of dl-sub-dub's settings folder, readable by you alone;
+2. in the agent's settings (`.vault-watch/settings.json`), give its address, the reference of that file (never the
+   token itself) and the command that starts it:
+
+```json
+"videos": {"url": "http://127.0.0.1:4420",
+           "token": "file:C:/Users/me/.../dl-sub-dub/tokens/vault-watch-agent.token",
+           "start": "D:/dl-sub-dub/.venv/Scripts/python -m subtitles.web"}
+```
+
+The tab « Links to read whole » says whether dl-sub-dub is ready. The agent never starts it: stopped, it is said
+with the command that starts it. When dl-sub-dub works for a project of its own page, a video is said « busy », with
+the time left: read the link again later. dl-sub-dub keeps its own limits (a quota per token, 3 hours of video at
+the most, one request of a program at a time), and its page can stop a reading at any time.
 
 ## The additions
 

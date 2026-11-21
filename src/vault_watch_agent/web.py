@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, links, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify
+from . import compact, costs, fix, forge, inputs, links, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify, videos
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line
@@ -228,6 +228,7 @@ class UserSettings(BaseModel):  # config.py: the key is a reference to where it 
     steps: dict[str, dict] | None = None  # the steps set apart from their role; None: keep those already set
     prices: dict[str, dict] | None = None  # None: keep the prices already set (a page that does not show them)
     engines: dict[str, dict] | None = None  # the other engines' options; None: keep those already set
+    videos: dict[str, str] | None = None  # dl-sub-dub for the videos of the check « links »; None: keep it
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -656,7 +657,7 @@ def create_app(settings: Settings) -> FastAPI:
     def settings_save(body: UserSettings):
         try:
             given = body.model_dump()
-            for kept in ("prices", "steps", "engines"):  # a page that does not show them does not erase them
+            for kept in ("prices", "steps", "engines", "videos"):  # a page that does not show them does not erase them
                 if given[kept] is None:
                     given[kept] = user_settings.load(cfg_home)[kept]
             return settings_view(user_settings.save(cfg_home, given))
@@ -1167,6 +1168,14 @@ def create_app(settings: Settings) -> FastAPI:
         return [{"id": name, "pages": len(pages), "kb": by[name]["kb"], "explore": by[name]["explore"]}
                 for name, pages in news.explorable(settings.vault).items()]
 
+    @app.get("/api/videos")
+    def videos_view():
+        """Whether the videos of the check « links » can be read: dl-sub-dub set in the Settings, answering, with
+        its route « text of a video » and a token. {set, ready, why}; never the token."""
+        reader = videos.Videos.of(user_settings.load(cfg_home))
+        return {"set": False, "ready": False, "why": "dl-sub-dub is not set (settings.json: videos)"} if not reader else {
+            "set": True, **reader.status()}
+
     @app.get("/api/verifications")
     def verif_list(limit: int = 20):
         """The newest verifications (`limit`; the page asks for one more than it shows, to offer the older ones)."""
@@ -1201,7 +1210,9 @@ def create_app(settings: Settings) -> FastAPI:
             deps = settings.make_deps(vid, "verify")
             work_dir.mkdir(exist_ok=True)
             if body.chapters or body.links:  # read by the checks that take them (verify.options)
-                write_json(work_dir / "options.json", {"chapters": body.chapters, "links": body.links})
+                write_json(work_dir / "options.json", {"chapters": body.chapters, "links": body.links,
+                                                       # dl-sub-dub for the videos: the reference of its token, not the token
+                                                       "videos": user_settings.load(cfg_home)["videos"] if body.links else {}})
             # The guide as merged (main, up to date with origin), not the folder: it may be on another branch
             guide = vault.reading_copy(settings.vault, settings.home)
             data["commit"] = inputs.run(["git", "rev-parse", "--short", "HEAD"], cwd=guide).strip()
