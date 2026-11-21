@@ -14,6 +14,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   a lead, the runs the leads go to, « Report or suggest »); [Costs](docs/costs.md) (what makes the price of a call,
   the prompt cache, where the money goes by kind of run, how the estimates are made and why they miss, where the
   prices come from, the journal, what lowers the cost).
+- [Choose a model](docs/choose-a-model.md) says what each setting changes (engine, model and effort of a role, a
+  step set apart, one run only, prices, the settings of an OpenAI-compatible server, and the choices made per run).
+  [Chapters](docs/chapters.md) has a diagram of where a page's chapter comes from. New screenshots, in both
+  languages: the catalogue of « Check the guide », the « Costs » page, the Settings (« Models and effort »), the
+  « Sources » page.
 - A page of its own on the chapters, [docs/chapters.md](docs/chapters.md) (and in French): the three steps that work
   by chapter and what the number and the size of the chapters change for each, where the chapters come from, the
   automatic rule, why 150 KB and 20 KB (set on the IA on-prem guide, fixed in the code), what a split that fits

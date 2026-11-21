@@ -62,6 +62,36 @@ Three levels, from the most general to the most particular:
 Each screen that starts a run shows what will run each of its steps (engine, model, effort) and how it is paid,
 before the click. An engine forced for a whole command (`VAULT_WATCH_ENGINE`) wins over all three.
 
+## What each setting changes
+
+What the Settings change, and what each choice costs or risks. The figures of this documentation were measured
+with the defaults: Opus 5.5 and Sonnet 5.5, at the normal effort, on the API.
+
+| Setting | The choices | What it changes |
+| :-- | :-- | :-- |
+| Engine | Automatic (Claude Code when it is signed in with a subscription, otherwise the API), Claude Code, the API, an OpenAI-compatible server | Who pays: Claude Code counts in the subscription's limits and bills nothing; the API bills each token at list price ([Costs](costs.md)). How the web is read: on the API, the model reads the pages it opens; on Claude Code, a smaller model reads each page and reports what it found. A run stops at a subscription limit and resumes later: the agent never moves to the API by itself |
+| Model, per role | Reasoning: triage, proposals, cross-check, the checks of the guide, compaction, what is new, the chapters. Translation: the mirrors, the check of the translations, the fixes of translations | The quality of the work: the proposals and the cross-check are where a weaker model shows, by answering « nothing to change » ([What each step asks of a model](#what-each-step-asks-of-a-model)). The price of every call of the role. The window: a model that cannot read the whole guide makes the agent read it by chapter ([Chapters](chapters.md)) |
+| Effort, per role | Lower, normal, higher | Each step has its own level in the code (medium for the triage, the chapters, the dead links and the translator's steps; high for the others). This setting moves every step of the role one level, within low… max. Higher: more thinking, so more output tokens, a slower run and more of the cost or of the subscription's limits. Lower: the reverse, not measured on the guide |
+| A step set apart | Its engine, its model, its effort | That step alone, as set: its effort applies as it is, not moved by the role's. The compaction on Fable 5.2, for instance, about twice the price of Opus 5.5 for that step |
+| For this run only | « change for this time », beside each check and above the button that creates a run | The same choices, for one run, down to its mirrors; the Settings are not touched |
+| Prices | Set by hand, the public list, or the defaults | The amounts of the estimates and of the journal, never what the agent does ([where the prices come from](costs.md#where-the-prices-come-from)) |
+
+![The Settings, « Models and effort »: the model and the effort of the reasoning role, what each of its steps then runs at, and « Set a step apart », here the compaction on Claude Fable 5.2 at effort high](images/settings-models.png)
+
+
+With an OpenAI-compatible server, more settings: its address, the reference of its key, the model's window
+when the server does not give it (a smaller window means a guide read by chapter), how its JSON answers are made
+(a schema enforced by the server, or given in the instructions), its billing (per token at the price set in
+« Prices », or a local model, nothing billed), whether the effort is sent, and the address of a SearXNG instance
+for web search: without one, the model can read the pages whose address it has but cannot search, and the steps
+that check on the web say so.
+
+Some choices are not in the Settings because they are made per run. The chapters the web is explored on, ticked
+on the page « Check the guide » (each one costs a call). What each lead of an addition run reads, the whole guide
+or its pages and the plan of the guide ([What is new](news.md#the-additions)). A lead dug deeper. And the web budget
+of a call is fixed in the code: 20 searches and 30 pages on the API, as for the agent's own web tools on an
+OpenAI-compatible server; an exploration of a chapter is asked to keep to about 12 searches and 15 pages.
+
 ## What was tried
 
 **A local model on a laptop.** Qwen3.6-35B-A3B (llama.cpp, quantized, 64k window) on an 8 GB laptop GPU. It runs

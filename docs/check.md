@@ -34,6 +34,9 @@ model read the guide. The estimates below are those the page showed on 21 Novemb
 (410 k tokens of French pages), with the models of its settings, at list price; the measured costs are those of
 the checks run on 8 and 17 November ([what an estimate is](costs.md#the-estimates)).
 
+![The catalogue of « Check the guide »: the free checks ticked, then each paid check with its estimate, the price it was made on, what it reads, and the engine, model and effort it will run at, which « change for this time » changes for one check](images/check-catalogue.png)
+
+
 | Check | What it reads | Model | Estimate | Measured | What it finds | Its leads go to |
 | :-- | :-- | :-- | --: | --: | :-- | :-- |
 | Guide audits | The guide's `[checks] audits` script (`npm test` for the IA on-prem guide) | none | free, ≈ 10 s | 0 $ | A log, pass or fail | no leads |

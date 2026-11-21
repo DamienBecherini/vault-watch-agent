@@ -41,6 +41,19 @@ Elle part des dossiers du guide, puisqu'un auteur range d'ordinaire ses pages pa
 3. **Les dossiers de premier niveau de moins de 20 Ko sont réunis**, en paquets qui restent sous 75 Ko (la moitié
    de 150) : une page d'accueil, un dossier « à propos », une page de crédits ne coûtent pas chacun un appel.
 
+```mermaid
+flowchart TD
+  page["Une page du guide"] --> declared{"prise par un [[chapter]]<br/>déclaré dans le manifeste ?"}
+  declared -->|oui| first["le premier chapitre qui la prend"]
+  declared -->|non| top["son dossier de premier niveau<br/>(les pages à la racine : « (root) »)"]
+  top --> big{"le dossier pèse<br/>plus de 150 Ko ?"}
+  big -->|"oui, il a des sous-dossiers"| sub["un chapitre par sous-dossier, recoupé s'il est encore trop lourd ;<br/>les sous-dossiers légers réunis avec les pages du dossier lui-même"]
+  big -->|"oui, sans sous-dossier"| slices["des tranches de pages de poids voisin,<br/>dans leur ordre : « 00-lexique 1/2 »"]
+  big -->|non| small{"moins de 20 Ko ?"}
+  small -->|oui| bundle["réuni avec d'autres dossiers légers,<br/>en paquets de moins de 75 Ko"]
+  small -->|non| one["un chapitre : le dossier"]
+```
+
 Le poids est la taille des fichiers Markdown de la langue source, front matter et notes de bas de page comprises ;
 les miroirs ne comptent pas.
 

@@ -138,6 +138,9 @@ La page « Sources » de l'interface (`GET /api/sources`) montre, pour chaque fl
 apporté et ce qu'il en est sorti. Rien n'est demandé à un modèle ni au réseau : le tableau est calculé à partir des
 veilles gardées sur la machine (chaque élément nomme son flux) et des passages faits à partir d'elles.
 
+![La page « Sources » : le bouton qui contrôle les sources, les propositions de retirer quatre d'entre elles reportées, les verdicts avec leur règle, puis une ligne par source avec ce qu'elle a apporté et ce qui en est sorti](../images/sources.fr.png)
+
+
 | Colonne | Ce qu'elle compte |
 | :-- | :-- |
 | Collectés | les éléments distincts vus dans les veilles (leurs fenêtres se recouvrent : un élément compte une fois) |

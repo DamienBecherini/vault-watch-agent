@@ -68,6 +68,37 @@ Chaque écran qui lance un passage montre ce qui fera tourner chacune de ses ét
 comment c'est payé, avant le clic. Un moteur imposé à toute une commande (`VAULT_WATCH_ENGINE`) l'emporte sur les
 trois.
 
+## Ce que change chaque réglage
+
+Ce que changent les Réglages, et ce que coûte ou risque chaque choix. Les chiffres de cette documentation ont été
+mesurés avec les valeurs par défaut : Opus 5.5 et Sonnet 5.5, à l'effort normal, sur l'API.
+
+| Réglage | Les choix | Ce qu'il change |
+| :-- | :-- | :-- |
+| Moteur | Automatique (Claude Code quand il est connecté avec un abonnement, sinon l'API), Claude Code, l'API, un serveur compatible OpenAI | Qui paie : Claude Code compte dans les limites de l'abonnement et ne facture rien ; l'API facture chaque token au prix public ([Coûts](costs.md)). Comment le web est lu : sur l'API, le modèle lit les pages qu'il ouvre ; sur Claude Code, un modèle plus petit lit chaque page et rapporte ce qu'il y a trouvé. Un passage s'arrête à une limite d'abonnement et reprend plus tard : l'agent ne passe jamais à l'API de lui-même |
+| Modèle, par rôle | Raisonnement : tri, propositions, relecture croisée, vérifications du guide, compactage, nouveautés, chapitres. Traduction : les miroirs, le contrôle des traductions, les corrections de traductions | La qualité du travail : c'est aux propositions et à la relecture croisée qu'un modèle plus faible se voit, en répondant « rien à changer » ([Ce que chaque étape demande au modèle](#ce-que-chaque-étape-demande-au-modèle)). Le prix de chaque appel du rôle. La fenêtre : un modèle qui ne peut pas lire tout le guide le fait lire par chapitre ([Chapitres](chapters.md)) |
+| Effort, par rôle | Plus bas, normal, plus haut | Chaque étape a son niveau dans le code (medium pour le tri, les chapitres, les liens morts et les étapes du traducteur ; high pour les autres). Ce réglage décale d'un cran chaque étape du rôle, entre low et max. Plus haut : plus de réflexion, donc plus de tokens en sortie, un passage plus lent et plus de coût ou de limites d'abonnement. Plus bas : l'inverse, pas mesuré sur le guide |
+| Une étape à part | Son moteur, son modèle, son effort | Cette étape seule, telle que réglée : son effort s'applique tel quel, sans le décalage du rôle. Le compactage sur Fable 5.2, par exemple, environ deux fois le prix d'Opus 5.5 pour cette étape |
+| Pour ce passage seulement | « changer pour cette fois », à côté de chaque contrôle et au-dessus du bouton qui crée un passage | Les mêmes choix, pour un passage, jusqu'à ses miroirs ; les Réglages ne sont pas touchés |
+| Prix | Fixés à la main, la liste publique, ou les valeurs par défaut | Les montants des estimations et du journal, jamais ce que fait l'agent ([d'où viennent les prix](costs.md#doù-viennent-les-prix)) |
+
+![Les Réglages, « Modèles et effort » : le modèle et l'effort du rôle de raisonnement, ce à quoi tourne alors chacune de ses étapes, et « Régler une étape à part », ici le compactage sur Claude Fable 5.2 à l'effort high](../images/settings-models.fr.png)
+
+
+Avec un serveur compatible OpenAI, d'autres réglages : son adresse, la référence de sa clé, la fenêtre du modèle
+quand le serveur ne la donne pas (une fenêtre plus petite, c'est un guide lu par chapitre), la façon dont ses
+réponses JSON sont faites (un schéma imposé par le serveur, ou donné dans les instructions), sa facturation (au
+token au prix fixé dans « Prix », ou un modèle local, rien de facturé), l'envoi ou non de l'effort, et l'adresse
+d'une instance SearXNG pour la recherche web : sans elle, le modèle peut lire les pages dont il a l'adresse mais ne
+peut pas chercher, et les étapes qui vérifient sur le web le disent.
+
+Certains choix ne sont pas dans les Réglages parce qu'ils se font à chaque passage. Les chapitres sur lesquels le
+web est exploré, cochés sur la page « Vérifier le guide » (chacun coûte un appel). Ce que lit chaque piste d'un
+passage d'ajouts, tout le guide ou ses pages et le plan du guide ([Nouveautés](news.md#les-ajouts)). Une piste
+creusée. Et le budget web d'un appel est fixé dans le code : 20 recherches et 30 pages sur l'API, comme pour les
+outils web de l'agent sur un serveur compatible OpenAI ; l'exploration d'un chapitre est priée de s'en tenir à
+environ 12 recherches et 15 pages.
+
 ## Ce qui a été essayé
 
 **Un modèle local sur un portable.** Qwen3.6-35B-A3B (llama.cpp, quantifié, fenêtre de 64k) sur un GPU de portable

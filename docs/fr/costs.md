@@ -127,6 +127,9 @@ La page « Coûts » de l'interface totalise le journal par mois et par passage,
 abonnement dans des colonnes à eux. `vault-watch costs --by month` (ou `year`, `run`, `step`) donne la même chose en
 ligne de commande ; `--by step` montre quelles étapes pèsent, sur tous les passages.
 
+![La page « Coûts » : le total du journal et les appels faits sur l'abonnement, d'où viennent les prix, puis les totaux par mois et par passage, avec les appels sur l'abonnement dans des colonnes à eux](../images/costs.fr.png)
+
+
 ## Ce qui fait baisser le coût
 
 | Levier | Ce qu'il change | Ce qu'il peut coûter en qualité |

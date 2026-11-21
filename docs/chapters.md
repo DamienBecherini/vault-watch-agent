@@ -40,6 +40,19 @@ It starts from the folders of the guide, since an author usually groups pages by
 3. **The top folders lighter than 20 KB are gathered**, in bundles that stay under 75 KB (half of 150): a home
    page, an « about » folder, a page of credits do not each cost a call.
 
+```mermaid
+flowchart TD
+  page["A page of the guide"] --> declared{"taken by a declared<br/>[[chapter]] of the manifest?"}
+  declared -->|yes| first["the first chapter that takes it"]
+  declared -->|no| top["its top folder<br/>(the pages at the root: « (root) »)"]
+  top --> big{"the folder is heavier<br/>than 150 KB?"}
+  big -->|"yes, it has subfolders"| sub["one chapter per subfolder, split again if still too heavy;<br/>light subfolders gathered with the folder's own pages"]
+  big -->|"yes, no subfolder"| slices["slices of pages of similar weight,<br/>in their order: « 00-lexique 1/2 »"]
+  big -->|no| small{"lighter than 20 KB?"}
+  small -->|yes| bundle["gathered with other light top folders,<br/>in bundles under 75 KB"]
+  small -->|no| one["one chapter: the folder"]
+```
+
 The weight is the size of the Markdown files of the source language, front matter and footnotes included; the
 mirrors do not count.
 

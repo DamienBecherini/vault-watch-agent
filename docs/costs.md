@@ -121,6 +121,9 @@ The « Costs » page of the interface totals the journal by month and by run, wi
 in columns of their own. `vault-watch costs --by month` (or `year`, `run`, `step`) gives the same on the command
 line; `--by step` shows which steps weigh, across every run.
 
+![The « Costs » page: the total of the journal and the calls made on the subscription, where the prices come from, then the totals by month and by run, with the calls on the subscription in columns of their own](images/costs.png)
+
+
 ## What lowers the cost
 
 | Lever | What it changes | What it can cost in quality |

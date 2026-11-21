@@ -132,6 +132,9 @@ The « Sources » page of the interface (`GET /api/sources`) shows, for each fee
 and what became of it. Nothing is asked of a model or of the network: the table is computed from the watches kept
 on the machine (each item names its feed) and from the runs made from them.
 
+![The « Sources » page: the button that checks the sources, the proposals to remove four of them put off, the verdicts with their rule, then one row per source with what it brought and what came out of it](images/sources.png)
+
+
 | Column | What it counts |
 | :-- | :-- |
 | Collected | distinct items seen in the watches (their windows overlap: an item counts once) |
