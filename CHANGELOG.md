@@ -3,7 +3,9 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.3.2 (2026-11-21)
+
+Documentation only: nothing changes in what the agent does.
 
 - The documentation is easier to find one's way in: an index, [docs/README.md](docs/README.md) (and in French), with
   every page grouped by the question it answers and a map; the French pages moved to `docs/fr/`, under the same
@@ -26,6 +28,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   by chapter and what the number and the size of the chapters change for each, where the chapters come from, the
   automatic rule, why 150 KB and 20 KB (set on the IA on-prem guide, fixed in the code), what a split that fits
   badly costs, and the chapters the IA on-prem guide declares.
+- The roadmap has a phase H, « the editor's hand »: mirrors that follow the diff and a « Sync the languages » button,
+  a proposal retouched in the review, a pause to retouch the pages of the branch (in Obsidian or in the page) before
+  the mirrors.
 
 ## 1.3.1 (2026-11-20)
 

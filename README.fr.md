@@ -66,7 +66,7 @@ avant votre feu vert, et c'est vous qui fusionnez la pull request.
 ## Démarrage rapide
 
 ```bash
-pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.3.1
+pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.3.2
 
 cd mon-guide                # la racine du dépôt git du guide
 vault-watch init            # écrit vault-watch.toml d'après ce que montre le dossier ; relisez-le, ajustez-le

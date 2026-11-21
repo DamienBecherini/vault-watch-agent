@@ -1,3 +1,3 @@
 """LangGraph agent keeping a Markdown guide up to date from a watch of its field, with a human review."""
 
-__version__ = "1.3.1"  # the one place of the version: pyproject.toml reads it, CHANGELOG.md tells it
+__version__ = "1.3.2"  # the one place of the version: pyproject.toml reads it, CHANGELOG.md tells it
