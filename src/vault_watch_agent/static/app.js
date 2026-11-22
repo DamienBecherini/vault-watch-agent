@@ -420,6 +420,8 @@ const TEXTS = {
     ideaButton: "Vérifier et proposer des ajouts",
     ideaDeep: "Creuser chaque sujet : plusieurs sources, plus de recherches, un peu plus cher",
     ideaLimit: "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
+    draft: { kept: "Brouillon gardé dans ce navigateur, même après un rechargement ; il se vide quand la passe démarre.",
+      clear: "Effacer", cleared: "Brouillon effacé.", restore: "Rétablir" },
     perStep: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
       applyOnce: "Appliquer pour cette fois", changeShort: "changer", chipBilled: "à l'usage (API)", chipSubscription: "abonnement", chipLocal: "local, gratuit", chipProvider: "autre fournisseur",
       cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
@@ -795,6 +797,8 @@ const TEXTS = {
     ideaButton: "Check and propose additions",
     ideaDeep: "Dig deeper into each subject: several sources, more searches, a little more expensive",
     ideaLimit: "Limit: the addition run never writes a new page. It says which ones would be needed.",
+    draft: { kept: "Draft kept in this browser, even after a reload; it empties when the run starts.",
+      clear: "Clear", cleared: "Draft cleared.", restore: "Restore" },
     perStep: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
       applyOnce: "Apply for this time", changeShort: "change", chipBilled: "pay per use (API)", chipSubscription: "subscription", chipLocal: "local, free", chipProvider: "another provider",
       cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
@@ -955,7 +959,45 @@ function bindSteps(root, redraw) {
   });
 }
 let CHECK_FORM = null;   // the boxes ticked on « Check the guide », kept while the form is drawn again
-let REPORT_TEXT = "";    // what was typed on the report page, kept the same way
+// What is typed on the three tabs of « Report or suggest » (fix, add, links): one draft per tab, kept while switching
+// tabs and in this browser against a reload, a crash or a closed tab (written half a second after the last key, and
+// when the page is left); emptied once the run or the check has started. One guide per server: per guide as well.
+const DRAFTS = {}, UNSAVED = new Set();  // UNSAVED: typed here, not written yet (another tab may have sent it since)
+const draftKey = k => `vault-watch-draft-${k}`;
+const draft = k => k in DRAFTS ? DRAFTS[k] : (DRAFTS[k] = (() => { try { return localStorage.getItem(draftKey(k)) || ""; } catch { return ""; } })());
+function storeDraft(k) {
+  UNSAVED.delete(k);
+  try { if ((DRAFTS[k] || "").trim()) localStorage.setItem(draftKey(k), DRAFTS[k]); else localStorage.removeItem(draftKey(k)); }
+  catch { /* private window: kept while the page is open only */ }
+}
+let draftTimer = null;
+addEventListener("pagehide", () => [...UNSAVED].forEach(storeDraft));
+// The text area of tab `k` and the line under it that says the draft is kept, with « Clear » (and « Restore » after)
+function bindDraft(k, area, note, changed = () => {}) {
+  let undone = "";
+  const say = () => {
+    note.innerHTML = undone ? `${T.draft.cleared} <button type="button" class="link" data-draft="restore">${T.draft.restore}</button>`
+      : area.value.trim() ? `${T.draft.kept} <button type="button" class="link" data-draft="clear">${T.draft.clear}</button>` : "";
+    note.querySelector("[data-draft]")?.addEventListener("click", e => {
+      if (e.target.dataset.draft === "clear") { undone = area.value; area.value = ""; } else { area.value = undone; undone = ""; }
+      DRAFTS[k] = area.value;
+      storeDraft(k);
+      changed();
+      say();
+      area.focus();
+    });
+  };
+  area.addEventListener("input", () => {
+    DRAFTS[k] = area.value;
+    UNSAVED.add(k);
+    undone = "";
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => [...UNSAVED].forEach(storeDraft), 500);
+    say();
+  });
+  say();
+}
+const dropDraft = k => { DRAFTS[k] = ""; storeDraft(k); };  // storeDraft takes it out of UNSAVED: the timer leaves it
 function header() {
   document.documentElement.lang = lang;
   document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
@@ -2482,20 +2524,24 @@ async function viewReport(idea = false) {
     ${reportTabs(idea ? "idea" : "report")}
     <p class="subtitle">${idea ? T.ideaIntro : T.reportIntro} ${price}</p>
     ${idea ? `<p class="small attention-text">${T.ideaLimit}</p>` : ""}
-    <textarea id="text" placeholder="${esc(idea ? T.ideaExample : T.reportExample)}">${esc(REPORT_TEXT)}</textarea>
+    <textarea id="text" placeholder="${esc(idea ? T.ideaExample : T.reportExample)}">${esc(draft(kind))}</textarea>
+    <p class="muted small" id="draft-note"></p>
     ${idea ? `<p><label class="small"><input type="checkbox" id="deep"> ${T.ideaDeep}</label></p>` : ""}
     <details class="run-steps"${Object.keys(ownFor(wanted)).length ? " open" : ""}><summary>${T.perStep.title}</summary>
       ${STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : ""}${wanted.map(s => stepLine(s, T.perStep.names[s])).join("")}</details>
-    <p><button class="primary" id="send">${idea ? T.ideaButton : T.reportButton}</button></p>`;
-  bindSteps(page, () => { REPORT_TEXT = $("#text").value; viewReport(idea); });
+    <p><button class="primary" id="send">${idea ? T.ideaButton : T.reportButton}</button> <span class="error-text small" id="send-error"></span></p>`;
+  bindDraft(kind, $("#text"), $("#draft-note"));
+  bindSteps(page, () => viewReport(idea));
   $("#send").onclick = async () => {
     const text = $("#text").value.trim();
     if (!text) return;
     $("#send").disabled = true;
     const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-    const { thread } = await api("/api/fix", { text, mode: kind, steps: ownFor(wanted), ...(idea && $("#deep").checked ? { deep: lines } : {}) });
-    REPORT_TEXT = "";
-    location.hash = `/run/${encodeURIComponent(thread)}`;
+    try {  // the draft stays until the run has started: a refusal or a lost connection keeps the text
+      const { thread } = await api("/api/fix", { text, mode: kind, steps: ownFor(wanted), ...(idea && $("#deep").checked ? { deep: lines } : {}) });
+      dropDraft(kind);
+      location.hash = `/run/${encodeURIComponent(thread)}`;
+    } catch (e) { $("#send-error").textContent = e.message; $("#send").disabled = false; }
   };
 }
 
@@ -2503,7 +2549,6 @@ const reportTabs = on => `<p class="tabs">${[["report", "fix"], ["idea", "add"],
   `<a href="#/${h}"${h === on ? ' class="active"' : ""}>${T.reportKinds[k]}</a>`).join("")}</p>`;
 
 // Links to read whole (links.py): a check of its own, started here; its leads are ticked on the page of the check
-let LINKS_TEXT = "";
 async function viewLinks() {
   await loadSteps();
   const [all, video] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api("/api/videos")]);
@@ -2517,11 +2562,12 @@ async function viewLinks() {
     <p class="subtitle">${T.linksIntro} ${price}</p>
     <p class="small attention-text">${T.ideaLimit}</p>
     <p class="muted small">${video.ready ? T.linksVideoReady : video.set ? T.linksVideoDown(esc(video.why)) : T.linksVideo}</p>
-    <textarea id="text" placeholder="${esc(T.linksExample)}">${esc(LINKS_TEXT)}</textarea>
+    <textarea id="text" placeholder="${esc(T.linksExample)}">${esc(draft("links"))}</textarea>
+    <p class="muted small" id="draft-note"></p>
     <p class="small error-text" id="too-many" hidden>${T.linksTooMany(max)}</p>
     <details class="run-steps"${Object.keys(ownFor(["links"])).length ? " open" : ""}><summary>${T.perStep.title}</summary>
       ${STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : ""}${stepLine("links", T.perStep.names.links)}</details>
-    <p><button class="primary" id="send"></button></p>`;
+    <p><button class="primary" id="send"></button> <span class="error-text small" id="send-error"></span></p>`;
   const found = () => [...new Set(($("#text").value.match(/https?:\/\/[^\s<>"']+/g) || []).map(a => a.replace(/[.,;:!?)\]}»]+$/, "")))];
   const count = () => {
     const n = found().length;
@@ -2531,12 +2577,15 @@ async function viewLinks() {
   };
   $("#text").oninput = count;
   count();
-  bindSteps(page, () => { LINKS_TEXT = $("#text").value; viewLinks(); });
+  bindDraft("links", $("#text"), $("#draft-note"), count);
+  bindSteps(page, () => viewLinks());
   $("#send").onclick = async () => {
     $("#send").disabled = true;
-    const { id } = await api("/api/verifications", { checks: ["links"], links: found(), lang, steps: ownFor(["links"]) });
-    LINKS_TEXT = "";
-    location.hash = `/check/${encodeURIComponent(id)}`;
+    try {  // the draft stays until the check has started
+      const { id } = await api("/api/verifications", { checks: ["links"], links: found(), lang, steps: ownFor(["links"]) });
+      dropDraft("links");
+      location.hash = `/check/${encodeURIComponent(id)}`;
+    } catch (e) { $("#send-error").textContent = e.message; $("#send").disabled = false; }
   };
 }
 
@@ -2860,6 +2909,7 @@ function checkFound(c) {
 function bindCheck(d, boxes) {
   const C = T.languages.check, c = d.check;
   clearTimeout(checkTimer);
+  if (!$("#proofread")) return;  // every page in line with its translation: nothing to check
   if (c && (c.running || !c.done)) {  // follow it until it is done
     checkTimer = setTimeout(() => { if (location.hash.slice(1) === "/languages") viewLanguages(); }, 1500);
     return;

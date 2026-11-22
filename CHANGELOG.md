@@ -5,6 +5,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **What is typed on « Report or suggest » is never lost** (proposed by the user): one draft per tab (an error, an
+  idea, links), kept while switching tabs and in the browser against a reload, a crash or a closed tab (written half
+  a second after the last key, and when the page is left), with « Clear » and « Restore ». It empties once the run or
+  the check has started; a refusal or a lost connection keeps it and says why, where the button stayed greyed before.
+- **Fixed: the page « Languages » failed** (« can't access property "onclick" ») when every page was in line with its
+  translation: there is nothing to check then, and the check's button is not drawn.
 - **Links to read whole** (D5 of the roadmap, proposed by the user): « Report or suggest », tab « Links to read
   whole », one address per line. Each link is read whole without a model (`links.py`: a page, a repository's README,
   a PDF with the optional `pip install "vault-watch-agent[pdf]"`; a video through dl-sub-dub), then one call per link with the whole guide,
