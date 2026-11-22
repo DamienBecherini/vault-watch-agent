@@ -73,7 +73,9 @@ Le détail de chaque contrôle est dans [Vérifier le guide](check.md#le-catalog
 ## Les estimations
 
 Avant une étape payante, l'interface affiche ce qu'elle devrait coûter : sur le bouton d'une veille, de chaque
-contrôle, d'un passage fait de pistes, d'un découpage en chapitres. Une estimation se compose de trois choses :
+contrôle, d'un passage fait de pistes (et, pour un passage d'ajouts, poste par poste dans les options de la barre :
+les pistes normales, les pistes creusées, la relecture croisée et les miroirs), d'un découpage en chapitres, de
+« Retraduire » sur l'écran de publication. Une estimation se compose de trois choses :
 
 1. **Le poids du guide**, d'après la taille de ses fichiers : 2,1 octets par token, mesuré sur le guide IA on-prem
    (853 Ko de pages françaises = 408 k tokens). Un guide dans une autre langue, ou avec plus de code, a plus de
@@ -91,9 +93,14 @@ et la longueur des pages qu'il ouvre, dépendent de ce qu'il trouve. Le remplace
 contrôle de cohérence était estimé 2,59 $ et a coûté 2,64 et 2,73 $ ; les pistes des « Nouveautés », 2,45 $ pour
 2,28 $.
 
-Une estimation s'affiche aussi quand rien n'est facturé : sur un abonnement, la page dit « abonnement, non
-facturé » à la place du montant ; avec un modèle local, « modèle local, non facturé » ; avec un autre fournisseur
-compatible OpenAI, « facturé par ton fournisseur ».
+Une estimation s'affiche aussi quand rien n'est facturé. Sur un abonnement, ce que vaut l'étape au prix catalogue
+est affiché barré, à côté de « abonnement, non facturé » (son info-bulle : « Valeur au prix catalogue de l'API ;
+pris sur ton abonnement Claude, rien n'est facturé »). De même pour ce qui a été dépensé : une vérification, la
+ligne d'un passage, sa progression et les listes des passages montrent les appels faits sur un abonnement par leur
+prix catalogue barré, marqué « abonnement », au lieu de 0,00 $ ; le rapport d'un passage le dit en toutes lettres
+(« n on the subscription, not billed; worth X $ at list price », en anglais comme le reste du rapport). Avec un
+modèle local, la page dit « modèle local, non facturé » ; avec un autre fournisseur compatible OpenAI, « facturé par
+ton fournisseur ».
 
 ## D'où viennent les prix
 

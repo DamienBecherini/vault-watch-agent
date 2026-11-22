@@ -70,7 +70,9 @@ The detail of each check is on [Check the guide](check.md#the-catalogue), of com
 ## The estimates
 
 Before a paid step, the interface shows what it should cost: on the button of a watch, of each check, of a run made
-from leads, of a split into chapters. An estimate is made of three things:
+from leads (and, for an addition run, part by part in the options of the bar: the plain leads, the leads dug deeper,
+the cross-check and the mirrors), of a split into chapters, of « Translate again » on the publish screen. An
+estimate is made of three things:
 
 1. **The weight of the guide**, from the size of its files: 2.1 bytes a token, measured on the IA on-prem guide
    (853 KB of French pages = 408 k tokens). A guide in another language, or with more code, has more tokens a
@@ -87,9 +89,13 @@ long the pages it opens are, depend on what it finds. The replacement of two dea
 and 3.57 $ on 17 November, for the same estimate. Steps without the web stay close: the consistency check was
 estimated 2.59 $ and cost 2.64 and 2.73 $; the leads of « What is new », 2.45 $ for 2.28 $.
 
-An estimate is also shown when nothing is billed: on a subscription, the page says « subscription, not billed »
-in place of the amount; with a local model, « local model, not billed »; with another OpenAI-compatible provider,
-« billed by your provider ».
+An estimate is also shown when nothing is billed. On a subscription, what the step is worth at list price is shown
+struck through, beside « subscription, not billed » (its tooltip: « Worth at the API's list price; taken from your
+Claude subscription, nothing is billed »). So is what was spent: a check, the line of a run, its progress and the
+lists of the runs show the calls made on a subscription as their list price struck through, marked
+« subscription », instead of 0.00 $; the report of a run says it in words (« n on the subscription, not billed;
+worth X $ at list price »). With a local model, the page says « local model, not billed »; with another
+OpenAI-compatible provider, « billed by your provider ».
 
 ## Where the prices come from
 
