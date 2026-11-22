@@ -58,7 +58,7 @@ flowchart LR
     site["Site publié, FR + EN<br/>(starlight-obsidian-engine)"]
   end
   subgraph agent["vault-watch-agent"]
-    run["Passage LangGraph"]
+    run["Passe LangGraph"]
     ui["Page web<br/>(relecture)"]
   end
   human(["Éditeur"])
@@ -81,10 +81,10 @@ En plus de la veille de quinzaine, quatre autres entrées réutilisent le même 
   guide » deviennent des corrections.
 - **Vérification du guide à la demande** : contrôles gratuits (structure, liens morts, fraîcheur) et contrôles payants,
   avec une estimation du coût avant de les lancer.
-- **Passages de compactage** : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est répété, empilé ou
+- **Passes de compactage** : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est répété, empilé ou
   plus long que nécessaire, et les allègements que l'éditeur garde sont relus comme des corrections
   ([Compactage](compact.md)).
-- **Passages d'ajouts** : ce qu'aucune source de la veille n'annonce. Un contrôle liste ce qu'un lecteur chercherait
+- **Passes d'ajouts** : ce qu'aucune source de la veille n'annonce. Un contrôle liste ce qu'un lecteur chercherait
   et ne trouve pas, ou ce que les liens donnés par l'éditeur (une page, un PDF, une vidéo) contiennent pour le guide,
   et chaque piste que l'éditeur garde est vérifiée sur le web, puis écrite là où elle a sa place
   ([Nouveautés](news.md)).
@@ -144,7 +144,7 @@ sequenceDiagram
   E->>H: relit et fusionne
 ```
 
-Un passage en pause est conservé par le checkpointer de LangGraph : la relecture peut avoir lieu des heures ou des jours
+Une passe en pause est conservée par le checkpointer de LangGraph : la relecture peut avoir lieu des heures ou des jours
 plus tard, depuis la page web ou la ligne de commande, dans un autre processus.
 
 ## Ce qu'il a produit
@@ -172,7 +172,7 @@ les régler) :
 
 ```mermaid
 pie showData
-  title Journal des coûts par type de passage (USD)
+  title Journal des coûts par type de passe (USD)
   "Passes de correction" : 47.35
   "Compactage" : 35.43
   "Vérifications du guide" : 33.68
@@ -213,7 +213,7 @@ La phase G est faite : écrit pour ce seul guide, l'agent tient maintenant n'imp
 par un manifeste qui lui est propre ([Brancher son guide](connect-your-guide.md)), avec un choix de modèles et
 des prix dont l'origine est affichée ([le plan](../modular-plan.md), en anglais). Les phases A, B, C et F sont faites
 aussi ; la phase E l'est en partie (liens vérifiés avant publication, vérification à la demande, sources de la
-veille contrôlées, compactage). La découverte (phase D) a commencé : depuis la 1.3.0, un passage d'ajouts écrit,
+veille contrôlées, compactage). La découverte (phase D) a commencé : depuis la 1.3.0, une passe d'ajouts écrit,
 après relecture, ce qu'apporte une recherche de pistes ou l'éditeur ([Nouveautés](news.md)) ; il reste à suivre
 des candidats dans le temps, d'une veille à l'autre. Détails et mesures : [ROADMAP.md](../../ROADMAP.md) (en anglais).
 
@@ -223,7 +223,7 @@ des candidats dans le temps, d'une veille à l'autre. Détails et mesures : [ROA
   de conception, limites.
 - [Brancher son guide](connect-your-guide.md) : le manifeste d'un guide, `vault-watch init` et `doctor`.
 - [Collecter une veille](collect.md), [Compactage](compact.md), [Nouveautés](news.md) : la veille sans
-  modèle, et les deux passages à côté d'elle.
+  modèle, et les deux passes à côté d'elle.
 - [Structure du code](code.md) : modules, état du graphe, appels au modèle, pause et reprise.
 - [ROADMAP.md](../../ROADMAP.md) : phases, mesures, suite.
 - Le guide : [site](https://ia-on-prem.damien.becherini.fr/) · [dépôt](https://github.com/DamienBecherini/ia-on-prem-vault).

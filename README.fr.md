@@ -70,7 +70,7 @@ pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.4.2
 
 cd mon-guide                # la racine du dépôt git du guide
 vault-watch init            # écrit vault-watch.toml d'après ce que montre le dossier ; relisez-le, ajustez-le
-vault-watch doctor          # ce qui est prêt, ce qui manque avant un premier passage
+vault-watch doctor          # ce qui est prêt, ce qui manque avant une première passe
 vault-watch collect         # facultatif : ce que disent les flux listés par le manifeste, sans modèle
 vault-watch serve           # http://127.0.0.1:4430/ : veilles, relecture, publication, réglages
 ```
@@ -90,7 +90,7 @@ Ce qu'il faut :
 | un guide sur Gitea | un jeton Gitea, donné par référence ([Brancher son guide](docs/fr/connect-your-guide.md), [Sécurité](docs/fr/security.md)) |
 | les contrôles du guide | ce qu'ils lancent (Node.js pour un `npm test`, par exemple) |
 
-## Déroulé d'un passage
+## Déroulé d'une passe
 
 ```mermaid
 flowchart TD
@@ -116,7 +116,7 @@ flowchart TD
 | `report` | Écrit le rapport que vous relisez |
 | `review` | ⏸ Pause : vous acceptez tout, rien, ou une liste |
 | `apply` | Applique les corrections acceptées dans un worktree git sur une nouvelle branche et met à jour le champ de date des pages |
-| `retouch` | ⏸ Pause facultative : vous relisez et retouchez les pages de la branche, dans votre Obsidian (le dossier du guide est prêté au passage, ce qu'il contenait mis de côté puis remis) ou dans la page, ou vous passez ; vos retouches sont commitées à votre nom ([Une veille étape par étape](docs/fr/run.md#la-pause-pour-retoucher-les-pages)) |
+| `retouch` | ⏸ Pause facultative : vous relisez et retouchez les pages de la branche, dans votre Obsidian (le dossier du guide est prêté à la passe, ce qu'il contenait mis de côté puis remis) ou dans la page, ou vous passez ; vos retouches sont commitées à votre nom ([Une veille étape par étape](docs/fr/run.md#la-pause-pour-retoucher-les-pages)) |
 | `mirror` | Traduit dans les copies du guide (une copie anglaise sous `en/`, par exemple) ce qui a changé dans chaque page source sur la branche, passage par passage : les corrections, et toute modification à la main |
 | `audits` | Lance les contrôles du guide, si le manifeste en déclare |
 | `links` | Vérifie les liens externes des pages modifiées |
@@ -126,12 +126,12 @@ Ce qui décide à chaque étape, un exemple avec son coût, les écrans où vous
 publication) et comment votre dossier reçoit la pull request une fois fusionnée :
 [Une veille étape par étape](docs/fr/run.md).
 
-Deux autres sortes de passage passent par la même relecture et la même pull request : un **passage de correction**
+Deux autres sortes de passe suivent la même relecture et la même pull request : une **passe de correction**
 transforme des erreurs signalées (par un lecteur, par une vérification) en corrections contrôlées, et une
-**vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide. Un **passage de
+**vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide. Une **passe de
 compactage** empêche le guide de s'alourdir : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est
 répété, empilé ou plus long que nécessaire, et les allègements que vous gardez sont relus comme des corrections
-([Compactage](docs/fr/compact.md)). Un **passage d'ajouts** cherche ce qu'aucune source de la veille n'annonce : un
+([Compactage](docs/fr/compact.md)). Une **passe d'ajouts** cherche ce qu'aucune source de la veille n'annonce : un
 contrôle liste ce qu'un lecteur chercherait et ne trouve pas, et chaque piste que vous gardez est vérifiée sur le
 web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
 
@@ -140,15 +140,15 @@ web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
 - **Le modèle propose, le code décide.** Chaque correction cite le texte actuel ; un contrôle déterministe la refuse
   si la citation n'apparaît pas exactement une fois dans la page. Les pages déclarées en lecture seule ne sont
   jamais modifiées.
-- **Un humain dans la boucle, qui écrit.** Le passage s'arrête après le rapport (`interrupt` de LangGraph), où chaque
+- **Un humain dans la boucle, qui écrit.** La passe s'arrête après le rapport (`interrupt` de LangGraph), où chaque
   proposition peut être retouchée ; de nouveau une fois les corrections appliquées, pour retoucher les pages
   elles-mêmes si vous le voulez ; et avant que quoi que ce soit ne quitte la machine, où les pages et leur
-  traduction peuvent encore être corrigées. Un passage en pause est sauvegardé dans SQLite et repris
+  traduction peuvent encore être corrigées. Une passe en pause est sauvegardée dans SQLite et reprise
   plus tard, depuis un autre processus, des jours après s'il le faut.
 - **Des preuves, pas la mémoire.** Les propositions s'appuient sur les notes de version et les avis de la veille, et
   la relecture croisée sur des sources primaires lues sur le web, jamais sur la seule mémoire du modèle.
 - **Les règles du guide.** La consigne éditoriale et la politique de traduction sont dans le guide et lues à chaque
-  passage ; l'agent a des valeurs par défaut pour un guide qui n'en a pas.
+  passe ; l'agent a des valeurs par défaut pour un guide qui n'en a pas.
 
 ## Le modèle
 
@@ -161,8 +161,8 @@ web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
 Sans choix, l'agent prend Claude Code quand il le trouve connecté avec un abonnement, sinon l'API. Le moteur, le
 modèle et l'effort de chaque rôle (raisonnement, traduction) se choisissent dans les Réglages de l'interface web
 (l'engrenage), qui écrivent `~/.vault-watch/settings.json` ; `VAULT_WATCH_ENGINE` impose un moteur pour une commande.
-L'agent ne bascule jamais de lui-même vers un moteur facturé : quand une limite de l'abonnement est atteinte, le
-passage s'arrête et peut être repris plus tard (`resume --retry`) ou avec un autre moteur.
+L'agent ne bascule jamais de lui-même vers un moteur facturé : quand une limite de l'abonnement est atteinte, la
+passe s'arrête et peut être reprise plus tard (`resume --retry`) ou avec un autre moteur.
 
 Les clés ne sont jamais stockées : les réglages prennent une référence, `env:NOM`, `sops:fichier#NOM` (un fichier
 chiffré avec [sops](https://github.com/getsops/sops)) ou `file:chemin`, et refusent une clé en clair. Un autre
@@ -173,10 +173,10 @@ moteur peut s'ajouter sous forme de paquet ([Écrire un moteur](docs/fr/write-an
 ```bash
 vault-watch serve                     # http://127.0.0.1:4430/
 vault-watch serve --idle-exit 3600    # s'arrête après 1 h sans visite ni analyse en cours
-vault-watch serve --notify fr         # notification Windows quand un passage vous attend, se termine ou échoue
+vault-watch serve --notify fr         # notification Windows quand une passe vous attend, se termine ou échoue
 ```
 
-Un écran par étape d'un passage : un passage en cours (chaque étape terminée envoyée à la page), la relecture (un
+Un écran par étape d'une passe : une passe en cours (chaque étape terminée envoyée à la page), la relecture (un
 bloc par élément ou par piste, une carte par correction avec un diff mot à mot, sa source et le verdict de la
 relecture croisée), les retouches (votre dossier prêté à Obsidian, ou un éditeur dans la page), l'étape de
 publication (« Avant de publier » : les contrôles du guide, la traduction, les liens à vérifier vous-même ; puis
@@ -186,15 +186,15 @@ chaque page modifiée à côté de sa traduction, encore corrigeable), puis la p
 
 | Page | À quoi elle sert |
 | :-- | :-- |
-| Veille › À traiter | La première page : tout ce qui vous attend, d'où que ça vienne : un passage en pause pour votre relecture, une veille à lancer, les vérifications dont les pistes sont à trier, et votre dossier du guide quand il lui manque des pull requests fusionnées, avec « Mettre à jour mon dossier » ; le menu « Veille » en donne le nombre |
+| Veille › À traiter | La première page : tout ce qui vous attend, d'où que ça vienne : une passe en pause pour votre relecture, une veille à lancer, les vérifications dont les pistes sont à trier, et votre dossier du guide quand il lui manque des pull requests fusionnées, avec « Mettre à jour mon dossier » ; le menu « Veille » en donne le nombre |
 | Veille › Veille automatique | Les veilles avec leur état et un bouton pour en analyser une |
-| Veille › Toutes les passes | Tous les passages, les plus récents d'abord : ceux des veilles, et ceux lancés depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues » |
+| Veille › Toutes les passes | Toutes les passes, les plus récentes d'abord : celles des veilles, et celles lancées depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues » |
 | Veille › Sources suivies | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
-| Veille › Vérifier le guide | Des contrôles à la demande, de trois sortes montrées en couleur (santé du guide, allègement, nouveautés), les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se trient, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
+| Veille › Vérifier le guide | Des contrôles à la demande, de trois sortes montrées en couleur (santé du guide, allègement, nouveautés), les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se trient, puis partent dans une passe ([Vérifier le guide](docs/fr/check.md)) |
 | Signaler ou proposer | Des erreurs à corriger, une idée ou une nouvelle à vérifier et à écrire, ou des liens à lire en entier (un article, une page, un PDF, une vidéo) pour les pistes qu'ils contiennent ; ce que vous tapez est gardé comme brouillon, un par onglet |
 | Langues | Les pages en avance sur leur miroir, et celles que vous avez modifiées dans votre dossier sans les commiter : ce qui a changé est traduit, puis contrôles et pull request habituels ([Une veille étape par étape](docs/fr/run.md#synchroniser-les-langues)) |
 | Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
-| Coûts | Ce que coûte l'entretien, par mois et par passage ([Coûts](docs/fr/costs.md)) |
+| Coûts | Ce que coûte l'entretien, par mois et par passe ([Coûts](docs/fr/costs.md)) |
 | Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
 | Donner mon avis | Une note, un bug, une idée : vous l'envoyez vous-même, par une issue GitHub ou un e-mail ; l'agent n'envoie rien |
 
@@ -205,18 +205,18 @@ demande donc de cocher des pistes.*
 
 Chaque écran qui lance une étape payante dit ce qu'elle coûtera (sur un abonnement, ce qu'elle vaut au prix
 catalogue, barré) et ce qui la fera tourner (moteur, modèle, effort) avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
-au choix. Un passage lancé ici peut être repris en ligne de commande, et l'inverse. Le serveur n'écoute que sur
+au choix. Une passe lancée ici peut être reprise en ligne de commande, et l'inverse. Le serveur n'écoute que sur
 127.0.0.1 ([Sécurité](docs/fr/security.md)).
 
 ## La ligne de commande
 
 ```bash
 vault-watch run --watch-json watch.json     # ou --issue 50 pour une issue de la forge ; s'arrête à la relecture
-vault-watch resume <passage> --accept C1,C3 # ou all / none ; applique, traduit, contrôle, s'arrête de nouveau
-                         --edit C3=mon-texte.md # une proposition retouchée par vous avant de s'appliquer
-vault-watch resume <passage> --publish yes  # pousse la branche et ouvre la pull request
-vault-watch status <passage>
-vault-watch fix <passage> --findings erreurs.txt  # erreurs signalées → corrections contrôlées, même relecture et PR
+vault-watch resume <passe> --accept C1,C3   # ou all / none ; applique, traduit, contrôle, s'arrête de nouveau
+                       --edit C3=mon-texte.md # une proposition retouchée par vous avant de s'appliquer
+vault-watch resume <passe> --publish yes    # pousse la branche et ouvre la pull request
+vault-watch status <passe>
+vault-watch fix <passe> --findings erreurs.txt    # erreurs signalées → corrections contrôlées, même relecture et PR
 vault-watch collect --json watch.json       # la veille depuis les flux du guide, sans modèle
 vault-watch compact                         # ce que pèse et a pris chaque page, sans modèle ; --report : quoi alléger
 vault-watch news                            # pistes : ce qu'un lecteur chercherait et ne trouve pas ; --explore : le web
@@ -257,15 +257,15 @@ vous `~/.vault-watch/usage.jsonl`) ; `vault-watch costs` en fait le total, avec 
 abonnement (0 facturé, et ce qu'ils auraient coûté sur l'API). Mesuré en novembre 2026 sur l'API au prix public, Opus
 5.5 pour le raisonnement et Sonnet 5.5 pour la copie anglaise :
 
-| Passage | Coût |
+| Passe | Coût |
 | :-- | --: |
 | Veille avec extraits seulement (81 éléments gardés, 8 corrections) | 0,90 $ |
 | Veille complète avec la relecture croisée de tout le guide | 2,95 – 4,45 $ |
-| Passage de correction sur des erreurs signalées | 5,60 – 8,15 $ |
-| Passage de correction de la traduction seule (Sonnet) | 0,35 $ |
+| Passe de correction sur des erreurs signalées | 5,60 – 8,15 $ |
+| Passe de correction de la traduction seule (Sonnet) | 0,35 $ |
 | Vérification du guide à la demande (audits, liens, cohérence, traductions, affirmations datées) | 7,25 – 10,85 $ |
-| Compactage : le rapport, puis un passage d'allègements sur 30 constats (Fable 5.2 sur ces deux étapes) | 6,28 $, puis 18,87 $ |
-| Nouveautés : les pistes, puis un passage d'ajouts sur 2 à 5 pistes | 2,28 $, puis 8,70 – 12,95 $ |
+| Compactage : le rapport, puis une passe d'allègements sur 30 constats (Fable 5.2 sur ces deux étapes) | 6,28 $, puis 18,87 $ |
+| Nouveautés : les pistes, puis une passe d'ajouts sur 2 à 5 pistes | 2,28 $, puis 8,70 – 12,95 $ |
 
 La relecture croisée domine : écrire 400 k tokens dans le cache de prompt coûte environ 2 $, un appel suivant sur le
 même cache environ 0,08 $. Deux veilles complètes par mois font environ 100 $ par an ; un guide deux fois plus petit
@@ -281,12 +281,12 @@ token, c'est ce que vous paieriez. Ce qui fait le prix, comment sont faites les 
 
 | Fonction de LangGraph | Où | Pour quoi |
 | :-- | :-- | :-- |
-| `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'un passage en pause puisse être stocké |
+| `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'une passe en pause puisse être stockée |
 | Réducteurs (`Annotated[list, operator.add]`) | `state.py` | Les branches parallèles ajoutent leurs propositions et leur usage sans s'écraser |
 | `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, en parallèle |
 | `interrupt()` et `Command(resume=…)` | nœuds `review` et `publish` | Les deux pauses humaines ; votre réponse est la valeur que renvoie `interrupt()` |
-| Checkpointer `SqliteSaver`, un fil par passage | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passages |
-| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Un passage de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné |
+| Checkpointer `SqliteSaver`, un fil par passe | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passes |
+| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Une passe de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné |
 | `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
 
 Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 270 tests (pytest) font tourner tout le
@@ -306,14 +306,14 @@ modules s'emboîtent : [docs/fr/code.md](docs/fr/code.md).
   plan du guide. Ces pages sont désignées par un appel qui avait tout le guide sous les yeux, et la relecture
   croisée qui suit lit chaque page.
 - **Une veille corrige, l'éditeur décide de ce qui s'ajoute.** Une veille liste les ajouts (un nouveau modèle, un
-  nouvel outil) comme candidats dans son rapport et n'en rédige aucun. Les rédiger est un passage à part, sur les
+  nouvel outil) comme candidats dans son rapport et n'en rédige aucun. Les rédiger est une passe à part, sur les
   pistes que l'éditeur garde.
 
 ## Limites
 
 - **Du Markdown dans git.** Des pages dans un autre format, ou un guide qui est un sous-dossier d'un plus grand
   dépôt, ne sont pas pris en charge.
-- **Pas de nouvelle page.** Un passage d'ajouts écrit dans les pages qui existent ; quand un sujet demande une page
+- **Pas de nouvelle page.** Une passe d'ajouts écrit dans les pages qui existent ; quand un sujet demande une page
   à lui, il le dit et dit ce qu'elle contiendrait, et l'écrire reste à l'éditeur.
 - **Les dates sont difficiles.** Une version a une date de création, une date de tag et une date de publication ;
   quand ses sources ne tranchent pas, l'agent s'abstient plutôt que de deviner.
@@ -335,12 +335,12 @@ src/vault_watch_agent/
   forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
   watches.py     d'où viennent les veilles ; collect.py la collecte de l'agent ; inputs.py le format de la veille
   sources.py     ce que chaque source de la veille a apporté ; sourcecheck.py les sources elles-mêmes, contrôlées
-  crosscheck.py  relecture croisée ; fix.py passages de correction ; verify.py vérifications ; evaluate.py rejeux
+  crosscheck.py  relecture croisée ; fix.py passes de correction ; verify.py vérifications ; evaluate.py rejeux
   sizes.py       ce que pèse chaque page et ce qu'elle a pris ; compact.py compactage : ce qui pèse, les allègements
   news.py        ce qu'un lecteur chercherait et ne trouve pas : les pistes, les ajouts vérifiés sur le web
   prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
   config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
-  store.py       la base des passages gardée légère ; notify.py les notifications du bureau
+  store.py       la base des passes gardée légère ; notify.py les notifications du bureau
   onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, static/ sa page (sans build)
 tests/           faux modèle, dépôt git jetable, contrat de moteur
 examples/        un guide d'exemple et son manifeste

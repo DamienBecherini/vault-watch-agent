@@ -30,8 +30,8 @@ changement de sens silencieux.
 
 ## Ce qui n'est pas figé
 
-Les fichiers de travail de l'agent (`checkpoints.sqlite`, le journal des passages, les rapports d'une vérification,
+Les fichiers de travail de l'agent (`checkpoints.sqlite`, le journal des passes, les rapports d'une vérification,
 les fichiers de `~/.vault-watch/guides/<guide>/`) appartiennent à l'agent : une version peut les changer, et le dit dans ses
-notes de version. Les consignes au modèle, les étapes d'un passage et l'interface web évoluent à chaque version. Les
+notes de version. Les consignes au modèle, les étapes d'une passe et l'interface web évoluent à chaque version. Les
 modules Python ne sont pas une bibliothèque : seuls `llm.Engine` et `llm.EngineKind`, pour les paquets de moteur,
 font partie du protocole.

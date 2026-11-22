@@ -88,8 +88,8 @@ pour :
 
 « Donner mon avis » n'envoie rien de lui-même. Il prépare une issue GitHub ou un e-mail que vous relisez et
 envoyez vous-même, ou un texte à copier. La version y figure ; le système, Python, le moteur et l'écran ne
-s'ajoutent que si vous cochez la case ; rien du guide n'y est jamais, ni son nom, ni ses pages, ni le passage
-affiché.
+s'ajoutent que si vous cochez la case ; rien du guide n'y est jamais, ni son nom, ni ses pages, ni la passe
+affichée.
 
 ## Le serveur local
 
@@ -97,7 +97,7 @@ affiché.
 (DNS rebinding) et une requête que le navigateur signale comme venant d'un autre site (`Sec-Fetch-Site`, `Origin`).
 Chaque appel de son API, lecture comprise, doit porter un en-tête `X-Vault-Watch`, qu'une page d'un autre site ne
 peut pas envoyer sans une requête CORS préalable que le serveur n'accorde jamais ; seul ce que le navigateur demande
-de lui-même s'en passe (la sonde de santé, les avis, le flux d'un passage, son rapport). Jusqu'à la 1.4.2, une
+de lui-même s'en passe (la sonde de santé, les avis, le flux d'une passe, son rapport). Jusqu'à la 1.4.2, une
 lecture n'avait pas besoin de l'en-tête, et une image sur n'importe quel site pouvait faire résoudre une clé au
 serveur et l'envoyer ailleurs. La page n'est jamais affichée dans le cadre d'un autre site (`X-Frame-Options`,
 `frame-ancestors`), n'exécute que ses propres scripts (une Content Security Policy) et n'est jamais « reniflée ». Il
@@ -113,8 +113,8 @@ pas le port (proxy inverse, tunnel) sans authentification devant.
   choisi : Anthropic pour `api` et `claude-code`, votre serveur pour `openai`. Écartez avec `exclude` les pages qui
   ne doivent pas quitter la machine, ou utilisez un modèle local.
 - **Le journal des coûts** (`~/.vault-watch/usage.jsonl`, ou `VAULT_WATCH_JOURNAL`)
-  contient les noms des passages, les étapes, les modèles, les tokens et les coûts, aucun contenu du guide. Ce dépôt
-  versionne celui du guide de référence ; gardez le vôtre hors d'un dépôt public si les noms des passages en
+  contient les noms des passes, les étapes, les modèles, les tokens et les coûts, aucun contenu du guide. Ce dépôt
+  versionne celui du guide de référence ; gardez le vôtre hors d'un dépôt public si les noms des passes en
   disent trop.
 
 ## Signaler un problème

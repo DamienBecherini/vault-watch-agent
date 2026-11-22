@@ -4,8 +4,8 @@
 
 Une veille ne fait qu'ajouter. Une note « depuis » à côté de l'ancienne phrase, une note de bas de page sous les
 autres, le même avertissement recopié dans trois pages, une version gardée « pour mémoire » : chaque modification
-est juste, et après quelques mois le guide pèse moitié plus sans que personne l'ait décidé. Le compactage est un
-passage à part, distinct des veilles, qui repère ce qui pèse et propose de l'alléger. Rien n'est retiré sans
+est juste, et après quelques mois le guide pèse moitié plus sans que personne l'ait décidé. Le compactage est une
+passe à part, distincte des veilles, qui repère ce qui pèse et propose de l'alléger. Rien n'est retiré sans
 votre relecture : un allègement passe par la même relecture croisée, la même relecture humaine, les mêmes
 miroirs, contrôles et pull request qu'une correction.
 
@@ -16,7 +16,7 @@ de tourner.
 | :-- | :-- | :-- |
 | Tailles | Ce que pèse chaque page et ce qu'elle a pris, ses sections les plus lourdes, le poids de ses notes de bas de page, ce que le guide a pris en 90 jours | aucun |
 | Rapport | Lit tout le guide et liste ce qui est répété, ce qui est de l'historique empilé, quelles sections sont plus longues que ce qu'elles disent. Ne modifie rien | un appel (le coût d'une relecture croisée) |
-| Allègements | Pour les pistes que vous gardez : des modifications ciblées (texte actuel, texte proposé, raison), puis relecture croisée, relecture, miroirs et pull request | un passage |
+| Allègements | Pour les pistes que vous gardez : des modifications ciblées (texte actuel, texte proposé, raison), puis relecture croisée, relecture, miroirs et pull request | une passe |
 
 ## Tailles
 
@@ -79,7 +79,7 @@ chapitres échappe alors.
 
 ## Les allègements
 
-Cochez les pistes à traiter et créez un passage de compactage (en ligne de commande :
+Cochez les pistes à traiter et créez une passe de compactage (en ligne de commande :
 `vault-watch fix <fil> --findings pistes.txt --compact`, une piste par ligne). Le modèle relit le guide et
 propose des modifications ciblées, jamais une page réécrite en entier :
 
@@ -90,7 +90,7 @@ propose des modifications ciblées, jamais une page réécrite en entier :
 Les propositions prennent plusieurs appels quand les pistes sont nombreuses : les pistes qui partagent des pages
 vont ensemble, et aucun appel ne se voit demander plus que sa réponse ne peut contenir (les allègements de trente
 pistes ne tiendraient pas dans une seule réponse). Un appel qui échoue laisse ses pistes sans allègement, ce que
-dit le rapport du passage ; les autres continuent.
+dit le rapport de la passe ; les autres continuent.
 
 Ce que lit chaque appel dépend du moteur :
 
@@ -102,14 +102,14 @@ Ce que lit chaque appel dépend du moteur :
   d'autres pages qu'il ne voit pas, et garde ce qu'il ne retrouve pas ailleurs. Une piste qui ne nomme aucune
   page du guide (une ligne saisie à la main) reçoit le guide entier.
 
-Le passage suit ensuite le chemin de tous les autres : une relecture croisée écrite pour les allègements, qui lit
+La passe suit ensuite le chemin de toutes les autres : une relecture croisée écrite pour les allègements, qui lit
 tout le guide (perd-on quelque chose ? la page se lit-elle encore à cet endroit ? le lien mène-t-il à une page
 qui existe ?), votre relecture carte par carte, les miroirs, les contrôles du guide, la pull request. Sa branche
 s'appelle `compact/<fil>`, et la pull request dit ce que pesaient les pages modifiées avant et après.
 
 ## Entre deux compactages
 
-Chaque passage, une veille ou un passage de correction aussi, dit ce qu'il change au poids des pages qu'il
+Chaque passe, une veille ou une passe de correction aussi, dit ce qu'elle change au poids des pages qu'elle
 modifie : attendu dans son rapport avant la relecture (« Weight, if every valid correction is applied », avec les
 trois pages qui changent le plus), mesuré dans sa pull request et sur l'écran de publication. Une correction qui
 ajoute un paragraphe là où une phrase suffirait se voit quand elle est proposée, pas un trimestre plus tard.
@@ -132,17 +132,17 @@ Les estimations affichées avant chaque partie suivent le prix du modèle de cha
 | | Claude Opus 5.5 | Claude Fable 5.2 sur les deux étapes de compactage |
 | :-- | --: | --: |
 | Le rapport | ≈ 3,4 $ | ≈ 6,7 $ (mesuré le 20/11/2026 : 6,28 $, 48 k tokens écrits à l'effort `high`) |
-| Un passage d'allègements, 10 pistes | ≈ 7,4 $ | ≈ 11,3 $ |
-| Un passage d'allègements, 30 pistes | ≈ 13,1 $ | ≈ 20,4 $ (mesuré le 20/11/2026 : 17,79 $ avant les miroirs) |
+| Une passe d'allègements, 10 pistes | ≈ 7,4 $ | ≈ 11,3 $ |
+| Une passe d'allègements, 30 pistes | ≈ 13,1 $ | ≈ 20,4 $ (mesuré le 20/11/2026 : 17,79 $ avant les miroirs) |
 
-Un passage paie le guide deux fois, quelles que soient les pistes : écrit dans le cache par ses propositions, puis
+Une passe paie le guide deux fois, quelles que soient les pistes : écrit dans le cache par ses propositions, puis
 par sa relecture croisée, qui tourne sur son propre modèle avec une autre question (environ 4,7 $ ici avec
 Opus 5.5 pour les deux, 6,9 $ avec Fable 5.2 pour les propositions). Puis une part par piste : ce qu'écrivent les
 propositions, et le miroir de chaque page touchée.
 
-Le passage mesuré le 20/11/2026 (30 pistes, Fable 5.2 à l'effort `high` pour les propositions, Opus 5.5 pour la
+La passe mesurée le 20/11/2026 (30 pistes, Fable 5.2 à l'effort `high` pour les propositions, Opus 5.5 pour la
 relecture croisée) : quatre appels de propositions ont écrit 250 k tokens, entre 39 k et 93 k chacun, et seul le
-premier a payé l'écriture du guide (14,73 $ en tout) ; la relecture croisée a coûté 3,06 $. Il a proposé 195
+premier a payé l'écriture du guide (14,73 $ en tout) ; la relecture croisée a coûté 3,06 $. Elle a proposé 195
 allègements dans 39 pages, dont 40 notes retirées par le programme, pour 32 Ko de moins sur 891 Ko. Les autres
 chiffres sont des estimations.
 

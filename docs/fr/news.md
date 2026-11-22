@@ -5,12 +5,12 @@
 Une veille suit les sources qu'elle connaît déjà. Ce qu'aucune n'annonce reste hors du guide : une nouvelle
 génération de matériel chez un constructeur que personne n'a ajouté aux flux, un sujet devenu une obligation, un
 outil apparu depuis la rédaction. Et ce qu'une veille voit mais met de côté comme « ajout possible » n'est jamais
-écrit : cela reste une ligne dans un rapport. Ce passage est à part des veilles. Il cherche ce qui manque et
+écrit : cela reste une ligne dans un rapport. Cette passe est à part des veilles. Elle cherche ce qui manque et
 propose de l'ajouter ; rien n'est écrit sans votre relecture, et un ajout suit le chemin d'une correction :
 relecture croisée, relecture, miroirs, contrôles du guide, pull request.
 
-Il a deux parties. Les deux appellent le modèle et annoncent leur coût avant de tourner. Les pistes se trouvent
-de deux façons, qui répondent à deux questions différentes ; leurs pistes partent dans le même passage.
+Elle a deux parties. Les deux appellent le modèle et annoncent leur coût avant de tourner. Les pistes se trouvent
+de deux façons, qui répondent à deux questions différentes ; leurs pistes partent dans la même passe.
 
 | Partie | Ce qu'elle fait | Web |
 | :-- | :-- | :-- |
@@ -18,8 +18,8 @@ de deux façons, qui répondent à deux questions différentes ; leurs pistes pa
 | Pistes, depuis le web | Pour chaque chapitre choisi, cherche librement sur le web ce qui a bougé sur ses sujets et le compare à tout le guide. Ne modifie rien | oui |
 | Ajouts | Pour les pistes que vous gardez : vérifie chacune sur des sources primaires, puis propose où l'écrire, ou dit pourquoi non | oui |
 
-> **Limite.** Ce passage ajoute dans les pages existantes : il n'écrit jamais de nouvelle page. Quand un sujet
-> demanderait une page à lui, il le dit, en tête de l'écran de relecture, de son rapport et de la pull request, et
+> **Limite.** Cette passe ajoute dans les pages existantes : elle n'écrit jamais de nouvelle page. Quand un sujet
+> demanderait une page à lui, elle le dit, en tête de l'écran de relecture, de son rapport et de la pull request, et
 > vous laisse décider.
 
 ## Les pistes
@@ -42,17 +42,17 @@ Une piste est une question, pas un fait. Le modèle ne vérifie rien à ce stade
 ancien que le guide : on lui demande quoi vérifier et sur quel genre de source primaire, jamais un chiffre, une
 version ou une date. Le seuil d'ajout propre au guide (son contrat, `[rules] brief` du manifeste) lui est donné.
 
-Les éléments mis de côté par les veilles sont lus dans les rapports des passages gardés sur la machine (leur
+Les éléments mis de côté par les veilles sont lus dans les rapports des passes gardées sur la machine (leur
 section « Addition candidates »), sur les 120 derniers jours, chaque adresse une fois : ni modèle ni réseau pour
 cette partie.
 
 Les pistes qui ne concernent que des pages en lecture seule sont laissées de côté. Comme pour tout contrôle,
-vous gardez les pistes que vous voulez, vous écartez les autres, et celles gardées partent dans un passage.
+vous gardez les pistes que vous voulez, vous écartez les autres, et celles gardées partent dans une passe.
 
 ### Dans votre langue
 
 Une piste est écrite une fois, au moment du contrôle, dans la langue qu'avait l'interface quand vous l'avez lancé.
-Sa ligne reste en anglais quelle que soit cette langue : c'est elle que lit le passage, et que citent son rapport
+Sa ligne reste en anglais quelle que soit cette langue : c'est elle que lit la passe, et que citent son rapport
 et sa pull request (l'outillage s'écrit en anglais). Dans une autre langue, le modèle vous explique aussi chaque
 piste, en quatre parties : ce que dit la source, ce que dit le guide, ce qui reste à vérifier, ce que cela change
 pour le lecteur (deux à quatre phrases, les termes expliqués ; les sources qu'il cite sont des liens). Dans toutes
@@ -97,7 +97,7 @@ autres continuent.
 
 Quand vous savez déjà quoi regarder, sautez la recherche de pistes : « Signaler ou proposer », onglet « Une idée
 ou une information à creuser » (un lien sur « Vérifier le guide » y mène). Un sujet par ligne, avec une adresse
-si vous en avez une ; une case demande que chacun soit creusé. Les sujets partent directement dans un passage
+si vous en avez une ; une case demande que chacun soit creusé. Les sujets partent directement dans une passe
 d'ajouts.
 
 ```bash
@@ -121,7 +121,7 @@ entier » (un lien sur « Vérifier le guide » y mène) : une adresse par ligne
    lien », chacune avec le lien comme première source. Rien n'est vérifié ni modifié. Le texte du lien est donné au
    modèle comme une donnée, jamais comme une consigne.
 3. Les pistes arrivent sur la page du contrôle, comme celles des autres contrôles : vous cochez celles à garder,
-   en faites creuser une, et les envoyez dans un passage d'ajouts, qui vérifie chacune sur des sources primaires
+   en faites creuser une, et les envoyez dans une passe d'ajouts, qui vérifie chacune sur des sources primaires
    (une vidéo, un blog ou une lettre d'information disent où chercher ; ce n'est jamais la source).
 
 La page du contrôle liste les liens, chacun avec ce qui a été lu (son nombre de caractères) ou pourquoi il ne l'a
@@ -174,7 +174,7 @@ bouton affiche une estimation qui suit le nombre de pistes cochées et de celles
 Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires, puis décide :
 
 - rien de nouveau, rien qu'une source primaire établisse, déjà couvert, ou sous le seuil du guide : aucune
-  modification, et la raison en une ligne, dans le rapport du passage ;
+  modification, et la raison en une ligne, dans le rapport de la passe ;
 - le guide dit quelque chose de dépassé : une correction là où c'est dit, le fait actuel à la place de l'ancien ;
 - le guide ne l'a pas : un ajout là où un lecteur le chercherait (une phrase dans son paragraphe, une ligne dans
   le tableau qui liste ces choses, un court paragraphe sous le bon titre), avec sa source citée comme la page
@@ -185,7 +185,7 @@ Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires,
 **Creuser.** La ligne de chaque piste a une case « 🔍 creuser », et la piste dépliée le bouton « Creuser cette
 piste » (en ligne de commande, un `!` en début de ligne dans le fichier). « Creuser toutes les cochées » et « Ne rien
 creuser », au-dessus de la liste, agissent sur tout un contrôle. Dans la barre, « Options », puis « Creuser et
-lecture » : « Creuser : Rien · Creuser n sur m · Tout », et le prix du passage poste par poste (les pistes normales,
+lecture » : « Creuser : Rien · Creuser n sur m · Tout », et le prix de la passe poste par poste (les pistes normales,
 les pistes creusées, la relecture croisée et les miroirs). Une piste creusée est aussi cochée ; une piste décochée
 n'est plus creusée. Son appel reçoit alors la consigne d'aller plus loin : plusieurs sources indépendantes, ce que le sujet
 remplace, sa maturité et sa disponibilité, ce qu'il change pour chaque type de lecteur, sur plusieurs pages s'il
@@ -193,24 +193,24 @@ le faut. Cela coûte un peu plus qu'une piste ; à garder pour les sujets qui le
 
 **Ce que je sais déjà.** Une piste dépliée a un lien « + Ce que je sais déjà » : vos propres mesures, votre
 expérience, un chiffre que vous avez vérifié. Le mot est gardé avec la vérification (il survit à un rechargement) et
-signalé « 📝 un mot de toi » sur la ligne de la piste. Il part dans le passage avec sa piste, comme une note de
-l'éditeur : le passage s'en sert pour contrôler ce que disent les sources et dit quand elles le contredisent, mais ne
+signalé « 📝 un mot de toi » sur la ligne de la piste. Il part dans la passe avec sa piste, comme une note de
+l'éditeur : la passe s'en sert pour contrôler ce que disent les sources et dit quand elles le contredisent, mais ne
 le cite jamais, ne le recopie pas et ne l'écrit pas dans le guide, car un fait écrit a toujours besoin de sa source
 publiée. La relecture le montre dans le bloc de la piste ; la pull request dit seulement combien de pistes en avaient
 un. Les pistes des autres contrôles ont le même lien sous leur texte.
 
-La relecture montre, au-dessus des corrections, les pages que le passage dit nécessaires, puis les pistes qu'il a
+La relecture montre, au-dessus des corrections, les pages que la passe dit nécessaires, puis les pistes qu'elle a
 laissées sans modification et pourquoi : ce qu'une recherche a trouvé sans rien écrire est aussi un résultat.
 
 Les modifications passent ensuite par la relecture croisée d'une veille (tout le guide, et la source citée
 rouverte), votre relecture, les miroirs, les contrôles du guide et la pull request, sur une branche
-`feat/<passage>`.
+`feat/<passe>`.
 
 ## Ce que lit chaque appel, et ce que cela coûte
 
 Les pistes prennent un appel, qui lit tout le guide. Les ajouts prennent un appel par piste. Le web d'un appel
-a un plafond (20 recherches, 30 pages), et des pistes réunies dans un appel se le disputaient : au premier
-passage réel, une piste sur six grilles de prix a laissé ses trois voisines sans vérification. Une piste que son
+a un plafond (20 recherches, 30 pages), et des pistes réunies dans un appel se le disputaient : à la première
+passe réelle, une piste sur six grilles de prix a laissé ses trois voisines sans vérification. Une piste que son
 appel n'a pas pu regarder est marquée « pas vérifiée par la passe » sur la vérification, avec un bouton,
 « Remettre à traiter », qui la remet parmi les pistes à trier. Ce que deux appels ajoutent à la même page est assemblé par le programme (un
 numéro de note choisi par les deux est renommé, deux lignes ajoutées après la même ligne s'appliquent toutes les
@@ -219,18 +219,18 @@ plusieurs appels tournant en même temps, ou tout le guide. Avec tout le guide s
 l'écrit dans le cache et les autres le lisent là ; avec un autre moteur, ces appels se suivent.
 
 Les estimations ci-dessous valent pour le guide IA on-prem (129 pages, environ 430 000 tokens), avec Opus 5.5
-pour les pistes, les ajouts et la relecture croisée. Les pistes depuis le guide et les passages d'ajouts sont
-réglés sur des passages réels ; le web exploré par chapitre n'a pas encore tourné pour de vrai, et ses constantes
+pour les pistes, les ajouts et la relecture croisée. Les pistes depuis le guide et les passes d'ajouts sont
+réglées sur des passes réelles ; le web exploré par chapitre n'a pas encore tourné pour de vrai, et ses constantes
 sont comptées large.
 
 | | Estimation |
 | :-- | :-- |
 | Les pistes, depuis le guide | ≈ 2,40 $ (2,28 $ mesurés le 20/11/2026 pour 28 pistes) |
 | Les pistes, depuis le web | ≈ 2 $, plus ≈ 4,75 $ par chapitre exploré |
-| Un passage d'ajouts, chaque appel avec tout le guide | ≈ 6,30 $, plus ≈ 2,15 $ par piste gardée, ou ≈ 2,80 $ pour une piste creusée |
-| Un passage d'ajouts, chaque appel avec les pages de sa piste et le plan | ≈ 4,30 $, plus ≈ 1,10 $ par piste gardée, ou ≈ 1,50 $ pour une piste creusée |
+| Une passe d'ajouts, chaque appel avec tout le guide | ≈ 6,30 $, plus ≈ 2,15 $ par piste gardée, ou ≈ 2,80 $ pour une piste creusée |
+| Une passe d'ajouts, chaque appel avec les pages de sa piste et le plan | ≈ 4,30 $, plus ≈ 1,10 $ par piste gardée, ou ≈ 1,50 $ pour une piste creusée |
 
-Le passage d'ajouts est réglé sur trois passages réels (20/11/2026). Avec tout le guide : 11,01 $ pour une piste
+La passe d'ajouts est réglée sur trois passes réelles (20/11/2026). Avec tout le guide : 11,01 $ pour une piste
 sur six grilles de prix et une piste creusée (29 modifications), puis 12,94 $ pour trois pistes (14
 modifications), miroirs compris. Avec les pages de la piste et le plan : 8,72 $, miroirs compris, pour cinq pistes
 (35 modifications), là où tout le guide aurait coûté environ 17 $. Ce qui ne dépend pas des pistes, c'est la
@@ -238,7 +238,7 @@ relecture croisée, environ 4 $ à chaque fois. Avec tout le guide, une piste qu
 pas moins qu'une autre (16 à 25 tours de recherche, chacun relisant le guide depuis le cache) ; avec ses propres
 pages, une piste a coûté de 0,40 à 1,30 $.
 
-**Ce que lit l'appel de chaque piste** se choisit à la création du passage (« Chaque appel de piste lit », dans
+**Ce que lit l'appel de chaque piste** se choisit à la création de la passe (« Chaque appel de piste lit », dans
 « Options », « Creuser et lecture », de la barre de la page des pistes, le choix gardé dans le navigateur ;
 `--context pages` ou `--context guide` en ligne de commande ; les pages de la piste et le plan
 par défaut).
@@ -256,7 +256,7 @@ listées avant cette fonction ne nomment que les pages concernées. Dans les deu
 ensuite tout le guide : c'est elle qui rattrape une répétition ou une contradiction avec une page que l'appel
 n'a pas vue.
 
-Ce que le choix change, vu sur le passage de cinq pistes : les appels ont écrit 16 modifications sur les pages
+Ce que le choix change, vu sur la passe de cinq pistes : les appels ont écrit 16 modifications sur les pages
 reçues, et la relecture croisée en a ajouté 19 sur quatre pages qu'ils n'avaient pas vues (un plancher de sécurité
 écrit à huit endroits, les réglages par défaut qu'une nouvelle version change). Tous les endroits qui énonçaient
 les anciennes valeurs ont été atteints. Les modifications ajoutées par la relecture croisée ne sont relues par
@@ -267,16 +267,16 @@ Les étapes « pistes de nouveautés », « exploration du web par chapitre » e
 apparaissent dans les Réglages, où chacune peut tourner sur un modèle à elle. Avec un moteur payé par un
 abonnement, rien n'est facturé, et ces appels comptent dans ses limites.
 
-## Ce qu'il ne fait pas
+## Ce qu'elle ne fait pas
 
-- Il n'écrit pas de nouvelle page, ni de nouvelle entrée de lexique dans un fichier à elle : il dit qu'il en
+- Elle n'écrit pas de nouvelle page, ni de nouvelle entrée de lexique dans un fichier à elle : elle dit qu'il en
   faudrait une.
-- Il ne remplace pas la veille : la veille lit toutes les deux semaines ce que publient ses sources, pour quelques
-  centimes ; ce passage cherche, de temps en temps, ce qu'aucune source n'annonce.
-- Il ne contrôle pas ce que le guide dit déjà (les contrôles « Cohérence de tout le guide » et « Revérification
+- Elle ne remplace pas la veille : la veille lit toutes les deux semaines ce que publient ses sources, pour quelques
+  centimes ; cette passe cherche, de temps en temps, ce qu'aucune source n'annonce.
+- Elle ne contrôle pas ce que le guide dit déjà (les contrôles « Cohérence de tout le guide » et « Revérification
   des affirmations datées » le font).
 
 ## Quand
 
-Après un compactage plutôt qu'avant : ce passage ajoute au guide, et il le lit en entier. Une fois par trimestre
+Après un compactage plutôt qu'avant : cette passe ajoute au guide, et elle le lit en entier. Une fois par trimestre
 est un rythme raisonnable pour un guide qu'une veille régulière suit déjà, ou quand un sujet bouge vite.

@@ -2,7 +2,7 @@
 
 # vault-watch-agent : structure du code
 
-**Un guide de lecture pour développeurs : les modules, l'état du graphe, où le modèle est appelé, et comment un passage en pause survit.**
+**Un guide de lecture pour développeurs : les modules, l'état du graphe, où le modèle est appelé, et comment une passe en pause survit.**
 
 [English](../code.md) · **Français** · [Présentation](presentation.md) · [README](../../README.fr.md)
 
@@ -22,7 +22,7 @@ flowchart TB
     cli["cli.py<br/><i>ligne de commande</i>"]
     web["web.py<br/><i>FastAPI + static/</i>"]
   end
-  subgraph runs["Types de passage"]
+  subgraph runs["Types de passe"]
     graphpy["graph.py<br/><i>le graphe LangGraph</i>"]
     fix["fix.py<br/><i>erreurs signalées → corrections</i>"]
     verify["verify.py<br/><i>vérification à la demande</i>"]
@@ -81,11 +81,11 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `llm.py` | 653 | Les moteurs (API, Claude Code sur un abonnement, le moteur compatible OpenAI, et ceux d'autres paquets, `EngineKind`, protocole 1) : sortie structurée, cache de prompt, recherche et lecture web, capacités, journal des coûts |
 | `verify.py` | 596 | Catalogue des contrôles (`Check`), estimations de coût, une fonction `run_*` par contrôle |
 | `news.py` | 422 | Chercher les nouveautés : la consigne des pistes, ce que les veilles passées ont mis de côté (lu dans leurs rapports), les pistes trouvées sur le web chapitre par chapitre, les ajouts pour les pistes gardées, une piste par appel avec le web, sur les pages que la piste désigne et le plan du guide, ou sur tout le guide (`compact.in_calls` fait les appels) ; ce que deux appels ajoutent à la même page réuni |
-| `links.py` | 244 | Un passage à partir de liens (D5) : chaque adresse lue en entier sans modèle (une page, le README d'un dépôt, un PDF avec `pypdf` en option ; une vidéo par dl-sub-dub, `videos.py`), puis un appel par lien avec tout le guide, sans le web, pour les pistes qu'il contient ; un contrôle de « Vérifier le guide » (`verify.run_links`) |
+| `links.py` | 244 | Une passe à partir de liens (D5) : chaque adresse lue en entier sans modèle (une page, le README d'un dépôt, un PDF avec `pypdf` en option ; une vidéo par dl-sub-dub, `videos.py`), puis un appel par lien avec tout le guide, sans le web, pour les pistes qu'il contient ; un contrôle de « Vérifier le guide » (`verify.run_links`) |
 | `videos.py` | 149 | Le texte d'une vidéo par la route « texte d'une vidéo » de dl-sub-dub (contrat 1) : son état suivi jusqu'à la fin, le jeton lu depuis sa référence, ce qu'il dit quand il ne peut pas (occupé, arrêté, trop ancien) ; la description, les chapitres et les paroles du site en paragraphes avec leur heure |
-| `mirrors.py` | 224 | Ce qui a changé dans une page source, en passages qu'un traducteur peut reporter dans son miroir (un paragraphe, une ligne de tableau, une ligne de liste, d'après git) ; les pages en avance sur leur miroir ; la branche et l'état d'un passage « Synchroniser les langues » |
+| `mirrors.py` | 224 | Ce qui a changé dans une page source, en passages qu'un traducteur peut reporter dans son miroir (un paragraphe, une ligne de tableau, une ligne de liste, d'après git) ; les pages en avance sur leur miroir ; la branche et l'état d'une passe « Synchroniser les langues » |
 | `proofread.py` | 143 | Les modifications de l'éditeur vérifiées avant une synchronisation (une option de la page « Langues ») : l'orthographe par le modèle de traduction, les faits sur le web par le modèle de raisonnement, la cohérence avec le reste du guide par la relecture croisée ; les corrections acceptées appliquées dans le dossier du guide |
-| `retouch.py` | 175 | La pause pour retoucher les pages de la branche d'un passage : le dossier du guide prêté au passage (détaché sur le dernier commit de la branche, ce qu'il contenait mis de côté dans une remise nommée d'après le passage), les retouches commitées au nom de l'éditeur, la branche avancée, le dossier rendu |
+| `retouch.py` | 175 | La pause pour retoucher les pages de la branche d'une passe : le dossier du guide prêté à la passe (détaché sur le dernier commit de la branche, ce qu'il contenait mis de côté dans une remise nommée d'après la passe), les retouches commitées au nom de l'éditeur, la branche avancée, le dossier rendu |
 | `guide.py` | 407 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget |
 | `chapters.py` | 398 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
 | `sourcecheck.py` | 386 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
@@ -100,7 +100,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `sizes.py` | 190 | Le poids de chaque page face à son budget, ses sections les plus lourdes, la croissance du guide lue dans Git ; sans modèle |
 | `fix.py` | 187 | Transforme des remarques en propositions, puis en état initial qui entre dans le graphe après `propose` |
 | `prices.py` | 182 | Le prix d'un modèle et son origine : celui de l'utilisateur, une liste téléchargée, les valeurs par défaut |
-| `sources.py` | 179 | Ce que chaque flux de la veille a apporté et ce qu'il en est sorti, avec un verdict par règle, d'après les veilles et les passages gardés sur la machine ; sans modèle, sans réseau |
+| `sources.py` | 179 | Ce que chaque flux de la veille a apporté et ce qu'il en est sorti, avec un verdict par règle, d'après les veilles et les passes gardées sur la machine ; sans modèle, sans réseau |
 | `quotes.py` | 158 | Retrouve le passage dont parle une remarque : correspondance exacte, sinon la fenêtre de lignes la plus proche sur le texte normalisé |
 | `evaluate.py` | 148 | Morceaux du diff fusionné par l'humain face aux propositions de l'agent, appariés par un modèle juge |
 | `watches.py` | 140 | D'où viennent les veilles (`[watch] source`) : issues GitHub, fichiers `watch.json`, collecte de l'agent, aucune |
@@ -108,9 +108,9 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `inputs.py` | 124 | La veille selon le contrat (`check_watch`), ses éléments retenus, son artefact ; les scripts du guide ; affirmations à revérifier |
 | `state.py` | 118 | `WatchState` et les schémas Pydantic auxquels le modèle doit répondre |
 | `reading.py` | 101 | Comment le guide est lu : en entier en un appel, ou chapitre par chapitre s'il dépasse la fenêtre du modèle |
-| `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passage ou étape ; les appels passés sur un abonnement à part |
+| `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passe ou étape ; les appels passés sur un abonnement à part |
 | `steps.py` | 80 | Chaque étape qui appelle le modèle : son rôle, son effort, ce qu'elle demande à un moteur |
-| `store.py` | 53 | La base des passages gardée légère : seul le dernier point de contrôle de chaque passage reste, l'espace est rendu au disque |
+| `store.py` | 53 | La base des passes gardée légère : seul le dernier point de contrôle de chaque passe reste, l'espace est rendu au disque |
 | `notify.py` | 47 | Notifications Windows de `serve --notify` |
 
 La page est du JavaScript sans outillage dans [`static/`](../../src/vault_watch_agent/static/), chargé tel quel :
@@ -160,8 +160,8 @@ avec des faux.
 
 ## L'état qui le traverse
 
-`WatchState` ([`state.py`](../../src/vault_watch_agent/state.py)) est un `TypedDict` de valeurs JSON simples : un passage en
-pause est sérialisé tel quel par le checkpointer. Chaque étape ne renvoie que les clés qu'elle change.
+`WatchState` ([`state.py`](../../src/vault_watch_agent/state.py)) est un `TypedDict` de valeurs JSON simples : une passe en
+pause est sérialisée telle quelle par le checkpointer. Chaque étape ne renvoie que les clés qu'elle change.
 
 ```mermaid
 classDiagram
@@ -213,15 +213,15 @@ sequenceDiagram
     L->>A: poursuit le même message
   end
   Note over L: refus ou max_tokens → ModelError
-  L->>J: une ligne : passage, étape, modèle, tokens, coût au prix catalogue
+  L->>J: une ligne : passe, étape, modèle, tokens, coût au prix catalogue
   L-->>N: (objet validé, consommation)
 ```
 
-## Comment un passage se met en pause et reprend
+## Comment une passe se met en pause et reprend
 
 ```mermaid
 sequenceDiagram
-  participant P1 as Processus 1 (run)
+  participant P1 as Processus 1 (passe)
   participant S as SqliteSaver<br/>checkpoints.sqlite
   participant P2 as Processus 2 (des jours après)
   P1->>P1: graph.invoke(état initial, thread_id = "issue-69")
@@ -234,8 +234,8 @@ sequenceDiagram
   P2->>P2: apply → retouch (une interruption, passée ou non) → mirror → audits → links → publish
 ```
 
-La ligne de commande et la page web partagent le même fichier SQLite et les mêmes identifiants de passage : un passage
-lancé depuis l'une peut être terminé depuis l'autre. Le serveur web fait tourner le graphe dans un thread de fond et
+La ligne de commande et la page web partagent le même fichier SQLite et les mêmes identifiants de passe : une passe
+lancée depuis l'une peut être terminé depuis l'autre. Le serveur web fait tourner le graphe dans un thread de fond et
 envoie `graph.stream(stream_mode="updates")` à la page en server-sent events.
 
 ## Les passes de correction entrent au milieu du graphe
@@ -252,10 +252,10 @@ flowchart LR
 
 Une passe de correction fait ses propres propositions, puis indique à LangGraph qu'elles sortent de `propose` : à partir
 de `number`, c'est le même graphe, le même rapport, la même relecture et la même pull request qu'une veille. Le
-`mode` de l'état dit de quelle sorte de passage il s'agit, et trois autres sortes entrent de la même façon : une
-correction de traduction (`"translation"`, qui saute la relecture croisée), un passage de compactage (`"compact"`,
-des allègements proposés par `compact.py`, avec une relecture croisée écrite pour eux) et un passage d'ajouts
-(`"add"`, les pistes vérifiées sur le web par `news.py`). Un passage « Synchroniser les langues » (`"mirror"`,
+`mode` de l'état dit de quelle sorte de passe il s'agit, et trois autres sortes entrent de la même façon : une
+correction de traduction (`"translation"`, qui saute la relecture croisée), une passe de compactage (`"compact"`,
+des allègements proposés par `compact.py`, avec une relecture croisée écrite pour eux) et une passe d'ajouts
+(`"add"`, les pistes vérifiées sur le web par `news.py`). Une passe « Synchroniser les langues » (`"mirror"`,
 `mirrors.py`) entre plus loin, comme si `apply` venait de tourner : sa branche porte les pages modifiées à la main, et
 `mirror_since` dit de quel commit part la traduction de chaque page en avance sur son miroir.
 
@@ -270,7 +270,7 @@ des allègements proposés par `compact.py`, avec une relecture croisée écrite
 | [`tests/test_llm.py`](../../tests/test_llm.py) | Le moteur Claude Code avec un faux `claude` : la commande lancée, ce qu'il en lit, ce qu'il refuse |
 | [`tests/test_config.py`](../../tests/test_config.py) | Les réglages de l'utilisateur : valeurs par défaut, ce qui est refusé, une clé qui n'est jamais qu'une référence |
 | [`tests/test_guide.py`](../../tests/test_guide.py), [`tests/test_onboard.py`](../../tests/test_onboard.py) | Le manifeste : ce qu'il accepte et refuse, le dossier de travail d'un guide ; `init` et `doctor` |
-| [`tests/test_sample_guide.py`](../../tests/test_sample_guide.py) | Un passage entier sur le guide d'exemple de `examples/`, avec ses erreurs placées exprès |
+| [`tests/test_sample_guide.py`](../../tests/test_sample_guide.py) | Une passe entière sur le guide d'exemple de `examples/`, avec ses erreurs placées exprès |
 | [`tests/test_engine_contract.py`](../../tests/test_engine_contract.py), [`tests/test_openai_compat.py`](../../tests/test_openai_compat.py) | Chaque moteur face aux mêmes réponses enregistrées ([Écrire un moteur](write-an-engine.md)) ; le moteur compatible OpenAI et ses outils web |
 | [`tests/test_collect.py`](../../tests/test_collect.py), [`tests/test_sources.py`](../../tests/test_sources.py), [`tests/test_sourcecheck.py`](../../tests/test_sourcecheck.py) | La collecte d'une veille et son pré-tri ; ce que chaque source a apporté ; le contrôle des sources |
 | [`tests/test_compact.py`](../../tests/test_compact.py), [`tests/test_sizes.py`](../../tests/test_sizes.py) | Le compactage : le rapport, les allègements, les notes retirées avec eux ; le poids et la croissance des pages |
@@ -283,13 +283,13 @@ Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est
 
 ## Par où commencer la lecture
 
-1. [`state.py`](../../src/vault_watch_agent/state.py) : ce qu'un passage sait à chaque étape.
+1. [`state.py`](../../src/vault_watch_agent/state.py) : ce qu'une passe sait à chaque étape.
 2. [`graph.py`](../../src/vault_watch_agent/graph.py), `build()` : les étapes et les arêtes, puis l'étape qui vous intéresse.
 3. [`llm.py`](../../src/vault_watch_agent/llm.py) : les moteurs, cache, outils web, journal des coûts.
 4. [`vault.py`](../../src/vault_watch_agent/vault.py), `check()` et `apply()` : pourquoi le modèle ne peut pas abîmer une
    page.
-5. [`web.py`](../../src/vault_watch_agent/web.py) ou [`cli.py`](../../src/vault_watch_agent/cli.py) : comment les passages sont
-   lancés, mis en pause et repris.
+5. [`web.py`](../../src/vault_watch_agent/web.py) ou [`cli.py`](../../src/vault_watch_agent/cli.py) : comment les passes sont
+   lancées, mises en pause et reprises.
 
 Les schémas sont en Mermaid : GitHub les affiche ; dans VS Code ou Cursor, l'aperçu Markdown a besoin de l'extension
 *Markdown Preview Mermaid Support*.

@@ -2,7 +2,7 @@
 
 # Une veille, étape par étape
 
-Le [README](../../README.fr.md#déroulé-dun-passage) donne les étapes d'un passage en un tableau. Cette page suit un
+Le [README](../../README.fr.md#déroulé-dune-passe) donne les étapes d'une passe en un tableau. Cette page suit un
 élément d'une veille à travers elles : ce que lit chaque étape, ce qui y décide, et ce qui peut arrêter une
 modification avant que vous la voyiez. Puis les écrans où vous décidez : la relecture, la pause pour retoucher les
 pages, et la publication ; et, une fois la pull request fusionnée, comment votre dossier du guide la reçoit.
@@ -77,11 +77,11 @@ Ce qu'il montre, de haut en bas :
 
 - **Quatre chiffres** : les éléments de la veille, ceux qui touchent une page, les corrections proposées, les
   pistes d'ajout.
-- **Pour un passage d'ajouts**, au-dessus des corrections : les pages que le passage dit nécessaires, puis, dans un
+- **Pour une passe d'ajouts**, au-dessus des corrections : les pages que la passe dit nécessaires, puis, dans un
   cadre à part, les pistes qu'il a laissées sans modification et pourquoi ([Nouveautés](news.md#les-ajouts)).
 - **Un bloc par élément de la veille, ou par piste** : son titre (une piste : « Piste n », son numéro sur la page de
   la vérification, et son titre), combien de corrections et de pages en sont sorties, sa source et « voir la
-  vérification » pour une piste, et le texte anglais donné au passage, replié (« Texte envoyé à la passe (en
+  vérification » pour une piste, et le texte anglais donné à la passe, replié (« Texte envoyé à la passe (en
   anglais) »). Puis ses corrections.
 - **Une carte par correction** : son numéro, sa gravité et sa page ; le verdict et la raison de la relecture
   croisée (« keep », « revised », « added by the cross-check for C1, C3 », « added by the sweep ») ; un diff mot à
@@ -95,7 +95,7 @@ Ce qu'il montre, de haut en bas :
   traduisent, et la pull request marque la correction ✍️ ; le rapport garde la proposition du modèle à côté de la
   vôtre. Une correction dont la citation est introuvable, ou en conflit avec une autre, ne se retouche pas : aucun
   texte ne répare l'endroit où elle s'applique. En ligne de commande :
-  `vault-watch resume <passage> --accept C1,C3 --edit C3=mon-texte.md`.
+  `vault-watch resume <passe> --accept C1,C3 --edit C3=mon-texte.md`.
 - **Les groupes** : les corrections qui n'ont de sens qu'ensemble (une phrase et sa note, un chiffre et le tableau
   qui le reprend) se cochent ensemble, par une seule case (« n corrections liées ») qui dit pourquoi elles vont
   ensemble et qu'un texte se change en le retouchant, pas en le décochant. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier :
@@ -105,57 +105,57 @@ Ce qu'il montre, de haut en bas :
   (à corriger par « Signaler ou proposer », onglet « Une erreur à corriger »), les affirmations à revérifier, les valeurs retirées encore présentes, et
   le rapport complet en Markdown.
 
-Rien n'a encore touché le guide. « Ne rien appliquer » clôt le passage (et l'issue de la veille, avec un
+Rien n'a encore touché le guide. « Ne rien appliquer » clôt la passe (et l'issue de la veille, avec un
 commentaire) ; « Appliquer n corrections » continue.
 
 ## La pause pour retoucher les pages
 
 ![La pause des retouches : les pages de la passe, « Prêter mon dossier à cette passe » pour Obsidian, et l'éditeur de la page, les passages modifiés par la passe en vert, avec le précédent et le suivant](../images/retouch.fr.png)
 
-Une fois les corrections appliquées sur la branche, et avant que les miroirs les suivent, le passage s'arrête de
+Une fois les corrections appliquées sur la branche, et avant que les miroirs les suivent, la passe s'arrête de
 nouveau : vous pouvez relire les pages telles qu'elles sont maintenant et retoucher le texte. C'est facultatif :
-« Passer » continue aussitôt. Les corrections sont sur la branche du passage, une copie à part du guide : votre
-dossier et main n'ont pas bougé, Obsidian ne les voit donc pas encore. La page liste les pages modifiées par le
-passage, chacune avec « Ouvrir ici » et « Ouvrir dans Obsidian ». Deux façons, qui se combinent :
+« Passer » continue aussitôt. Les corrections sont sur la branche de la passe, une copie à part du guide : votre
+dossier et main n'ont pas bougé, Obsidian ne les voit donc pas encore. La page liste les pages modifiées par la
+passe, chacune avec « Ouvrir ici » et « Ouvrir dans Obsidian ». Deux façons, qui se combinent :
 
-- **Dans Obsidian.** « Prêter mon dossier à ce passage » (son « ? » dit pourquoi) met le dossier du guide sur la
-  branche du passage (détaché sur son dernier commit : git n'ouvre pas une branche à deux endroits), et Obsidian
+- **Dans Obsidian.** « Prêter mon dossier à cette passe » (son « ? » dit pourquoi) met le dossier du guide sur la
+  branche de la passe (détaché sur son dernier commit : git n'ouvre pas une branche à deux endroits), et Obsidian
   montre les pages corrigées ; « Ouvrir dans Obsidian » marche à partir de là (avant, il désigne le bouton qui prête
   le dossier, qui s'illumine un instant). Un dossier qui contient des modifications non commitées n'est prêté que si
-  vous demandez de les mettre de côté : elles vont dans une remise git nommée d'après le passage, et reviennent avec
+  vous demandez de les mettre de côté : elles vont dans une remise git nommée d'après la passe, et reviennent avec
   le dossier. Un dossier au milieu d'une fusion ou d'un rebase n'est pas prêté. Un bandeau reste sur chaque page tant
   que le dossier est prêté, ou tant que ce qui a été mis de côté n'est pas revenu. « Reprendre mon dossier » le
-  ramène sur main sans terminer l'étape : ce que vous avez modifié dans Obsidian est commité sur la branche du
-  passage, vous le retrouvez en ouvrant la page ici, et le dossier peut être prêté de nouveau.
-- **Ici, dans le navigateur.** Un éditeur ouvre les pages modifiées par le passage, ou toute page du guide par son
+  ramène sur main sans terminer l'étape : ce que vous avez modifié dans Obsidian est commité sur la branche de la
+  passe, vous le retrouvez en ouvrant la page ici, et le dossier peut être prêté de nouveau.
+- **Ici, dans le navigateur.** Un éditeur ouvre les pages modifiées par la passe, ou toute page du guide par son
   chemin. Les passages que les corrections ont changés sont en vert, avec « ◀ passage n / m ▶ » pour aller de l'un à
   l'autre ; l'éditeur s'ouvre au premier. Il signale les « Modifications non enregistrées » ; « Enregistrer »
   écrit le texte, « Annuler mes modifications » revient à la dernière version enregistrée (Ctrl+Z ramène encore les
   modifications), et le même bouton devient « Fermer la page » quand il n'y a rien à annuler. Il écrit dans le
-  dossier prêté s'il y en a un (Obsidian voit ce que vous enregistrez), sinon dans la copie du passage : la page
+  dossier prêté s'il y en a un (Obsidian voit ce que vous enregistrez), sinon dans la copie de la passe : la page
   nomme alors les pages retouchées hors de votre dossier, que votre dossier reçoit après la fusion, par « Mettre à
   jour mon dossier » ([plus bas](#après-la-fusion-mettre-à-jour-votre-dossier)).
 
 « J'ai fini » commite ce qui a changé à votre nom (« Retouches at the review », avec votre propre identité git), fait
-avancer la branche jusqu'à ce commit, rend le dossier là où il était et remet ce qui avait été mis de côté. Le
-passage continue : les miroirs traduisent vos retouches avec les corrections, les contrôles du guide et les liens
+avancer la branche jusqu'à ce commit, rend le dossier là où il était et remet ce qui avait été mis de côté. La
+passe continue : les miroirs traduisent vos retouches avec les corrections, les contrôles du guide et les liens
 passent sur votre texte, et la pull request liste les pages retouchées. « Passer » abandonne ce qui a été retouché,
 tapé ici ou commité depuis un dossier repris : la branche revient à ce que la relecture a appliqué. En ligne de
-commande : `vault-watch resume <passage> --retouch done` une fois les fichiers de la copie de travail du
-passage retouchés (`vault-watch status` donne son chemin), ou `--retouch skip`. Un passage commencé avant que cette
+commande : `vault-watch resume <passe> --retouch done` une fois les fichiers de la copie de travail de la
+passe retouchés (`vault-watch status` donne son chemin), ou `--retouch skip`. Une passe commencée avant que cette
 pause existe reprend sans elle.
 
 ## L'écran de publication
 
 ![L'écran de publication : « Avant de publier » (les contrôles du guide, la traduction, un lien à vérifier, le poids des pages), puis chaque page modifiée avec sa traduction, « Corriger » et « Retraduire »](../images/publish.fr.png)
 
-Après l'application, les miroirs, les contrôles et les liens, le passage s'arrête de nouveau. La branche n'existe
+Après l'application, les miroirs, les contrôles et les liens, la passe s'arrête de nouveau. La branche n'existe
 que sur cette machine. De haut en bas :
 
 - **« Avant de publier »**, un contrôle par ligne : les contrôles du guide (OK, ou l'échec avec son journal : un
   contrôle rouge, c'est une pull request rouge) ; la traduction (combien de pages traduites ont été mises à jour, et
   les problèmes signalés par le traducteur) ; les liens à vérifier vous-même, chacun avec les pages qui le citent,
-  s'il a été ajouté par ce passage ou était déjà dans le guide, et pourquoi (le site ne répond pas, ou bloque les
+  s'il a été ajouté par cette passe ou était déjà dans le guide, et pourquoi (le site ne répond pas, ou bloque les
   robots : ouvrez-le dans votre navigateur) ; le poids des pages, avant et après. Chaque page nommée là est un lien
   qui descend jusqu'à elle.
 - **« Les pages modifiées, et leur traduction »** : une ligne par page (son titre, son chemin, son nombre de
@@ -164,8 +164,8 @@ que sur cette machine. De haut en bas :
 - **Le diff git brut de la branche**, replié, pour vérifier ligne à ligne.
 
 « Corriger » ouvre la page et son miroir côte à côte, chacun à son premier passage modifié (en vert, avec
-« ◀ passage n / m ▶ »). « Enregistrer et recontrôler » commite ce que vous avez corrigé à votre nom sur la branche du
-passage, puis les contrôles du guide et les liens repassent, sans modèle ; le passage revient à la même pause.
+« ◀ passage n / m ▶ »). « Enregistrer et recontrôler » commite ce que vous avez corrigé à votre nom sur la branche de la
+passe, puis les contrôles du guide et les liens repassent, sans modèle ; la passe revient à la même pause.
 Quand seule la page source a été corrigée, l'écran prévient que sa traduction ne la suit plus, et propose
 « Retraduire mes corrections » (le modèle de traduction, sur ce que vous avez changé) ou « Contrôler sans
 retraduire ». « Retraduire » traduit une page depuis le début, après confirmation : sa traduction actuelle est
@@ -182,30 +182,30 @@ Un guide sans dépôt garde la branche dans tous les cas (« Terminer (branche g
 La pull request est fusionnée sur la forge, pas dans votre dossier du guide : Obsidian montre les pages d'avant tant
 que la branche de base du dossier n'avance pas. « À traiter » signale quand il manque au dossier des pull requests
 fusionnées sur la forge (lesquelles, la branche du dossier, ses modifications non commitées, sa dernière mise à
-jour), et la page d'un passage fusionné le dit aussi tant que le dossier n'a pas sa pull request. Le menu « Veille »
+jour), et la page d'une passe fusionnée le dit aussi tant que le dossier n'a pas sa pull request. Le menu « Veille »
 le compte parmi ce qui vous attend.
 
-« Mettre à jour mon dossier » fait avancer la branche de base, comme l'agent le fait déjà avant chaque passage :
+« Mettre à jour mon dossier » fait avancer la branche de base, comme l'agent le fait déjà avant chaque passe :
 en avance rapide seulement ; ce qui n'est pas commité reste tel quel ; la branche affichée n'est jamais changée (sur
 une autre branche, seule la base avance, et le bouton la nomme : « Mettre à jour main »). C'est refusé tant que le
-dossier est prêté à un passage. Quand git refuse (un fichier modifié dans le dossier et par la mise à jour), rien ne
+dossier est prêté à une passe. Quand git refuse (un fichier modifié dans le dossier et par la mise à jour), rien ne
 bouge, et les fichiers en cause sont nommés.
 
 ## Pauses, erreurs, reprises
 
 L'état est enregistré après chaque étape, dans une base SQLite : vous pouvez fermer la page, et revenir des jours
-plus tard à un passage en pause à la relecture ; « À traiter » liste d'abord les passages qui vous attendent. Un
-passage qui s'arrête sur une erreur (une coupure réseau, une
+plus tard à une passe en pause à la relecture ; « À traiter » liste d'abord les passes qui vous attendent. Une
+passe qui s'arrête sur une erreur (une coupure réseau, une
 limite d'abonnement atteinte) reprend à la dernière étape terminée, depuis la page ou avec
 `vault-watch resume --retry` ; l'agent ne passe jamais de lui-même à un moteur facturé
-([Structure du code](code.md#comment-un-passage-se-met-en-pause-et-reprend)).
+([Structure du code](code.md#comment-une-passe-se-met-en-pause-et-reprend)).
 
-## Les autres passages, même chemin
+## Les autres passes, même chemin
 
-Un passage de correction, une correction des traductions, un passage de compactage et un passage d'ajouts n'ont pas
+Une passe de correction, une correction des traductions, une passe de compactage et une passe d'ajouts n'ont pas
 de veille : ils entrent dans le graphe aux propositions, avec des pistes au lieu d'éléments, et suivent le même
 chemin à partir de `number` ([Vérifier le guide](check.md)). Une correction des traductions saute la relecture
-croisée ; un passage de compactage a la sienne, sans le web.
+croisée ; une passe de compactage a la sienne, sans le web.
 
 ## Synchroniser les langues
 
@@ -214,7 +214,7 @@ la page « Langues » que les autres langues suivent. Une page modifiée à la m
 son miroir en arrière. La page « Langues » de l'interface (`vault-watch mirror` en ligne de commande) liste deux
 sortes de pages :
 
-- **Modifiées dans votre dossier, pas encore commitées** : le passage les copie sur sa branche, dans un commit
+- **Modifiées dans votre dossier, pas encore commitées** : la passe les copie sur sa branche, dans un commit
   « edits by hand », pour qu'une seule pull request porte les deux langues. Votre dossier n'est pas touché. Une
   fois la pull request fusionnée, l'agent remet vos copies à l'identique de la branche principale à sa prochaine
   mise à jour du dossier (git refuserait sinon : il n'écrase jamais une modification locale, même identique). Une
@@ -230,11 +230,11 @@ sortes de pages :
 Chaque page montre ses zones modifiées, deux lignes de contexte au-dessus et en dessous, le changement en diff mot
 à mot : ce que la traduction va suivre, lu avant de la payer. Vous cochez les pages ; chacune montre ses passages
 modifiés et son estimation (le modèle de traduction, environ
-un centime par page sur le guide IA on-prem ; la première, le 21 novembre 2026, a coûté 0,01 $). Le passage entre
-ensuite dans le graphe comme si `apply` venait de tourner : `mirror` traduit, puis le passage s'arrête pour **relire
+un centime par page sur le guide IA on-prem ; la première, le 21 novembre 2026, a coûté 0,01 $). La passe entre
+ensuite dans le graphe comme si `apply` venait de tourner : `mirror` traduit, puis la passe s'arrête pour **relire
 la traduction** : chaque passage de la source, avant et après, à côté de ce que le traducteur en a fait dans le
 miroir, les deux en diff mot à mot, pour juger la traduction phrase à phrase. La traduction s'y retouche : votre
-texte remplace celui du modèle (gardé dans le passage), et il est commité tel quel. Puis les contrôles du guide, les
+texte remplace celui du modèle (gardé dans la passe), et il est commité tel quel. Puis les contrôles du guide, les
 liens, et la pause avant la pull request.
 
 ### Vérifier avant de traduire (facultatif)

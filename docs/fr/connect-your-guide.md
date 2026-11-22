@@ -9,13 +9,13 @@ ce que chaque partie facultative débloque, et comment vérifier que tout est pr
 
 Le minimum pour un guide : des pages Markdown dans un dépôt git (le guide est la racine de son dépôt), et un nom et
 une langue dans son manifeste. Tout le reste est facultatif : une partie absente désactive une étape, elle ne fait
-jamais échouer un passage.
+jamais échouer une passe.
 
 ## En trois commandes
 
 ```bash
 vault-watch --guide ../mon-guide init      # écrit vault-watch.toml d'après ce que montre le dossier
-vault-watch --guide ../mon-guide doctor    # ce qui est prêt, ce qui manque (code de sortie 1 si un passage ne peut pas partir)
+vault-watch --guide ../mon-guide doctor    # ce qui est prêt, ce qui manque (code de sortie 1 si une passe ne peut pas partir)
 vault-watch --guide ../mon-guide serve     # l'interface web, sur ce guide
 ```
 
@@ -23,18 +23,18 @@ vault-watch --guide ../mon-guide serve     # l'interface web, sur ce guide
 qui les répètent dans une autre langue, le champ de date de leur front matter. Il laisse de côté l'outillage
 (`node_modules/`, `scripts/`, `docs/`…), les dossiers dont le nom commence par `_` (notes privées, modèles) et les
 fichiers du dépôt (`README.md`, `CLAUDE.md`…), et liste les scripts npm du guide comme pistes pour `[checks]`.
-Chaque supposition est commentée : relisez le fichier avant le premier passage. `--print` l'affiche sans l'écrire,
+Chaque supposition est commentée : relisez le fichier avant la première passe. `--print` l'affiche sans l'écrire,
 `--force` remplace un manifeste existant.
 
 `doctor` vérifie le manifeste, les pages, chaque miroir, git, `gh` et le dépôt, la veille, chaque contrôle et le
 programme dont il a besoin, et le moteur (Claude Code connecté avec un abonnement, ou une clé d'API trouvée).
 
 Sans `--guide`, les commandes prennent `VAULT_PATH`, puis le dossier courant s'il contient un `vault-watch.toml`.
-Les passages de chaque guide sont rangés à part, dans un dossier à eux sous `~/.vault-watch/guides/` ; les réglages
+Les passes de chaque guide sont rangées à part, dans un dossier à elles sous `~/.vault-watch/guides/` ; les réglages
 (moteur, modèles, dans `~/.vault-watch/settings.json`) sont communs à tous les guides. `VAULT_WATCH_HOME` place ce
 dossier ailleurs ; un dossier `.vault-watch` dans le dossier courant, comme l'agent l'utilisait avant 1.0, sert
 encore s'il existe. Le journal des coûts va dans `~/.vault-watch/usage.jsonl` (`VAULT_WATCH_JOURNAL` pour le
-changer). Rien n'est écrit dans le guide en dehors de la branche d'un passage.
+changer). Rien n'est écrit dans le guide en dehors de la branche d'une passe.
 
 ## Le manifeste
 
@@ -72,12 +72,12 @@ frappe ne doit pas désactiver une partie sans rien dire.
 | :-- | :-- | :-- |
 | `name` | oui | Le nom du guide, dans l'interface et dans les consignes du modèle. |
 | `description` | non | Le sujet du guide, en une phrase. Elle entre dans les consignes : le modèle juge la pertinence d'après elle. |
-| `repository` | non | `propriétaire/nom` sur la forge (GitHub, sauf si `forge` en nomme une autre). Sans lui, le guide est local : aucune issue lue, aucune pull request, la branche d'un passage reste sur votre machine. |
+| `repository` | non | `propriétaire/nom` sur la forge (GitHub, sauf si `forge` en nomme une autre). Sans lui, le guide est local : aucune issue lue, aucune pull request, la branche d'une passe reste sur votre machine. |
 | `forge` | non | Où se trouve `repository` : `github` (par défaut, par `gh`, authentifié par `gh auth login`) ou `gitea` (par l'API de Gitea, avec un jeton). |
 | `forge_url` | avec `gitea` | L'adresse du serveur Gitea, par exemple `https://gitea.example.org` ou `http://192.168.1.10:3000`. |
 | `forge_token` | non | Gitea : où se trouve le jeton, sous forme de référence, jamais le jeton lui-même : `env:NOM` (par défaut `env:GITEA_TOKEN`), `sops:fichier#NOM` ou `file:chemin`. Il lui faut le droit `repository` en écriture pour ouvrir les pull requests, et le droit `issue` (en écriture) pour une veille `issues`. Un jeton Gitea vaut pour tous les dépôts que son compte peut atteindre : donnez à l'agent un compte à lui, collaborateur du seul dépôt du guide. |
 | `site` | non | Le site publié, lié depuis l'interface. |
-| `base_branch` | non | La branche d'où partent les passages et que visent les pull requests (`main` par défaut). |
+| `base_branch` | non | La branche d'où partent les passes et que visent les pull requests (`main` par défaut). |
 
 ### `[content]`
 
@@ -127,7 +127,7 @@ format, clé par clé : [Le format d'une veille](watch-format.md).
 
 Seuls les éléments `"triage": "keep"` sont lus, les urgents d'abord. `notes` est ce que le modèle lit de
 l'élément : plus il contient de faits (versions, dates, chiffres), moins le modèle doit deviner. `until` est la fin
-de la fenêtre de veille, la date du rapport du passage.
+de la fenêtre de veille, la date du rapport de la passe.
 
 ### `[rules]`
 
@@ -148,7 +148,7 @@ ne déclare pas est « non vérifié » dans le rapport, sur l'écran de publica
 | Clé | Quand | Attendu |
 | :-- | :-- | :-- |
 | `audits` | avant la pull request, sur la copie corrigée | Code de sortie 0 quand le guide est sain. Sa sortie va dans la pull request en cas d'échec. |
-| `claims_due` | au début d'un passage (sans réseau) | `{out}` : `{"claimsDue": [{"page": "...", "claim": "...", "recheckBy": "2026-11-01"}]}`, les affirmations datées dont la date de revérification est passée. Elles sont listées dans le rapport. |
+| `claims_due` | au début d'une passe (sans réseau) | `{out}` : `{"claimsDue": [{"page": "...", "claim": "...", "recheckBy": "2026-11-01"}]}`, les affirmations datées dont la date de revérification est passée. Elles sont listées dans le rapport. |
 | `sources` | avant la pull request | `{out}` : `{"sources": [{"url": "...", "citations": [{"page": "..."}], "probe": {"status": "ok", "code": 200}}]}`. Une source citée par une page corrigée dont le statut est `dead`, `server-error`, `network-error`, `timeout` ou `blocked` est signalée sur l'écran de publication. |
 | `version_floors` | après l'application des corrections | Une table `{ script = "...", file = "..." }` : `node <script> --write` met à jour `file` (les versions minimales qu'énoncent les pages), commité avec les corrections. |
 
@@ -158,7 +158,7 @@ ne déclare pas est « non vérifié » dans le rapport, sur l'écran de publica
 La relecture globale, son balayage et le contrôle de cohérence lisent le guide entier en un appel quand il tient
 dans la fenêtre du modèle (moins une réserve de 100 k tokens pour les consignes, le web et la réponse) et sous ce
 plafond ; sinon ils passent chapitre par chapitre (un [chapitre](#chapter) par appel, avec les pages que
-modifient les corrections), et le rapport comme l'écran du passage le disent : une contradiction entre deux
+modifient les corrections), et le rapport comme l'écran de la passe le disent : une contradiction entre deux
 chapitres peut alors échapper. Sans plafond : la fenêtre du modèle décide.
 
 `growth_kb` (5 par défaut) et `growth_percent` (25) : une page qui a pris autant de Ko en 90 jours, ou cette part
@@ -254,5 +254,5 @@ vault-watch doctor
 vault-watch run --watch-json watch.json
 ```
 
-Un passage appelle le modèle : avec le moteur Claude Code, il prend sur votre abonnement Claude ; avec le moteur
-API, il est facturé sur votre clé (voir « Le modèle » dans le README).
+Une passe appelle le modèle : avec le moteur Claude Code, elle prend sur votre abonnement Claude ; avec le moteur
+API, elle est facturée sur votre clé (voir « Le modèle » dans le README).

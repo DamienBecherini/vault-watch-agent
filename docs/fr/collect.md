@@ -120,7 +120,7 @@ Les règles :
 - **Avis.** Un avis de faible gravité est écarté, de même qu'un avis déjà corrigé au plancher du guide : le plancher
   est hors de la plage vulnérable, ou la première version corrigée est égale ou inférieure au plancher, ou le
   correctif publié pour la branche du plancher l'est. Un avis High ou Critical que le plancher ne couvre pas est
-  **urgent**, et le passage le traite en premier.
+  **urgent**, et la passe le traite en premier.
 - **Modèles.** Les variantes quantifiées, les adaptateurs (LoRA) et les affinages d'un autre éditeur (en
   découverte) sont écartés.
 - **Déjà vus.** Un élément dont l'adresse figure dans le fichier `seen` est écarté.
@@ -138,7 +138,7 @@ compte. Un tableau des éléments déjà triés convient.
 
 La page « Sources suivies » de l'interface (dans le menu « Veille », `GET /api/sources`) montre, pour chaque
 flux de `feeds.json`, ce qu'il a apporté et ce qu'il en est sorti. Rien n'est demandé à un modèle ni au réseau : le tableau est calculé à partir des
-veilles gardées sur la machine (chaque élément nomme son flux) et des passages faits à partir d'elles.
+veilles gardées sur la machine (chaque élément nomme son flux) et des passes faites à partir d'elles.
 
 ![La page « Sources de la veille » : « Vérifier les sources », jamais lancé ici, les états pour filtrer (85 muettes : aucune veille encore lue sur cette machine), puis une ligne par source avec ce qu'elle a apporté et ce qui en est sorti](../images/sources.fr.png)
 
@@ -147,7 +147,7 @@ veilles gardées sur la machine (chaque élément nomme son flux) et des passage
 | :-- | :-- |
 | Collectés | les éléments distincts vus dans les veilles (leurs fenêtres se recouvrent : un élément compte une fois) |
 | Gardés au tri | ceux que le tri préalable a gardés, avant tout modèle |
-| Jugés par le modèle | ceux qu'un passage a triés |
+| Jugés par le modèle | ceux qu'une passe a triés |
 | Retenus | ceux que le modèle a retenus pour une correction ou comme candidat à un ajout |
 | Corrections proposées, acceptées | les corrections qui citent un élément du flux, et celles que le relecteur a acceptées |
 
@@ -221,7 +221,7 @@ l'artefact contient la veille. Les paramètres du workflow :
 | `guide` | `.` | Le dossier du guide dans son dépôt. |
 | `label`, `artifact` | `watch`, `weekly-watch` | L'étiquette de l'issue et le nom de l'artefact ; `label` et `artifact` du manifeste doivent être les mêmes. |
 | `title` | `Watch` | Le début du titre de l'issue. |
-| `urgent_only` | `false` | N'ouvrir une issue que pour un avis urgent : un passage entre deux passages complets. |
+| `urgent_only` | `false` | N'ouvrir une issue que pour un avis urgent : une passe entre deux passes complètes. |
 | `open_issue` | `true` | `false` : garder l'artefact, ne rien ouvrir. |
 | `agent_ref` | la version du workflow | La version de l'agent à installer. |
 

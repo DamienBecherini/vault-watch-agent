@@ -51,19 +51,19 @@ sequenceDiagram
 
 Cette relecture croisée a coûté 2,70 $ : 2,22 $ pour écrire le guide dans le cache, 0,26 $ pour le relire au fil de
 ses tours, 0,20 $ de réponse. Les propositions d'avant, qui ne voient que des extraits, ont coûté 0,30 $ pour quatre
-appels. **Ce que coûte un passage, c'est d'abord combien de fois le guide est écrit dans un cache**, puis combien
+appels. **Ce que coûte une passe, c'est d'abord combien de fois le guide est écrit dans un cache**, puis combien
 de tours le relisent, puis ce que le modèle écrit. Un guide deux fois plus petit coûte à peu près moitié moins.
 
-## Où part l'argent, par sorte de passage
+## Où part l'argent, par sorte de passe
 
-| Passage | Ce qui pèse | Mesuré sur le guide IA on-prem |
+| Passe | Ce qui pèse | Mesuré sur le guide IA on-prem |
 | :-- | :-- | --: |
-| Une veille | La relecture croisée : le guide écrit une fois, relu à chaque tour, environ les quatre cinquièmes du passage | 2,95 à 4,45 $ |
-| Un passage de correction | Les propositions lisent tout le guide et le web pour chaque erreur, puis la relecture croisée écrit de nouveau le guide | 5,60 à 8,15 $ |
+| Une veille | La relecture croisée : le guide écrit une fois, relu à chaque tour, environ les quatre cinquièmes de la passe | 2,95 à 4,45 $ |
+| Une passe de correction | Les propositions lisent tout le guide et le web pour chaque erreur, puis la relecture croisée écrit de nouveau le guide | 5,60 à 8,15 $ |
 | Une correction des traductions | Les pages et leurs miroirs, sur le modèle de traduction ; ni web ni relecture croisée | 0,35 $ |
 | Une vérification du guide | La cohérence (le guide écrit une fois, 27 k tokens écrits), les traductions (un appel par chapitre), les affirmations sur le web | 7,25 à 10,85 $ |
-| Compactage | Le rapport écrit une longue réponse (48 k tokens sur Fable 5.2) ; le passage écrit les allègements de chaque constat | 6,28 $, puis 18,87 $ pour 30 constats |
-| Nouveautés | Les pistes : un appel sur tout le guide, 2,28 $. Le passage d'ajouts : environ 4 $ de relecture croisée quelles que soient les pistes, puis pour chaque piste un appel de 7 à 30 tours sur le web, 1,80 à 2,80 $ quand il lit tout le guide, 0,40 à 1,30 $ quand il lit ses pages et le plan | 8,70 à 12,95 $ pour 2 à 5 pistes |
+| Compactage | Le rapport écrit une longue réponse (48 k tokens sur Fable 5.2) ; la passe écrit les allègements de chaque constat | 6,28 $, puis 18,87 $ pour 30 constats |
+| Nouveautés | Les pistes : un appel sur tout le guide, 2,28 $. La passe d'ajouts : environ 4 $ de relecture croisée quelles que soient les pistes, puis pour chaque piste un appel de 7 à 30 tours sur le web, 1,80 à 2,80 $ quand il lit tout le guide, 0,40 à 1,30 $ quand il lit ses pages et le plan | 8,70 à 12,95 $ pour 2 à 5 pistes |
 | L'exploration du web | Un appel par chapitre, chacun d'environ 25 tours, chaque tour relisant le guide depuis le cache et le web lu jusque-là | estimé 4,81 $ par chapitre |
 
 Le détail de chaque contrôle est dans [Vérifier le guide](check.md#le-catalogue), celui du compactage dans
@@ -73,7 +73,7 @@ Le détail de chaque contrôle est dans [Vérifier le guide](check.md#le-catalog
 ## Les estimations
 
 Avant une étape payante, l'interface affiche ce qu'elle devrait coûter : sur le bouton d'une veille, de chaque
-contrôle, d'un passage fait de pistes (et, pour un passage d'ajouts, poste par poste dans les options de la barre :
+contrôle, d'une passe faite de pistes (et, pour une passe d'ajouts, poste par poste dans les options de la barre :
 les pistes normales, les pistes creusées, la relecture croisée et les miroirs), d'un découpage en chapitres, de
 « Retraduire » sur l'écran de publication. Une estimation se compose de trois choses :
 
@@ -81,9 +81,9 @@ les pistes normales, les pistes creusées, la relecture croisée et les miroirs)
    (853 Ko de pages françaises = 408 k tokens). Un guide dans une autre langue, ou avec plus de code, a plus de
    tokens par octet ; là où cela compte (le guide tient-il dans la fenêtre ?), le compte est relevé de 15 %.
 2. **Ce que l'étape écrit, et combien de tours elle lit**, mesuré sur le guide IA on-prem et noté dans le code avec
-   le passage d'où vient la mesure (`verify.py`) : 27 k tokens écrits par le contrôle de cohérence, 18 tours et
-   80 k tokens de pages web par piste d'un passage d'ajouts, 25 tours par chapitre exploré… Ce qu'une étape écrit
-   est **compté large exprès** : une estimation affichée avant un passage facturé ne doit pas être dépassée.
+   la passe d'où vient la mesure (`verify.py`) : 27 k tokens écrits par le contrôle de cohérence, 18 tours et
+   80 k tokens de pages web par piste d'une passe d'ajouts, 25 tours par chapitre exploré… Ce qu'une étape écrit
+   est **compté large exprès** : une estimation affichée avant une passe facturée ne doit pas être dépassée.
 3. **Les prix des modèles de vos réglages**, étape par étape (une étape mise à part sur un autre modèle est chiffrée
    sur lui), d'après la table des prix ci-dessous.
 
@@ -96,8 +96,8 @@ contrôle de cohérence était estimé 2,59 $ et a coûté 2,64 et 2,73 $ ; les 
 Une estimation s'affiche aussi quand rien n'est facturé. Sur un abonnement, ce que vaut l'étape au prix catalogue
 est affiché barré, à côté de « abonnement, non facturé » (son info-bulle : « Valeur au prix catalogue de l'API ;
 pris sur ton abonnement Claude, rien n'est facturé »). De même pour ce qui a été dépensé : une vérification, la
-ligne d'un passage, sa progression et les listes des passages montrent les appels faits sur un abonnement par leur
-prix catalogue barré, marqué « abonnement », au lieu de 0,00 $ ; le rapport d'un passage le dit en toutes lettres
+ligne d'une passe, sa progression et les listes des passes montrent les appels faits sur un abonnement par leur
+prix catalogue barré, marqué « abonnement », au lieu de 0,00 $ ; le rapport d'une passe le dit en toutes lettres
 (« n on the subscription, not billed; worth X $ at list price », en anglais comme le reste du rapport). Avec un
 modèle local, la page dit « modèle local, non facturé » ; avec un autre fournisseur compatible OpenAI, « facturé par
 ton fournisseur ».
@@ -120,7 +120,7 @@ long par lequel il commence.
 
 ## Le journal et la page « Coûts »
 
-Chaque appel ajoute une ligne au journal : la date, le passage, la sorte de passage, l'étape, le modèle, les tokens
+Chaque appel ajoute une ligne au journal : la date, la passe, la sorte de passe, l'étape, le modèle, les tokens
 de chaque sorte, les recherches web et le coût. Pour vous, c'est `~/.vault-watch/usage.jsonl` ; ce dépôt garde le
 journal du guide IA on-prem, [`metrics/usage.jsonl`](../../metrics/usage.jsonl), versionné.
 
@@ -130,24 +130,24 @@ journal du guide IA on-prem, [`metrics/usage.jsonl`](../../metrics/usage.jsonl),
   l'API (`list_usd`, tel que Claude Code le donne).
 - **Un appel à un modèle local** coûte 0.
 
-La page « Coûts » de l'interface totalise le journal par mois et par passage, avec les appels faits sur un
+La page « Coûts » de l'interface totalise le journal par mois et par passe, avec les appels faits sur un
 abonnement dans des colonnes à eux. `vault-watch costs --by month` (ou `year`, `run`, `step`) donne la même chose en
-ligne de commande ; `--by step` montre quelles étapes pèsent, sur tous les passages.
+ligne de commande ; `--by step` montre quelles étapes pèsent, sur toutes les passes.
 
-![La page « Coûts » : le total du journal et les appels faits sur l'abonnement, d'où viennent les prix, puis les totaux par mois et par passage, avec les appels sur l'abonnement dans des colonnes à eux](../images/costs.fr.png)
+![La page « Coûts » : le total du journal et les appels faits sur l'abonnement, d'où viennent les prix, puis les totaux par mois et par passe, avec les appels sur l'abonnement dans des colonnes à eux](../images/costs.fr.png)
 
 
 ## Ce qui fait baisser le coût
 
 | Levier | Ce qu'il change | Ce qu'il peut coûter en qualité |
 | :-- | :-- | :-- |
-| Claude Code sur un abonnement | Rien de facturé ; les appels comptent dans les limites de l'abonnement, et une relecture croisée y pèse | Rien : mêmes modèles. Un passage s'arrête à la limite et reprend plus tard |
+| Claude Code sur un abonnement | Rien de facturé ; les appels comptent dans les limites de l'abonnement, et une relecture croisée y pèse | Rien : mêmes modèles. Une passe s'arrête à la limite et reprend plus tard |
 | Un modèle plus petit pour une étape | La traduction sur Sonnet 5.5 coûte moitié moins que sur Opus 5.5 | Selon l'étape : voir [Choisir un modèle](choose-a-model.md) |
 | Un effort plus bas | Moins de réflexion écrite, donc moins de tokens en sortie | Le modèle réfléchit moins avant de répondre ; mesurez-le sur votre guide avant de le garder ([Choisir un modèle](choose-a-model.md#mesurer-son-propre-modèle)) |
-| Un passage d'ajouts sur « les pages de la piste et le plan du guide » | L'appel de chaque piste lit ses pages au lieu du guide à chaque tour : environ moitié moins (le défaut de `vault-watch fix --add`) | Une piste qui touche des pages qu'elle n'a pas nommées en voit moins ; la relecture croisée lit toujours tout le guide |
+| Une passe d'ajouts sur « les pages de la piste et le plan du guide » | L'appel de chaque piste lit ses pages au lieu du guide à chaque tour : environ moitié moins (le défaut de `vault-watch fix --add`) | Une piste qui touche des pages qu'elle n'a pas nommées en voit moins ; la relecture croisée lit toujours tout le guide |
 | Moins de chapitres explorés | 4,81 $ de moins par chapitre laissé décoché | Ses sujets ne sont pas cherchés |
 | Un guide plus léger | Chaque étape qui lit le guide coûte en proportion ([Compactage](compact.md)) | Aucune, si ce qui est retiré était répété |
 
-L'agent ne choisit jamais de lui-même un moteur facturé : quand une limite d'abonnement est atteinte, le passage
-s'arrête, et la relecture prévient quand la suite d'un passage partirait sur un moteur facturé parce que les
+L'agent ne choisit jamais de lui-même un moteur facturé : quand une limite d'abonnement est atteinte, la passe
+s'arrête, et la relecture prévient quand la suite d'une passe partirait sur un moteur facturé parce que les
 Réglages ont changé.
