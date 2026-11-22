@@ -12,6 +12,26 @@ const dollars = n => `${(n ?? 0).toFixed(2)} $`;
 const kb = n => `${(n / 1024).toLocaleString(lang, { maximumFractionDigits: Math.abs(n) < 10240 ? 1 : 0 })} ${lang === "fr" ? "Ko" : "KB"}`;
 const signedKb = n => `${n > 0 ? "+" : ""}${kb(n)}`;
 const extLink = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>`;
+// A lead or a finding as one line (news.line, verify._line): « [kind] pages: text Read also: a, b. Sources: u, v ».
+// Its parts, to draw them apart; the line itself stays what is sent to a run.
+function leadParts(line) {
+  let rest = line, sources = [], read = [];
+  const s = rest.match(/ Sources: (https?:\/\/\S.*)$/);
+  if (s) { sources = s[1].split(/,\s+/).filter(u => /^https?:\/\//.test(u)); rest = rest.slice(0, s.index); }
+  const r = rest.match(/ Read also: ([^\n]*?)\.$/);
+  if (r) { read = r[1].split(/,\s+/); rest = rest.slice(0, r.index); }
+  const k = rest.match(/^\[([^\]]+)\] ([^:]*?): /);
+  if (!k) return { kind: "", pages: [], text: rest, read, sources };
+  return { kind: k[1], pages: k[2] === "no page yet" ? [] : k[2].split(", "), text: rest.slice(k[0].length), read, sources };
+}
+// An address, short: its site and the end of its path (github.com › vllm/releases/tag/v0.34.0)
+const shortUrl = u => {
+  try {
+    const a = new URL(u), path = decodeURIComponent(a.pathname).replace(/\/$/, "");
+    const tail = path.length > 42 ? `…${path.slice(-40)}` : path;
+    return `${a.hostname.replace(/^www\./, "")}${tail ? ` › ${tail.replace(/^\//, "")}` : ""}`;
+  } catch { return u; }
+};
 let source = null;  // EventSource of the run being followed
 
 // --- Languages ---------------------------------------------------------------------------------------
@@ -116,6 +136,9 @@ const TEXTS = {
       linksLink: "Un article, une page, un PDF à lire en entier ? Donne leurs adresses : l'agent en tire des pistes.",
       linksRead: "Les liens", linkChars: (n, cut) => `${n.toLocaleString("fr")} caractères lus${cut ? " (coupé)" : ""}`,
       dig: "creuser (plusieurs sources, plus de recherches, un peu plus cher)",
+      kinds: { "From a link": "D'un lien", "Found on the web": "Trouvée sur le web", Newer: "Plus récent", Missing: "Manquant",
+        "Seen by the watch": "Vu par la veille", Critical: "Critique", Major: "Majeur", Minor: "Mineur" },
+      noPage: "pas encore de page", readAlso: "À lire aussi :", sources: "Sources :",
       leadsAdd: "Une piste est une question à vérifier, pas une modification : rien n'est encore écrit. Le passage encadré est ce que le guide dit aujourd'hui (en surligné, la phrase visée ; les lignes voisines donnent le contexte). Pour chaque piste cochée, la passe d'ajouts lit les sources, puis propose de corriger ce qui est dépassé ou d'ajouter ce qui manque, dans toutes les pages concernées. Tu relis ces propositions avant qu'elles s'appliquent.",
       onlyFree: "Seulement les gratuits",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
@@ -425,6 +448,7 @@ const TEXTS = {
       linksLink: "An article, a page, a PDF to read whole? Give their addresses: the agent draws leads from them.",
       linksRead: "The links", linkChars: (n, cut) => `${n.toLocaleString("en")} characters read${cut ? " (cut)" : ""}`,
       dig: "dig deeper (several sources, more searches, a little more expensive)",
+      kinds: {}, noPage: "no page yet", readAlso: "Read also:", sources: "Sources:",
       leadsAdd: "A lead is a question to check, not a change: nothing is written yet. The framed passage is what the guide says today (highlighted: the sentence concerned; the lines around give the context). For each lead ticked, the addition run reads the sources, then proposes to correct what is out of date or to add what is missing, in every page concerned. You review these proposals before they apply.",
       onlyFree: "Only the free ones",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
@@ -1596,7 +1620,12 @@ async function viewCheck(id) {
           <span class="small">${esc(v.unchecked[f])}</span> <button type="button" class="primary" data-reopen="${esc(f)}">${V.resend}</button></div>` : ""}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
-    return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span>${esc(f)}</span></label>${
+    const p = leadParts(f), kind = p.kind ? `<span class="badge neutral">${esc(V.kinds[p.kind] || p.kind)}</span> ` : "";
+    const pages = p.pages.length ? p.pages.map(x => `<code>${esc(x)}</code>`).join(", ") : p.kind ? `<span class="muted">${V.noPage}</span>` : "";
+    const meta = (p.read.length ? `<div>${V.readAlso} ${p.read.map(x => `<code>${esc(x)}</code>`).join(", ")}</div>` : "")
+      + (p.sources.length ? `<div>${V.sources} ${p.sources.map(u => extLink(u, esc(shortUrl(u)))).join(" · ")}</div>` : "");
+    return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span class="lead-body">${kind}${pages}${pages ? "<br>" : ""}${esc(p.text)}</span></label>${
+      meta ? `<div class="lead-meta muted small">${meta}</div>` : ""}${
       mode === "add" ? `<label class="dig muted small"><input type="checkbox" data-deep="${esc(f)}"> ${V.dig}</label>` : ""}${excerpts(passages)}</li>`;
   }
   const boxes = [...page.querySelectorAll("[data-lead]")];
