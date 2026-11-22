@@ -28,6 +28,19 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   phone, « ⋯ » opens them, a « ? » keeps what each step does, and a lead's title takes the whole width.
 - A lead unticked is no longer dug deeper (it stayed dug, and counted, before): what may be ticked follows one rule,
   `static/rules.js`, tested with node (`tests/test_rules.py`, every order of the clicks).
+- **The list of the checks says what each one is**: its kind in colour (guide health, lighter guide, what is new;
+  `Check.kind`), a short title (« Links to read whole · 2 links », « 7 checks »), « from Report or suggest » when it
+  was not started there, the links it read as links (a PDF named after its file when it has no title), and the
+  history narrowed to one kind. A check on a subscription shows what it is worth at list price, struck through,
+  instead of 0.00 $. The runs its leads went to stay on its card while they wait for something, with the button of
+  their step (Follow, Review, Approve publishing, Merge).
+- **The review of a run, one block per lead**: its number and title on the check's page, its source, a link to the
+  check, the English text the run was given folded once (it was under each correction); an addition shown as
+  « Added after « … » » and the new text alone (the paragraph it follows was shown twice); a group of corrections
+  ticked by one box that says why they go together and that a text is changed by retouching it; the leads left
+  without a change in a frame of their own, at the top.
+- An addition run says what its leads came from (« links to read whole (add-…) », in its pull request too): it said
+  « what a reader would look for and not find » whatever the check.
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
   the pages to read also and its sources, short and clickable, instead of one block. A check started from the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the
