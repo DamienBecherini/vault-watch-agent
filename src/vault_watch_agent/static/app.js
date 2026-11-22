@@ -24,6 +24,9 @@ function leadParts(line) {
   if (!k) return { kind: "", pages: [], text: rest, read, sources };
   return { kind: k[1], pages: k[2] === "no page yet" ? [] : k[2].split(", "), text: rest.slice(k[0].length), read, sources };
 }
+// A check's estimate as the interface will start it: in another language than English, its leads are explained in
+// it, which the model writes on top (verify.EXPLAIN_SHARE)
+const est = (o, key) => lang !== "en" && o[`${key}_explained`] != null ? o[`${key}_explained`] : o[key];
 const OPEN_LEADS = new Set();  // the leads unfolded, kept while the page is open (verification/line)
 // Where a lead comes from, in a few words: the repository on GitHub, else the site
 const origin = u => {
@@ -184,8 +187,9 @@ const TEXTS = {
       // by: the ticked leads per kind of run (fix, translation, compact, add); one run per kind
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"], ["add", "ajouts", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
+        if (!kinds.length) return "Coche des pistes pour créer une passe";
         return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2], k[0])})`).join(", ")}`
-          : `Créer une passe ${(kinds[0] || [0, "fix"])[1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
+          : `Créer une passe ${kinds[0][0] === "add" ? "d'ajouts" : kinds[0][1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
       heaviest: "Pages les plus lourdes", flaggedFirst: "Pages signalées, puis les plus lourdes", perChapter: "Par chapitre",
       over: "au-dessus de son plafond", grew: "a beaucoup grossi", newPage: "nouvelle page",
@@ -507,6 +511,7 @@ const TEXTS = {
       claims: "Claims to re-check", pagesDue: "Pages due for review", log: "Log",
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"], ["add", "addition", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
+        if (!kinds.length) return "Tick leads to create a run";
         return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} lead(s) as ${/^a/.test(k[1]) ? "an" : "a"} ${k[1]} run (${c(k[2], k[0])})`).join(", ")}`
           : `Create ${kinds[0]?.[0] === "add" ? "an" : "a"} ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} lead(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
@@ -1527,7 +1532,7 @@ async function viewChecks() {
   const verifs = listed.slice(0, CHECKS_SHOWN);
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
   // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
-  const price = o => o.model ? costOf(o.id, o.usd == null ? V.unknown : `≈ ${dollars(o.usd)}`) : V.free;
+  const price = o => o.model ? costOf(o.id, o.usd == null ? V.unknown : `≈ ${dollars(est(o, "usd"))}`) : V.free;
   const origin = o => o.model && o.price_origin && o.usd != null && billedStep(o.id)
     ? ` <span class="muted small">${esc(T.priceOrigin(o.price_origin))}</span>` : "";
   // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
@@ -1559,7 +1564,7 @@ async function viewChecks() {
         ${o.limit ? `<p class="small attention-text">${esc(o.limit[lang])}</p>` : ""}
         <p class="muted small">${esc(o.note[lang])}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
       </div></label>${o.model ? `<div class="card-foot">${stepLine(o.id)}</div>` : ""}${o.chapters ? `<div class="card-foot chapters" data-chapters-of="${o.id}" hidden>
-        <p class="muted small">${V.chapters(costOf(o.id, `≈ ${dollars(o.usd_chapter || 0)}`))}</p>
+        <p class="muted small">${V.chapters(costOf(o.id, `≈ ${dollars(est(o, "usd_chapter") || 0)}`))}</p>
         ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" ${(kept ? kept.chapters.has(c.id) : c.explore) ? "checked" : ""}> ${esc(c.id)} <span class="muted small">(${c.pages} p., ${T.chapters.kb(Math.round(c.kb))})</span></label>`).join("")}
         <p class="small"><a href="#/chapters">${T.chapters.edit}</a></p>
       </div>` : ""}</div>`).join("")}
@@ -1576,7 +1581,7 @@ async function viewChecks() {
     // A check with chapters (the exploration) shows them when it is ticked, and costs one call per chapter ticked
     page.querySelectorAll("[data-chapters-of]").forEach(d => { d.hidden = !ids.has(d.dataset.chaptersOf); });
     const chosen = options.filter(o => ids.has(o.id)), paid = chosen.filter(o => o.model), billed = paid.filter(o => billedStep(o.id));
-    const usd = billed.reduce((s, o) => s + (o.usd || 0) + (o.chapters ? (o.usd_chapter || 0) * chapters().length : 0), 0);
+    const usd = billed.reduce((s, o) => s + (est(o, "usd") || 0) + (o.chapters ? (est(o, "usd_chapter") || 0) * chapters().length : 0), 0);
     // Scripts only: free. Every model check on a subscription or a local model: said. Else what the billed ones cost.
     $("#start").textContent = V.start(!paid.length ? V.free : !billed.length ? costOf(paid[0].id, "")
       : `≈ ${dollars(usd)}${billed.length < paid.length ? ` + ${T.perStep.restUnbilled}` : ""}`);
@@ -1883,7 +1888,7 @@ async function viewLinks() {
   const [all, video] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api("/api/videos")]);
   const o = all.find(x => x.id === "links") || {};
   const max = o.links_max || 10;
-  const price = billedStep("links") ? T.linksCost(`≈ ${dollars(o.usd || 0)}`, `≈ ${dollars(o.usd_link || 0)}`, max)
+  const price = billedStep("links") ? T.linksCost(`≈ ${dollars(o.usd || 0)}`, `≈ ${dollars(est(o, "usd_link") || 0)}`, max)
     : stepNow("links")?.billing === "subscription" ? T.reportSubscription : costOf("links", "");
   page.innerHTML = `
     <h1>${T.reportTitle}</h1>

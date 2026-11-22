@@ -64,6 +64,9 @@ MIRROR_IN_EACH, MIRROR_OUT_EACH = 30_000, 2_000  # a page and its mirror, one pa
 # characters, 30,000 tokens, 9,913 written) and a PDF guide of the ANSSI (75,930 characters, 34,550 tokens, 7,107 written)
 LINK_IN = 32_000
 LINK_OUT = 9_000
+# The same check run in French on 2026-11-22: each lead also explained to the editor (news.in_language), 27,084 tokens
+# written instead of 17,020: what the model writes for the leads grows by this share in any language but English
+EXPLAIN_SHARE = 0.6
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 # A third run read its leads' pages and the plan instead of the guide (add-2026-11-20-3, five leads, 8.41 $ before
@@ -164,6 +167,8 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
     add_checked = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN, tokens_out=ADD_CROSS_OUT, cache_write=fr,
                         cache_read=ADD_CROSS_READS * fr, table=table)
                    + _usd(of("crosscheck"), tokens_in=ADD_SWEEP_IN, tokens_out=ADD_SWEEP_OUT, cache_read=fr, table=table))
+    # A check of leads started in another language than English: its leads explained in it, written on top
+    explained = lambda step, out: _usd(of(step), tokens_out=int(EXPLAIN_SHARE * out), table=table)  # noqa: E731
     # What a call of the "pages" context reads, and caches: never more than the guide itself
     own = min(fr, int(PLAN_SHARE * fr + ADD_PAGES_BYTES / BYTES_PER_TOKEN))
     return {
@@ -185,12 +190,15 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
                         + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
                            if vault.guide_of(vault_dir).mirrors else 0.0)},
         "news": {"tokens": fr + NEWS_OUT, "usd": _usd(of("news"), tokens_out=NEWS_OUT, cache_write=fr, table=table),
+                 "usd_explained": _usd(of("news"), tokens_out=NEWS_OUT, cache_write=fr, table=table) + explained("news", NEWS_OUT),
                  "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est vérifié ni modifié".replace(",", " "),
                               f"{fr:,} tokens of pages, read whole; nothing is verified or edited")},
         # One call per chapter: `usd` whatever the chapters (the guide written to the cache), `usd_chapter` for each
         "explore": {"tokens": fr + WEB_CALL_IN, "usd": _usd(of("explore"), cache_write=fr, table=table),
                     "usd_chapter": _usd(of("explore"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
                                         cache_read=WEB_CALL_ROUNDS * fr, table=table),
+                    "usd_chapter_explained": _usd(of("explore"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
+                                                  cache_read=WEB_CALL_ROUNDS * fr, table=table) + explained("explore", WEB_CALL_OUT),
                     "note": note(f"un appel par chapitre choisi, avec le web et les {fr:,} tokens du guide ; rien n'est "
                                  "modifié".replace(",", " "),
                                  f"one call per chapter chosen, with the web and the {fr:,} tokens of the guide; nothing is "
@@ -198,6 +206,8 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         # One call per link read: `usd` whatever the links (the guide written to the cache), `usd_link` for each
         "links": {"tokens": fr + LINK_IN, "usd": _usd(of("links"), cache_write=fr, table=table),
                   "usd_link": _usd(of("links"), tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr, table=table),
+                  "usd_link_explained": _usd(of("links"), tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr, table=table)
+                  + explained("links", LINK_OUT),
                   "note": note(f"un appel par lien lu, sans le web, avec les {fr:,} tokens du guide ; rien n'est vérifié ni "
                                "modifié".replace(",", " "),
                                f"one call per link read, without the web, with the {fr:,} tokens of the guide; nothing is "
