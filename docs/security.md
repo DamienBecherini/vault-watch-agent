@@ -33,12 +33,21 @@ agent an account of its own, collaborator of the guide's repository alone, with 
 - **A correction is a quote and a replacement.** The code applies it only when the quoted text occurs exactly once
   in the page (`vault.check`), on a git worktree of a new branch, never on `main`. A read-only page
   (`[content] readonly`) is refused whatever step proposes the edit.
+- **A correction touches only a page of the guide.** The page a correction names is written by the model, from
+  what it read; the code accepts only a content page of the guide or its mirror (`vault.is_page`: a relative path
+  inside the guide, a Markdown page of `[content] include`). Never the guide's scripts, its manifest, a dot folder
+  or a file outside the guide: the agent runs the guide's checks after applying, so a correction on one of them
+  would have been code run on your machine (until 1.4.2).
 - **Two human pauses.** Nothing is applied before the review, nothing is pushed before a second yes. The pull
   request is then merged by a human, on the forge.
 - **Claude Code runs bare.** On the `claude-code` engine each call is `claude -p --safe-mode` with none of your
-  instructions, hooks, skills or MCP servers, no conversation kept, no tool but web search and fetch (none at all
-  on the steps that do not check sources), and the API keys removed from its environment. It is refused when it
-  is signed in otherwise than with a subscription, so that a call is never billed without a question.
+  instructions, hooks, skills or MCP servers, no conversation kept, no tool at all on the steps that do not check
+  sources, and the API keys removed from its environment. On the steps that check sources it gets its WebSearch
+  and, in place of its WebFetch (which runs on your machine and read any address, your local network included),
+  the agent's own page reader as a local MCP tool (`mcp_fetch.py`); those calls load no setting source instead of
+  `--safe-mode`, which would turn that tool off too: your settings, hooks, plugins and instructions stay out all the
+  same. It is refused when it is signed in otherwise than with a subscription, so that a call is never billed
+  without a question.
 
 ## What the model reads is data
 
@@ -50,8 +59,14 @@ text can achieve:
   source and a word-level diff in the review, and the cross-check reads it again with the whole guide;
 - a passage the model says it found is looked up in the page by the code (`quotes.py`): a quote that is not there
   is shown as such, never as the guide's text;
-- the agent's own web tools (for engines without a web of their own, `webtools.py`) read http and https only, and
-  refuse any address that is not public: not the machine itself, the local network, or a cloud metadata address;
+- the agent's page reader (`webtools.py`: for the OpenAI-compatible engine, for Claude Code through `mcp_fetch.py`,
+  for the links read whole and the notes of a watch) reads http and https only, and refuses any address that is not
+  public: not the machine itself, the local network, or a cloud metadata address. It checks the address each
+  request actually reached, not only the one the name gave when checked (DNS rebinding), each redirection, and an
+  IPv6 address that carries a private IPv4 one (NAT64, 6to4, Teredo). The Claude API's web tools run on Anthropic's
+  servers and cannot reach your network;
+- a link the page shows is a link only when it is an http(s) address (never `javascript:`), whoever wrote it: a
+  model, a feed, a page;
 - the model's answers never become commands: the only programs the agent runs are git, `gh`, the guide's own
   checks and, when your settings use them, `claude` and `sops`, with arguments built by the code.
 
@@ -75,10 +90,14 @@ when you tick the box; nothing of the guide ever is, not its name, its pages or 
 ## The local server
 
 `vault-watch serve` listens on 127.0.0.1 only. It refuses a request whose `Host` header is not local (DNS
-rebinding), and every request that changes something must carry an `X-Vault-Watch` header, which a page of
-another site cannot send without a CORS preflight the server never grants. There is no account: anyone who can
-open a connection on the machine itself can use it, so do not expose the port (a reverse proxy, a tunnel) without
-an authentication in front.
+rebinding) and a request the browser marks as coming from another site (`Sec-Fetch-Site`, `Origin`). Every call of
+its API, a read included, must carry an `X-Vault-Watch` header, which a page of another site cannot send without a
+CORS preflight the server never grants; only what the browser asks by itself goes without it (the health probe,
+the notices, a run's stream, its report). Until 1.4.2 a read needed no header, and an image on any site could make
+the server resolve a key and send it away. The page is never shown in a frame of another site (`X-Frame-Options`,
+`frame-ancestors`), runs only its own scripts (a Content Security Policy) and is never sniffed. There is no account:
+anyone who can open a connection on the machine itself can use it, so do not expose the port (a reverse proxy, a
+tunnel) without an authentication in front.
 
 ## Before connecting a guide
 

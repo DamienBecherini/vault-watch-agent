@@ -33,13 +33,21 @@ veille `issues`).
 - **Une correction est une citation et un remplacement.** Le code ne l'applique que si le texte cité apparaît une
   seule fois dans la page (`vault.check`), dans un worktree git sur une nouvelle branche, jamais sur `main`. Une
   page en lecture seule (`[content] readonly`) est refusée, quelle que soit l'étape qui propose la modification.
+- **Une correction ne touche qu'une page du guide.** La page que nomme une correction est écrite par le modèle, à
+  partir de ce qu'il a lu ; le code n'accepte qu'une page de contenu du guide ou son miroir (`vault.is_page` : un
+  chemin relatif dans le guide, une page Markdown de `[content] include`). Jamais les scripts du guide, son
+  manifeste, un dossier caché ni un fichier hors du guide : l'agent lance les contrôles du guide après avoir
+  appliqué, donc une correction sur l'un d'eux aurait été du code exécuté sur votre machine (jusqu'à la 1.4.2).
 - **Deux pauses humaines.** Rien n'est appliqué avant la relecture, rien n'est poussé avant un second oui. La pull
   request est ensuite fusionnée par un humain, sur la forge.
 - **Claude Code tourne à nu.** Avec le moteur `claude-code`, chaque appel est un `claude -p --safe-mode` sans vos
-  instructions, hooks, skills ni serveurs MCP, sans conversation gardée, sans autre outil que la recherche et la
-  lecture web (aucun outil aux étapes qui ne vérifient pas de source), et sans les clés d'API dans son
-  environnement. Il est refusé quand il est connecté autrement qu'avec un abonnement, pour qu'aucun appel ne soit
-  facturé sans qu'on vous l'ait demandé.
+  instructions, hooks, skills ni serveurs MCP, sans conversation gardée, sans aucun outil aux étapes qui ne
+  vérifient pas de source, et sans les clés d'API dans son environnement. Aux étapes qui vérifient des sources, il a
+  sa recherche web et, à la place de son WebFetch (qui tourne sur votre machine et lisait n'importe quelle adresse,
+  votre réseau local compris), le lecteur de pages de l'agent, en outil MCP local (`mcp_fetch.py`) ; ces appels ne
+  chargent aucune source de réglages au lieu de `--safe-mode`, qui couperait aussi cet outil : vos réglages, hooks,
+  extensions et instructions restent dehors de la même façon. Il est refusé quand il est connecté autrement qu'avec
+  un abonnement, pour qu'aucun appel ne soit facturé sans qu'on vous l'ait demandé.
 
 ## Ce que lit le modèle, ce sont des données
 
@@ -51,9 +59,15 @@ limite ce qu'un tel texte peut obtenir :
   diff mot à mot à la relecture, et la relecture croisée la relit avec tout le guide ;
 - un passage que le modèle dit avoir trouvé est cherché dans la page par le code (`quotes.py`) : une citation
   introuvable est affichée comme telle, jamais comme le texte du guide ;
-- les outils web de l'agent (pour les moteurs sans web propre, `webtools.py`) ne lisent que du http et du https,
-  et refusent toute adresse qui n'est pas publique : ni la machine elle-même, ni le réseau local, ni une adresse
-  de métadonnées d'un cloud ;
+- le lecteur de pages de l'agent (`webtools.py` : pour le moteur compatible OpenAI, pour Claude Code par
+  `mcp_fetch.py`, pour les liens lus en entier et les notes d'une veille) ne lit que du http et du https, et refuse
+  toute adresse qui n'est pas publique : ni la machine elle-même, ni le réseau local, ni une adresse de métadonnées
+  d'un cloud. Il contrôle l'adresse que chaque requête a réellement atteinte, pas seulement celle que le nom donnait
+  au moment du contrôle (DNS rebinding), chaque redirection, et une adresse IPv6 qui porte une IPv4 privée (NAT64,
+  6to4, Teredo). Les outils web de l'API Claude tournent sur les serveurs d'Anthropic et ne peuvent pas atteindre
+  votre réseau ;
+- un lien affiché par la page n'est un lien que si c'est une adresse http(s) (jamais `javascript:`), quel qu'en
+  soit l'auteur : un modèle, un flux, une page ;
 - les réponses du modèle ne deviennent jamais des commandes : les seuls programmes que l'agent lance sont git,
   `gh`, les contrôles du guide et, quand vos réglages s'en servent, `claude` et `sops`, avec des arguments
   construits par le code.
@@ -80,10 +94,15 @@ affiché.
 ## Le serveur local
 
 `vault-watch serve` n'écoute que sur 127.0.0.1. Il refuse une requête dont l'en-tête `Host` n'est pas local
-(DNS rebinding), et chaque requête qui modifie quelque chose doit porter un en-tête `X-Vault-Watch`, qu'une page
-d'un autre site ne peut pas envoyer sans une requête CORS préalable que le serveur n'accorde jamais. Il n'y a pas
-de compte : quiconque peut ouvrir une connexion sur la machine elle-même peut l'utiliser, donc n'exposez pas le
-port (proxy inverse, tunnel) sans authentification devant.
+(DNS rebinding) et une requête que le navigateur signale comme venant d'un autre site (`Sec-Fetch-Site`, `Origin`).
+Chaque appel de son API, lecture comprise, doit porter un en-tête `X-Vault-Watch`, qu'une page d'un autre site ne
+peut pas envoyer sans une requête CORS préalable que le serveur n'accorde jamais ; seul ce que le navigateur demande
+de lui-même s'en passe (la sonde de santé, les avis, le flux d'un passage, son rapport). Jusqu'à la 1.4.2, une
+lecture n'avait pas besoin de l'en-tête, et une image sur n'importe quel site pouvait faire résoudre une clé au
+serveur et l'envoyer ailleurs. La page n'est jamais affichée dans le cadre d'un autre site (`X-Frame-Options`,
+`frame-ancestors`), n'exécute que ses propres scripts (une Content Security Policy) et n'est jamais « reniflée ». Il
+n'y a pas de compte : quiconque peut ouvrir une connexion sur la machine elle-même peut l'utiliser, donc n'exposez
+pas le port (proxy inverse, tunnel) sans authentification devant.
 
 ## Avant de brancher un guide
 
