@@ -114,6 +114,8 @@ def test_another_site_cannot_use_the_api_even_to_read(client):
     # What the browser asks by itself, without a header: the probes, a run's stream, its report
     assert c.get("/api/health", headers={"X-Vault-Watch": ""}).status_code == 200
     assert c.get("/api/notices", headers={"X-Vault-Watch": ""}).status_code == 200
+    # The page itself opens from a link anywhere (a mail, a chat): the browser says another site, it is not the API
+    assert c.get("/", headers={"X-Vault-Watch": "", "Sec-Fetch-Site": "cross-site"}).status_code == 200
     page = c.get("/", headers={"X-Vault-Watch": "", "Sec-Fetch-Site": "none"})
     assert page.status_code == 200 and page.headers["X-Frame-Options"] == "DENY"
     assert "frame-ancestors 'none'" in page.headers["Content-Security-Policy"]
