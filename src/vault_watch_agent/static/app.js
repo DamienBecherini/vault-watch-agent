@@ -827,6 +827,7 @@ function stepCard(step, n, name, what = "") {
       <button type="button" class="small-button primary" data-step-ok="${step}">${T.perStep.applyOnce}</button>
     </span></div>`;
 }
+let BAR_ROOM = null;  // what keeps the page's room for the bar of a check as tall as the bar (ResizeObserver)
 let BAR_OPEN = (() => { try { return localStorage.getItem("vault-watch-bar-open") === "1"; } catch { return false; } })();
 // The buttons of the lines above, inside `root`; `redraw` draws the screen again once a choice is made
 function bindSteps(root, redraw) {
@@ -956,6 +957,7 @@ async function route() {
   document.querySelectorAll("nav [data-nav]").forEach(a =>
     a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : ["/idea", "/links"].includes(h) ? a.dataset.nav === "report" : h.startsWith(`/${a.dataset.nav}`)));
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
+  BAR_ROOM?.disconnect(); document.body.style.paddingBottom = "";  // the room left for a check's bar, until it is drawn again
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
@@ -1054,6 +1056,14 @@ const placeTip = e => {
   t.style.setProperty("--tip-width", `${width}px`);
   t.style.setProperty("--tip-left", `${-8 - Math.max(0, left - 8 + width - (room - 16))}px`);
   t.classList.toggle("below", t.getBoundingClientRect().top / zoom < 170);
+  // In the bar of a check, whose panel of options scrolls and would clip it: the bubble is placed on the screen
+  if (t.closest(".check-bar")) {
+    const r = t.getBoundingClientRect();
+    t.classList.add("fixed");
+    t.classList.remove("below");
+    t.style.setProperty("--tip-fx", `${Math.max(8, Math.min(r.left / zoom - 8, room - width - 8))}px`);
+    t.style.setProperty("--tip-fbottom", `${(window.innerHeight - r.top) / zoom + 8}px`);
+  }
 };
 document.addEventListener("pointerover", placeTip);
 document.addEventListener("focusin", placeTip);
@@ -1730,14 +1740,16 @@ async function viewCheck(id) {
   // Handled findings stay one line; an open one shows the passages it is about
   function lead(f, fixable, card, mode = "fix", n = 0, passages = [], detail = null) {
     const h = v.handled[f], num = `<span class="num">${n}.</span>`;  // per card, stable: handled lines keep theirs
+    // A lead handled (sent, dismissed): its title when it has one, its line folded under it
+    const shown = detail?.title ? `<b>${esc(detail.title)}</b> <details class="sent"><summary>${V.sentText}</summary><p>${esc(f)}</p></details>` : esc(f);
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
       return `<li class="handled">${num} <span class="badge ok">${V.sent}</span> <a href="#/run/${encodeURIComponent(h.thread)}">${esc(h.thread)}</a>
-        ${run.status ? badge(run.status) : ""}${run.pr_url ? ` ${extLink(run.pr_url, "PR")}` : ""} · ${esc(f)}${
+        ${run.status ? badge(run.status) : ""}${run.pr_url ? ` ${extLink(run.pr_url, "PR")}` : ""} · ${shown}${
         v.unchecked?.[f] ? `<div class="unchecked"><span class="badge attention">${V.unchecked}</span>
           <span class="small">${esc(v.unchecked[f])}</span> <button type="button" class="primary" data-reopen="${esc(f)}">${V.resend}</button></div>` : ""}</li>`;
     }
-    if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
+    if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${shown}</li>`;
     if (mode === "add") return addLead(f, fixable, card, n, passages, detail || {});
     const p = leadParts(f), kind = p.kind ? `<span class="badge neutral">${esc(V.kinds[p.kind] || p.kind)}</span> ` : "";
     const pages = p.pages.length ? p.pages.map(x => `<code>${esc(x)}</code>`).join(", ") : p.kind ? `<span class="muted">${V.noPage}</span>` : "";
@@ -1890,6 +1902,10 @@ async function viewCheck(id) {
     const card = boxes.filter(c => c.dataset.card === b.dataset.tickCard), all = card.every(c => c.checked);
     apply(LeadRules.tickAll(state(), card.map(c => c.dataset.lead), !all));
   });
+  // The page leaves room under its last line for the bar, as tall as it is now (its options open or folded)
+  BAR_ROOM?.disconnect();
+  BAR_ROOM = new ResizeObserver(() => { document.body.style.paddingBottom = `${$(".check-bar") ? $(".check-bar").offsetHeight : 0}px`; });
+  if ($(".check-bar")) BAR_ROOM.observe($(".check-bar"));
   // The options of the bar, opened or folded: the reader's choice, kept in the browser
   $("#bar-toggle").onclick = () => {
     BAR_OPEN = !BAR_OPEN;

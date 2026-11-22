@@ -325,6 +325,9 @@ label.digbtn:has(input:checked) { background: var(--accent); color: var(--accent
 .lead-lists ul { margin: 0; padding-left: 18px; } .lead-lists li { margin: 2px 0; overflow-wrap: anywhere; }
 .lead-lists code, .lead-open .where code { font-size: 11.5px; color: var(--muted); }
 .lead-open details.sent { margin-top: 10px; font-size: 13px; color: var(--muted); }
+ul.leads li.handled details.sent { display: inline; margin: 0 0 0 6px; font-size: 12.5px; }
+ul.leads li.handled details.sent[open] { display: block; margin: 4px 0 0 calc(2.2em + 30px); }
+ul.leads li.handled details.sent p { margin: 4px 0 0; }
 .lead-open details.sent p { margin: 6px 0 0; color: var(--text); background: var(--card); border-radius: 6px; padding: 8px 10px; }
 details.lead-legend { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
 details.lead-legend summary { cursor: pointer; } details.lead-legend dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 6px 0; }
@@ -526,6 +529,7 @@ footer a { display: inline-block; padding: 4px 0; }
   background: var(--card); color: var(--text); border: 1px solid var(--accent); font-size: 14px; font-weight: 400; line-height: 1.45;
   text-align: left; white-space: normal; text-transform: none; letter-spacing: 0; box-shadow: 0 8px 24px rgb(0 0 0 / .25); pointer-events: none; }
 .tip.below:hover::after, .tip.below:focus::after { bottom: auto; top: calc(100% + 8px); }
+.tip.fixed:hover::after, .tip.fixed:focus::after { position: fixed; left: var(--tip-fx); bottom: var(--tip-fbottom); top: auto; z-index: 40; }
 .card.updating { opacity: .6; }   /* the result being computed again: for half a second, not a state to read */
 .retouch textarea { min-height: 90px; font-size: 15px; }
 .retouch { margin: 8px 0; }
