@@ -3,6 +3,13 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 1.4.3 (2026-11-22)
+
+- **Fixed: the page refused to open from a link of another site** (« a request from another site »): 1.4.2 refused
+  any request the browser marks as coming from another site, the page itself included, so a link to it in Obsidian,
+  a mail or a dashboard failed (typing the address, a bookmark or the terminal worked). Only the API refuses another
+  site now; opening the page does nothing by itself, and its scripts call the API from the page.
+
 ## 1.4.2 (2026-11-22)
 
 A security release: an audit of the whole agent found two serious flaws, present since earlier versions. Update.
