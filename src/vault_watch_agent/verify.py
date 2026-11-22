@@ -356,8 +356,15 @@ def _findings(vault_dir: Path, result: Findings, line: Callable = _line) -> dict
     found in the pages."""
     return {"findings": [line(f) for f in result.findings],
             "excerpts": {line(f): quotes.locate_all(vault_dir, f.excerpts) for f in result.findings if f.excerpts},
-            # a lead explained to the editor in the language of the interface (news.in_language), by its line
-            "details": {line(f): f.detail.model_dump() for f in result.findings if getattr(f, "detail", None)}}
+            # a lead's title and its explanation to the editor, in the language of the interface (news.in_language),
+            # by its line
+            "details": {line(f): d for f in result.findings if (d := _detail(f))}}
+
+
+def _detail(f) -> dict:
+    """What a lead says to the editor besides its line: its title, its explanation ({} for a finding)."""
+    detail = getattr(f, "detail", None)
+    return {**(detail.model_dump() if detail else {}), **({"title": f.title} if getattr(f, "title", "") else {})}
 
 
 def _read_guide(vault_dir: Path, llm: LLM, plan: "reading.Plan", system: str, prompt: str, schema: type,

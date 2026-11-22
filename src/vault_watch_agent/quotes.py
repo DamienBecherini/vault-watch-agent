@@ -55,7 +55,7 @@ def locate(vault_dir: Path, page: str, quote: str, context: int = CONTEXT) -> di
 
     `line` is the first line of the passage; `lines` adds `context` lines around it, `hit` marking the passage.
     """
-    out = {"page": page, "quote": quote, "match": "missing", "line": None, "lines": []}
+    out = {"page": page, "quote": quote, "match": "missing", "line": None, "lines": [], "heading": ""}
     path = _page(vault_dir, page)
     quote = quote.replace("\r\n", "\n").strip()
     if path is None or not quote:
@@ -82,8 +82,23 @@ def locate(vault_dir: Path, page: str, quote: str, context: int = CONTEXT) -> di
         # A one-line exact quote is marked inside its line (a Markdown paragraph is one long line)
         mark = (at - (text.rfind("\n", 0, at) + 1), len(quote)) if match == "exact" and first == last == i else None
         shown.append({"n": i + 1, "hit": hit, **_clip(lines[i], mark if hit else None)})
-    out.update(match=match, line=first + 1, lines=shown)
+    out.update(match=match, line=first + 1, lines=shown, heading=heading_above(lines, first))
     return out
+
+
+_HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$")
+
+
+def heading_above(lines: list[str], at: int) -> str:
+    """The heading a line is under (the nearest one above it, outside code blocks), as written; "" when none: what
+    a link opens the page at (Obsidian goes to a heading, not to a line)."""
+    found, fenced = "", False
+    for line in lines[:at + 1]:
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+        elif not fenced and (m := _HEADING.match(line)):
+            found = m.group(1)
+    return found
 
 
 def _clip(line: str, mark: tuple[int, int] | None, width: int = CLIP) -> dict:

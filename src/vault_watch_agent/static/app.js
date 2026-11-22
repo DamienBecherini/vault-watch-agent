@@ -24,6 +24,28 @@ function leadParts(line) {
   if (!k) return { kind: "", pages: [], text: rest, read, sources };
   return { kind: k[1], pages: k[2] === "no page yet" ? [] : k[2].split(", "), text: rest.slice(k[0].length), read, sources };
 }
+const OPEN_LEADS = new Set();  // the leads unfolded, kept while the page is open (verification/line)
+// Where a lead comes from, in a few words: the repository on GitHub, else the site
+const origin = u => {
+  try {
+    const a = new URL(u), parts = a.pathname.split("/").filter(Boolean);
+    return a.hostname === "github.com" && parts.length >= 2 ? `${parts[0]}/${parts[1]}` : a.hostname.replace(/^www\./, "");
+  } catch { return u; }
+};
+// A page of the guide in Obsidian, at the heading the passage is under (Obsidian opens a heading, not a line)
+const obsidian = (vaultName, path, heading = "") => `obsidian://open?vault=${encodeURIComponent(vaultName || "")}&file=${
+  encodeURIComponent(path.replace(/\.md$/, "") + (heading ? `#${heading.replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2").replace(/[*_`]/g, "")}` : ""))}`;
+// A text of the model with its Markdown links: a link is kept only to one of the lead's sources (https), the others
+// stay text
+const linked = (text, sources) => {
+  const known = new Set(sources.map(u => u.replace(/\/$/, ""))), out = [];
+  let at = 0;
+  for (const m of text.matchAll(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g)) {
+    out.push(esc(text.slice(at, m.index)), known.has(m[2].replace(/\/$/, "")) ? extLink(m[2], esc(m[1])) : esc(m[1]));
+    at = m.index + m[0].length;
+  }
+  return out.join("") + esc(text.slice(at));
+};
 // An address, short: its site and the end of its path (github.com › vllm/releases/tag/v0.34.0)
 const shortUrl = u => {
   try {
@@ -139,8 +161,20 @@ const TEXTS = {
       kinds: { "From a link": "D'un lien", "Found on the web": "Trouvée sur le web", Newer: "Plus récent", Missing: "Manquant",
         "Seen by the watch": "Vu par la veille", Critical: "Critique", Major: "Majeur", Minor: "Mineur" },
       noPage: "pas encore de page", readAlso: "À lire aussi :", sources: "Sources :",
-      detail: { says: "Ce que dit la source", guide: "Ce que dit le guide", check: "À vérifier", matters: "Pour le lecteur" },
-      sentText: "Le texte que lira la passe (en anglais)",
+      detail: { says: "Ce que dit la source", guide: "Ce que dit le guide", check: "À vérifier", matters: "Ce que ça change pour le lecteur" },
+      sentText: "Texte envoyé à la passe (en anglais)",
+      readIn: "Lu dans", writeIn: "à écrire dans", openObsidian: "Ouvrir dans Obsidian", line: n => `ligne ${n}`,
+      nothingQuoted: "Aucun passage cité : le sujet n'est dans aucune page.", theLink: "(le lien lu)",
+      digButton: "Creuser cette piste", digWhat: "Un appel rien que pour elle : plusieurs sources indépendantes, plus de recherches, plusieurs pages possibles.",
+      sourcesTitle: n => `Sources (${n})`, readTitle: n => `Pages à relire aussi (${n})`,
+      unfold: "déplier", unfoldAll: "Tout déplier", foldAll: "Tout replier", howToRead: "Comment lire une piste",
+      legend: [["Une piste", "Une question à vérifier, écrite par le modèle après avoir lu la source et tout le guide. Rien n'est encore modifié."],
+        ["La case", "Envoie la piste dans une passe d'ajouts (le bouton en bas), qui la vérifie sur les sources primaires puis propose une modification, que tu relis."],
+        ["Creuser", "La même chose, avec un appel rien que pour elle : plusieurs sources indépendantes, plus de recherches, plusieurs pages possibles. Un peu plus cher ; coche aussi la piste."],
+        ["Ce que dit le guide", "Le passage exact de la page, retrouvé par le programme (la phrase visée surlignée) ; le lien ouvre la page dans Obsidian, à l'intertitre le plus proche."],
+        ["Sources", "La source lue, puis les sources primaires qu'elle cite : la passe les ouvrira pour vérifier."],
+        ["Pages à relire aussi", "Les autres pages qui disent la même chose ou en dépendent : la passe les lit pour tout corriger d'un coup."],
+        ["Texte envoyé à la passe", "Ce que lit vraiment la passe, en anglais (l'outillage s'écrit en anglais). Le français est une explication pour toi."]],
       leadsAdd: "Une piste est une question à vérifier, pas une modification : rien n'est encore écrit. Le passage encadré est ce que le guide dit aujourd'hui (en surligné, la phrase visée ; les lignes voisines donnent le contexte). Pour chaque piste cochée, la passe d'ajouts lit les sources, puis propose de corriger ce qui est dépassé ou d'ajouter ce qui manque, dans toutes les pages concernées. Tu relis ces propositions avant qu'elles s'appliquent.",
       onlyFree: "Seulement les gratuits",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
@@ -451,8 +485,20 @@ const TEXTS = {
       linksRead: "The links", linkChars: (n, cut) => `${n.toLocaleString("en")} characters read${cut ? " (cut)" : ""}`,
       dig: "dig deeper (several sources, more searches, a little more expensive)",
       kinds: {}, noPage: "no page yet", readAlso: "Read also:", sources: "Sources:",
-      detail: { says: "What the source says", guide: "What the guide says", check: "To check", matters: "For the reader" },
-      sentText: "The text the run will read",
+      detail: { says: "What the source says", guide: "What the guide says", check: "To check", matters: "What it changes for the reader" },
+      sentText: "Text sent to the run",
+      readIn: "Read in", writeIn: "to write in", openObsidian: "Open in Obsidian", line: n => `line ${n}`,
+      nothingQuoted: "No passage quoted: the subject is in no page.", theLink: "(the link read)",
+      digButton: "Dig deeper into this lead", digWhat: "A call of its own: several independent sources, more searches, several pages possible.",
+      sourcesTitle: n => `Sources (${n})`, readTitle: n => `Pages to read also (${n})`,
+      unfold: "unfold", unfoldAll: "Unfold all", foldAll: "Fold all", howToRead: "How to read a lead",
+      legend: [["A lead", "A question to check, written by the model after reading the source and the whole guide. Nothing is changed yet."],
+        ["The box", "Sends the lead to an addition run (the button below), which checks it on primary sources then proposes a change, which you review."],
+        ["Dig deeper", "The same, with a call of its own: several independent sources, more searches, several pages possible. A little more expensive; it ticks the lead too."],
+        ["What the guide says", "The exact passage of the page, found by the program (the sentence concerned highlighted); the link opens the page in Obsidian, at the nearest heading."],
+        ["Sources", "The source read, then the primary sources it cites: the run will open them to check."],
+        ["Pages to read also", "The other pages that state the same thing or depend on it: the run reads them to fix everything at once."],
+        ["Text sent to the run", "What the run really reads, in English (the tooling is written in English)."]],
       leadsAdd: "A lead is a question to check, not a change: nothing is written yet. The framed passage is what the guide says today (highlighted: the sentence concerned; the lines around give the context). For each lead ticked, the addition run reads the sources, then proposes to correct what is out of date or to add what is missing, in every page concerned. You review these proposals before they apply.",
       onlyFree: "Only the free ones",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
@@ -1600,8 +1646,10 @@ async function viewCheck(id) {
           ${list(V.linksRead, (r.links || []).map(l => `${extLink(l.url, esc(l.title || l.url))} — ${l.error ? `<span class="attention-text">${esc(l.error)}</span>` : V.linkChars(l.chars, l.cut)}`))}
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
-          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<p class="muted small">${V.leadsAdd}</p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
-            <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f], r.details?.[f])).join("")}</ul>` : ""}` : ""}
+          ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<details class="lead-legend"><summary>${V.howToRead}</summary><p>${V.leadsAdd}</p><dl>${
+            V.legend.map(([k, t]) => `<dt>${k}</dt><dd>${t}</dd>`).join("")}</dl></details>
+            <p class="small"><button type="button" class="small-button" data-unfold-card="${c}">${V.unfoldAll}</button></p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
+            <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads"${r.mode === "add" ? ` data-card-list="${c}"` : ""}>${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f], r.details?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
     <div class="bar">
@@ -1624,6 +1672,7 @@ async function viewCheck(id) {
           <span class="small">${esc(v.unchecked[f])}</span> <button type="button" class="primary" data-reopen="${esc(f)}">${V.resend}</button></div>` : ""}</li>`;
     }
     if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
+    if (mode === "add") return addLead(f, fixable, card, n, passages, detail || {});
     const p = leadParts(f), kind = p.kind ? `<span class="badge neutral">${esc(V.kinds[p.kind] || p.kind)}</span> ` : "";
     const pages = p.pages.length ? p.pages.map(x => `<code>${esc(x)}</code>`).join(", ") : p.kind ? `<span class="muted">${V.noPage}</span>` : "";
     // Explained in the language of the interface when the check asked for it: the four parts; the line in English,
@@ -1636,8 +1685,62 @@ async function viewCheck(id) {
       meta ? `<div class="lead-meta muted small">${meta}</div>` : ""}${
       mode === "add" ? `<label class="dig muted small"><input type="checkbox" data-deep="${esc(f)}"> ${V.dig}</label>` : ""}${excerpts(passages)}</li>`;
   }
+  // A lead of an addition check: one line (its title, its page, where it comes from) that unfolds into the source
+  // and the guide side by side, what to check, what it changes for the reader, « dig deeper », the sources and the
+  // pages to read also, and the text the run will read
+  function addLead(f, fixable, card, n, passages, d) {
+    const p = leadParts(f), key = `${id}/${f}`, open = OPEN_LEADS.has(key);
+    const title = d.title || (p.text.split(/(?<=\.)\s/)[0] || p.text).slice(0, 140);
+    const short = x => x.split("/").pop().replace(/\.md$/, "");
+    const from = p.kind === "From a link" && p.sources[0] ? origin(p.sources[0]) : V.kinds[p.kind] || p.kind;
+    const pageLink = x => `<a href="${esc(obsidian(v.vault_name, x))}" title="${esc(V.openObsidian)}">${esc(v.titles?.[x] || short(x))}</a> <code>${esc(x)}</code>`;
+    const where = (p.kind === "From a link" && p.sources[0] ? `${V.readIn} ${extLink(p.sources[0], esc(shortUrl(p.sources[0])))} ↗ → ` : `<span class="badge neutral">${esc(V.kinds[p.kind] || p.kind)}</span> `)
+      + (p.pages.length ? `${V.writeIn} ${p.pages.map(pageLink).join(", ")}` : `<span class="muted">${V.noPage}</span>`);
+    const said = x => linked(x || "", p.sources);
+    const guideBox = passages?.length ? passages.map(e => e.match === "missing"
+      ? `<p class="muted small"><code>${esc(e.page)}</code> · ${T.excerptMissing}</p>`
+      : `<div class="excerpt-head muted small">${V.line(e.line)}${e.match === "approx" ? ` · ${T.excerptApprox}` : ""} · <a href="${esc(obsidian(v.vault_name, e.page, e.heading))}">${V.openObsidian} ↗</a></div>
+        <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(l => `<div${l.hit ? ' class="target"' : ""}><span class="n">${l.n}</span><span>${
+          l.parts ? `${esc(l.parts[0])}<mark>${esc(l.parts[1])}</mark>${esc(l.parts[2])}` : esc(l.text)}</span></div>`).join("")}</div>`).join("") : "";
+    const extra = (() => {  // what digging adds to the cost of the run, when it is billed
+      const o = options.find(x => x.id === card) || {}, pages = ADD_CONTEXT === "pages" && o.run_usd_deep_pages;
+      const more = pages ? o.run_usd_deep_pages - o.run_usd_each_pages : (o.run_usd_deep || 0) - (o.run_usd_each || 0);
+      return billedStep("add") && more > 0 ? ` <small>· + ≈ ${dollars(more)}</small>` : "";
+    })();
+    return `<li class="lead-item">
+      <div class="lead-row" data-unfold="${esc(key)}"><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="add" data-card="${card}" aria-label="${esc(title)}">
+        <span class="num">${n}.</span><span class="lead-title"><b>${esc(title)}</b>${p.pages[0] ? ` <span class="muted small">· ${esc(short(p.pages[0]))}</span>` : ""}</span>
+        <span class="tag">${esc(from)}</span><button type="button" class="unfold" aria-expanded="${open}" aria-label="${esc(V.unfold)}">${open ? "▾" : "▸"}</button></div>
+      <div class="lead-open"${open ? "" : " hidden"}>
+        <div class="where muted small">${where}</div>
+        <div class="lead-cols"><div class="box"><h4>${V.detail.says}</h4>${d.says ? said(d.says) : esc(p.text)}</div>
+          <div class="box"><h4>${V.detail.guide}</h4>${d.guide ? `<p>${said(d.guide)}</p>` : ""}${guideBox || (d.guide ? "" : `<p class="muted small">${V.nothingQuoted}</p>`)}</div></div>
+        ${d.check || d.matters ? `<dl class="pair">${d.check ? `<dt>${V.detail.check}</dt><dd>${said(d.check)}</dd>` : ""}${d.matters ? `<dt>${V.detail.matters}</dt><dd>${said(d.matters)}</dd>` : ""}</dl>` : ""}
+        <div class="lead-actions"><label class="digbtn"><input type="checkbox" data-deep="${esc(f)}"> 🔍 ${V.digButton}${extra}</label><span class="muted small">${V.digWhat}</span></div>
+        <div class="lead-lists">
+          ${p.sources.length ? `<div><h5>${V.sourcesTitle(p.sources.length)}</h5><ul>${p.sources.map((u, i) => `<li>${extLink(u, esc(shortUrl(u)))} ↗${i === 0 && p.kind === "From a link" ? ` <span class="muted">${V.theLink}</span>` : ""}</li>`).join("")}</ul></div>` : ""}
+          ${p.read.length ? `<div><h5>${V.readTitle(p.read.length)}</h5><ul>${p.read.map(x => `<li>${pageLink(x)}</li>`).join("")}</ul></div>` : ""}
+        </div>
+        ${d.says ? `<details class="sent"><summary>${V.sentText}</summary><p>${esc(p.text)}</p></details>` : ""}
+      </div></li>`;
+  }
   const boxes = [...page.querySelectorAll("[data-lead]")];
   const ticked = () => boxes.filter(c => c.checked);
+  // A lead unfolds by its line (not by its box, its links or its buttons); « unfold all » per card
+  page.querySelectorAll("[data-unfold]").forEach(row => row.onclick = e => {
+    if (e.target.closest("input, a, label") ) return;
+    const body = row.nextElementSibling, open = body.hidden;
+    body.hidden = !open;
+    row.querySelector(".unfold").textContent = open ? "▾" : "▸";
+    row.querySelector(".unfold").setAttribute("aria-expanded", open);
+    if (open) OPEN_LEADS.add(row.dataset.unfold); else OPEN_LEADS.delete(row.dataset.unfold);
+  });
+  page.querySelectorAll("[data-unfold-card]").forEach(b => b.onclick = () => {
+    const rows = [...page.querySelectorAll(`[data-card-list="${b.dataset.unfoldCard}"] [data-unfold]`)];
+    const open = rows.some(r => r.nextElementSibling.hidden);
+    rows.forEach(r => { if (r.nextElementSibling.hidden === open) r.click(); });
+    b.textContent = open ? V.foldAll : V.unfoldAll;
+  });
   $("#add-context").value = ADD_CONTEXT;
   $("#add-context").onchange = e => {
     ADD_CONTEXT = e.target.value;

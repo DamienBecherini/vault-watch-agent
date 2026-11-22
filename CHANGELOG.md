@@ -16,6 +16,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   Set once in the settings (`videos`: its address, the reference of its token, the command that starts it); the tab
   says whether it is ready, and the agent never starts it.
 
+- **The leads of what is new as a list that unfolds**: a title per lead, the source and the guide side by side,
+  the passage of the guide opened in Obsidian at its heading, the sources cited as links, « Dig deeper » as a
+  button, the sources and the pages to read also as lists, « How to read a lead » once above the list.
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
   the pages to read also and its sources, short and clickable, instead of one block. A check started from the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the

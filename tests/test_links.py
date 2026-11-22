@@ -181,7 +181,8 @@ def test_a_lead_is_explained_in_the_language_of_the_interface_its_line_stays_in_
             seen.append(system)
             detail = news.LeadDetail(says="Alpha 4 est sorti le 3 novembre 2026, poids ouverts.", guide="La page cite Alpha 3.",
                                      check="La fiche du modèle.", matters="Le choix du modèle de référence.")
-            lead = news.Lead(kind="link", pages=["03-stack/models.md"], problem="Alpha 4 supersedes Alpha 3.", detail=detail)
+            lead = news.Lead(kind="link", pages=["03-stack/models.md"], problem="Alpha 4 supersedes Alpha 3.", detail=detail,
+                             title="Alpha 4 remplace Alpha 3")
             return news.Leads(findings=[lead]), {"node": node, "cost_usd": 0.1}
 
     work = tmp_path / "verif"
@@ -197,5 +198,15 @@ def test_a_lead_is_explained_in_the_language_of_the_interface_its_line_stays_in_
     assert "explain each lead to the editor in French" in seen[0] and "Write `problem` in English" in seen[0]
     line = "[From a link] 03-stack/models.md: Alpha 4 supersedes Alpha 3. Sources: https://example.org/alpha-4"
     assert result["findings"] == [line] and result["details"][line]["says"].startswith("Alpha 4 est sorti")
-    assert news.in_language(f"x {news.WRITE}", "en") == "x Write the leads in English; leave `detail` empty."
+    assert result["details"][line]["title"] == "Alpha 4 remplace Alpha 3" and "[its name](its address)" in seen[0]
+    assert news.in_language(f"x {news.WRITE}", "en").startswith("x Write the leads in English, each with a short `title`")
     assert news.in_language(f"x {news.WRITE}", "") == news.in_language(f"x {news.WRITE}", "en")
+
+
+def test_a_passage_says_the_heading_it_is_under_and_the_pages_their_titles(guide):  # noqa: F811
+    from vault_watch_agent import chapters, quotes
+
+    lines = ["# Title", "```", "# not a heading", "```", "## Section A", "text", "### Sub", "the passage"]
+    assert quotes.heading_above(lines, 7) == "Sub" and quotes.heading_above(lines, 3) == "Title"
+    assert quotes.locate(guide, "03-stack/models.md", "Alpha 3")["heading"] == "Modèles"
+    assert chapters.titles(guide)["03-stack/models.md"] == "Modèles"

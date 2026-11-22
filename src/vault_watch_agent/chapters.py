@@ -237,6 +237,21 @@ _TITLE = re.compile(r"^title:\s*(.+?)\s*$", re.M)
 _HEADING = re.compile(r"^(#{1,2})\s+(.+?)\s*#*\s*$")
 
 
+def titles(vault_dir: Path) -> dict[str, str]:
+    """{path: title} of every page: its front matter's title, else its first heading, else its file name."""
+    out = {}
+    for p in vault.pages(vault_dir):
+        text = vault.read(p).replace("\r\n", "\n")
+        front = vault.FRONTMATTER.match(text)
+        title = _TITLE.search(front.group(0)) if front else None
+        title = title.group(1).strip("\"'") if title else ""
+        if not title:
+            first = next((m for line in text[front.end() if front else 0:].split("\n") if (m := _HEADING.match(line))), None)
+            title = first.group(2) if first else p.stem
+        out[p.relative_to(vault_dir).as_posix()] = title
+    return out
+
+
 def outline(vault_dir: Path) -> str:
     """Every page of the guide in a few lines: path, weight, title (front matter, else its first heading), and its
     headings of level 2 (a heading inside a code block is not one). What a split is decided on."""

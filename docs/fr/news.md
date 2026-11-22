@@ -55,9 +55,14 @@ Une piste est écrite une fois, au moment du contrôle, dans la langue qu'avait 
 Sa ligne reste en anglais quelle que soit cette langue : c'est elle que lit le passage, et que citent son rapport
 et sa pull request (l'outillage s'écrit en anglais). Dans une autre langue, le modèle vous explique aussi chaque
 piste, en quatre parties : ce que dit la source, ce que dit le guide, ce qui reste à vérifier, ce que cela change
-pour le lecteur. La page les montre, la ligne anglaise repliée dessous, puis les pages à lire aussi et les sources,
-courtes et cliquables. En anglais, la ligne seule est montrée, découpée de la même façon ; rien de plus n'est
-demandé au modèle.
+pour le lecteur (deux à quatre phrases, les termes expliqués ; les sources qu'il cite sont des liens). Dans toutes
+les langues, chaque piste a un titre court.
+
+La page liste les pistes une ligne chacune : le titre, la page, d'où vient la piste. Une piste se déplie en la
+source et le guide côte à côte (le passage de la page, avec un lien qui l'ouvre dans Obsidian à l'intertitre le
+plus proche), ce qu'il reste à vérifier, ce que ça change pour le lecteur, le bouton « Creuser cette piste », les
+sources et les pages à relire aussi (leur titre, puis leur emplacement), et le texte envoyé à la passe, replié.
+« Comment lire une piste », au-dessus de la liste, dit ce qu'est chaque partie.
 
 ## Les pistes, depuis le web
 

@@ -53,9 +53,15 @@ others, and send those kept to a run.
 A lead is written once, when the check runs, in the language the interface had when you started it. Its line
 stays in English whatever that language is: it is what the run reads, and what its report and its pull request
 quote (the tooling is written in English). In another language, the model also explains each lead for you, in
-four parts: what the source says, what the guide says, what remains to check, what it changes for the reader. The
-page shows these, with the English line folded below them, then the pages to read also and the sources, short and
-clickable. In English, the line alone is shown, drawn in the same parts; nothing more is asked of the model.
+four parts: what the source says, what the guide says, what remains to check, what it changes for the reader (two
+to four sentences, the terms explained; the sources it cites are links). In any language, each lead has a short
+title.
+
+The page lists the leads one line each: the title, the page, where the lead comes from. A lead unfolds into the
+source and the guide side by side (the passage of the page, with a link that opens it in Obsidian at the nearest
+heading), what to check, what it changes for the reader, the button « Dig deeper into this lead », the sources and
+the pages to read also (their titles, then their place), and the text sent to the run, folded. « How to read a
+lead », above the list, says what each part is.
 
 ## The leads, from the web
 

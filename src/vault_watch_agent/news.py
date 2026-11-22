@@ -73,11 +73,14 @@ class LeadDetail(BaseModel):
     says: str = Field(description="What the source states, where in it; for a question, what to look for.")
     guide: str = Field(description="What the guide says today, and where; that it says nothing, when so.")
     check: str = Field(description="What remains to check, and on which primary source.")
-    matters: str = Field(description="Which decision of the reader it changes.")
+    matters: str = Field(description="Which decision of the reader it changes, and why: two to four sentences, the "
+                                     "technical terms and the names of scenarios explained.")
 
 
 class Lead(BaseModel):
     kind: Literal["newer", "missing", "candidate", "found", "link"]  # link: read in a link the editor gave (links.py)
+    title: str = Field(default="", description="A short title, in the language the instructions name: what the lead "
+                       "is about, as a headline, 90 characters at most.")
     pages: list[str] = Field(description="Vault-relative paths of the pages concerned: where the addition would go, or "
                              "the page that states the older fact. Empty for a subject that fits no page.")
     problem: str = Field(description="One self-contained line, in English: what to look for and on which kind of "
@@ -107,13 +110,19 @@ def in_language(system: str, lang: str = "") -> str:
     from .guide import language_name
 
     if not lang or lang == "en":
-        return system.replace(WRITE, "Write the leads in English; leave `detail` empty.", 1)
+        return system.replace(WRITE, "Write the leads in English, each with a short `title` (a headline, 90 "
+                                     "characters at most); leave `detail` empty.", 1)
+    name = language_name(lang)
     return system.replace(WRITE, (
-        "Write `problem` in English, as said above: the run that checks a lead reads it. Then explain each lead to "
-        f"the editor in {language_name(lang)}, in `detail`: `says` what the source states and where in it (for a "
-        "question: what to look for), `guide` what the guide says today and where, `check` what remains to check "
-        "and on which primary source, `matters` which decision of the reader it changes. One or two plain sentences "
-        "each; figures, versions, names and quotes as the source gives them."), 1)
+        f"Write `problem` in English, as said above: the run that checks a lead reads it. Give each lead a short "
+        f"`title` in {name} (a headline of what it is about, 90 characters at most). Then explain each lead to the "
+        f"editor in {name}, in `detail`: `says` what the source states and where in it (for a question: what to look "
+        "for), `guide` what the guide says today and where, `check` what remains to check and on which primary "
+        "source, in one or two plain sentences each; `matters` which decision of the reader it changes and why, in "
+        "two to four sentences that explain the technical terms and the names of scenarios. Figures, versions, names "
+        "and quotes as the source gives them. When `detail` cites one of the lead's `sources` (a release note, a "
+        "pull request, a page), write it as a Markdown link [its name](its address), with the address as in "
+        "`sources`."), 1)
 
 
 def line(lead: Lead) -> str:

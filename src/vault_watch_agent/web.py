@@ -1079,6 +1079,8 @@ def create_app(settings: Settings) -> FastAPI:
                                           if news.NOT_CHECKED.match(u["why"]) and handled.get(u["lead"], {}).get("thread") == thread})
         data["status"] = ("running" if data["running"] else "to-handle" if counts["open"]
                           else "handled" if every else "clear")
+        if detail:  # what the page links a lead to: the titles of the pages, and the vault Obsidian opens them in
+            data["titles"], data["vault_name"] = chapters_mod.titles(settings.vault), settings.vault.name
         return data
 
     def verif_path(vid: str) -> Path:
