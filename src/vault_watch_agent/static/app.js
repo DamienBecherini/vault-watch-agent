@@ -344,7 +344,9 @@ const TEXTS = {
       setAsideHelp: "Ils sont rangés dans une remise git nommée d'après ce passage, et remis en place quand le dossier revient.",
       blocked: why => `Impossible de prêter le dossier : ${why}. Termine-le, ou retouche ici.`,
       lentOther: t => `Ton dossier est prêté au passage ${t} : termine ses retouches d'abord, ou retouche ici.`,
-      lentNow: path => `Ton dossier <code>${path}</code> est sur la branche du passage : retouche dans Obsidian, puis « J'ai fini ».`,
+      lentNow: path => `Ton dossier <code>${path}</code> est sur la branche du passage : Obsidian montre les pages corrigées. Retouche-les, puis « J'ai fini » ; ou reprends ton dossier sans finir l'étape.`,
+      takeBack: "Reprendre mon dossier",
+      takeBackHelp: "Ton dossier revient sur main, comme avant le prêt, sans terminer l'étape. Ce que tu as modifié dans Obsidian est gardé : commité sur la branche du passage, tu le retrouves en ouvrant la page ici. Tu peux ensuite continuer ici, ou prêter ton dossier à nouveau.",
       here: "Relire ici, dans le navigateur",
       hereHelp: lent => lent ? "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Ton dossier étant prêté, ce que tu enregistres ici s'écrit dans ton dossier : Obsidian le voit aussitôt."
         : "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Tu modifies la copie du passage, pas ton dossier : Obsidian ne verra le résultat qu'une fois la pull request fusionnée.",
@@ -700,7 +702,9 @@ const TEXTS = {
       setAsideHelp: "They go into a git stash named after this run, and come back when the folder does.",
       blocked: why => `The folder cannot be lent: ${why}. Finish it, or retouch here.`,
       lentOther: t => `Your folder is lent to the run ${t}: finish its retouches first, or retouch here.`,
-      lentNow: path => `Your folder <code>${path}</code> is on the run's branch: retouch in Obsidian, then « I am done ».`,
+      lentNow: path => `Your folder <code>${path}</code> is on the run's branch: Obsidian shows the corrected pages. Retouch them, then « I am done »; or take your folder back without ending the step.`,
+      takeBack: "Take my folder back",
+      takeBackHelp: "Your folder goes back to main, as before it was lent, without ending the step. What you changed in Obsidian is kept: committed onto the run's branch, you find it by opening the page here. You can then go on here, or lend your folder again.",
       here: "Read here, in the browser",
       hereHelp: lent => lent ? "Pick a page, change its text (in Markdown), then « Save ». As your folder is lent, what you save here is written into your folder: Obsidian sees it at once."
         : "Pick a page, change its text (in Markdown), then « Save ». You change the run's copy, not your folder: Obsidian will only see the result once the pull request is merged.",
@@ -1498,7 +1502,7 @@ async function viewRetouch(r, title) {
   const f = await api(`${at}/folder`).catch(e => ({ error: e.message, changes: [] }));
   const lent = f.lent_to === r.thread, pages = r.pause?.pages || [];
   const folderCard = f.error ? `<p class="error-text">${esc(f.error)}</p>`
-    : lent ? `<p>${R.lentNow(esc(f.path))}</p>`
+    : lent ? `<p>${R.lentNow(esc(f.path))}</p><p><button id="take-back">${R.takeBack}</button>${tip(R.takeBackHelp)}</p>`
     : f.lent_to ? `<p class="attention-text">${R.lentOther(esc(f.lent_to))}</p>`
     : f.blocked ? `<p class="attention-text">${R.blocked(esc(f.blocked))}</p>`
     : f.changes.length ? `<p>${R.dirty(f.changes.length)}</p><ul>${f.changes.map(c => `<li><code>${esc(c)}</code></li>`).join("")}</ul>
@@ -1527,6 +1531,11 @@ async function viewRetouch(r, title) {
     <p class="error-text" id="done-error"></p>
     <div class="bar"><button id="skip">${R.skip}</button><button class="primary" id="done">${R.done}</button></div>`;
   let open = "";
+  if ($("#take-back")) $("#take-back").onclick = async () => {
+    $("#take-back").disabled = true;
+    try { await api(`${at}/folder/back`, {}); route(); }
+    catch (e) { $("#lend-error").textContent = e.message; $("#take-back").disabled = false; }
+  };
   if ($("#lend")) $("#lend").onclick = async () => {
     $("#lend").disabled = true;
     try { await api(`${at}/folder`, { set_aside: !!$("#lend").dataset.aside }); route(); }

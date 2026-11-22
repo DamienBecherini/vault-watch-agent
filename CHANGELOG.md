@@ -42,7 +42,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - **The retouches said plainly**: why lend the folder (Obsidian shows main and does not see the corrections until it
   is lent), what the editor here writes to (the run's copy, or the lent folder); each page changed with « Open here »
   and « Open in Obsidian » (once the folder is lent); the editor says what is not saved, and « Cancel my changes »
-  goes back to the version last saved (Ctrl+Z still brings the changes back).
+  goes back to the version last saved (Ctrl+Z still brings the changes back), « Close the page » when there is
+  nothing to cancel.
+- **Take my folder back** (`POST /api/runs/<run>/folder/back`): the folder lent to a run comes back to main without
+  ending the retouches; what was changed in it is committed onto the run's branch, and the folder can be lent
+  again. « Skip » drops those retouches too: the branch goes back to what the review applied.
 - Every bar fixed at the bottom of a page leaves room for itself: the end of the review was hidden behind its bar.
 - An addition run says what its leads came from (« links to read whole (add-…) », in its pull request too): it said
   « what a reader would look for and not find » whatever the check.

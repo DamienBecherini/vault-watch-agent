@@ -1309,6 +1309,19 @@ def create_app(settings: Settings) -> FastAPI:
         except retouch.FolderError as e:
             raise folder_error(e) from e
 
+    @app.post("/api/runs/{thread}/folder/back")
+    def folder_take_back(thread: str):
+        """The folder lent to this run comes back to where it was, the retouches not ended: what was retouched in it is
+        committed onto the run's branch (kept), what was set aside is put back. The run stays paused; the page edits
+        its worktree again, and the folder can be lent again."""
+        v = paused_at_retouch(thread)
+        if retouch.lent_to(settings.home) != thread:
+            raise HTTPException(409, f"the guide's folder is not lent to {thread}")
+        try:
+            return {"commit": retouch.give_back(settings.vault, settings.home, thread, Path(v["worktree"]), keep=True)}
+        except retouch.FolderError as e:
+            raise folder_error(e) from e
+
     def page_path(tree: Path, given: str) -> Path:
         """A Markdown page of the tree, by its path in the guide: never outside, never another kind of file."""
         rel = Path(given.replace("\\", "/"))

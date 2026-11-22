@@ -314,9 +314,13 @@ def build(deps: Deps, checkpointer=None):
         done = answer in ("done", True) or (isinstance(answer, dict) and answer.get("action") == "done")
         if done:
             retouch.commit(wt)
-        elif retouch.changed(wt):  # skipped: what was typed in the worktree is dropped, not left out of the commits
-            git("checkout", "-q", "--", ".", cwd=wt)
-            git("clean", "-q", "-fd", cwd=wt)
+        else:  # skipped: what was retouched is dropped, typed in the worktree or committed from the folder taken back
+            tip = state.get("applied_tip", "")
+            if retouch.changed(wt):
+                git("checkout", "-q", "--", ".", cwd=wt)
+                git("clean", "-q", "-fd", cwd=wt)
+            if tip and git("rev-parse", "HEAD", cwd=wt).strip() != tip:
+                git("reset", "-q", "--hard", tip, cwd=wt)
         tip = state.get("applied_tip", "")
         return {"retouched": [n for n in git("diff", "--name-only", tip, "HEAD", cwd=wt).splitlines() if n] if tip else []}
 

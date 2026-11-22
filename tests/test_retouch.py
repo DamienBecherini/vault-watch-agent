@@ -157,6 +157,57 @@ def test_the_folder_lent_with_a_draft_set_aside_and_put_back(setup, tmp_path):  
     assert BY_HAND[:-1] in c.get(f"/api/runs/{thread}/diff").text
 
 
+def test_the_folder_taken_back_keeps_its_retouches_and_can_be_lent_again(setup, tmp_path):  # noqa: F811
+    deps, watch, _ = setup
+    folder = deps.vault
+    c = TestClient(create_app(Settings(vault=folder, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    act = {"X-Vault-Watch": "1"}
+    from test_web import wait
+
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=act).json()["thread"]
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"]}, headers=act)
+    wait(c, thread)
+    assert c.post(f"/api/runs/{thread}/folder/back", json={}, headers=act).status_code == 409  # not lent
+    assert c.post(f"/api/runs/{thread}/folder", json={}, headers=act).status_code == 200
+    page = folder / "03-stack" / "engines.md"
+    vault.write(page, vault.read(page).replace("Ollama reste le plus simple pour démarrer", "Ollama reste le plus simple"))
+    assert c.post(f"/api/runs/{thread}/folder/back", json={}, headers=act).json()["commit"]
+    assert git_out(folder, "rev-parse", "--abbrev-ref", "HEAD") == "main" and c.get(f"/api/runs/{thread}").json()["status"] == "retouch"
+    assert "plus simple pour démarrer" in vault.read(page)  # main, as it was
+    read = c.get(f"/api/runs/{thread}/page", params={"path": "03-stack/engines.md"}).json()
+    assert read["in"] == "worktree" and "Ollama reste le plus simple (" in read["text"]  # kept on the run's branch
+    assert c.post(f"/api/runs/{thread}/folder", json={}, headers=act).status_code == 200  # lent again, retouch included
+    assert "Ollama reste le plus simple (" in vault.read(page)
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": True}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and run["retouched"] == ["03-stack/engines.md"]
+    assert git_out(folder, "rev-parse", "--abbrev-ref", "HEAD") == "main"
+
+
+def test_skipped_after_the_folder_was_taken_back_drops_its_retouches(setup, tmp_path):  # noqa: F811
+    deps, watch, _ = setup
+    folder = deps.vault
+    c = TestClient(create_app(Settings(vault=folder, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    act = {"X-Vault-Watch": "1"}
+    from test_web import wait
+
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=act).json()["thread"]
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"]}, headers=act)
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/folder", json={}, headers=act)
+    page = folder / "03-stack" / "engines.md"
+    vault.write(page, vault.read(page).replace("Ollama", "Olama"))  # a slip, committed when the folder is taken back
+    c.post(f"/api/runs/{thread}/folder/back", json={}, headers=act)
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": False}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and run["retouched"] == []
+    assert "Olama" not in c.get(f"/api/runs/{thread}/diff").text
+
+
 def test_skipped_retouches_are_dropped_and_the_folder_given_back(setup, tmp_path):  # noqa: F811
     deps, watch, _ = setup
     folder = deps.vault
