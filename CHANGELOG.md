@@ -5,6 +5,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **« Update my folder »** (proposed by the user, whose folder did not show a pull request merged until the next
+  run): « To handle » says when the guide's folder lacks pull requests merged on the forge (which ones, the folder's
+  branch, its changes not committed, when it last moved), and so does the page of a run merged when its pull request
+  is not in the folder yet. The button moves the base branch forward as the agent already does before each run: a
+  fast-forward only, what is not committed stays, the branch checked out is never changed (on another branch, the
+  base alone moves), refused while the folder is lent to a run; when git refuses, nothing moves and the files in the
+  way are named. The menu « Watch » counts it. At the retouch pause, the page says that what is saved there reaches
+  the folder after the merge and this update, and names the pages retouched by hand outside the folder
+  (`GET /api/folder`, `POST /api/folder/update`).
 - **One menu « Watch », and a page « To handle » first** (proposed by the user, who found « Watches » and « Check the
   guide » alike): the watches, the checks, the sources followed and every run are entries of one menu of the bar,
   each with a line on where it starts from (every two weeks from the forge, or on demand). Its first entry, « To

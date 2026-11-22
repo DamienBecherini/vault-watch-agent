@@ -180,7 +180,7 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 
 | Page | À quoi elle sert |
 | :-- | :-- |
-| Veille › À traiter | La première page : tout ce qui vous attend, d'où que ça vienne : un passage en pause pour votre relecture, une veille à lancer, les vérifications dont les pistes sont à trier ; le menu « Veille » en donne le nombre |
+| Veille › À traiter | La première page : tout ce qui vous attend, d'où que ça vienne : un passage en pause pour votre relecture, une veille à lancer, les vérifications dont les pistes sont à trier, et votre dossier du guide quand il lui manque des pull requests fusionnées, avec « Mettre à jour mon dossier » ; le menu « Veille » en donne le nombre |
 | Veille › Veille automatique | Les veilles avec leur état et un bouton pour en analyser une |
 | Veille › Toutes les passes | Tous les passages, les plus récents d'abord : ceux des veilles, et ceux lancés depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues » |
 | Veille › Sources suivies | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |

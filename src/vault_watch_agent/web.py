@@ -1323,6 +1323,35 @@ def create_app(settings: Settings) -> FastAPI:
     def folder_error(e: Exception) -> HTTPException:
         return HTTPException(409, str(e))
 
+    # The guide's folder against origin (« Update my folder »): origin is asked at most once a minute, the pages that
+    # show it (« To handle », a run merged, the menu's count) asking often
+    folder_seen: dict = {}
+
+    @app.get("/api/folder")
+    def folder_now(fresh: bool = False):
+        """The guide's folder: its path, branch, the merged commits it lacks (`behind`, with their pull request), its
+        changes not committed, when its base last moved, the run it is lent to."""
+        base = vault.guide_of(settings.vault).base_branch
+        fetch = fresh or time.time() - folder_seen.get("at", 0) > 60
+        try:
+            now = vault.folder_state(settings.vault, base, fetch=fetch)
+        except RuntimeError as e:
+            raise HTTPException(409, f"the guide's folder: {e}") from e
+        if fetch:
+            folder_seen["at"] = time.time()
+        return {**now, "path": str(settings.vault), "lent_to": retouch.lent_to(settings.home)}
+
+    @app.post("/api/folder/update")
+    def folder_update():
+        """« Update my folder »: its base moves forward to origin's (fast-forward only, nothing not committed is lost,
+        the branch checked out is not changed). Refused while the folder is lent to a run."""
+        lent = retouch.lent_to(settings.home)
+        if lent:
+            raise HTTPException(409, f"the guide's folder is lent to the run {lent}: end its retouches or take it back first")
+        done = vault.update_folder(settings.vault, vault.guide_of(settings.vault).base_branch)
+        folder_seen.clear()
+        return done
+
     @app.get("/api/runs/{thread}/folder")
     def folder_view(thread: str):
         """Where the guide's folder is, whether it can be lent to this run, and to which run it is lent."""

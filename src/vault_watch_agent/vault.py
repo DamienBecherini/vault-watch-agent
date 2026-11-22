@@ -260,6 +260,68 @@ def _sync(vault: Path, base: str) -> None:
         inputs.run(["git", "fetch", "-q", "origin", f"{base}:{base}"], cwd=vault)  # fast-forward only
 
 
+PR_NUMBER = re.compile(r"\(#(\d+)\)\s*$")
+
+
+def folder_state(vault: Path, base: str = "main", fetch: bool = True) -> dict:
+    """Where the guide's folder stands against its origin, for the page of the agent: `branch` ("" when detached),
+    `base`, `behind` (the commits of origin's `base` that the local `base` lacks, newest first: {sha, title, pr},
+    `pr` the number a squash merge writes at the end of its title), `changes` (files changed or new, not committed),
+    `updated` (when the local `base` last moved, from git's reflog) and `offline` (why origin could not be asked;
+    `behind` is then what was known at the last fetch). No origin: nothing is behind."""
+    with _GIT:
+        out = {"branch": "", "base": base, "behind": [], "changes": [], "updated": "", "offline": "", "origin": False}
+        branch = inputs.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=vault).strip()
+        out["branch"] = "" if branch == "HEAD" else branch
+        out["changes"] = [line[3:].strip().strip('"') for line in
+                          inputs.run(["git", "status", "--porcelain"], cwd=vault).splitlines() if line.strip()]
+        try:
+            out["updated"] = inputs.run(["git", "reflog", "show", "--date=iso-strict", "--format=%gd", "-n", "1", base],
+                                        cwd=vault).strip().partition("@{")[2].rstrip("}")
+        except RuntimeError:
+            pass
+        if "origin" not in inputs.run(["git", "remote"], cwd=vault).split():
+            return out
+        out["origin"] = True
+        if fetch:
+            try:
+                inputs.run(["git", "fetch", "-q", "origin", base], cwd=vault)
+            except RuntimeError as e:
+                out["offline"] = str(e)[-300:]
+        try:
+            log = inputs.run(["git", "log", "--format=%H%x09%s", f"{base}..origin/{base}"], cwd=vault)
+        except RuntimeError:
+            return out
+        for line in log.splitlines():
+            sha, _, title = line.partition("\t")
+            number = PR_NUMBER.search(title)
+            out["behind"].append({"sha": sha[:7], "title": PR_NUMBER.sub("", title).strip(),
+                                  "pr": int(number.group(1)) if number else None})
+        return out
+
+
+def update_folder(vault: Path, base: str = "main") -> dict:
+    """« Update my folder »: the local `base` moves forward to origin's, as before a run (fast-forward only; what
+    is not committed stays, a file the merge already says the same is put back first). The checked-out branch is
+    never changed: on another branch, `base` alone moves. Returns {ok, from, to, files (how many changed), kept (the
+    files not committed, left as they were), branch}; when git refuses, {ok: False, why, files (those in the way)}
+    and nothing has moved."""
+    with _GIT:
+        before = inputs.run(["git", "rev-parse", base], cwd=vault).strip()
+        try:
+            _sync(vault, base)
+        except RuntimeError as e:
+            said = str(e)
+            in_way = [line.strip() for line in said.splitlines() if line.startswith(("\t", "        "))]
+            return {"ok": False, "why": said[-400:], "files": in_way}
+        after = inputs.run(["git", "rev-parse", base], cwd=vault).strip()
+        changed = inputs.run(["git", "diff", "--name-only", before, after], cwd=vault).splitlines() if before != after else []
+        kept = [line[3:].strip().strip('"') for line in inputs.run(["git", "status", "--porcelain"], cwd=vault).splitlines() if line.strip()]
+        branch = inputs.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=vault).strip()
+        return {"ok": True, "from": before[:7], "to": after[:7], "files": len(changed), "kept": kept,
+                "branch": "" if branch == "HEAD" else branch}
+
+
 def settle(vault: Path, target: str) -> list[str]:
     """The files changed in the folder and not committed whose text is already the one of `target`: put back to
     their last commit, so that moving to `target` can go on (git refuses to overwrite a local change, even one that

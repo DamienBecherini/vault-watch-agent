@@ -176,7 +176,7 @@ problems, the diff of the branch), then the pull request. Around them:
 
 | Page | What it is for |
 | :-- | :-- |
-| Watch › To handle | The first page: everything that waits for you, wherever it comes from: a run paused for your review, a watch to start, the checks whose leads are to sort; the menu « Watch » shows how many |
+| Watch › To handle | The first page: everything that waits for you, wherever it comes from: a run paused for your review, a watch to start, the checks whose leads are to sort, and your guide's folder when it lacks pull requests merged, with « Update my folder »; the menu « Watch » shows how many |
 | Watch › Automatic watch | The watches with their status and a button to analyse one |
 | Watch › Every run | Every run, newest first: the watches', and those started from a check, from « Report or suggest » or from « Languages » |
 | Watch › Sources followed | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |

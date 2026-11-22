@@ -82,6 +82,27 @@ const TEXTS = {
       reportWhat: "Une erreur, une idée, des liens à lire en entier.", reportButton: "Écrire",
       auto: "Veille automatique", waiting: n => `${n} chose${n > 1 ? "s" : ""} t'attend${n > 1 ? "ent" : ""}`,
     },
+    folder: {
+      behind: (n, prs) => `Ton dossier du guide a ${n} ${prs ? `PR` : `commit${n > 1 ? "s" : ""}`} de retard sur ${forgeName()}`,
+      notSeen: "Obsidian ne les voit pas encore.", more: n => `et ${n} autre${n > 1 ? "s" : ""}`,
+      where: (path, branch, state, when) => `Dossier <code>${path}</code> · sur <code>${branch}</code> · ${state} · dernière mise à jour : ${when}`,
+      clean: "propre", changes: n => n > 1 ? `${n} fichiers modifiés pas commités, qui resteront tels quels` : "1 fichier modifié pas commité, qui restera tel quel",
+      detached: "aucune branche", unknown: "inconnue",
+      update: "Mettre à jour mon dossier", updateBase: base => `Mettre à jour ${base}`,
+      otherBranch: (branch, base) => `Ton dossier est sur la branche <code>${branch}</code> : l'agent ne change pas de branche à ta place. <code>${base}</code> est mis à jour quand même ; reviens dessus dans Obsidian (ou par git) quand tu veux.`,
+      offline: () => `${forgeName()} n'a pas répondu : c'est le retard connu à la dernière vérification.`,
+      doneTitle: "Ton dossier est à jour",
+      done: (from, to, n) => `<code>${from}</code> → <code>${to}</code> : ${n} fichier${n > 1 ? "s" : ""} changé${n > 1 ? "s" : ""}. Obsidian les affiche déjà.`,
+      kept: n => n > 1 ? ` Tes ${n} fichiers modifiés et pas commités sont restés tels quels.` : " Ton fichier modifié et pas commité est resté tel quel.",
+      doneOther: (branch, base) => ` Ton dossier est resté sur <code>${branch}</code> ; <code>${base}</code> a avancé.`,
+      stopTitle: "Mise à jour impossible : rien n'a été touché",
+      stopFiles: files => `${files} : modifié dans ton dossier (pas commité) et aussi par la mise à jour. Commite ou annule ta modification dans Obsidian, puis réessaie.`,
+      stopWhy: why => `Git a refusé : ${why}`, retry: "Réessayer", upToDate: "à jour",
+      lentTitle: t => `Ton dossier est prêté à la passe ${t}`,
+      lent: "Il est sur la branche de cette passe le temps des retouches. Termine-les (ou reprends ton dossier), puis mets-le à jour.",
+      toRetouch: "Aller aux retouches",
+      notYetTitle: "Ton dossier n'a pas encore cette PR", notYet: "Obsidian montre les pages d'avant la fusion.",
+    },
     runsIntro: "Toutes les passes, les plus récentes d'abord : celles des veilles, et celles lancées depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues ».",
     sources: {
       title: "Sources de la veille",
@@ -386,7 +407,8 @@ const TEXTS = {
       takeBackHelp: "Ton dossier revient sur main, comme avant le prêt, sans terminer l'étape. Ce que tu as modifié dans Obsidian est gardé : commité sur la branche du passage, tu le retrouves en ouvrant la page ici. Tu peux ensuite continuer ici, ou prêter ton dossier à nouveau.",
       here: "Relire ici, dans le navigateur",
       hereHelp: lent => lent ? "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Ton dossier étant prêté, ce que tu enregistres ici s'écrit dans ton dossier : Obsidian le voit aussitôt."
-        : "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Tu modifies la copie du passage, pas ton dossier : Obsidian ne verra le résultat qu'une fois la pull request fusionnée.",
+        : "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Tu modifies la copie du passage, pas ton dossier : Obsidian ne verra le résultat qu'une fois la pull request fusionnée et ton dossier mis à jour (« Mettre à jour mon dossier », dans « À traiter »).",
+      savedHere: pages => `Modifiées à la main dans ce passage, hors de ton dossier : ${pages}. Elles partent dans la PR avec leur traduction ; ton dossier les recevra après la fusion, par « Mettre à jour mon dossier ».`,
       other: "ou une autre page (chemin dans le guide)", open: "Ouvrir", save: "Enregistrer", saved: "Enregistré.",
       revert: "Annuler mes modifications", close: "Fermer la page", reverted: "Modifications annulées : la page est comme à son dernier enregistrement.",
       unsaved: "Modifications non enregistrées", undoHelp: "Ctrl+Z et Ctrl+Y annulent et rétablissent ta frappe ; « Annuler mes modifications » revient à la dernière version enregistrée.",
@@ -482,6 +504,27 @@ const TEXTS = {
       launch: "Start something", checkWhat: "Health, trimming or news, on demand.", checkButton: "New check",
       reportWhat: "An error, an idea, links to read whole.", reportButton: "Write",
       auto: "Automatic watch", waiting: n => `${n} thing${n > 1 ? "s" : ""} wait${n > 1 ? "" : "s"} for you`,
+    },
+    folder: {
+      behind: (n, prs) => `Your guide's folder is ${n} ${prs ? `PR${n > 1 ? "s" : ""}` : `commit${n > 1 ? "s" : ""}`} behind ${forgeName()}`,
+      notSeen: "Obsidian does not see them yet.", more: n => `and ${n} more`,
+      where: (path, branch, state, when) => `Folder <code>${path}</code> · on <code>${branch}</code> · ${state} · last updated: ${when}`,
+      clean: "clean", changes: n => `${n} file${n > 1 ? "s" : ""} changed and not committed, left as they are`,
+      detached: "no branch", unknown: "unknown",
+      update: "Update my folder", updateBase: base => `Update ${base}`,
+      otherBranch: (branch, base) => `Your folder is on the branch <code>${branch}</code>: the agent does not switch branches for you. <code>${base}</code> is updated all the same; go back to it in Obsidian (or with git) when you like.`,
+      offline: () => `${forgeName()} did not answer: this is how far behind it was at the last check.`,
+      doneTitle: "Your folder is up to date",
+      done: (from, to, n) => `<code>${from}</code> → <code>${to}</code>: ${n} file${n > 1 ? "s" : ""} changed. Obsidian already shows them.`,
+      kept: n => n > 1 ? ` Your ${n} files changed and not committed were left as they were.` : " Your file changed and not committed was left as it was.",
+      doneOther: (branch, base) => ` Your folder stayed on <code>${branch}</code>; <code>${base}</code> moved forward.`,
+      stopTitle: "Update impossible: nothing was touched",
+      stopFiles: files => `${files}: changed in your folder (not committed) and by the update as well. Commit or undo your change in Obsidian, then try again.`,
+      stopWhy: why => `Git refused: ${why}`, retry: "Try again", upToDate: "up to date",
+      lentTitle: t => `Your folder is lent to the run ${t}`,
+      lent: "It is on that run's branch for the retouches. End them (or take your folder back), then update it.",
+      toRetouch: "Go to the retouches",
+      notYetTitle: "Your folder does not have this PR yet", notYet: "Obsidian shows the pages as they were before the merge.",
     },
     runsIntro: "Every run, newest first: the watches', and those started from a check, from « Report or suggest » or from « Languages ».",
     sources: {
@@ -782,7 +825,8 @@ const TEXTS = {
       takeBackHelp: "Your folder goes back to main, as before it was lent, without ending the step. What you changed in Obsidian is kept: committed onto the run's branch, you find it by opening the page here. You can then go on here, or lend your folder again.",
       here: "Read here, in the browser",
       hereHelp: lent => lent ? "Pick a page, change its text (in Markdown), then « Save ». As your folder is lent, what you save here is written into your folder: Obsidian sees it at once."
-        : "Pick a page, change its text (in Markdown), then « Save ». You change the run's copy, not your folder: Obsidian will only see the result once the pull request is merged.",
+        : "Pick a page, change its text (in Markdown), then « Save ». You change the run's copy, not your folder: Obsidian will only see the result once the pull request is merged and your folder updated (« Update my folder », in « To handle »).",
+      savedHere: pages => `Retouched by hand in this run, outside your folder: ${pages}. They go into the PR with their translation; your folder gets them after the merge, through « Update my folder ».`,
       other: "or another page (path in the guide)", open: "Open", save: "Save", saved: "Saved.",
       revert: "Cancel my changes", close: "Close the page", reverted: "Changes cancelled: the page is as it was last saved.",
       unsaved: "Unsaved changes", undoHelp: "Ctrl+Z and Ctrl+Y undo and redo your typing; « Cancel my changes » goes back to the version last saved.",
@@ -1257,6 +1301,40 @@ async function viewRuns() {
   if ($("#older")) $("#older").onclick = () => { RUNS_SHOWN += 40; viewRuns(); };
 }
 
+// The guide's folder against the forge (« Update my folder », GET /api/folder, POST /api/folder/update): how far
+// behind it is, where it is, then what the update did. `only`: the page of a run merged, which says this PR alone.
+function folderBox(f, done = null, only = 0) {
+  const F = T.folder, box = (kind, title, body, action = "") => `<div class="card row folder-box ${kind}"><div class="grow"><b>${title}</b>${body}</div>${action}</div>`;
+  const meta = t => `<div class="muted small">${t}</div>`;
+  if (done && done.ok) return box("done", F.doneTitle, meta(F.done(esc(done.from), esc(done.to), done.files)
+    + (done.kept.length ? F.kept(done.kept.length) : "") + (done.branch && done.branch !== f.base ? F.doneOther(esc(done.branch), esc(f.base)) : "")),
+    `<span class="badge ok">${F.upToDate}</span>`);
+  if (done) return box("stop", F.stopTitle, meta(done.files?.length ? F.stopFiles(done.files.map(x => `<code>${esc(x)}</code>`).join(", ")) : F.stopWhy(esc(done.why))),
+    `<button type="button" data-folder-update>${F.retry}</button>`);
+  if (f.lent_to) return only ? "" : box("", F.lentTitle(esc(f.lent_to)), meta(F.lent), `<a href="#/run/${encodeURIComponent(f.lent_to)}">${F.toRetouch}</a>`);
+  if (!f.behind.length) return "";
+  const button = `<button type="button" class="primary" data-folder-update>${f.branch && f.branch !== f.base ? F.updateBase(esc(f.base)) : F.update}</button>`;
+  if (only) return box("", F.notYetTitle, meta(F.notYet), button);
+  const prs = f.behind.every(b => b.pr), link = b => b.pr && info?.repo_url ? extLink(`${info.repo_url}/pull/${b.pr}`, `#${b.pr} ${esc(b.title)}`) : `${b.pr ? `#${b.pr} ` : ""}${esc(b.title)}`;
+  const when = f.updated ? new Date(f.updated).toLocaleString(lang, { dateStyle: "short", timeStyle: "short" }) : F.unknown;
+  return box("", F.behind(f.behind.length, prs),
+    meta(`${f.behind.slice(0, 3).map(link).join(" · ")}${f.behind.length > 3 ? ` · ${F.more(f.behind.length - 3)}` : ""}. ${F.notSeen}`)
+    + meta(F.where(esc(f.path), f.branch ? esc(f.branch) : F.detached, f.changes.length ? F.changes(f.changes.length) : F.clean, when))
+    + (f.branch && f.branch !== f.base ? meta(F.otherBranch(esc(f.branch), esc(f.base))) : "")
+    + (f.offline ? meta(F.offline()) : ""), button);
+}
+function bindFolder(root, f, only = 0) {
+  const b = root?.querySelector("[data-folder-update]");
+  if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true;
+    const done = await api("/api/folder/update", {}).catch(e => ({ ok: false, why: e.message, files: [] }));
+    root.innerHTML = folderBox(f, done, only);
+    bindFolder(root, f, only);
+    refreshTodo();
+  };
+}
+
 // « To handle »: what waits for the editor, wherever it comes from. First a run in pause (or running), then a watch
 // to start, then the checks whose leads are to sort; a count of what waits for the editor is shown on the menu.
 let TODO_COUNT = null;
@@ -1265,28 +1343,30 @@ function showTodoCount() {
   [$("#todo-count"), ...document.querySelectorAll("[data-todo-count]")].forEach(c => { c.hidden = !n; c.textContent = n; });
   $("#watch-menu > summary").title = n ? T.todo.waiting(n) : "";
 }
-const todoOf = (watches, others, verifs) => {
+const todoOf = (watches, others, verifs, folder) => {
   const runs = [...watches.filter(v => WAITING.includes(v.run.status)).map(v => ({ watch: v, status: v.run.status })),
     ...others.filter(r => WAITING.includes(r.status)).map(r => ({ run: r, status: r.status }))];
   const starts = watches.filter(v => v.run.status === "new" && !v.error && v.state !== "closed");
   const leads = verifs.filter(p => ["to-handle", "running"].includes(p.status));
   // What waits for the editor: a run not running, a watch to start, a check with leads to sort
-  const count = runs.filter(r => r.status !== "running").length + starts.length + leads.filter(p => p.status === "to-handle").length;
+  const count = runs.filter(r => r.status !== "running").length + starts.length + leads.filter(p => p.status === "to-handle").length
+    + (folder?.behind?.length && !folder.lent_to ? 1 : 0);
   return { runs, starts, leads, count };
 };
 async function refreshTodo() {
   try {
-    const [watches, others, verifs] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"), api("/api/verifications?limit=40")]);
-    TODO_COUNT = todoOf(watches, others, verifs).count;
+    const [watches, others, verifs, folder] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"),
+      api("/api/verifications?limit=40"), api("/api/folder").catch(() => null)]);
+    TODO_COUNT = todoOf(watches, others, verifs, folder).count;
     showTodoCount();
   } catch { /* the count stays as it was */ }
 }
 async function viewTodo() {
   await loadSteps();
-  const [watches, others, verifs, options] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"),
-    api("/api/verifications?limit=40"), api(`/api/verifications/options${stepsQuery()}`)]);
+  const [watches, others, verifs, options, folder] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"),
+    api("/api/verifications?limit=40"), api(`/api/verifications/options${stepsQuery()}`), api("/api/folder").catch(() => null)]);
   if (!["", "/"].includes(location.hash.slice(1))) return;  // left the page meanwhile
-  const D = T.todo, { runs, starts, leads, count } = todoOf(watches, others, verifs), checkCard = checkCardMaker(options);
+  const D = T.todo, { runs, starts, leads, count } = todoOf(watches, others, verifs, folder), checkCard = checkCardMaker(options);
   TODO_COUNT = count;
   showTodoCount();
   // The runs that wait for the editor first, the running ones after
@@ -1295,7 +1375,8 @@ async function viewTodo() {
   page.innerHTML = `
     ${crumb()}<h1>${T.nav.todo}</h1>
     <p class="subtitle">${D.intro}</p>
-    ${!runs.length && !starts.length && !leads.length ? `<p class="banner">${D.nothing}</p>` : ""}
+    <div id="folder-box">${folder ? folderBox(folder) : ""}</div>
+    ${!runs.length && !starts.length && !leads.length && !folder?.behind?.length ? `<p class="banner">${D.nothing}</p>` : ""}
     <h2>${D.runs} <span class="muted small">· ${runs.length}</span></h2>
     ${runs.map(r => r.watch ? watchCard(r.watch) : runCard(r.run)).join("") || `<p class="empty-note">${D.runsNone}</p>`}
     ${starts.length ? `<h2>${D.watches} <span class="muted small">· ${starts.length}</span></h2>${starts.map(watchCard).join("")}` : ""}
@@ -1306,6 +1387,7 @@ async function viewTodo() {
       <div class="card"><b>${T.nav.report}</b><p class="muted small">${D.reportWhat}</p><a href="#/report"><button>${D.reportButton}</button></a></div>
     </div>`;
   bindAnalyse(page);
+  bindFolder($("#folder-box"), folder);
   // Something still running here: the page is drawn again a little later, while it stays open
   if (runs.some(r => r.status === "running") || leads.some(p => p.status === "running"))
     followTimer = setTimeout(() => { if (["", "#/"].includes(location.hash)) viewTodo().catch(() => {}); }, 5000);
@@ -1935,9 +2017,11 @@ async function viewRetouch(r, title) {
   $("#page-save").onclick = async () => {
     if (!open) return;
     try {
-      await api(`${at}/page`, { path: open, text: $("#page-text").value });
+      const wrote = await api(`${at}/page`, { path: open, text: $("#page-text").value });
       saved = $("#page-text").value;
-      $("#page-said").textContent = R.saved;
+      // Not lent: what was saved is in the run's copy only; the pages retouched so far are named
+      const outside = lent ? [] : (wrote.changed || []).filter(p => /\.mdx?$/.test(p));
+      $("#page-said").innerHTML = `${R.saved}${outside.length ? ` <span class="muted">${R.savedHere(outside.map(p => `<code>${esc(p)}</code>`).join(" · "))}</span>` : ""}`;
       said();
     } catch (e) { $("#page-said").textContent = e.message; }
   };
@@ -2209,7 +2293,15 @@ function viewEnd(r, title) {
       ${r.error ? `<p class="error-text">${esc(r.error)}</p>` : ""}
       ${r.status === "stopped" ? `<button class="primary" id="resume">${T.resume}</button>` : ""}</div>
     ${r.applied.length ? `<p>${T.applied}${T.colon}${r.applied.join(", ")}</p>` : ""}
-    ${r.report_path ? `<p class="small"><a href="/api/runs/${encodeURIComponent(r.thread)}/report" target="_blank">${T.report}</a></p>` : ""}`;
+    ${r.report_path ? `<p class="small"><a href="/api/runs/${encodeURIComponent(r.thread)}/report" target="_blank">${T.report}</a></p>` : ""}
+    <div id="folder-box"></div>`;
+  const number = Number((r.pr_url || "").match(/\/pull\/(\d+)/)?.[1] || 0);
+  if (r.status === "merged" && number) api("/api/folder").then(f => {
+    const box = $("#folder-box");
+    if (!box || !f.behind.some(b => b.pr === number)) return;
+    box.innerHTML = folderBox(f, null, number);
+    bindFolder(box, f, number);
+  }).catch(() => {});
   const b = $("#resume");
   if (b) b.onclick = async () => { b.disabled = true; await api(`/api/runs/${encodeURIComponent(r.thread)}/resume`, {}); route(); };
 }

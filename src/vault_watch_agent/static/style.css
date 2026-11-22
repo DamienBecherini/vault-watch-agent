@@ -108,6 +108,10 @@ nav { align-items: baseline; }   /* « Watch » and its count on the line of the
 .crumb { font-size: 13px; color: var(--muted); margin-bottom: -4px; }
 .empty-note { color: var(--muted); font-size: 14px; border: 1px dashed var(--border); border-radius: 10px; padding: 9px 14px; }
 .launch-row { display: flex; flex-wrap: wrap; gap: 12px; }
+/* The guide's folder against the forge: behind (amber), up to date (green), the update refused (red) */
+.folder-box { border-left: 4px solid var(--attention); }
+.folder-box.done { border-left-color: var(--ok); } .folder-box.stop { border-left-color: var(--error); }
+.folder-box b { display: block; }
 .launch-row .card { flex: 1 1 260px; margin: 0; }
 .launch-row .card p { margin: 2px 0 8px; }
 footer a { color: inherit; }
