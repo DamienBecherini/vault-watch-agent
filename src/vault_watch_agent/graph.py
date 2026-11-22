@@ -777,7 +777,9 @@ def usage_line(usage: list[dict]) -> str:
     cache = sum(u.get("cache_read", 0) for u in usage)
     cost = sum(u.get("cost_usd", 0.0) for u in usage)
     subscription = sum(1 for u in usage if u.get("engine") == "claude-code")  # Claude Code on a subscription: not billed
-    spared = f" ({subscription} on the subscription, not billed)" if subscription else ""
+    worth = sum(u.get("list_usd") or 0.0 for u in usage if not u.get("cost_usd"))  # what they are worth at list price
+    spared = (f" ({subscription} on the subscription, not billed{f'; worth {worth:.2f} $ at list price' if worth else ''})"
+              if subscription else "")
     return f"{len(usage)} calls, {tokens_in:,} in ({cache:,} from cache) / {tokens_out:,} out, ≈ {cost:.2f} ${spared}"
 
 

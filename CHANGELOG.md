@@ -31,7 +31,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - **The list of the checks says what each one is**: its kind in colour (guide health, lighter guide, what is new;
   `Check.kind`), a short title (« Links to read whole · 2 links », « 7 checks »), « from Report or suggest » when it
   was not started there, the links it read as links (a PDF named after its file when it has no title), and the
-  history narrowed to one kind. A check on a subscription shows what it is worth at list price, struck through,
+  history narrowed to one kind. A check on a subscription shows what it is worth at list price, struck through
+  (so do a run's line, its progress, the lists of the runs and every estimate before a check or a run; the report
+  says it in words),
   instead of 0.00 $. The runs its leads went to stay on its card while they wait for something, with the button of
   their step (Follow, Review, Approve publishing, Merge).
 - **The review of a run, one block per lead**: its number and title on the check's page, its source, a link to the

@@ -832,6 +832,12 @@ const costOf = (step, usd) => {
   const s = stepNow(step);
   return !s ? cost(usd) : s.billing === "subscription" ? T.subscription : s.billing === "none" ? T.local : s.engine !== "api" ? T.provider : usd;
 };
+// The same as HTML: on a subscription, what the estimate is worth at list price, struck through, beside it
+const costHtml = (step, usd) => {
+  const said = costOf(step, usd);
+  return stepNow(step)?.billing === "subscription" && /\d/.test(usd || "")
+    ? `<s class="worth" title="${esc(T.verif.listPriceTip)}">${esc(usd)}</s> ${esc(said)}` : esc(said);
+};
 const billedStep = step => costOf(step, "$") === "$";
 // One line per step: what runs it, and the fields to change it for this run
 function stepLine(step, name = "") {
@@ -1067,7 +1073,7 @@ function drawWatches(watches, others) {
           ${v.kind === "issue" ? `<b>#${v.number}</b> ` : ""}${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
           ${v.error ? `<div class="error-text small">${esc(v.error)}</div>` : ""}
           <div class="muted small">${v.date} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
-            !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${dollars(r.cost)}` : ""}${
+            !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${costTag(r.cost, r.unbilled_usd, false)}` : ""}${
             r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div>
         </div>
         ${badge(r.status)} ${action}
@@ -1075,7 +1081,7 @@ function drawWatches(watches, others) {
     }).join("") || `<p class="muted">${T.noWatch}</p>`}
     ${others.length ? `<h2>${T.others}</h2>${others.slice(0, RUNS_SHOWN).map(r => `
       <div class="card row${FINISHED.includes(r.status) ? " finished" : ""}"><div class="grow"><b>${esc(r.thread)}</b>
-        <div class="muted small">${esc(r.source)} · ${r.corrections} correction(s) · ${dollars(r.cost)}${
+        <div class="muted small">${esc(r.source)} · ${r.corrections} correction(s) · ${costTag(r.cost, r.unbilled_usd, false)}${
           r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div></div>
         ${badge(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a></div>`).join("")}
       ${others.length > RUNS_SHOWN ? `<p><button type="button" id="older">${T.menu.older}</button></p>` : ""}` : ""}`;
@@ -1147,9 +1153,9 @@ async function viewChapters() {
     <h2>${C.change}</h2>
     <p class="muted">${C.changeHelp}</p>
     <div class="card check-card"><div class="option-text">
-        <div class="header"><b>${C.askTitle}</b> <span class="badge attention">${costOf("chapters", `≈ ${dollars(d.usd)}`)}</span></div>
+        <div class="header"><b>${C.askTitle}</b> <span class="badge attention">${costHtml("chapters", `≈ ${dollars(d.usd)}`)}</span></div>
         <p class="muted small">${C.askWhat}</p>
-        <p><button id="ask">${C.ask(costOf("chapters", `≈ ${dollars(d.usd)}`))}</button> <span class="error-text small" id="ask-error"></span></p>
+        <p><button id="ask">${C.ask(costHtml("chapters", `≈ ${dollars(d.usd)}`))}</button> <span class="error-text small" id="ask-error"></span></p>
       </div><div class="card-foot">${stepLine("chapters")}</div></div>
     <h3>${C.byHand}</h3>
     <p class="muted small">${C.pathsHelp}</p>
@@ -1224,7 +1230,7 @@ async function viewChapters() {
       CH_EDIT = { rows: p.chapters.filter(c => c.declared).map(c => ({ name: c.name, paths: c.paths, explore: c.explore })), why: p.why, result: p,
                   said: C.asked(costOf("chapters", dollars(p.cost))) };
       viewChapters();
-    } catch (e) { b.disabled = false; b.textContent = C.ask(costOf("chapters", `≈ ${dollars(d.usd)}`)); failed("#ask-error", e); }
+    } catch (e) { b.disabled = false; b.innerHTML = C.ask(costHtml("chapters", `≈ ${dollars(d.usd)}`)); failed("#ask-error", e); }
   };
   const save = async (chapters, button) => {
     button.disabled = true;
@@ -1241,11 +1247,16 @@ async function viewChapters() {
 }
 
 // --- One run ---------------------------------------------------------------------------------------
+// Its line of usage, its price at the end said like a check's: on a subscription, what it is worth, struck through
+const usageHtml = r => {
+  const line = T.usageLine(r.usage), at = line.lastIndexOf(" ≈ ");
+  return !(r.unbilled_usd > 0) || at < 0 ? esc(line) : `${esc(line.slice(0, at))} ${costTag(r.cost, r.unbilled_usd, false)}`;
+};
 async function viewRun(thread) {
   const r = await api(`/api/runs/${encodeURIComponent(thread)}`);
   const name = r.mode === "mirror" ? T.pairs.runTitle : r.source || thread;
   const title = `<h1>${esc(name)} ${badge(r.status)}</h1>
-    <p class="subtitle">${r.as_of && !r.mode ? `${T.watchUpTo(r.as_of)} · ` : ""}${esc(T.usageLine(r.usage))}</p>`;
+    <p class="subtitle">${r.as_of && !r.mode ? `${T.watchUpTo(r.as_of)} · ` : ""}${usageHtml(r)}</p>`;
   if (r.status === "running") return viewRunning(r, title);
   if (r.status === "review") return viewReview(r, title);
   if (r.status === "publish") return viewPublish(r, title);
@@ -1259,6 +1270,7 @@ function viewRunning(r, title) {
   const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", retouch: "retouch", mirror: "mirror", translation: "translation", publish: "publish", resume: null }[r.job.action];
   const steps = r.steps.slice(first ? r.steps.indexOf(first) : 0);
   const cost = r.job.events.reduce((m, e) => e.cost ?? m, 0);
+  let unbilled = r.job.events.reduce((m, e) => e.unbilled ?? m, 0);
   page.innerHTML = `${title}
     <div class="card">
       <ol class="steps" id="steps">${steps.map(s => `<li data-step="${s}">${T.steps[s]}</li>`).join("")}</ol>
@@ -1273,11 +1285,11 @@ function viewRunning(r, title) {
       li.classList.toggle("current", !done && current && (current = false, true));
     });
     const min = Math.round((Date.now() / 1000 - r.job.started) / 60);
-    $("#progress").textContent = T.progress(min, dollars(cost));
+    $("#progress").innerHTML = T.progress(min, costTag(cost, unbilled, false));
   };
   update(cost);
   source = new EventSource(`/api/runs/${encodeURIComponent(r.thread)}/events`);
-  source.onmessage = ev => { const e = JSON.parse(ev.data); doneSteps.add(e.node); update(e.cost ?? cost); };
+  source.onmessage = ev => { const e = JSON.parse(ev.data); doneSteps.add(e.node); unbilled = e.unbilled ?? unbilled; update(e.cost ?? cost); };
   source.addEventListener("end", () => { source.close(); source = null; route(); });
 }
 
@@ -1764,7 +1776,7 @@ async function viewChecks() {
   const verifs = listed.slice(0, CHECKS_SHOWN);
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
   // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
-  const price = o => o.model ? costOf(o.id, o.usd == null ? V.unknown : `≈ ${dollars(est(o, "usd"))}`) : V.free;
+  const price = o => o.model ? costHtml(o.id, o.usd == null ? V.unknown : `≈ ${dollars(est(o, "usd"))}`) : V.free;
   const origin = o => o.model && o.price_origin && o.usd != null && billedStep(o.id)
     ? ` <span class="muted small">${esc(T.priceOrigin(o.price_origin))}</span>` : "";
   // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
@@ -1825,7 +1837,7 @@ async function viewChecks() {
         ${o.limit ? `<p class="small attention-text">${esc(o.limit[lang])}</p>` : ""}
         <p class="muted small">${esc(o.note[lang])}${o.needs.length ? ` · ${V.needs(o.needs.map(n => titles[n]).join(", "))}` : ""}</p>
       </div></label>${o.model ? `<div class="card-foot">${stepLine(o.id)}</div>` : ""}${o.chapters ? `<div class="card-foot chapters" data-chapters-of="${o.id}" hidden>
-        <p class="muted small">${V.chapters(costOf(o.id, `≈ ${dollars(est(o, "usd_chapter") || 0)}`))}</p>
+        <p class="muted small">${V.chapters(costHtml(o.id, `≈ ${dollars(est(o, "usd_chapter") || 0)}`))}</p>
         ${o.chapters.map(c => `<label><input type="checkbox" data-chapter="${esc(c.id)}" ${(kept ? kept.chapters.has(c.id) : c.explore) ? "checked" : ""}> ${esc(c.id)} <span class="muted small">(${c.pages} p., ${T.chapters.kb(Math.round(c.kb))})</span></label>`).join("")}
         <p class="small"><a href="#/chapters">${T.chapters.edit}</a></p>
       </div>` : ""}</div>`).join("")}
@@ -1852,7 +1864,8 @@ async function viewChecks() {
     const chosen = options.filter(o => ids.has(o.id)), paid = chosen.filter(o => o.model), billed = paid.filter(o => billedStep(o.id));
     const usd = billed.reduce((s, o) => s + (est(o, "usd") || 0) + (o.chapters ? (est(o, "usd_chapter") || 0) * chapters().length : 0), 0);
     // Scripts only: free. Every model check on a subscription or a local model: said. Else what the billed ones cost.
-    $("#start").textContent = V.start(!paid.length ? V.free : !billed.length ? costOf(paid[0].id, "")
+    const worth = paid.reduce((s, o) => s + (est(o, "usd") || 0) + (o.chapters ? (est(o, "usd_chapter") || 0) * chapters().length : 0), 0);
+    $("#start").innerHTML = V.start(!paid.length ? V.free : !billed.length ? costHtml(paid[0].id, `≈ ${dollars(worth)}`)
       : `≈ ${dollars(usd)}${billed.length < paid.length ? ` + ${T.perStep.restUnbilled}` : ""}`);
     $("#start").disabled = ids.size === 0 || chosen.some(o => o.chapters && !chapters().length);
   };
@@ -2055,7 +2068,7 @@ async function viewCheck(id) {
       const each = f => NO_PAGE.test(f) ? (deep().has(f) ? o.run_usd_deep : o.run_usd_each) : (deep().has(f) ? o.run_usd_deep_pages : o.run_usd_each_pages);
       return `≈ ${dollars(o.run_usd_pages + (adds.some(f => NO_PAGE.test(f)) ? o.run_usd - o.run_usd_pages : 0) + adds.reduce((s, f) => s + (each(f) || 0), 0))}`;
     };
-    $("#fix").textContent = V.createFix(by, (usd, mode) => costOf(MODE_STEP[mode] || "fix", usd),
+    $("#fix").innerHTML = V.createFix(by, (usd, mode) => costHtml(MODE_STEP[mode] || "fix", usd),
       { compact: runOf("compaction", by.compact || 0), add: addCost(), dug, short: true });
     // The leads of an addition run: how many are dug deeper, and what the run costs, part by part
     $("#dig-box").hidden = !adds.length;
@@ -2082,9 +2095,9 @@ async function viewCheck(id) {
     $("#fix").disabled = n === 0 || v.running;
     page.querySelectorAll("[data-dismiss]").forEach(b => { b.textContent = V.dismiss(e); b.disabled = e === 0 || v.running; });
     // The line of the bar: what is ticked and what it costs; the full label of the button on a wide screen
-    const price = kinds.length === 1 ? (kinds[0] === "add" ? costOf("add", addCost()) : "") : "";
+    const price = kinds.length === 1 ? (kinds[0] === "add" ? costHtml("add", addCost()) : "") : "";
     $("#bar-sum").innerHTML = n ? `<span class="wide-only">${V.barSum(n, dug, price)}</span><span class="narrow-only">${V.barSumShort(n, price)}</span>` : "";
-    $("#fix").innerHTML = n ? `<span class="wide-only">${esc($("#fix").textContent)}</span><span class="narrow-only">${V.createShort}</span>` : esc($("#fix").textContent);
+    $("#fix").innerHTML = n ? `<span class="wide-only">${$("#fix").innerHTML}</span><span class="narrow-only">${V.createShort}</span>` : $("#fix").innerHTML;
     $("#bar-toggle").innerHTML = `<span class="wide-only">${V.barOptions} ${BAR_OPEN ? "▾" : "▴"}</span><span class="narrow-only">${BAR_OPEN ? "✕" : "⋯"}</span>`;
     $("#bar-toggle").hidden = !wanted.length;
   };
@@ -2449,7 +2462,7 @@ async function viewLanguages() {
   }
   const card = (p, kind) => `<div class="card check-card"><label class="option">
       <input type="checkbox" data-kind="${kind}" data-page="${esc(p.page)}" data-usd="${p.usd}" checked>
-      <div><div class="header"><code>${esc(p.page)}</code> <span class="badge attention">${costOf("mirror", `≈ ${dollars(p.usd)}`)}</span></div>
+      <div><div class="header"><code>${esc(p.page)}</code> <span class="badge attention">${costHtml("mirror", `≈ ${dollars(p.usd)}`)}</span></div>
         <p class="muted small">${L.passages(p.passages)}${p.since ? ` · ${L.since(esc(p.since.slice(0, 7)))}` : ""}</p></div></label>
       ${(p.hunks || []).length ? `<details class="hunks" open><summary>${L.zones(p.hunks.length)}</summary>${p.hunks.map(hunk).join("")}</details>` : ""}</div>`;
   // A changed zone of the page, two lines of context above and below it, the change as a word-level diff
@@ -2478,7 +2491,7 @@ async function viewLanguages() {
     const on = boxes().filter(b => b.checked), button = $("#sync");
     if (!button) return;
     button.disabled = !on.length;
-    button.textContent = L.button(on.length, costOf("mirror", `≈ ${dollars(on.reduce((sum, b) => sum + Number(b.dataset.usd), 0))}`));
+    button.innerHTML = L.button(on.length, costHtml("mirror", `≈ ${dollars(on.reduce((sum, b) => sum + Number(b.dataset.usd), 0))}`));
   };
   boxes().forEach(b => { b.onchange = () => { label(); checkLabel(d, boxes); }; });
   page.querySelectorAll("[data-tick]").forEach(b => b.onclick = () => { boxes().forEach(x => { x.checked = b.dataset.tick === "all"; }); label(); checkLabel(d, boxes); });
@@ -2524,7 +2537,7 @@ function checkLabel(d, boxes) {
   let total = 0, paid = false, free = "";
   page.querySelectorAll("[data-check-usd]").forEach(b => {
     const k = b.dataset.checkUsd, usd = checkCost(d, boxes, k), shown = `≈ ${dollars(usd)}`, label = costOf(CHECK_STEP[k], shown);
-    b.textContent = label;
+    b.innerHTML = costHtml(CHECK_STEP[k], shown);
     if (!page.querySelector(`[data-check="${k}"]`).checked) return;
     if (label === shown) { total += usd; paid = true; } else free = label;  // a step on a subscription or a local model
   });

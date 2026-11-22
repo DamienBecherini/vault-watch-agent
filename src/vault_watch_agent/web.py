@@ -355,7 +355,7 @@ def create_app(settings: Settings) -> FastAPI:
         return job
 
     def follow(graph, job: Job, value) -> None:
-        cost = 0.0
+        cost = worth = 0.0
         for chunk in graph.stream(value, config(job.thread), stream_mode="updates"):
             for node, update in chunk.items():
                 if node == "__interrupt__":
@@ -363,7 +363,9 @@ def create_app(settings: Settings) -> FastAPI:
                     continue
                 for u in (update or {}).get("usage", []) if isinstance(update, dict) else []:
                     cost += u.get("cost_usd", 0.0)
-                job.events.append({"t": time.time(), "node": node.split(":")[0], "cost": round(cost, 2)})
+                    worth += 0.0 if u.get("cost_usd") else (u.get("list_usd") or 0.0)
+                job.events.append({"t": time.time(), "node": node.split(":")[0], "cost": round(cost, 2),
+                                   "unbilled": round(worth, 2)})
 
     # -- views of a run ----------------------------------------------------------------------
     def status(snapshot, job: Job | None) -> str:
@@ -450,6 +452,7 @@ def create_app(settings: Settings) -> FastAPI:
         made = {"status": status(snapshot, None), "source": v.get("source", ""),
                 "as_of": v.get("as_of", ""), "pr_url": v.get("pr_url", ""),
                 "cost": round(sum(u.get("cost_usd", 0.0) for u in v.get("usage", [])), 2),
+                "unbilled_usd": round(sum(u.get("list_usd") or 0.0 for u in v.get("usage", []) if not u.get("cost_usd")), 2),
                 "corrections": len(v.get("corrections", [])), "applied": len(v.get("applied", []))}
         if stamp:
             seen[thread] = (stamp, made)
