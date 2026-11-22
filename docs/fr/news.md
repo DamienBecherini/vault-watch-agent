@@ -49,6 +49,16 @@ cette partie.
 Les pistes qui ne concernent que des pages en lecture seule sont laissées de côté. Comme pour tout contrôle,
 vous gardez les pistes que vous voulez, vous écartez les autres, et celles gardées partent dans un passage.
 
+### Dans votre langue
+
+Une piste est écrite une fois, au moment du contrôle, dans la langue qu'avait l'interface quand vous l'avez lancé.
+Sa ligne reste en anglais quelle que soit cette langue : c'est elle que lit le passage, et que citent son rapport
+et sa pull request (l'outillage s'écrit en anglais). Dans une autre langue, le modèle vous explique aussi chaque
+piste, en quatre parties : ce que dit la source, ce que dit le guide, ce qui reste à vérifier, ce que cela change
+pour le lecteur. La page les montre, la ligne anglaise repliée dessous, puis les pages à lire aussi et les sources,
+courtes et cliquables. En anglais, la ligne seule est montrée, découpée de la même façon ; rien de plus n'est
+demandé au modèle.
+
 ## Les pistes, depuis le web
 
 ```bash

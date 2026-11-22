@@ -139,6 +139,8 @@ const TEXTS = {
       kinds: { "From a link": "D'un lien", "Found on the web": "Trouvée sur le web", Newer: "Plus récent", Missing: "Manquant",
         "Seen by the watch": "Vu par la veille", Critical: "Critique", Major: "Majeur", Minor: "Mineur" },
       noPage: "pas encore de page", readAlso: "À lire aussi :", sources: "Sources :",
+      detail: { says: "Ce que dit la source", guide: "Ce que dit le guide", check: "À vérifier", matters: "Pour le lecteur" },
+      sentText: "Le texte que lira la passe (en anglais)",
       leadsAdd: "Une piste est une question à vérifier, pas une modification : rien n'est encore écrit. Le passage encadré est ce que le guide dit aujourd'hui (en surligné, la phrase visée ; les lignes voisines donnent le contexte). Pour chaque piste cochée, la passe d'ajouts lit les sources, puis propose de corriger ce qui est dépassé ou d'ajouter ce qui manque, dans toutes les pages concernées. Tu relis ces propositions avant qu'elles s'appliquent.",
       onlyFree: "Seulement les gratuits",
       waiting: "en attente", checking: "en cours…", ok: "RAS", problems: "à regarder", failed: "n'a pas pu tourner",
@@ -449,6 +451,8 @@ const TEXTS = {
       linksRead: "The links", linkChars: (n, cut) => `${n.toLocaleString("en")} characters read${cut ? " (cut)" : ""}`,
       dig: "dig deeper (several sources, more searches, a little more expensive)",
       kinds: {}, noPage: "no page yet", readAlso: "Read also:", sources: "Sources:",
+      detail: { says: "What the source says", guide: "What the guide says", check: "To check", matters: "For the reader" },
+      sentText: "The text the run will read",
       leadsAdd: "A lead is a question to check, not a change: nothing is written yet. The framed passage is what the guide says today (highlighted: the sentence concerned; the lines around give the context). For each lead ticked, the addition run reads the sources, then proposes to correct what is out of date or to add what is missing, in every page concerned. You review these proposals before they apply.",
       onlyFree: "Only the free ones",
       waiting: "waiting", checking: "running…", ok: "all clear", problems: "to look at", failed: "could not run",
@@ -1550,7 +1554,7 @@ async function viewChecks() {
   $("#start").onclick = async () => {
     $("#start").disabled = true;
     const checks = boxes.filter(c => c.checked).map(c => c.dataset.check);
-    const { id } = await api("/api/verifications", { checks, steps: ownFor(checks), ...(checks.includes("explore") ? { chapters: chapters() } : {}) });
+    const { id } = await api("/api/verifications", { checks, lang, steps: ownFor(checks), ...(checks.includes("explore") ? { chapters: chapters() } : {}) });
     location.hash = `/check/${encodeURIComponent(id)}`;
   };
 }
@@ -1597,7 +1601,7 @@ async function viewCheck(id) {
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<p class="muted small">${V.leadsAdd}</p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
-            <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f])).join("")}</ul>` : ""}` : ""}
+            <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads">${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f], r.details?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
     <div class="bar">
@@ -1610,7 +1614,7 @@ async function viewCheck(id) {
     </div>`;
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
   // Handled findings stay one line; an open one shows the passages it is about
-  function lead(f, fixable, card, mode = "fix", n = 0, passages = []) {
+  function lead(f, fixable, card, mode = "fix", n = 0, passages = [], detail = null) {
     const h = v.handled[f], num = `<span class="num">${n}.</span>`;  // per card, stable: handled lines keep theirs
     if (h?.status === "fix") {
       const run = v.runs[h.thread] || {};
@@ -1622,9 +1626,13 @@ async function viewCheck(id) {
     if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${esc(f)}</li>`;
     const p = leadParts(f), kind = p.kind ? `<span class="badge neutral">${esc(V.kinds[p.kind] || p.kind)}</span> ` : "";
     const pages = p.pages.length ? p.pages.map(x => `<code>${esc(x)}</code>`).join(", ") : p.kind ? `<span class="muted">${V.noPage}</span>` : "";
-    const meta = (p.read.length ? `<div>${V.readAlso} ${p.read.map(x => `<code>${esc(x)}</code>`).join(", ")}</div>` : "")
+    // Explained in the language of the interface when the check asked for it: the four parts; the line in English,
+    // which is what a run reads, folded below
+    const said = detail ? `<dl class="lead-detail">${["says", "guide", "check", "matters"].filter(k => detail[k])
+      .map(k => `<dt>${V.detail[k]}</dt><dd>${esc(detail[k])}</dd>`).join("")}</dl>` : "";
+    const meta = (detail ? `<details><summary>${V.sentText}</summary>${esc(p.text)}</details>` : "") + (p.read.length ? `<div>${V.readAlso} ${p.read.map(x => `<code>${esc(x)}</code>`).join(", ")}</div>` : "")
       + (p.sources.length ? `<div>${V.sources} ${p.sources.map(u => extLink(u, esc(shortUrl(u)))).join(" · ")}</div>` : "");
-    return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span class="lead-body">${kind}${pages}${pages ? "<br>" : ""}${esc(p.text)}</span></label>${
+    return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span class="lead-body">${kind}${pages}${pages ? "<br>" : ""}${said || esc(p.text)}</span></label>${
       meta ? `<div class="lead-meta muted small">${meta}</div>` : ""}${
       mode === "add" ? `<label class="dig muted small"><input type="checkbox" data-deep="${esc(f)}"> ${V.dig}</label>` : ""}${excerpts(passages)}</li>`;
   }
@@ -1797,7 +1805,7 @@ async function viewLinks() {
   bindSteps(page, () => { LINKS_TEXT = $("#text").value; viewLinks(); });
   $("#send").onclick = async () => {
     $("#send").disabled = true;
-    const { id } = await api("/api/verifications", { checks: ["links"], links: found(), steps: ownFor(["links"]) });
+    const { id } = await api("/api/verifications", { checks: ["links"], links: found(), lang, steps: ownFor(["links"]) });
     LINKS_TEXT = "";
     location.hash = `/check/${encodeURIComponent(id)}`;
   };

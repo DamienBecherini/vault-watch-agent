@@ -355,7 +355,9 @@ def _findings(vault_dir: Path, result: Findings, line: Callable = _line) -> dict
     """The findings as lines (what the human keeps, dismisses or sends to a fix run), and per line the passages
     found in the pages."""
     return {"findings": [line(f) for f in result.findings],
-            "excerpts": {line(f): quotes.locate_all(vault_dir, f.excerpts) for f in result.findings if f.excerpts}}
+            "excerpts": {line(f): quotes.locate_all(vault_dir, f.excerpts) for f in result.findings if f.excerpts},
+            # a lead explained to the editor in the language of the interface (news.in_language), by its line
+            "details": {line(f): f.detail.model_dump() for f in result.findings if getattr(f, "detail", None)}}
 
 
 def _read_guide(vault_dir: Path, llm: LLM, plan: "reading.Plan", system: str, prompt: str, schema: type,
@@ -420,7 +422,8 @@ def run_news(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     which checks each one on the web."""
     seen = news.candidates(news.reports_of(work), date.today())
     plan = reading.plan(vault_dir, llm, step="news")
-    system = prompts.fill(news.LEADS.replace("<<MAX>>", str(news.MAX_LEADS)).replace("<<READ>>", str(news.MAX_READ)), vault_dir)
+    system = news.in_language(prompts.fill(news.LEADS.replace("<<MAX>>", str(news.MAX_LEADS))
+                                           .replace("<<READ>>", str(news.MAX_READ)), vault_dir), options(work).get("lang", ""))
     found, usages = _read_guide(vault_dir, llm, plan, system, f"{news.listing(seen)}\n\nList the leads.", news.Leads, "news")
     guide = vault.guide_of(vault_dir)
     kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))][:news.MAX_LEADS]
@@ -431,7 +434,8 @@ def run_news(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
 
 def options(work: Path) -> dict:
     """What the editor chose for the checks of this verification (`options.json` in its working folder, written by
-    the server or the command line): {"chapters": […]} for the exploration. {} when nothing was chosen."""
+    the server or the command line): {"chapters": […]} for the exploration, {"links": […]} for the links, {"lang":
+    "fr"} the language of the interface, in which the leads are explained. {} when nothing was chosen."""
     try:
         found = json.loads((work / "options.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -447,7 +451,7 @@ def run_explore(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     from . import chapters
 
     chosen = [c for c in options(work).get("chapters") or [] if isinstance(c, str)] or chapters.default_explored(vault_dir)
-    found, usages, failed = news.explore(vault_dir, llm, chosen)
+    found, usages, failed = news.explore(vault_dir, llm, chosen, options(work).get("lang", ""))
     guide = vault.guide_of(vault_dir)
     kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]
     explored = [c for c in news.explorable(vault_dir) if (not chosen or c in chosen) and c not in failed]
@@ -464,7 +468,7 @@ def run_links(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     reader = videos.Videos.of({"videos": options(work).get("videos")})  # dl-sub-dub, when the settings name it
     sources = [links.read(u, video=reader.read if reader else None) for u in asked]
     unread = [s for s in sources if not s.text]
-    found, usages, failed = links.leads(vault_dir, sources, llm)
+    found, usages, failed = links.leads(vault_dir, sources, llm, options(work).get("lang", ""))
     guide = vault.guide_of(vault_dir)
     kept = [f for f in found if not (f.pages and all(guide.is_readonly(p) for p in f.pages))]
     done = len(sources) - len(unread) - len(failed)

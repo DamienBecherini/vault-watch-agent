@@ -254,6 +254,9 @@ ul.leads .excerpts { margin-left: calc(2.2em + 30px); }
 ul.leads .lead-body code { font-size: 12px; }
 ul.leads .lead-meta { margin: 4px 0 0 calc(2.2em + 30px); line-height: 1.6; overflow-wrap: anywhere; }
 ul.leads .lead-meta code { font-size: 11px; }
+ul.leads .lead-detail { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 4px 0 0; }
+ul.leads .lead-detail dt { color: var(--muted); font-size: 13px; } ul.leads .lead-detail dd { margin: 0; }
+@media (max-width: 640px) { ul.leads .lead-detail { grid-template-columns: 1fr; } ul.leads .lead-detail dd { margin-bottom: 4px; } }
 .lines { background: var(--bg); border-radius: 8px; padding: 6px 0; font-size: 14px; overflow-wrap: anywhere; }
 .lines > div { display: grid; grid-template-columns: 3.2em 1fr; gap: 8px; padding: 1px 10px 1px 0; color: var(--muted); }
 .lines > div.target { color: var(--text); box-shadow: inset 3px 0 var(--accent); }

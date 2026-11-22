@@ -209,6 +209,7 @@ class Verification(BaseModel):
     checks: list[str]  # ids of verify.CHECKS
     chapters: list[str] = []  # the check « explore »: the chapters to explore (all of them when empty)
     links: list[str] = []  # the check « links »: the addresses to read (links.py)
+    lang: str = ""  # the language of the interface: the leads are explained in it (news.in_language)
     steps: dict = {}  # for this verification alone: {step: {engine, model, effort}} (config.run_steps)
 
 
@@ -1209,8 +1210,9 @@ def create_app(settings: Settings) -> FastAPI:
         def work(graph, job: Job):
             deps = settings.make_deps(vid, "verify")
             work_dir.mkdir(exist_ok=True)
-            if body.chapters or body.links:  # read by the checks that take them (verify.options)
+            if body.chapters or body.links or body.lang:  # read by the checks that take them (verify.options)
                 write_json(work_dir / "options.json", {"chapters": body.chapters, "links": body.links,
+                                                       "lang": body.lang if re.fullmatch(r"[a-z]{2}", body.lang) else "",
                                                        # dl-sub-dub for the videos: the reference of its token, not the token
                                                        "videos": user_settings.load(cfg_home)["videos"] if body.links else {}})
             # The guide as merged (main, up to date with origin), not the folder: it may be on another branch

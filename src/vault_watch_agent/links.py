@@ -187,8 +187,8 @@ decision of the reader it changes. Never present a figure, a version or a date o
 none when it fits no page). `read` lists the other pages one must have read to write it well (<<READ>> at the most).
 `sources`: the address of the link first, then the addresses of primary sources the link itself gives for that
 point. In `excerpts`, copy verbatim the passage of the guide the lead is about when there is one (one sentence or one
-table row). At most <<MAX>> leads, the most useful to a reader first; none when nothing in the link qualifies. Write
-the leads in English.<<BRIEF>>"""
+table row). At most <<MAX>> leads, the most useful to a reader first; none when nothing in the link qualifies.
+Write the leads in English.<<BRIEF>>"""
 
 PLAN_ONLY = ("The plan of the guide is above (every page: its path, its weight, its title and its headings), not "
              "its text, which does not fit: name the pages from it; the run that follows reads them.")
@@ -200,7 +200,8 @@ def _prompt(source: Source) -> str:
             + ("\n(The text is cut: the link goes on.)" if source.cut else "") + "\n\nList the leads.")
 
 
-def leads(vault_dir: Path, sources: list[Source], llm: LLM) -> tuple[list[news.Lead], list[dict], dict[str, str]]:
+def leads(vault_dir: Path, sources: list[Source], llm: LLM,
+          lang: str = "") -> tuple[list[news.Lead], list[dict], dict[str, str]]:
     """What the links read say that concerns the guide: (leads, usages, {link whose call failed: why}). One call per
     link read, each with the whole guide (the plan of the guide when it does not fit the model), without the web:
     cached and shared on the Claude API (one call leads and writes the cache, `compact._after_the_first`), one after
@@ -214,7 +215,8 @@ def leads(vault_dir: Path, sources: list[Source], llm: LLM) -> tuple[list[news.L
     client = llm.for_step("links") if hasattr(llm, "for_step") else llm
     fits = reading.plan(vault_dir, llm, step="links").mode == "whole"
     shared = bool(getattr(client, "signals_start", False)) and fits
-    system = prompts.fill(LINKS.replace("<<READ>>", str(news.MAX_READ)).replace("<<MAX>>", str(MAX_LEADS)), vault_dir)
+    system = news.in_language(prompts.fill(LINKS.replace("<<READ>>", str(news.MAX_READ)).replace("<<MAX>>", str(MAX_LEADS)),
+                                           vault_dir), lang)  # `lang`: the editor's, for the leads' `detail`
     if fits:
         context = f"<guide>\n{vault.corpus(vault_dir)}\n</guide>"
     else:

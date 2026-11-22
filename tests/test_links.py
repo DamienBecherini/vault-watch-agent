@@ -171,3 +171,31 @@ def test_a_real_pdf_is_read_with_the_optional_reader():
     body += b"xref\n0 6\n0000000000 65535 f \n" + b"".join(b"%010d 00000 n \n" % o for o in offsets)
     body += b"trailer<</Size 6/Root 1 0 R>>\nstartxref\n%d\n%%%%EOF\n" % xref
     assert links.pdf_text(body) == "[page 1]\nAlpha 4 runs on 24 GB cards"
+
+
+def test_a_lead_is_explained_in_the_language_of_the_interface_its_line_stays_in_english(guide, tmp_path):  # noqa: F811
+    seen = []
+
+    class Explains:
+        def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
+            seen.append(system)
+            detail = news.LeadDetail(says="Alpha 4 est sorti le 3 novembre 2026, poids ouverts.", guide="La page cite Alpha 3.",
+                                     check="La fiche du modèle.", matters="Le choix du modèle de référence.")
+            lead = news.Lead(kind="link", pages=["03-stack/models.md"], problem="Alpha 4 supersedes Alpha 3.", detail=detail)
+            return news.Leads(findings=[lead]), {"node": node, "cost_usd": 0.1}
+
+    work = tmp_path / "verif"
+    work.mkdir()
+    (work / "options.json").write_text('{"links": ["https://example.org/alpha-4"], "lang": "fr"}', encoding="utf-8")
+    import vault_watch_agent.links as module
+    original = module.get
+    module.get = site({"https://example.org/alpha-4": ("text/html", ARTICLE)})
+    try:
+        result = verify.run_links(guide, work, {}, Explains())
+    finally:
+        module.get = original
+    assert "explain each lead to the editor in French" in seen[0] and "Write `problem` in English" in seen[0]
+    line = "[From a link] 03-stack/models.md: Alpha 4 supersedes Alpha 3. Sources: https://example.org/alpha-4"
+    assert result["findings"] == [line] and result["details"][line]["says"].startswith("Alpha 4 est sorti")
+    assert news.in_language(f"x {news.WRITE}", "en") == "x Write the leads in English; leave `detail` empty."
+    assert news.in_language(f"x {news.WRITE}", "") == news.in_language(f"x {news.WRITE}", "en")

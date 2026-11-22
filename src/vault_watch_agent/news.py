@@ -68,6 +68,14 @@ KINDS = {"newer": "Newer", "missing": "Missing", "candidate": "Seen by the watch
 NO_PAGE = "no page yet"
 
 
+class LeadDetail(BaseModel):
+    """The lead explained to the editor, in the language of the interface; never read by a run."""
+    says: str = Field(description="What the source states, where in it; for a question, what to look for.")
+    guide: str = Field(description="What the guide says today, and where; that it says nothing, when so.")
+    check: str = Field(description="What remains to check, and on which primary source.")
+    matters: str = Field(description="Which decision of the reader it changes.")
+
+
 class Lead(BaseModel):
     kind: Literal["newer", "missing", "candidate", "found", "link"]  # link: read in a link the editor gave (links.py)
     pages: list[str] = Field(description="Vault-relative paths of the pages concerned: where the addition would go, or "
@@ -80,10 +88,32 @@ class Lead(BaseModel):
     excerpts: list[quotes.Quote] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list, description="For a lead found on the web: the addresses of the "
                                "primary sources you opened that establish it. Empty for a question.")
+    detail: LeadDetail | None = Field(default=None, description="The lead explained to the editor, in the language "
+                                      "the instructions name; empty when they say so.")
 
 
 class Leads(BaseModel):
     findings: list[Lead]
+
+
+WRITE = "Write the leads in English."  # the sentence of each prompt of leads that `in_language` replaces
+
+
+def in_language(system: str, lang: str = "") -> str:
+    """A prompt of leads for an editor who reads `lang` (the language of the interface when the check started). The
+    line of a lead (`problem`) stays in English whatever it is: it is what a run reads, and what its report and its
+    pull request quote (tooling is written in English). In another language, the model also explains each lead in
+    `detail`, which the page of the check shows instead of the line."""
+    from .guide import language_name
+
+    if not lang or lang == "en":
+        return system.replace(WRITE, "Write the leads in English; leave `detail` empty.", 1)
+    return system.replace(WRITE, (
+        "Write `problem` in English, as said above: the run that checks a lead reads it. Then explain each lead to "
+        f"the editor in {language_name(lang)}, in `detail`: `says` what the source states and where in it (for a "
+        "question: what to look for), `guide` what the guide says today and where, `check` what remains to check "
+        "and on which primary source, `matters` which decision of the reader it changes. One or two plain sentences "
+        "each; figures, versions, names and quotes as the source gives them."), 1)
 
 
 def line(lead: Lead) -> str:
@@ -183,7 +213,8 @@ def explorable(vault_dir: Path) -> dict[str, list[str]]:
     return {name: pages for name, pages in found.items() if not all(guide.is_readonly(p) for p in pages)}
 
 
-def explore(vault_dir: Path, llm: LLM, chapters: list[str] | None = None) -> tuple[list[Lead], list[dict], dict[str, str]]:
+def explore(vault_dir: Path, llm: LLM, chapters: list[str] | None = None,
+            lang: str = "") -> tuple[list[Lead], list[dict], dict[str, str]]:
     """What the web says that the guide does not, chapter by chapter: (leads, usages, {chapter not explored: why}).
     One call per chapter (`chapters`: those asked, all of them otherwise), each with the web and the whole guide:
     cached and shared on the Claude API (one call leads and writes the cache, `compact._after_the_first`), one call
@@ -197,9 +228,9 @@ def explore(vault_dir: Path, llm: LLM, chapters: list[str] | None = None) -> tup
     client = llm.for_step("explore") if hasattr(llm, "for_step") else llm
     fits = reading.plan(vault_dir, llm, step="explore").mode == "whole"
     shared = bool(getattr(client, "signals_start", False)) and fits
-    system = prompts.fill(EXPLORE.replace("<<SEARCHES>>", str(EXPLORE_SEARCHES)).replace("<<PAGES>>", str(EXPLORE_PAGES))
-                          .replace("<<READ>>", str(MAX_READ))
-                          .replace("<<MAX>>", str(MAX_PER_CHAPTER)), vault_dir)
+    system = in_language(prompts.fill(EXPLORE.replace("<<SEARCHES>>", str(EXPLORE_SEARCHES)).replace("<<PAGES>>", str(EXPLORE_PAGES))
+                                      .replace("<<READ>>", str(MAX_READ))
+                                      .replace("<<MAX>>", str(MAX_PER_CHAPTER)), vault_dir), lang)
     whole = f"<guide>\n{vault.corpus(vault_dir)}\n</guide>" if fits else ""
 
     def one(n: int, started=None) -> tuple[str, list[Lead], dict | None, str]:

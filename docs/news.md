@@ -48,6 +48,15 @@ The items set aside by past watches are read from the reports of the runs kept o
 Leads about read-only pages alone are left out. As with any check, you keep the leads you want, dismiss the
 others, and send those kept to a run.
 
+### In your language
+
+A lead is written once, when the check runs, in the language the interface had when you started it. Its line
+stays in English whatever that language is: it is what the run reads, and what its report and its pull request
+quote (the tooling is written in English). In another language, the model also explains each lead for you, in
+four parts: what the source says, what the guide says, what remains to check, what it changes for the reader. The
+page shows these, with the English line folded below them, then the pages to read also and the sources, short and
+clickable. In English, the line alone is shown, drawn in the same parts; nothing more is asked of the model.
+
 ## The leads, from the web
 
 ```bash

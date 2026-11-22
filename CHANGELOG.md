@@ -16,6 +16,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   Set once in the settings (`videos`: its address, the reference of its token, the command that starts it); the tab
   says whether it is ready, and the agent never starts it.
 
+- **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
+  the pages to read also and its sources, short and clickable, instead of one block. A check started from the
+  interface in another language than English has each lead explained in it (`detail`: what the source says, what the
+  guide says, what remains to check, what it changes for the reader; `news.in_language`); the lead's line stays in
+  English, since it is what a run, its report and its pull request read.
+
 ## 1.4.1 (2026-11-21)
 
 - **The page « Languages » says what it is for, and checks the edits before the sync** (H4 of the roadmap, asked
