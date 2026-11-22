@@ -89,6 +89,27 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 16px 96px; }
   background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
 .menu-items a { padding: 7px 10px; border-radius: 6px; text-decoration: none; color: var(--text); white-space: nowrap; font-size: 14px; }
 .menu-items a:hover, .menu-items a:focus-visible { background: color-mix(in srgb, var(--text) 8%, transparent); }
+/* The menu « Watch » of the bar: a page of the bar that opens its entries, each with a line on where it starts from */
+.nav-menu { font-size: inherit; }
+.nav-menu > summary { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 4px 0; }
+.nav-menu.active > summary { color: var(--text); border-bottom-color: var(--accent); }
+.nav-menu .menu-items { width: min(440px, 90vw); }
+.nav-menu .menu-items a { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: start; white-space: normal; }
+.nav-menu .menu-items a.active { border-color: transparent; }
+.nav-menu .menu-items a.active b { color: var(--accent); }
+nav { align-items: baseline; }   /* « Watch » and its count on the line of the other pages */
+.nav-menu .menu-items small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.nav-menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 6px; }
+.nav-menu .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: var(--border); }
+.nav-menu .dot.todo { background: var(--attention); }
+.count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 5px; border-radius: 999px; background: var(--attention);
+  color: #1a1406; font-size: 11.5px; font-weight: 700; line-height: 18px; text-align: center; }
+.count[hidden] { display: none; }
+.crumb { font-size: 13px; color: var(--muted); margin-bottom: -4px; }
+.empty-note { color: var(--muted); font-size: 14px; border: 1px dashed var(--border); border-radius: 10px; padding: 9px 14px; }
+.launch-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.launch-row .card { flex: 1 1 260px; margin: 0; }
+.launch-row .card p { margin: 2px 0 8px; }
 footer a { color: inherit; }
 /* « Chapters »: the table of the split, and one card per chapter being edited */
 table.chapters th.num, table.chapters td.num { text-align: right; white-space: nowrap; }
@@ -549,6 +570,11 @@ header.narrow nav a, header.narrow .menu-more a { padding: 11px 4px; font-size: 
   border-bottom: 1px solid var(--border); }
 header.narrow nav a.active { border-bottom-color: var(--border); font-weight: 700; box-shadow: inset 3px 0 0 var(--accent); padding-left: 12px; }
 header.narrow .header-end { margin-left: 0; justify-content: space-between; }
+/* The menu « Watch » in the folded header: its name is a heading, its entries lines of the menu, without their help */
+header.narrow .nav-menu > summary { padding: 12px 4px 2px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+header.narrow .nav-menu > .menu-items { display: grid; position: static; width: auto; padding: 0; border: 0; box-shadow: none; background: none; }
+header.narrow .nav-menu .menu-items a { border-radius: 0; }
+header.narrow .nav-menu .menu-items small, header.narrow .nav-menu hr { display: none; }
 
 /* Easy to aim at: 24 px at least for a link that stands alone and for the box that decides a correction */
 footer a { display: inline-block; padding: 4px 0; }

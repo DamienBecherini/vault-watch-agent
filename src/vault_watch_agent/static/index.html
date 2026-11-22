@@ -20,9 +20,10 @@
     </button>
     <div class="header-menu" id="header-menu">
     <nav>
-      <a href="#/" data-nav="watches">Veilles</a>
-      <a href="#/sources" data-nav="sources">Sources</a>
-      <a href="#/check" data-nav="check">Vérifier le guide</a>
+      <details class="menu nav-menu" id="watch-menu">   <!-- the watch: what waits, the watches, the checks, the sources, the runs (app.js header) -->
+        <summary><span id="watch-menu-name">Veille</span><span class="count" id="todo-count" hidden></span></summary>
+        <div class="menu-items" id="watch-items"></div>
+      </details>
       <a href="#/report" data-nav="report">Signaler une erreur</a>
       <a href="#/languages" data-nav="languages">Langues</a>
       <a href="#/costs" data-nav="costs">Coûts</a>

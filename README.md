@@ -176,9 +176,11 @@ problems, the diff of the branch), then the pull request. Around them:
 
 | Page | What it is for |
 | :-- | :-- |
-| Watches | The watches with their status, a button to analyse one, and the other runs (fix, compaction, additions) |
-| Sources | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
-| Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are ticked, then sent to a run ([Check the guide](docs/check.md)) |
+| Watch › To handle | The first page: everything that waits for you, wherever it comes from: a run paused for your review, a watch to start, the checks whose leads are to sort; the menu « Watch » shows how many |
+| Watch › Automatic watch | The watches with their status and a button to analyse one |
+| Watch › Every run | Every run, newest first: the watches', and those started from a check, from « Report or suggest » or from « Languages » |
+| Watch › Sources followed | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
+| Watch › Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are sorted, then sent to a run ([Check the guide](docs/check.md)) |
 | Report or suggest | Errors to fix, an idea or a piece of news to check and write, or links to read whole (an article, a page, a PDF) for the leads they hold |
 | Languages | The pages ahead of their mirror, and those you changed in your folder without committing: what changed is translated, then the usual checks and pull request ([A run, step by step](docs/run.md#sync-the-languages)) |
 | Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand: why and how, [Chapters](docs/chapters.md) |

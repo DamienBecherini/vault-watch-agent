@@ -5,6 +5,14 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **One menu « Watch », and a page « To handle » first** (proposed by the user, who found « Watches » and « Check the
+  guide » alike): the watches, the checks, the sources followed and every run are entries of one menu of the bar,
+  each with a line on where it starts from (every two weeks from the forge, or on demand). Its first entry, « To
+  handle », is the first page: a run paused for the editor (or running), a watch to start, the checks whose leads are
+  to sort, then « New check » and « Report or suggest »; it says that only a paused run is pressing, and the menu
+  shows how many things wait. « Every run » lists the watches' runs with the others, newest first; the page of the
+  watches keeps the watches only. On a check, a lead is sorted (« Sort », « to sort »), the run comes after. In a
+  narrow window the menu's entries are lines of the folded header.
 - **What is typed on « Report or suggest » is never lost** (proposed by the user): one draft per tab (an error, an
   idea, links), kept while switching tabs and in the browser against a reload, a crash or a closed tab (written half
   a second after the last key, and when the page is left), with « Clear » and « Restore ». It empties once the run or

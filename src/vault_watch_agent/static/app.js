@@ -62,7 +62,27 @@ let source = null;  // EventSource of the run being followed
 // --- Languages ---------------------------------------------------------------------------------------
 const TEXTS = {
   fr: {
-    nav: { watches: "Veilles", sources: "Sources", check: "Vérifier le guide", report: "Signaler ou proposer", languages: "Langues", costs: "Coûts" },
+    nav: { menu: "Veille", todo: "À traiter", watches: "Veille automatique", check: "Vérifier le guide", sources: "Sources suivies", runs: "Toutes les passes",
+      report: "Signaler ou proposer", languages: "Langues", costs: "Coûts" },
+    // Under each entry of the menu « Watch »: where it starts from
+    navHelp: {
+      todo: "Tout ce qui t'attend : passes à relire, pistes à trier, veille à lancer",
+      watches: () => info?.watch_source === "feeds" ? "Quand tu le demandes, l'agent lit les flux suivis ; une passe traite la veille obtenue"
+        : `Tous les 15 jours, ${forgeName()} ouvre un ticket avec ce qui a bougé dans les sources suivies ; une passe le traite`,
+      check: "À la demande : santé (liens, cohérence, traductions), allègement, nouveautés que le guide n'a pas",
+      sources: "Ce que la veille automatique lit, et ce que chaque source rapporte",
+      runs: "L'historique : veilles, corrections, ajouts, traductions, avec leur pull request",
+    },
+    todo: {
+      intro: "Tout ce qui t'attend, d'où que ça vienne. Seule une passe en pause presse : une piste en attente ne coûte rien et ne bloque rien. Une passe à la fois : fusionne sa pull request avant d'en lancer une autre sur les mêmes pages.",
+      runs: "Une passe t'attend", runsNone: "Aucune passe en cours ni en pause. Quand une passe attend ta relecture, tes retouches ou ton accord pour publier, elle apparaît ici en premier.",
+      watches: "Une veille à lancer", leads: "Des pistes à trier", leadsCount: (v, n) => `${v} vérification${v > 1 ? "s" : ""}, ${n} piste${n > 1 ? "s" : ""}`,
+      nothing: "Rien ne t'attend : pas de passe en pause, pas de veille à lancer, pas de piste à trier.",
+      launch: "Lancer quelque chose", checkWhat: "Santé, allègement ou nouveautés, à la demande.", checkButton: "Nouvelle vérification",
+      reportWhat: "Une erreur, une idée, des liens à lire en entier.", reportButton: "Écrire",
+      auto: "Veille automatique", waiting: n => `${n} chose${n > 1 ? "s" : ""} t'attend${n > 1 ? "ent" : ""}`,
+    },
+    runsIntro: "Toutes les passes, les plus récentes d'abord : celles des veilles, et celles lancées depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues ».",
     sources: {
       title: "Sources de la veille",
       intro: (p, runs, file) => `Ce que chaque source a apporté sur ${p.watches} veille(s), du ${p.since || "…"} au ${p.until}, et ce qu'il en est sorti dans ${runs} passage(s). Calculé sans modèle, à partir des veilles et des passages gardés sur cette machine. La liste est dans <code>${file}</code>.`,
@@ -151,7 +171,7 @@ const TEXTS = {
     },
     verif: {
       title: "Vérifier le guide",
-      intro: "Un bilan de santé du guide entier, à la demande. Les contrôles gratuits utilisent les scripts du guide ; les autres font lire le guide par Claude. Les résultats sont des pistes : celles que tu gardes partent dans une passe fix, qui les vérifie sur les sources et passe par ta relecture.",
+      intro: "À la demande. Les contrôles regardent le guide lui-même : sa santé, son poids, ce qui lui manque. Les gratuits utilisent les scripts du guide ; les autres le font lire par Claude. Ils donnent des pistes : tu les tries, et celles que tu gardes partent dans une passe, qui les vérifie sur les sources et passe par ta relecture.",
       free: "gratuit", tokens: n => `≈ ${n.toLocaleString("fr")} tokens`, unknown: "selon le résultat",
       needs: ids => `lance aussi : ${ids}`,
       start: c => `Lancer la vérification · ${c}`, history: "Vérifications précédentes",
@@ -211,11 +231,11 @@ const TEXTS = {
       tickAll: "Tout cocher", untickAll: "Tout décocher",
       cost: c => `Coût : ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "aucune piste"
-        : `${c.open} à traiter · ${c.fix} envoyée(s) à une passe · ${c.dismissed} écartée(s)`,
-      toHandle: n => `${n} piste(s) à traiter`, handled: "Traitée", handle: "Traiter",
+        : `${c.open} à trier · ${c.fix} envoyée(s) à une passe · ${c.dismissed} écartée(s)`,
+      toHandle: n => `${n} piste(s) à trier`, handled: "Traitée", handle: "Trier",
       tickCard: n => `Cocher / décocher les ${n}`,
-      toHandleTitle: "À traiter", newCheck: "Nouvelle vérification", fixRuns: "Passes lancées depuis cette vérification",
-      warning: n => `Il reste ${n} piste(s) à traiter ci-dessus. Une nouvelle vérification les retrouverait, en double : traite-les ou écarte-les d'abord.`,
+      toHandleTitle: "À trier", newCheck: "Nouvelle vérification", fixRuns: "Passes lancées depuis cette vérification",
+      warning: n => `Il reste ${n} piste(s) à trier ci-dessus. Une nouvelle vérification les retrouverait, en double : trie-les d'abord.`,
       sent: "→ passe", dismissed: "écartée", reopen: "Rétablir",
       unchecked: "pas vérifiée par la passe", resend: "Remettre à traiter",
       context: "Chaque appel de piste lit", contextGuide: "tout le guide", contextPages: "les pages de la piste et le plan du guide",
@@ -249,8 +269,8 @@ const TEXTS = {
       apply: "Application sur une branche", retouch: "Tes retouches", mirror: "Traduction anglaise", translation: "Ta relecture de la traduction", audits: "Contrôles du guide (npm test)",
       links: "Vérification des liens", publish: "Push et pull request",
     },
-    watches: "Veilles",
-    watchesIntro: () => `Une veille est publiée par ${forgeName()} tous les 15 jours. L'agent l'analyse, tu relis ses propositions, puis il ouvre la pull request.`,
+    watches: "Veille automatique",
+    watchesIntro: () => `Tous les 15 jours (et plus tôt pour une alerte de sécurité), ${forgeName()} ouvre un ticket avec ce qui a bougé dans les <a href="#/sources">sources suivies</a>. Une passe le traite : elle vérifie chaque élément, corrige ou ajoute, puis tu relis avant la pull request.`,
     analyse: c => `Analyser · ${c}`, merge: () => `Fusionner sur ${forgeName()}`,
     buttons: { review: "Relire", retouch: "Retoucher", translation: "Relire la traduction", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
@@ -444,7 +464,26 @@ const TEXTS = {
     subscription: "abonnement, non facturé", local: "modèle local, non facturé", provider: "facturé par ton fournisseur",
   },
   en: {
-    nav: { watches: "Watches", sources: "Sources", check: "Check the guide", report: "Report or suggest", languages: "Languages", costs: "Costs" },
+    nav: { menu: "Watch", todo: "To handle", watches: "Automatic watch", check: "Check the guide", sources: "Sources followed", runs: "Every run",
+      report: "Report or suggest", languages: "Languages", costs: "Costs" },
+    navHelp: {
+      todo: "Everything that waits for you: runs to review, leads to sort, a watch to start",
+      watches: () => info?.watch_source === "feeds" ? "When you ask, the agent reads the feeds followed; a run handles the watch it gives"
+        : `Every two weeks, ${forgeName()} opens an issue with what moved in the sources followed; a run handles it`,
+      check: "On demand: health (links, consistency, translations), trimming, news the guide lacks",
+      sources: "What the automatic watch reads, and what each source brings",
+      runs: "The history: watches, fixes, additions, translations, with their pull request",
+    },
+    todo: {
+      intro: "Everything that waits for you, wherever it comes from. Only a paused run is pressing: a lead that waits costs nothing and blocks nothing. One run at a time: merge its pull request before starting another on the same pages.",
+      runs: "A run waits for you", runsNone: "No run in progress or paused. When a run waits for your review, your retouches or your go-ahead to publish, it comes here first.",
+      watches: "A watch to start", leads: "Leads to sort", leadsCount: (v, n) => `${v} check${v > 1 ? "s" : ""}, ${n} lead${n > 1 ? "s" : ""}`,
+      nothing: "Nothing waits for you: no paused run, no watch to start, no lead to sort.",
+      launch: "Start something", checkWhat: "Health, trimming or news, on demand.", checkButton: "New check",
+      reportWhat: "An error, an idea, links to read whole.", reportButton: "Write",
+      auto: "Automatic watch", waiting: n => `${n} thing${n > 1 ? "s" : ""} wait${n > 1 ? "" : "s"} for you`,
+    },
+    runsIntro: "Every run, newest first: the watches', and those started from a check, from « Report or suggest » or from « Languages ».",
     sources: {
       title: "Sources of the watch",
       intro: (p, runs, file) => `What each source brought over ${p.watches} watch(es), from ${p.since || "…"} to ${p.until}, and what came out of it in ${runs} run(s). Computed without a model, from the watches and the runs kept on this machine. The list is in <code>${file}</code>.`,
@@ -533,7 +572,7 @@ const TEXTS = {
     },
     verif: {
       title: "Check the guide",
-      intro: "A health check of the whole guide, on demand. The free checks run the guide's own scripts; the others have Claude read the guide. Results are leads: the ones you keep go to a fix run, which checks them on sources and goes through your review.",
+      intro: "On demand. The checks look at the guide itself: its health, its weight, what it lacks. The free ones run the guide's own scripts; the others have Claude read it. They give leads: you sort them, and the ones you keep go to a run, which checks them on sources and goes through your review.",
       free: "free", tokens: n => `≈ ${n.toLocaleString("en")} tokens`, unknown: "depends on the result",
       needs: ids => `also runs: ${ids}`,
       start: c => `Run the check · ${c}`, history: "Previous checks",
@@ -590,11 +629,11 @@ const TEXTS = {
       tickAll: "Tick all", untickAll: "Untick all",
       cost: c => `Cost: ${c}`,
       counts: c => c.open + c.fix + c.dismissed === 0 ? "no lead"
-        : `${c.open} to handle · ${c.fix} sent to a run · ${c.dismissed} dismissed`,
-      toHandle: n => `${n} lead(s) to handle`, handled: "Handled", handle: "Handle",
+        : `${c.open} to sort · ${c.fix} sent to a run · ${c.dismissed} dismissed`,
+      toHandle: n => `${n} lead(s) to sort`, handled: "Handled", handle: "Sort",
       tickCard: n => `Tick / untick the ${n}`,
-      toHandleTitle: "To handle", newCheck: "New check", fixRuns: "Runs started from this check",
-      warning: n => `${n} lead(s) above are still to handle. A new check would find them again, twice: handle or dismiss them first.`,
+      toHandleTitle: "To sort", newCheck: "New check", fixRuns: "Runs started from this check",
+      warning: n => `${n} lead(s) above are still to sort. A new check would find them again, twice: sort them first.`,
       sent: "→ run", dismissed: "dismissed", reopen: "Reopen",
       unchecked: "not checked by the run", resend: "Put back to handle",
       context: "Each lead's call reads", contextGuide: "the whole guide", contextPages: "the lead's pages and the plan of the guide",
@@ -628,8 +667,8 @@ const TEXTS = {
       apply: "Apply on a branch", retouch: "Your retouches", mirror: "English translation", translation: "Your review of the translation", audits: "Guide audits (npm test)",
       links: "Link checks", publish: "Push and pull request",
     },
-    watches: "Watches",
-    watchesIntro: () => `${forgeName()} publishes a watch every two weeks. The agent analyses it, you review its proposals, then it opens the pull request.`,
+    watches: "Automatic watch",
+    watchesIntro: () => `Every two weeks (and sooner for a security advisory), ${forgeName()} opens an issue with what moved in the <a href="#/sources">sources followed</a>. A run handles it: it checks each item, corrects or adds, then you review before the pull request.`,
     analyse: c => `Analyse · ${c}`, merge: () => `Merge on ${forgeName()}`,
     buttons: { review: "Review", retouch: "Retouch", translation: "Review the translation", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
@@ -958,7 +997,8 @@ function bindSteps(root, redraw) {
     redraw();
   });
 }
-let CHECK_FORM = null;   // the boxes ticked on « Check the guide », kept while the form is drawn again
+let CHECK_FORM = null;
+let NEW_CHECK = false;   // « New check » asked from « To handle »: its form opens at once   // the boxes ticked on « Check the guide », kept while the form is drawn again
 // What is typed on the three tabs of « Report or suggest » (fix, add, links): one draft per tab, kept while switching
 // tabs and in this browser against a reload, a crash or a closed tab (written half a second after the last key, and
 // when the page is left); emptied once the run or the check has started. One guide per server: per guide as well.
@@ -1000,7 +1040,13 @@ function bindDraft(k, area, note, changed = () => {}) {
 const dropDraft = k => { DRAFTS[k] = ""; storeDraft(k); };  // storeDraft takes it out of UNSAVED: the timer leaves it
 function header() {
   document.documentElement.lang = lang;
-  document.querySelectorAll("nav [data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
+  document.querySelectorAll("nav > a[data-nav]").forEach(a => a.textContent = T.nav[a.dataset.nav]);
+  $("#watch-menu-name").textContent = T.nav.menu;
+  const entry = (h, k, dot) => `<a href="#/${h}" data-nav="${k}"><span class="dot ${dot}"></span><span><b>${T.nav[k]}</b><small>${
+    typeof T.navHelp[k] === "function" ? T.navHelp[k]() : T.navHelp[k]}</small></span>${k === "todo" ? '<span class="count" data-todo-count hidden></span>' : ""}</a>`;
+  $("#watch-items").innerHTML = `${entry("", "todo", "todo")}<hr>${entry("watches", "watches", "auto")}${entry("check", "check", "check")}${
+    entry("sources", "sources", "auto")}<hr>${entry("runs", "runs", "runs")}`;
+  showTodoCount();
   // The guide's menu: its name opens its site, its repository and its chapters (one guide per server)
   $("#guide-name").textContent = info?.guide || "";
   $("#guide-menu").hidden = !info;
@@ -1039,13 +1085,16 @@ function header() {
 
 // The guide's menu closes when one of its links is followed, on a click elsewhere, and with Escape
 document.addEventListener("click", e => {
-  const menu = $("#guide-menu");
-  if (menu.open && (!menu.contains(e.target) || e.target.closest("a"))) menu.open = false;
+  const narrow = $("header").classList.contains("narrow");
+  ["#guide-menu", "#watch-menu"].map($).forEach(menu => {
+    if (menu.open && !(narrow && menu.id === "watch-menu") && (!menu.contains(e.target) || e.target.closest("a"))) menu.open = false;
+  });
   if (e.target.closest("#header-menu a")) foldHeader();   // a page chosen in the folded menu: it closes
 });
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   $("#guide-menu").open = false;
+  if (!$("header").classList.contains("narrow")) $("#watch-menu").open = false;
   if ($("header").classList.contains("open")) { foldHeader(); $("#burger").focus(); }
 });
 
@@ -1062,6 +1111,9 @@ function fitHeader() {
   const name = $("#guide-menu > summary");
   name.tabIndex = narrow ? -1 : 0;
   if (narrow) $("#guide-menu").open = false;
+  const watch = $("#watch-menu");
+  if (narrow !== watch.classList.contains("unfolded")) { watch.open = narrow; watch.classList.toggle("unfolded", narrow); }
+  watch.querySelector("summary").tabIndex = narrow ? -1 : 0;
 }
 function foldHeader() {
   $("header").classList.remove("open");
@@ -1072,6 +1124,7 @@ $("#burger").onclick = () => {
   $("#burger").setAttribute("aria-expanded", String(open));
 };
 $("#guide-menu > summary").addEventListener("click", e => { if ($("header").classList.contains("narrow")) e.preventDefault(); });
+$("#watch-menu > summary").addEventListener("click", e => { if ($("header").classList.contains("narrow")) e.preventDefault(); });
 new ResizeObserver(fitHeader).observe($("header"));
 
 // --- Router --------------------------------------------------------------------------------------
@@ -1090,21 +1143,26 @@ async function route() {
     h = "/";
     openSettings();
   }
-  document.querySelectorAll("nav [data-nav]").forEach(a =>
-    a.classList.toggle("active", h === "/" ? a.dataset.nav === "watches" : ["/idea", "/links"].includes(h) ? a.dataset.nav === "report" : h.startsWith(`/${a.dataset.nav}`)));
+  const here = h === "/" ? "todo" : ["/idea", "/links"].includes(h) ? "report" : h.startsWith("/run/") ? "runs" : h.split("/")[1].split("?")[0];
+  document.querySelectorAll("nav [data-nav]").forEach(a => a.classList.toggle("active", a.dataset.nav === here));
+  $("#watch-menu").classList.toggle("active", ["todo", "watches", "check", "sources", "runs"].includes(here));
+  if (!$("header").classList.contains("narrow")) $("#watch-menu").open = false;
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
   BAR_ROOM?.disconnect(); document.body.style.paddingBottom = "";  // the room left for a check's bar, until it is drawn again
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
-    else if (h === "/check") await viewChecks();
+    else if (h === "/check" || h === "/check?new") { NEW_CHECK = h.endsWith("?new"); await viewChecks(); if (NEW_CHECK) $("#new-check")?.scrollIntoView(); }
     else if (h === "/sources") await viewSources();
     else if (h === "/links") await viewLinks();
     else if (h === "/report" || h === "/idea") await viewReport(h === "/idea");
     else if (h === "/costs") await viewCosts();
     else if (h === "/languages") await viewLanguages();
     else if (h === "/chapters") await viewChapters();
-    else await viewWatches();
+    else if (h === "/watches") await viewWatches();
+    else if (h === "/runs") await viewRuns();
+    else await viewTodo();
+    if (h !== "/") refreshTodo();
     keepRoomForBar();
     asideBanner();
   } catch (e) {
@@ -1113,55 +1171,69 @@ async function route() {
 }
 addEventListener("hashchange", route);
 
-// --- Watches ---------------------------------------------------------------------------------------
-let HOME = null;  // the last answer shown on the home page: drawn at once on the way back, then refreshed
+// --- The menu « Watch »: to handle, the automatic watch, every run ------------------------------------
+// A run that waits for something: done by the agent (running), or by the editor (the others)
+const WAITING = ["running", "review", "retouch", "translation", "publish", "stopped", "pr-open"];
+const crumb = () => `<div class="crumb">${T.nav.menu}</div>`;
+// What the button of a run says and where it leads: its page, or the pull request to merge
+const runButton = (thread, r) => r.status === "pr-open" && r.pr_url ? extLink(r.pr_url, `<button class="primary">${T.merge()}</button>`)
+  : `<a href="#/run/${encodeURIComponent(thread)}"><button${["review", "retouch", "translation", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
+      T.buttons[r.status] || T.details}</button></a>`;
+
+// A watch (an issue of the forge, or a file of collected items) and the run that handles it
+function watchCard(v) {
+  const r = v.run;
+  const action = r.status === "closed" || v.error ? ""
+    : r.status === "new" ? `<button class="primary" data-analyse="${esc(v.id)}" data-kind="${v.kind}">${T.analyse(cost("≈ 4 $"))}</button>`
+    : runButton(r.thread, r);
+  return `<div class="card row watch-card${FINISHED.includes(r.status) ? " finished" : ""}">
+    <div class="grow">
+      ${v.kind === "issue" ? `<b>#${v.number}</b> ` : ""}${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
+      ${v.error ? `<div class="error-text small">${esc(v.error)}</div>` : ""}
+      <div class="muted small">${v.date} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
+        !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${costTag(r.cost, r.unbilled_usd, false)}` : ""}${
+        r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div>
+    </div>
+    ${badge(r.status)} ${action}
+  </div>`;
+}
+// A run that is not a watch's: from a check, « Report or suggest », « Languages »
+const runCard = r => `<div class="card row${FINISHED.includes(r.status) ? " finished" : ""}"><div class="grow"><b>${esc(r.thread)}</b>
+    <div class="muted small">${esc(r.source)} · ${r.corrections} correction(s) · ${costTag(r.cost, r.unbilled_usd, false)}${
+      r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div></div>
+    ${badge(r.status)} ${WAITING.includes(r.status) ? runButton(r.thread, r) : `<a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a>`}</div>`;
+// « Analyse »: the run of a watch starts, and its page opens
+function bindAnalyse(root) {
+  root.querySelectorAll("[data-analyse]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const { thread } = await api("/api/analyses", b.dataset.kind === "issue" ? { issue: Number(b.dataset.analyse) } : { watch: b.dataset.analyse });
+    location.hash = `/run/${encodeURIComponent(thread)}`;
+  });
+}
+
+let HOME = null;  // the last answer shown on the page of the watches: drawn at once on the way back, then refreshed
 let RUNS_SHOWN = 20, CHECKS_SHOWN = 20;  // the lists show the newest; « older ones » asks for more
 async function viewWatches() {
-  const load = () => Promise.all([api("/api/watches"), api(`/api/runs?limit=${RUNS_SHOWN + 1}`)]);  // one more: are there older ones?
+  const load = () => api("/api/watches");
   if (HOME) {
-    drawWatches(...HOME);
+    drawWatches(HOME);
     const shown = JSON.stringify(HOME), at = location.hash;
     load().then(fresh => {  // still on this page, and something moved: drawn again
       HOME = fresh;
-      if (location.hash === at && JSON.stringify(fresh) !== shown) drawWatches(...fresh);
+      if (location.hash === at && JSON.stringify(fresh) !== shown) drawWatches(fresh);
     }).catch(() => {});
     return;
   }
   HOME = await load();
-  drawWatches(...HOME);
+  drawWatches(HOME);
 }
 
-function drawWatches(watches, others) {
+function drawWatches(watches) {
   page.innerHTML = `
-    <h1>${T.watches}</h1>
+    ${crumb()}<h1>${T.watches}</h1>
     <p class="subtitle">${info?.watch_source === "feeds" ? T.collectIntro : T.watchesIntro()}</p>
     ${info?.watch_source === "feeds" ? `<p><button id="collect">${T.collectNow}</button></p>` : ""}
-    ${watches.map(v => {
-      const r = v.run, link = `#/run/${encodeURIComponent(r.thread)}`;
-      const action = r.status === "closed" ? ""
-        : v.error ? ""
-        : r.status === "new" ? `<button class="primary" data-analyse="${esc(v.id)}" data-kind="${v.kind}">${T.analyse(cost("≈ 4 $"))}</button>`
-        : r.status === "pr-open" ? extLink(r.pr_url, `<button class="primary">${T.merge()}</button>`)
-        : `<a href="${link}"><button${["review", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
-            T.buttons[r.status] || T.details}</button></a>`;
-      return `<div class="card row${FINISHED.includes(r.status) ? " finished" : ""}">
-        <div class="grow">
-          ${v.kind === "issue" ? `<b>#${v.number}</b> ` : ""}${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
-          ${v.error ? `<div class="error-text small">${esc(v.error)}</div>` : ""}
-          <div class="muted small">${v.date} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
-            !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${costTag(r.cost, r.unbilled_usd, false)}` : ""}${
-            r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div>
-        </div>
-        ${badge(r.status)} ${action}
-      </div>`;
-    }).join("") || `<p class="muted">${T.noWatch}</p>`}
-    ${others.length ? `<h2>${T.others}</h2>${others.slice(0, RUNS_SHOWN).map(r => `
-      <div class="card row${FINISHED.includes(r.status) ? " finished" : ""}"><div class="grow"><b>${esc(r.thread)}</b>
-        <div class="muted small">${esc(r.source)} · ${r.corrections} correction(s) · ${costTag(r.cost, r.unbilled_usd, false)}${
-          r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div></div>
-        ${badge(r.status)} <a href="#/run/${encodeURIComponent(r.thread)}"><button>${T.details}</button></a></div>`).join("")}
-      ${others.length > RUNS_SHOWN ? `<p><button type="button" id="older">${T.menu.older}</button></p>` : ""}` : ""}`;
-  if ($("#older")) $("#older").onclick = () => { RUNS_SHOWN += 40; HOME = null; viewWatches(); };
+    ${watches.map(watchCard).join("") || `<p class="muted">${T.noWatch}</p>`}`;
   const collect = $("#collect");
   if (collect) collect.onclick = async () => {
     collect.disabled = true;
@@ -1169,11 +1241,74 @@ function drawWatches(watches, others) {
     try { await api("/api/collect", {}); HOME = null; await viewWatches(); }
     catch (e) { collect.disabled = false; collect.textContent = T.collectNow; collect.insertAdjacentHTML("afterend", ` <span class="error-text">${esc(e.message)}</span>`); }
   };
-  page.querySelectorAll("[data-analyse]").forEach(b => b.onclick = async () => {
-    b.disabled = true;
-    const { thread } = await api("/api/analyses", b.dataset.kind === "issue" ? { issue: Number(b.dataset.analyse) } : { watch: b.dataset.analyse });
-    location.hash = `/run/${encodeURIComponent(thread)}`;
-  });
+  bindAnalyse(page);
+}
+
+// Every run, newest first: the watches' (their issue said in a line) and the others
+async function viewRuns() {
+  const [watches, others] = await Promise.all([api("/api/watches"), api(`/api/runs?limit=${RUNS_SHOWN + 1}`)]);
+  if (location.hash.slice(1) !== "/runs") return;  // left the page meanwhile
+  const ofWatch = watches.filter(v => !["new", "closed"].includes(v.run.status)).map(v => ({ date: v.date, html: watchCard(v) }));
+  const rest = others.slice(0, RUNS_SHOWN).map(r => ({ date: r.as_of || "", html: runCard(r) }));
+  const all = [...ofWatch, ...rest].sort((a, b) => b.date.localeCompare(a.date));
+  page.innerHTML = `${crumb()}<h1>${T.nav.runs}</h1><p class="subtitle">${T.runsIntro}</p>
+    ${all.map(x => x.html).join("") || `<p class="muted">${T.noWatch}</p>`}
+    ${others.length > RUNS_SHOWN ? `<p><button type="button" id="older">${T.menu.older}</button></p>` : ""}`;
+  if ($("#older")) $("#older").onclick = () => { RUNS_SHOWN += 40; viewRuns(); };
+}
+
+// « To handle »: what waits for the editor, wherever it comes from. First a run in pause (or running), then a watch
+// to start, then the checks whose leads are to sort; a count of what waits for the editor is shown on the menu.
+let TODO_COUNT = null;
+function showTodoCount() {
+  const n = TODO_COUNT || 0;
+  [$("#todo-count"), ...document.querySelectorAll("[data-todo-count]")].forEach(c => { c.hidden = !n; c.textContent = n; });
+  $("#watch-menu > summary").title = n ? T.todo.waiting(n) : "";
+}
+const todoOf = (watches, others, verifs) => {
+  const runs = [...watches.filter(v => WAITING.includes(v.run.status)).map(v => ({ watch: v, status: v.run.status })),
+    ...others.filter(r => WAITING.includes(r.status)).map(r => ({ run: r, status: r.status }))];
+  const starts = watches.filter(v => v.run.status === "new" && !v.error && v.state !== "closed");
+  const leads = verifs.filter(p => ["to-handle", "running"].includes(p.status));
+  // What waits for the editor: a run not running, a watch to start, a check with leads to sort
+  const count = runs.filter(r => r.status !== "running").length + starts.length + leads.filter(p => p.status === "to-handle").length;
+  return { runs, starts, leads, count };
+};
+async function refreshTodo() {
+  try {
+    const [watches, others, verifs] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"), api("/api/verifications?limit=40")]);
+    TODO_COUNT = todoOf(watches, others, verifs).count;
+    showTodoCount();
+  } catch { /* the count stays as it was */ }
+}
+async function viewTodo() {
+  await loadSteps();
+  const [watches, others, verifs, options] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"),
+    api("/api/verifications?limit=40"), api(`/api/verifications/options${stepsQuery()}`)]);
+  if (!["", "/"].includes(location.hash.slice(1))) return;  // left the page meanwhile
+  const D = T.todo, { runs, starts, leads, count } = todoOf(watches, others, verifs), checkCard = checkCardMaker(options);
+  TODO_COUNT = count;
+  showTodoCount();
+  // The runs that wait for the editor first, the running ones after
+  runs.sort((a, b) => (a.status === "running") - (b.status === "running"));
+  const open = leads.reduce((s, p) => s + p.counts.open, 0);
+  page.innerHTML = `
+    ${crumb()}<h1>${T.nav.todo}</h1>
+    <p class="subtitle">${D.intro}</p>
+    ${!runs.length && !starts.length && !leads.length ? `<p class="banner">${D.nothing}</p>` : ""}
+    <h2>${D.runs} <span class="muted small">· ${runs.length}</span></h2>
+    ${runs.map(r => r.watch ? watchCard(r.watch) : runCard(r.run)).join("") || `<p class="empty-note">${D.runsNone}</p>`}
+    ${starts.length ? `<h2>${D.watches} <span class="muted small">· ${starts.length}</span></h2>${starts.map(watchCard).join("")}` : ""}
+    ${leads.length ? `<h2>${D.leads} <span class="muted small">· ${D.leadsCount(leads.length, open)}</span></h2>${leads.map(checkCard).join("")}` : ""}
+    <h2>${D.launch}</h2>
+    <div class="launch-row">
+      <div class="card"><b>${T.nav.check}</b><p class="muted small">${D.checkWhat}</p><a href="#/check?new"><button>${D.checkButton}</button></a></div>
+      <div class="card"><b>${T.nav.report}</b><p class="muted small">${D.reportWhat}</p><a href="#/report"><button>${D.reportButton}</button></a></div>
+    </div>`;
+  bindAnalyse(page);
+  // Something still running here: the page is drawn again a little later, while it stays open
+  if (runs.some(r => r.status === "running") || leads.some(p => p.status === "running"))
+    followTimer = setTimeout(() => { if (["", "#/"].includes(location.hash)) viewTodo().catch(() => {}); }, 5000);
 }
 
 // --- The chapters of the guide: seen, proposed by a model, edited by hand, declared in the manifest ---------
@@ -2099,22 +2234,10 @@ const checkBadge = p => {
   return `<span class="badge ${cls}">${text}</span>${p.interrupted ? ` <span class="badge neutral">${V.interrupted}</span>` : ""}`;
 };
 
-async function viewChecks() {
-  await loadSteps();
-  const kept = CHECK_FORM;  // drawn again after a step was changed for this verification: the boxes stay as they were
-  CHECK_FORM = null;
-  const [options, listed] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api(`/api/verifications?limit=${CHECKS_SHOWN + 1}`)]);
-  const verifs = listed.slice(0, CHECKS_SHOWN);
+// A check on the lists (« Check the guide », « To handle »): its kind, in colour, what it read, where it was started when
+// not there, what it cost or is worth at list price, then the runs its leads went to that still wait for something
+function checkCardMaker(options) {
   const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
-  // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
-  const price = o => o.model ? costHtml(o.id, o.usd == null ? V.unknown : `≈ ${dollars(est(o, "usd"))}`) : V.free;
-  const origin = o => o.model && o.price_origin && o.usd != null && billedStep(o.id)
-    ? ` <span class="muted small">${esc(T.priceOrigin(o.price_origin))}</span>` : "";
-  // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
-  const pending = verifs.filter(p => ["to-handle", "running"].includes(p.status));
-  const remaining = pending.reduce((s, p) => s + p.counts.open, 0);
-  // A card says what the check is (its kind, in colour; what it read), where it was started when not here, what it
-  // cost or is worth at list price, then the runs its leads went to that still wait for something
   const kindOf = Object.fromEntries(options.map(o => [o.id, o.kind || "health"]));
   const short = c => {
     const t = titles[c] || c, i = t.indexOf(":");
@@ -2130,7 +2253,6 @@ async function viewChecks() {
     l.title ? ` <span class="muted small">· ${esc(new URL(l.url).hostname.replace(/^www\./, ""))}</span>` : ""}</li>`;
   const linksList = p => !p.links?.length ? "" : `<ul class="check-links">${p.links.slice(0, 3).map(linkItem).join("")}</ul>${
     p.links.length > 3 ? `<details class="check-links-more"><summary class="small">${V.moreLinks(p.links.length - 3)}</summary><ul class="check-links">${p.links.slice(3).map(linkItem).join("")}</ul></details>` : ""}`;
-  const WAITING = ["running", "review", "retouch", "translation", "publish", "stopped", "pr-open"];
   const runLine = ([t, r]) => `<div class="run-line small"><span class="badge attention">${esc(T.statuses[r.status] || r.status)}</span>
     <a href="${r.status === "pr-open" && r.pr_url ? esc(r.pr_url) : `#/run/${encodeURIComponent(t)}`}"${r.status === "pr-open" ? ' target="_blank" rel="noopener"' : ""}><button type="button" class="small-button">${
       r.status === "pr-open" ? T.merge() : T.buttons[r.status] || T.details}</button></a> <span class="muted">${esc(t)}</span></div>`;
@@ -2145,15 +2267,33 @@ async function viewChecks() {
         ${Object.entries(p.runs || {}).filter(([, r]) => WAITING.includes(r.status)).map(runLine).join("")}</div>
         <div class="check-side">${checkBadge(p)}
         <a href="#/check/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="primary"' : ""}>${p.status === "to-handle" ? V.handle : T.details}</button></a></div></div>`;
+  return checkCard;
+}
+
+async function viewChecks() {
+  await loadSteps();
+  const kept = CHECK_FORM;  // drawn again after a step was changed for this verification: the boxes stay as they were
+  CHECK_FORM = null;
+  const [options, listed] = await Promise.all([api(`/api/verifications/options${stepsQuery()}`), api(`/api/verifications?limit=${CHECKS_SHOWN + 1}`)]);
+  const verifs = listed.slice(0, CHECKS_SHOWN);
+  const V = T.verif, titles = Object.fromEntries(options.map(o => [o.id, o.title[lang]]));
+  // An estimate says where its price comes from when it is not a price set or fetched by the user (a default, none)
+  const price = o => o.model ? costHtml(o.id, o.usd == null ? V.unknown : `≈ ${dollars(est(o, "usd"))}`) : V.free;
+  const origin = o => o.model && o.price_origin && o.usd != null && billedStep(o.id)
+    ? ` <span class="muted small">${esc(T.priceOrigin(o.price_origin))}</span>` : "";
+  // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
+  const pending = verifs.filter(p => ["to-handle", "running"].includes(p.status));
+  const remaining = pending.reduce((s, p) => s + p.counts.open, 0);
+  const checkCard = checkCardMaker(options);
   // The history can be narrowed to one kind (kept while the page is open)
   const kindCount = k => older.filter(p => (p.kinds || []).includes(k)).length;
   const older = verifs.filter(p => !pending.includes(p));
   page.innerHTML = `
-    <h1>${V.title}</h1>
+    ${crumb()}<h1>${V.title}</h1>
     <p class="subtitle">${V.intro}</p>
     <p class="small"><a href="#/idea">${V.ideaLink}</a><br><a href="#/links">${V.linksLink}</a></p>
     ${pending.length ? `<h2>${V.toHandleTitle}</h2>${pending.map(checkCard).join("")}` : ""}
-    <details class="new-check"${pending.length ? "" : " open"}><summary><h2>${V.newCheck}</h2></summary>
+    <details class="new-check" id="new-check"${pending.length && !NEW_CHECK ? "" : " open"}><summary><h2>${V.newCheck}</h2></summary>
     ${remaining ? `<p class="attention-text">${V.warning(remaining)}</p>` : ""}
     <p class="tick-row"><button type="button" class="small-button" data-tick-checks="all">${V.tickAll}</button>
       <button type="button" class="small-button" data-tick-checks="none">${V.untickAll}</button>

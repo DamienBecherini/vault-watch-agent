@@ -180,9 +180,11 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 
 | Page | À quoi elle sert |
 | :-- | :-- |
-| Veilles | Les veilles avec leur état, un bouton pour en analyser une, et les autres passages (correction, compactage, ajouts) |
-| Sources | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
-| Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se cochent, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
+| Veille › À traiter | La première page : tout ce qui vous attend, d'où que ça vienne : un passage en pause pour votre relecture, une veille à lancer, les vérifications dont les pistes sont à trier ; le menu « Veille » en donne le nombre |
+| Veille › Veille automatique | Les veilles avec leur état et un bouton pour en analyser une |
+| Veille › Toutes les passes | Tous les passages, les plus récents d'abord : ceux des veilles, et ceux lancés depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues » |
+| Veille › Sources suivies | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
+| Veille › Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se trient, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
 | Signaler ou proposer | Des erreurs à corriger, une idée ou une nouvelle à vérifier et à écrire, ou des liens à lire en entier (un article, une page, un PDF) pour les pistes qu'ils contiennent |
 | Langues | Les pages en avance sur leur miroir, et celles que vous avez modifiées dans votre dossier sans les commiter : ce qui a changé est traduit, puis contrôles et pull request habituels ([Une veille étape par étape](docs/fr/run.md#synchroniser-les-langues)) |
 | Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
