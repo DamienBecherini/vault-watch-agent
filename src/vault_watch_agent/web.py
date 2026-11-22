@@ -1278,7 +1278,9 @@ def create_app(settings: Settings) -> FastAPI:
     def page_path(tree: Path, given: str) -> Path:
         """A Markdown page of the tree, by its path in the guide: never outside, never another kind of file."""
         rel = Path(given.replace("\\", "/"))
-        if rel.is_absolute() or ".." in rel.parts or rel.suffix not in (".md", ".mdx"):
+        # « C:x.md » is neither absolute nor « .. », yet leaves the tree on Windows: the path must resolve inside it
+        if (rel.is_absolute() or ".." in rel.parts or ":" in given or rel.suffix not in (".md", ".mdx")
+                or not (tree / rel).resolve().is_relative_to(tree.resolve())):
             raise HTTPException(400, f"not a page of the guide: {given}")
         path = tree / rel
         if not path.is_file():

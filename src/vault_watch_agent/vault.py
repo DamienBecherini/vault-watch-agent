@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 import threading
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from . import inputs
 from .guide import MANIFEST, Guide, legacy, load
@@ -120,11 +120,35 @@ def with_changes_page(vault: Path, excerpts: list[dict]) -> list[dict]:
     return [*excerpts, {"page": page, "text": read(vault / page)[:CHANGES_PAGE_CHARS]}]
 
 
+def is_page(vault: Path, page: str) -> bool:
+    """Whether `page` names a content page of the guide, or its copy in a mirror: a relative path with /, inside the
+    guide, a Markdown file of `include`. What a model writes as the page of a correction comes from what it read
+    (a web page, a PDF, a video can say anything): never the guide's scripts, its manifest, a dot folder, nor a file
+    outside the guide, which the agent would then run or overwrite."""
+    if not _page_like(vault, page):
+        return False
+    guide = guide_of(vault)
+    source = next((page[len(f):] for f in guide.mirrors.values() if page.startswith(f)), page)
+    return any(p.relative_to(vault).as_posix() == source for p in guide.pages())
+
+
+def _page_like(vault: Path, page: str) -> bool:
+    """A relative Markdown path with /, inside the guide, outside the dot folders; whether it exists or not."""
+    rel = PurePosixPath(page)
+    if (not page or "\\" in page or ":" in page or rel.is_absolute() or rel.suffix not in (".md", ".mdx")
+            or any(part in ("", "..") or part.startswith(".") for part in page.split("/"))):
+        return False
+    return (vault / page).resolve().is_relative_to(vault.resolve())
+
+
 def check(vault: Path, page: str, current: str) -> str:
-    """'ok' when `current` occurs exactly once in the page, else why not (a read-only page is never edited)."""
+    """'ok' when `current` occurs exactly once in the page, else why not (a read-only page is never edited; a file
+    that is not a page of the guide is never touched: `not-a-page`)."""
     path = vault / page
-    if not path.is_file():
+    if _page_like(vault, page) and not path.is_file():
         return "page-not-found"
+    if not is_page(vault, page):
+        return "not-a-page"
     if guide_of(vault).is_readonly(page):
         return "read-only"
     count = read(path).replace("\r\n", "\n").count(current.replace("\r\n", "\n"))
@@ -362,6 +386,8 @@ def lost(vault: Path, corrections: list[dict]) -> dict[str, list[str]]:
 def apply(vault: Path, page: str, current: str, proposed: str, today: str) -> None:
     """Replace the single occurrence and bump the modified date of the front matter (the manifest's
     `modified_field`; none when the guide has no such field). An empty `proposed` removes the passage (`replaced`)."""
+    if not is_page(vault, page):
+        raise ValueError(f"{page}: not a page of the guide")
     path = vault / page
     text = read(path)
     crlf = "\r\n" in text
