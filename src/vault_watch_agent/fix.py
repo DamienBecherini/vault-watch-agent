@@ -147,11 +147,12 @@ def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,
 
 
 def initial_state(label: str, items: list[dict], proposal: dict | list[dict], usage: dict | list[dict],
-                  thread: str = "", mode: str = "fix") -> dict:
+                  thread: str = "", mode: str = "fix", origin: str = "") -> dict:
     """`thread` names the branch (fix/<thread>): two fix runs on one day must not share a branch.
     `mode` "translation" skips the cross-check against the whole guide; "compact" is a compaction run (compact.py):
     trims instead of corrections, its own cross-check, its own branch; "add" is an addition run (news.py): what is
-    new, checked on the web, on its own branch.
+    new, checked on the web, on its own branch. `origin`: what the leads of an addition run came from (the checks
+    of a verification, in words), said in its source; without it, ideas typed in the interface.
     `proposal`, `usage`: one of each, or the list of a run whose proposals took several calls."""
     today = date.today().isoformat()
     proposals = proposal if isinstance(proposal, list) else [proposal]
@@ -166,7 +167,7 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
         }
     if mode == "add":
         return {
-            "source": f"what a reader would look for and not find ({label})", "issue": None, "as_of": today, "mode": mode,
+            "source": f"{origin or 'ideas reported in the interface'} ({label})", "issue": None, "as_of": today, "mode": mode,
             "title": f"feat(content): reviewed additions to the guide ({label})",
             "branch_name": f"feat/{thread or f'additions-{today}'}",
             "items": items, "claims_due": [], "decisions": [], "evidence": {}, "proposals": proposals, "usage": usages,

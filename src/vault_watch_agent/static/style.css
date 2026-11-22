@@ -181,6 +181,42 @@ th button.sort:focus-visible, button.badge:focus-visible { outline: 2px solid va
 .diff.before del { background: var(--minus-strong); text-decoration: line-through; }
 .diff.after ins { background: var(--plus-strong); text-decoration: none; }
 .group { border-left: 3px solid var(--accent); padding-left: 10px; margin: 0 0 12px; }
+/* The review: a block per lead; a group ticked by its own box (its members' boxes hidden) */
+.lead-block { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 4px; margin: 0 0 16px; }
+.lead-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-bottom: 2px; }
+.lead-block > p { margin: 2px 0 4px; }
+.lead-block details.sent { margin: 0 0 8px; }
+.group-head { display: flex; gap: 10px; align-items: baseline; margin: 2px 0 8px; cursor: pointer; }
+.group-head input { width: 18px; height: 18px; flex: none; position: relative; top: 3px; }
+.group-head b { white-space: nowrap; }
+.group .correction { grid-template-columns: 1fr; }
+.group .correction > input { display: none; }
+.anchor { margin: 6px 0 0; font-style: italic; }
+.diff.after.notes { font-size: 13px; }
+.card.notice.unchanged { border-color: var(--attention); }
+.card.notice.unchanged li { margin-bottom: 8px; }
+/* The list of the checks: the kind of each, in colour (not those of the states: orange to handle, green done) */
+:root { --k-health: #2b9aa3; --k-light: #9a5fe0; --k-news: #4f6fe0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k-health: #4fc1c9; --k-light: #c08cff; --k-news: #7c9cff; } }
+:root[data-theme="dark"] { --k-health: #4fc1c9; --k-light: #c08cff; --k-news: #7c9cff; }
+.check-item { border-left: 4px solid var(--k-health); }
+.check-item.kind-light { border-left-color: var(--k-light); } .check-item.kind-news { border-left-color: var(--k-news); }
+.card.check-item.finished { border-left-style: solid; }
+.check-top { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; margin-bottom: 2px; }
+.kind-tag { font-size: 12px; font-weight: 600; border-radius: 6px; padding: 0 8px; color: #fff; background: var(--k-health); }
+.kind-tag.light { background: var(--k-light); } .kind-tag.news { background: var(--k-news); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .kind-tag { color: #0d1220; } }
+:root[data-theme="dark"] .kind-tag { color: #0d1220; }
+.from-tag, .sub-tag, .kindtag { font-size: 11.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 0 6px; }
+.worth s { color: var(--muted); }
+ul.check-links { margin: 4px 0 2px; padding-left: 20px; font-size: 14px; }
+.check-links-more summary { color: var(--accent); cursor: pointer; }
+.run-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+.check-side { display: flex; gap: 8px; align-items: center; }
+.kind-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.kind-filters .chip { border-radius: 999px; font-size: 13px; padding: 2px 11px; }
+.kind-filters .chip.on { border-color: var(--accent); }
+@media (max-width: 700px) { .check-item { flex-wrap: wrap; } .check-side { width: 100%; justify-content: space-between; } }
 .bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border);
   padding: 12px 16px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; z-index: 2; }
 details { margin: 8px 0; } summary { cursor: pointer; font-weight: 600; }

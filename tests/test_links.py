@@ -154,6 +154,33 @@ def test_the_links_check_reads_its_addresses_and_lists_leads(guide, tmp_path, mo
                              "which the guide names as the reference. Sources: https://example.org/alpha-4, "
                              "https://alpha.example/release-notes"]
     assert verify.BY_ID["links"].fix_mode == "add"
+    # The list of the checks: its kind, where it was started (the page knows: only « Report or suggest » starts it),
+    # the links it read with their titles, what it is worth at list price
+    card = next(x for x in c.get("/api/verifications").json() if x["id"] == vid)
+    assert card["kinds"] == ["news"] and card["checks"] == ["links"] and "results" not in card
+    assert [(x["url"], x["error"]) for x in card["links"]] == [
+        ("https://example.org/alpha-4", False), ("https://example.org/gone", True), ("https://youtu.be/AbCdEfGhIjK", True)]
+    assert card["unbilled_usd"] == 0  # the fake model is billed: nothing taken from a subscription
+    assert options["links"]["kind"] == "news" and options["sizes"]["kind"] == "light" and options["audits"]["kind"] == "health"
+
+
+def test_a_document_without_a_title_is_named_after_its_file():
+    pdf = "https://messervices.cyber.gouv.fr/documents-guides/Recommandations_de_s%C3%A9curit%C3%A9_pour_un_syst%C3%A8me_d_IA_g%C3%A9n%C3%A9rative.pdf"
+    assert links.file_title(pdf) == "Recommandations de sécurité pour un système d'IA générative"
+    assert links.file_title("https://example.org/reports/annual-report-2026.PDF") == "annual-report-2026"
+    assert links.file_title("https://example.org/") == ""
+    assert links.title_of({"url": pdf, "kind": "pdf", "title": ""}).startswith("Recommandations de sécurité")
+    assert links.title_of({"url": pdf, "kind": "pdf", "title": "Its own"}) == "Its own"
+    assert links.title_of({"url": "https://example.org/a-page", "kind": "page", "title": ""}) == ""  # a page: its address
+
+
+def test_the_kind_of_each_check_and_its_short_title():
+    assert {c.id: c.kind for c in verify.CHECKS if c.kind != "health"} == {
+        "sizes": "light", "compaction": "light", "news": "news", "explore": "news", "links": "news"}
+    assert verify.short_title(verify.BY_ID["links"]) == "links to read whole"
+    assert verify.short_title(verify.BY_ID["links"], "fr") == "des liens à lire en entier"
+    assert verify.short_title(verify.BY_ID["compaction"], "fr") == "Compactage"
+    assert verify.short_title(verify.BY_ID["sources"]) == "Dead links"
 
 
 def test_a_real_pdf_is_read_with_the_optional_reader():

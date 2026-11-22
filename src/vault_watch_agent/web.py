@@ -702,6 +702,21 @@ def create_app(settings: Settings) -> FastAPI:
         starting = [t for t, job in jobs.items() if job.action in ("fix", "mirror") and not job.done and t not in known]
         return [summary(t) for t in starting] + [summary(t, known[t]) for t in others]
 
+    def lead_of(thread: str, line: str) -> dict:
+        """Where a lead of an addition run came from: {verification, n (its number on the check's page), name (the
+        title written in the language of the interface, when the check wrote one), check}. Empty for an idea typed
+        in the interface."""
+        for path in verif_files():
+            data = read_json(path)
+            if data.get("handled", {}).get(line, {}).get("thread") != thread:
+                continue
+            for c, r in data["results"].items():  # numbered as on the check's page: from 1 in each check
+                for n, f in enumerate(r.get("findings", []), 1):
+                    if f == line:
+                        return {"verification": data["id"], "n": n, "check": c,
+                                "name": (r.get("details", {}).get(f) or {}).get("title", "")}
+        return {}
+
     @app.get("/api/runs/{thread}")
     def run_view(thread: str):
         snapshot = viewer.get_state(config(thread))
@@ -710,6 +725,8 @@ def create_app(settings: Settings) -> FastAPI:
             raise HTTPException(404, f"no run {thread}")
         pending = [i.value for t in snapshot.tasks for i in t.interrupts]
         items = {i["id"]: {"id": i["id"], "title": i["title"], "url": i["url"]} for i in v.get("items", [])}
+        if v.get("mode") == "add":
+            items = {k: {**i, **lead_of(thread, i["title"])} for k, i in items.items()}
         decisions = v.get("decisions", [])
         usage = v.get("usage", [])
         return {
@@ -849,10 +866,13 @@ def create_app(settings: Settings) -> FastAPI:
         base = f"{body.mode if body.mode in ('compact', 'add') else 'fix'}-{date.today().isoformat()}"
         thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100))) if t not in existing)
         # Findings of a check keep the passages found when it ran; a line typed by hand has none
-        excerpts = {}
+        excerpts, origin = {}, ""
         if body.verification:
             results = read_json(verif_path(body.verification))["results"]
             excerpts = {f: e for r in results.values() for f, e in r.get("excerpts", {}).items() if f in findings}
+            # What the leads came from, in words: « links to read whole », for the run's source and its pull request
+            origin = " + ".join(verify.short_title(verify.BY_ID[c]) for c, r in results.items()
+                                if c in verify.BY_ID and set(r.get("findings", [])) & set(findings))
 
         def work(graph, job: Job):
             deps = settings.make_deps(thread, "fix")
@@ -873,7 +893,7 @@ def create_app(settings: Settings) -> FastAPI:
                 label = "errors reported in the interface"
             spent = sum(u.get("cost_usd", 0.0) for u in (usage if isinstance(usage, list) else [usage]))
             job.events.append({"t": time.time(), "node": "propose", "cost": round(spent, 2)})
-            graph.update_state(config(thread), fix.initial_state(label, items, proposal, usage, thread, body.mode),
+            graph.update_state(config(thread), fix.initial_state(label, items, proposal, usage, thread, body.mode, origin),
                                as_node="propose")
             follow(graph, job, None)
 
@@ -1059,6 +1079,8 @@ def create_app(settings: Settings) -> FastAPI:
         for f in every:
             counts[handled.get(f, {}).get("status", "open")] += 1
         data["counts"] = counts
+        usage = [u for r in data["results"].values() for u in (r.get("usage") or []) if isinstance(u, dict)]
+        data["unbilled_usd"] = round(sum(u.get("list_usd") or 0.0 for u in usage if not u.get("cost_usd")), 2)
         for step, r in data["results"].items():  # per check: findings still open, and where they can go
             r["open"] = sum(1 for f in r.get("findings", []) if f not in handled)
             if step in verify.BY_ID:  # as the check is now, not as it was when this verification ran
@@ -1150,7 +1172,7 @@ def create_app(settings: Settings) -> FastAPI:
             return "" if not model else "no price" if p is None else "" if p.origin in ("set", "fetched") else p.label
 
         model = lambda c: apart.get(c.id) or name.get(c.model, c.model) if c.model else None  # noqa: E731
-        return [{"id": c.id, "title": c.title, "what": c.what, "model": model(c), "needs": list(c.needs),
+        return [{"id": c.id, "title": c.title, "what": c.what, "model": model(c), "needs": list(c.needs), "kind": c.kind,
                  "fixable": c.fixable, "price_origin": origin(model(c)), "limit": c.limit, **est[c.id],
                  # a check that calls the model is a step: the engine and the effort it runs at, how it is paid
                  **({k: how[c.id][k] for k in ("engine", "engine_label", "effort", "billing")} if c.id in how else {}),
@@ -1179,11 +1201,24 @@ def create_app(settings: Settings) -> FastAPI:
         return {"set": False, "ready": False, "why": "dl-sub-dub is not set (settings.json: videos)"} if not reader else {
             "set": True, **reader.status()}
 
+    def verif_card(path: Path) -> dict:
+        """What the list of the checks shows of one: its kinds (verify.KINDS), the links it read (or was given, while
+        it reads them). What its calls on a subscription are worth at list price is in verif_view (`unbilled_usd`)."""
+        data = verif_view(path)
+        out = {k: v for k, v in data.items() if k not in ("results", "handled")}
+        out["kinds"] = [k for k in verify.KINDS if any(verify.BY_ID[c].kind == k for c in data.get("checks", []) if c in verify.BY_ID)]
+        read = data["results"].get("links", {}).get("links")
+        if read is None and "links" in data.get("checks", []):
+            given = read_json(path.with_suffix("") / "options.json").get("links", []) if (path.with_suffix("") / "options.json").is_file() else []
+            read = [{"url": u, "kind": "pdf" if u.lower().endswith(".pdf") else "", "title": ""} for u in given]
+        out["links"] = [{"url": x["url"], "kind": x.get("kind", ""), "title": links.title_of(x), "error": bool(x.get("error"))}
+                        for x in read or []]
+        return out
+
     @app.get("/api/verifications")
     def verif_list(limit: int = 20):
         """The newest verifications (`limit`; the page asks for one more than it shows, to offer the older ones)."""
-        return [{k: v for k, v in verif_view(p).items() if k not in ("results", "handled")}
-                for p in verif_files()[:max(1, limit)]]
+        return [verif_card(p) for p in verif_files()[:max(1, limit)]]
 
     @app.get("/api/verifications/{vid}")
     def verif_get(vid: str):

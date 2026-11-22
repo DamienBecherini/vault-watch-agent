@@ -227,6 +227,11 @@ const TEXTS = {
       remove: "Supprimer cette vérification",
       confirmRemove: "Supprimer cette vérification et ses pistes ? Les passes fix déjà lancées restent.",
       runRunning: "passe en cours", follow: "suivre",
+      checkKinds: { health: "Santé du guide", light: "Allègement", news: "Nouveautés" },
+      kindsWhat: { health: "liens, fraîcheur, cohérence, traductions…", light: "taille des pages, compactage", news: "ce qui manque au guide" },
+      allKinds: "Toutes", fromReport: "depuis Signaler ou proposer",
+      nLinks: n => `${n} lien${n > 1 ? "s" : ""}`, moreLinks: n => `et ${n} autre${n > 1 ? "s" : ""}`, nChecks: n => `${n} contrôles`,
+      onSubscription: "abonnement", listPriceTip: "Valeur au prix catalogue de l'API ; pris sur ton abonnement Claude, rien n'est facturé",
       confirmParallel: names => `Une passe est déjà en cours : ${names}.\n\nEn lancer une autre en même temps ? Chacune travaille sur sa propre branche, mais le dépôt du guide n'accepte qu'une pull request à la fois : tu publieras la seconde après la fusion de la première.`,
     },
     loading: "Chargement…",
@@ -262,6 +267,11 @@ const TEXTS = {
     progress: (min, cost) => `Démarré il y a ${min} min · coût de ce passage ≈ ${cost}`,
     applyId: id => `Appliquer ${id}`,
     crossCheck: "Relecture globale", from: "D'après", colon: " : ",
+    addedAfter: "Ajouté après", notesAdded: "Note ajoutée : ",
+    groupLinked: n => `${n} corrections liées`,
+    groupWhy: "· appliquées ensemble : elles dépendent l'une de l'autre (un texte et sa note, par exemple). Pour changer un texte, retouche-le au lieu de décocher.",
+    leadN: n => `Piste ${n}`, leadCount: (n, p) => `${n} correction${n > 1 ? "s" : ""} · ${p} page${p > 1 ? "s" : ""}`,
+    leadSource: "Source", seeCheck: "voir la vérification",
     byChapter: (t, b) => `Relecture globale chapitre par chapitre : le guide (≈ ${t.toLocaleString("fr")} tokens) dépasse ce qu'un appel du modèle peut lire (${b.toLocaleString("fr")}). Une contradiction entre deux chapitres peut échapper.`,
     lostValues: "Plus aucune page ne le dit ensuite", removedWhole: "(passage supprimé)",
     weight: w => `Les pages modifiées pèsent ${kb(w.before)} avant et ${kb(w.after)} après (${signedKb(w.after - w.before)}), miroirs non comptés.`,
@@ -567,6 +577,11 @@ const TEXTS = {
       remove: "Delete this check",
       confirmRemove: "Delete this check and its leads? The fix runs already started stay.",
       runRunning: "run in progress", follow: "follow",
+      checkKinds: { health: "Guide health", light: "Lighter guide", news: "What is new" },
+      kindsWhat: { health: "links, freshness, consistency, translations…", light: "size of the pages, compaction", news: "what the guide is missing" },
+      allKinds: "All", fromReport: "from Report or suggest",
+      nLinks: n => `${n} link${n > 1 ? "s" : ""}`, moreLinks: n => `and ${n} more`, nChecks: n => `${n} checks`,
+      onSubscription: "subscription", listPriceTip: "Worth at the API's list price; taken from your Claude subscription, nothing is billed",
       confirmParallel: names => `A run is already in progress: ${names}.\n\nStart another one at the same time? Each works on its own branch, but publish their pull requests one after the other if the guide's repository takes one at a time.`,
     },
     loading: "Loading…",
@@ -600,6 +615,11 @@ const TEXTS = {
     progress: (min, cost) => `Started ${min} min ago · cost of this run ≈ ${cost}`,
     applyId: id => `Apply ${id}`,
     crossCheck: "Cross-check", from: "From", colon: ": ",
+    addedAfter: "Added after", notesAdded: "Footnote added: ",
+    groupLinked: n => `${n} related corrections`,
+    groupWhy: "· applied together: they depend on each other (a sentence and its footnote, for instance). To change a text, retouch it instead of unticking.",
+    leadN: n => `Lead ${n}`, leadCount: (n, p) => `${n} correction${n > 1 ? "s" : ""} · ${p} page${p > 1 ? "s" : ""}`,
+    leadSource: "Source", seeCheck: "see the check",
     byChapter: (t, b) => `Cross-check chapter by chapter: the guide (≈ ${t.toLocaleString("en")} tokens) exceeds what one call of the model can read (${b.toLocaleString("en")}). A contradiction between two chapters can be missed.`,
     lostValues: "No page states it any more", removedWhole: "(passage removed)",
     weight: w => `The pages changed weigh ${kb(w.before)} before and ${kb(w.after)} after (${signedKb(w.after - w.before)}), mirrors not counted.`,
@@ -1260,11 +1280,26 @@ function excerpts(list) {
 const RETOUCH = {};
 const mineOf = (r, id) => RETOUCH[r.thread]?.[id];
 
+// A change, as the review shows it: what is added after the text kept, when it only adds (a sentence after a
+// paragraph, a footnote after another); else the text before and after, word by word
+const changeView = (current, text) => {
+  if (current && text.length > current.length && text.startsWith(current)) {
+    const added = text.slice(current.length).replace(/^\n+/, "");
+    const notes = added.split("\n").filter(l => l.trim()).every(l => /^\[\^[^\]]+\]:/.test(l));
+    const tail = current.length > 110 ? `…${current.slice(-100).trimStart()}` : current;
+    return `<p class="anchor muted small">${T.addedAfter} « ${esc(tail)} »</p>
+      <div class="diff after${notes ? " notes" : ""}" lang="fr">${notes ? `<span class="muted">${T.notesAdded}</span>` : ""}${esc(added)}</div>`;
+  }
+  const [before, after] = wordDiff(current, text);
+  return `<div class="diff before" lang="fr">${before}</div>
+    <div class="diff after" lang="fr">${after || `<span class="muted">${T.removedWhole}</span>`}</div>`;
+};
+
 function correctionCard(c, r) {
   const valid = c.check === "ok";
   const mine = mineOf(r, c.id), text = mine ?? c.proposed;
-  const [before, after] = wordDiff(c.current, text);
-  const sources = (c.item_ids || [c.item_id]).map(id => r.items[id]).filter(Boolean)
+  // Where it comes from is said once, by the block of its lead (viewReview); a correction without one says it here
+  const sources = (c.item_ids || [c.item_id]).filter(id => !r.items[id]?.shown).map(id => r.items[id]).filter(Boolean)
     .map(i => i.url ? extLink(i.url, esc(i.title)) : esc(i.title)).join(" · ");
   return `<div class="card correction${valid ? "" : " rejected"}">
     <input type="checkbox" data-id="${c.id}" data-group="${c.group}" ${valid ? "checked" : "disabled"} aria-label="${T.applyId(c.id)}">
@@ -1275,14 +1310,13 @@ function correctionCard(c, r) {
       ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${esc(c.review)}</p>` : ""}
       ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${esc(c.warning)}</p>` : ""}
       ${c.lost?.length ? `<p class="small">⚠️ ${T.lostValues}${T.colon}${esc(c.lost.join(", "))}</p>` : ""}
-      <div class="diff before" lang="fr" data-before="${c.id}">${before}</div>
-      <div class="diff after" lang="fr" data-after="${c.id}">${after || `<span class="muted">${T.removedWhole}</span>`}</div>
+      <div data-diff="${c.id}">${changeView(c.current, text)}</div>
       ${c.retouchable ? `<div class="retouch" data-retouch="${c.id}" ${mine === undefined ? "hidden" : ""}>
         <p class="muted small">${T.retouchHelp}</p>
         <textarea data-text="${c.id}" lang="fr" spellcheck="true">${esc(text)}</textarea>
         <p class="small"><span data-retouch-state="${c.id}"></span>
           <button type="button" class="small-button" data-retouch-back="${c.id}">${T.retouchBack}</button></p></div>` : ""}
-      <div class="muted small">${T.from} ${sources || "—"}${c.source_url ? ` · ${extLink(c.source_url, "source")}` : ""}
+      <div class="muted small">${sources ? `${T.from} ${sources} · ` : ""}${c.source_url ? `${extLink(c.source_url, "source")}` : ""}
         ${c.retouchable ? ` · <button type="button" class="small-button" data-retouch-open="${c.id}"${mine === undefined ? "" : " hidden"}>✎ ${T.retouch}</button>` : ""}</div>
     </div>
   </div>`;
@@ -1294,19 +1328,46 @@ function viewReview(r, title) {
   for (const c of [...r.corrections].sort((a, b) => num(a.group) - num(b.group) || num(a.id) - num(b.id)))
     (groups[c.group] ||= []).push(c);
   const broken = new Set(r.corrections.filter(c => c.check !== "ok").map(c => c.group));
+  // The groups under the lead of their first correction, the leads in their order (F1, F2…); a lead says where it
+  // comes from once: its number and title on the check's page, its source, the English text the run was given
+  const byLead = new Map();
+  for (const [g, cs] of Object.entries(groups)) {
+    const k = (cs[0].item_ids || [cs[0].item_id])[0] || "";
+    if (!byLead.has(k)) byLead.set(k, []);
+    byLead.get(k).push([g, cs]);
+  }
+  const leadOrder = [...byLead.keys()].sort((a, b) => (num(a) || 1e9) - (num(b) || 1e9));
+  leadOrder.forEach(k => { if (r.items[k]) r.items[k].shown = true; });
+  const groupBlock = ([g, cs]) => cs.length > 1
+    ? `<div class="group"><label class="group-head"><input type="checkbox" data-group-box="${g}" aria-label="${esc(T.group(g))}">
+        <b>${T.groupLinked(cs.length)}</b> <span class="muted small">${broken.has(g) ? T.groupLeftOut : T.groupWhy}</span></label>
+        ${cs.map(c => correctionCard(c, r)).join("")}</div>`
+    : correctionCard(cs[0], r);
+  const leadBlock = k => {
+    const i = r.items[k], gs = byLead.get(k);
+    if (!i) return gs.map(groupBlock).join("");
+    const cs = gs.flatMap(([, x]) => x), pages = new Set(cs.map(c => c.page)).size;
+    const name = i.name ? esc(i.name) : i.url ? extLink(i.url, esc(i.title)) : esc(i.title);
+    return `<section class="lead-block">
+      <div class="lead-head">${i.n ? `<span class="muted small">${T.leadN(i.n)}</span>` : ""}<b>${name}</b>
+        <span class="badge neutral">${T.leadCount(cs.length, pages)}</span></div>
+      ${i.name ? `<p class="muted small">${i.url ? `${T.leadSource}${T.colon}${extLink(i.url, esc(shortUrl(i.url)))} · ` : ""}${
+        i.verification ? `<a href="#/check/${encodeURIComponent(i.verification)}">${T.seeCheck}</a>` : ""}</p>
+        <details class="sent"><summary class="small muted">${T.verif.sentText}</summary><p class="small muted">${esc(i.title)}</p></details>` : ""}
+      ${gs.map(groupBlock).join("")}</section>`;
+  };
   const figures = [Object.values(r.triage).reduce((a, b) => a + b, 0), r.triage.correct, r.corrections.length, r.additions.length];
   page.innerHTML = `${title}
     <div class="figures">${figures.map((n, i) => `<div><b>${n}</b>${T.reviewFigures[i]}</div>`).join("")}</div>
     ${r.reading?.mode === "chapters" ? `<p class="banner small">${T.byChapter(r.reading.tokens, r.reading.budget)}</p>` : ""}
     ${r.mode === "add" ? `<div class="card notice"><p><strong>${T.noNewPage}</strong> ${T.pagesToWrite(r.pages_to_write.length)}</p>
       ${r.pages_to_write.length ? `<ul>${r.pages_to_write.map(p => `<li><strong>${esc(p.id)}</strong> ${esc(p.what)}<br><span class="muted small">${esc(p.lead)}</span></li>`).join("")}</ul>` : ""}</div>
-    ${r.unchanged.length ? `<details><summary>${T.unchanged(r.unchanged.length)}</summary>
-      <ul>${r.unchanged.map(u => `<li><strong>${esc(u.id)}</strong> ${esc(u.why)}<br><span class="muted small">${esc(u.lead)}</span></li>`).join("")}</ul></details>` : ""}` : ""}
+    ${r.unchanged.length ? `<div class="card notice unchanged"><p><strong>${T.unchanged(r.unchanged.length)}</strong></p>
+      <ul>${r.unchanged.map(u => { const i = r.items[u.id] || {}; return `<li><strong>${i.n ? T.leadN(i.n) : esc(u.id)}${i.name ? ` · ${esc(i.name)}` : ""}</strong><br>
+        <span class="small">${esc(u.why)}</span><details class="sent"><summary class="small muted">${T.verif.sentText}</summary><p class="small muted">${esc(u.lead)}</p></details></li>`; }).join("")}</ul></div>` : ""}` : ""}
     <h2>${T.corrections}</h2>
     <p class="muted small">${T.reviewHelp}</p>
-    ${Object.entries(groups).map(([g, cs]) => cs.length > 1
-      ? `<div class="group"><p class="muted small">${T.group(g)}${broken.has(g) ? T.groupLeftOut : ""}</p>${cs.map(c => correctionCard(c, r)).join("")}</div>`
-      : correctionCard(cs[0], r)).join("") || `<p class="muted">${T.noCorrection}</p>`}
+    ${leadOrder.map(leadBlock).join("") || `<p class="muted">${T.noCorrection}</p>`}
     <details><summary>${T.leads(r.additions.length)}</summary>
       <ul>${r.additions.map(a => `<li>${a.url ? extLink(a.url, esc(a.title)) : esc(a.title)}${T.colon}${esc(a.reason)}</li>`).join("") || `<li>${T.none}</li>`}</ul></details>
     <details><summary>${T.noticed(r.findings.length)}</summary>
@@ -1324,13 +1385,21 @@ function viewReview(r, title) {
     </div>`;
   const boxes = [...page.querySelectorAll(".correction input")];
   boxes.filter(i => broken.has(i.dataset.group)).forEach(i => { i.checked = false; i.disabled = true; });
+  // A group of several corrections is ticked by its own box (its members' boxes are hidden): one choice
+  const groupBoxes = [...page.querySelectorAll("[data-group-box]")];
+  const members = g => boxes.filter(o => o.dataset.group === g);
   const count = () => {
     const n = boxes.filter(i => i.checked).length;
     $("#apply").textContent = T.applyN(n);
     $("#apply").disabled = n === 0;
+    groupBoxes.forEach(b => { b.checked = members(b.dataset.groupBox).every(o => o.checked); b.disabled = broken.has(b.dataset.groupBox); });
   };
   boxes.forEach(i => i.onchange = () => {
     boxes.filter(o => o.dataset.group === i.dataset.group && !o.disabled).forEach(o => o.checked = i.checked);
+    count();
+  });
+  groupBoxes.forEach(b => b.onchange = () => {
+    members(b.dataset.groupBox).filter(o => !o.disabled).forEach(o => { o.checked = b.checked; });
     count();
   });
   count();
@@ -1353,11 +1422,7 @@ function bindRetouches(r, boxes) {
   const mine = RETOUCH[r.thread] ||= {};
   const proposal = id => r.corrections.find(c => c.id === id);
   const timers = {};
-  const show = (id, text) => {
-    const c = proposal(id), [before, after] = wordDiff(c.current, text);
-    page.querySelector(`[data-before="${id}"]`).innerHTML = before;
-    page.querySelector(`[data-after="${id}"]`).innerHTML = after || `<span class="muted">${T.removedWhole}</span>`;
-  };
+  const show = (id, text) => { page.querySelector(`[data-diff="${id}"]`).innerHTML = changeView(proposal(id).current, text); };
   const ask = id => {
     clearTimeout(timers[id]);
     const state = page.querySelector(`[data-retouch-state="${id}"]`);
@@ -1580,6 +1645,16 @@ function viewEnd(r, title) {
 
 // --- Check the guide ---------------------------------------------------------------------------------------
 let followTimer = null;  // timer following a running check
+// What a check cost: billed, or what its calls on a subscription are worth at list price, struck through (nothing is
+// billed); a check that calls no model is free
+let CHECKS_KIND = "";  // the kind the history of the checks is narrowed to ("": all)
+const costTag = (cost, unbilled, free) => {
+  const V = T.verif;
+  const worth = unbilled > 0 ? `<span class="worth" title="${esc(V.listPriceTip)}"><s>${dollars(unbilled)}</s> <span class="sub-tag">${V.onSubscription}</span></span>` : "";
+  if (cost > 0) return `${dollars(cost)}${worth ? ` + ${worth}` : ""}`;
+  return worth || (free ? V.free : dollars(0));
+};
+
 const checkBadge = p => {
   const V = T.verif, [text, cls] = {
     running: [V.running, "attention"], "to-handle": [V.toHandle(p.counts.open), "attention"],
@@ -1602,13 +1677,40 @@ async function viewChecks() {
   // What is left to handle comes first; a new check is folded away while leads remain (it would find them again)
   const pending = verifs.filter(p => ["to-handle", "running"].includes(p.status));
   const remaining = pending.reduce((s, p) => s + p.counts.open, 0);
-  const checkCard = p => `<div class="card row${["handled", "clear"].includes(p.status) ? " finished" : ""}"><div class="grow"><b>${new Date(p.started * 1000).toLocaleString(lang)}</b>
-        <div class="muted small">${p.checks.map(c => esc(titles[c] || c)).join(" · ")} · ${dollars(p.cost)}</div>
+  // A card says what the check is (its kind, in colour; what it read), where it was started when not here, what it
+  // cost or is worth at list price, then the runs its leads went to that still wait for something
+  const kindOf = Object.fromEntries(options.map(o => [o.id, o.kind || "health"]));
+  const short = c => {
+    const t = titles[c] || c, i = t.indexOf(":");
+    const s = i < 0 ? t : kindOf[c] === "news" ? t.slice(i + 1).trim() : t.slice(0, i).trim();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  const cardTitle = p => {
+    const k = p.kinds?.[0] || "health";
+    if (p.checks.includes("links") && p.checks.length === 1) return `${esc(short("links"))} · ${V.nLinks(p.links?.length || 0)}`;
+    return k === "health" && p.checks.length > 2 ? V.nChecks(p.checks.length) : p.checks.map(c => esc(short(c))).join(" · ");
+  };
+  const linkItem = l => `<li>${extLink(l.url, esc(l.title || shortUrl(l.url)))}${l.kind === "pdf" ? ' <span class="kindtag">PDF</span>' : ""}${
+    l.title ? ` <span class="muted small">· ${esc(new URL(l.url).hostname.replace(/^www\./, ""))}</span>` : ""}</li>`;
+  const linksList = p => !p.links?.length ? "" : `<ul class="check-links">${p.links.slice(0, 3).map(linkItem).join("")}</ul>${
+    p.links.length > 3 ? `<details class="check-links-more"><summary class="small">${V.moreLinks(p.links.length - 3)}</summary><ul class="check-links">${p.links.slice(3).map(linkItem).join("")}</ul></details>` : ""}`;
+  const WAITING = ["running", "review", "retouch", "translation", "publish", "stopped", "pr-open"];
+  const runLine = ([t, r]) => `<div class="run-line small"><span class="badge attention">${esc(T.statuses[r.status] || r.status)}</span>
+    <a href="${r.status === "pr-open" && r.pr_url ? esc(r.pr_url) : `#/run/${encodeURIComponent(t)}`}"${r.status === "pr-open" ? ' target="_blank" rel="noopener"' : ""}><button type="button" class="small-button">${
+      r.status === "pr-open" ? T.merge() : T.buttons[r.status] || T.details}</button></a> <span class="muted">${esc(t)}</span></div>`;
+  const checkCard = p => `<div class="card row check-item kind-${p.kinds?.[0] || "health"}${["handled", "clear"].includes(p.status) ? " finished" : ""}" data-kinds="${(p.kinds || []).join(" ")}"><div class="grow">
+        <div class="check-top">${(p.kinds || []).map(k => `<span class="kind-tag ${k}">${V.checkKinds[k]}</span>`).join("")}<b>${cardTitle(p)}</b>${
+          p.checks.length === 1 && p.checks[0] === "links" ? `<span class="from-tag">${V.fromReport}</span>` : ""}</div>
+        ${(p.kinds?.[0] || "health") === "health" && p.checks.length > 2 ? `<div class="muted small">${p.checks.map(c => esc(short(c).toLowerCase())).join(", ")}</div>` : ""}
+        ${linksList(p)}
+        <div class="muted small">${costTag(p.cost, p.unbilled_usd, !p.checks.some(c => options.find(o => o.id === c)?.model))} · ${
+          new Date(p.started * 1000).toLocaleString(lang, { dateStyle: "short", timeStyle: "short" })}</div>
         <div class="muted small">${V.counts(p.counts)}</div>
-        ${Object.entries(p.runs || {}).filter(([, r]) => r.status === "running").map(([t]) =>
-          `<div class="small"><span class="badge attention">${V.runRunning}</span> <a href="#/run/${encodeURIComponent(t)}">${esc(t)} · ${V.follow}</a></div>`).join("")}</div>
-        ${checkBadge(p)}
-        <a href="#/check/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="primary"' : ""}>${p.status === "to-handle" ? V.handle : T.details}</button></a></div>`;
+        ${Object.entries(p.runs || {}).filter(([, r]) => WAITING.includes(r.status)).map(runLine).join("")}</div>
+        <div class="check-side">${checkBadge(p)}
+        <a href="#/check/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="primary"' : ""}>${p.status === "to-handle" ? V.handle : T.details}</button></a></div></div>`;
+  // The history can be narrowed to one kind (kept while the page is open)
+  const kindCount = k => older.filter(p => (p.kinds || []).includes(k)).length;
   const older = verifs.filter(p => !pending.includes(p));
   page.innerHTML = `
     <h1>${V.title}</h1>
@@ -1637,9 +1739,17 @@ async function viewChecks() {
     <p><button class="primary" id="start"></button></p>
     </details>
     <h2>${V.history}</h2>
-    ${older.map(checkCard).join("") || `<p class="muted">${V.none}</p>`}
+    ${older.length ? `<p class="kind-filters">${["", "health", "light", "news"].map(k => `<button type="button" class="chip${CHECKS_KIND === k ? " on" : ""}" data-kind-filter="${k}">${
+      k ? V.checkKinds[k] : V.allKinds} <span class="muted">${k ? kindCount(k) : older.length}</span></button>`).join("")}</p>` : ""}
+    <div id="history">${older.map(checkCard).join("") || `<p class="muted">${V.none}</p>`}</div>
     ${listed.length > CHECKS_SHOWN ? `<p><button type="button" id="older">${T.menu.older}</button></p>` : ""}`;
   if ($("#older")) $("#older").onclick = () => { CHECKS_SHOWN += 40; viewChecks(); };
+  const narrow = () => {
+    page.querySelectorAll("#history .check-item").forEach(c => { c.hidden = !!CHECKS_KIND && !c.dataset.kinds.split(" ").includes(CHECKS_KIND); });
+    page.querySelectorAll("[data-kind-filter]").forEach(b => b.classList.toggle("on", b.dataset.kindFilter === CHECKS_KIND));
+  };
+  page.querySelectorAll("[data-kind-filter]").forEach(b => b.onclick = () => { CHECKS_KIND = b.dataset.kindFilter; narrow(); });
+  narrow();
   const boxes = [...page.querySelectorAll("[data-check]")];
   const total = () => {
     const ids = new Set(boxes.filter(c => c.checked).map(c => c.dataset.check));
@@ -1685,7 +1795,7 @@ async function viewCheck(id) {
   const list = (title, items) => items && items.length ? `<details><summary>${title} (${items.length})</summary><ul>${items.map(x => `<li>${x}</li>`).join("")}</ul></details>` : "";
   page.innerHTML = `
     <h1>${V.title} · ${new Date(v.started * 1000).toLocaleString(lang)} ${checkBadge(v)}</h1>
-    <p class="subtitle">${V.cost(dollars(v.cost))} · ${V.counts(v.counts)}${v.commit ? ` · main @ <code>${esc(v.commit)}</code>` : ""}</p>
+    <p class="subtitle">${V.cost(costTag(v.cost, v.unbilled_usd, false))} · ${V.counts(v.counts)}${v.commit ? ` · main @ <code>${esc(v.commit)}</code>` : ""}</p>
     ${v.error ? `<p class="error-text">${esc(v.error)}</p>` : ""}
     ${v.interrupted ? `<p class="muted">${V.interruptedText(v.missing.map(c => esc(titles[c] || c)).join(", ") || "—")}</p>` : ""}
     ${v.running ? "" : `<p><button class="small-button" id="remove">${V.remove}</button></p>`}

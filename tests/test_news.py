@@ -270,6 +270,11 @@ def test_the_leads_of_the_check_go_to_an_addition_run(setup, tmp_path):
         time.sleep(0.05)
     assert run["status"] == "review" and run["mode"] == "add"
     assert [(x["id"], x["page"], x["check"]) for x in run["corrections"]] == [("C1", "03-stack/engines.md", "ok")]
+    # The run says what its leads came from, and each lead where it is on the check's page (the review shows it)
+    assert run["source"] == f"what a reader would look for and not find ({thread})"
+    assert [(i["verification"], i["n"], i["check"]) for i in run["items"].values()] == [(vid, 1, "news"), (vid, 2, "news"), (vid, 3, "news")]
+    card = next(x for x in c.get("/api/verifications").json() if x["id"] == vid)
+    assert card["kinds"] == ["news"] and card["runs"][thread]["status"] == "review" and card["links"] == []
     assert ("add 2/3", True) in llm.calls and ("crosscheck", True) in llm.calls  # the web for the additions and their review
     assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 3, "dismissed": 0}
     report = (deps.home / "reports" / f"feat-{thread}.md").read_text(encoding="utf-8")

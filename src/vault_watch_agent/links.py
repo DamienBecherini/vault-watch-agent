@@ -62,6 +62,23 @@ class Source:
                 "error": self.error}
 
 
+def file_title(url: str) -> str:
+    """A name for a document without a title of its own (a PDF, most often): its file name, decoded, without its
+    extension (« Recommandations_de_s%C3%A9curit%C3%A9.pdf » is « Recommandations de sécurité »). Empty when the
+    address ends with no file name."""
+    from urllib.parse import unquote, urlsplit
+
+    name = unquote(urlsplit(url).path.rstrip("/").rpartition("/")[2])
+    stem = name.rpartition(".")[0] if re.search(r"\.[A-Za-z0-9]{2,4}$", name) else name
+    stem = re.sub(r"(?i)(?<![^\W_])([dljmnst]|qu)_(?=[aeiouyhàâéèêîôû])", r"\1'", stem)  # « d_IA » is « d'IA »
+    return re.sub(r"[_\s]+", " ", stem).strip()
+
+
+def title_of(view: dict) -> str:
+    """The title a link is shown with: its own, or its file's name for a document that has none (a PDF)."""
+    return view.get("title") or (file_title(view.get("url", "")) if view.get("kind") == "pdf" else "")
+
+
 _ADDRESS = re.compile(r"https?://[^\s<>\"']+")
 
 
@@ -164,7 +181,8 @@ def read(url: str, fetch=None, pdf=None, video=None) -> Source:
     if len(text) < MIN_CHARS:
         return Source(url, kind, title, error="too little text (a page drawn by scripts?): paste what it says as an idea instead")
     cut = len(text) > LINK_CHARS
-    return Source(url if kind == "repository" else final, kind, title.strip(), text[:LINK_CHARS], cut=cut)
+    title = title.strip() or (file_title(final) if kind == "pdf" else "")  # a PDF: its file's name
+    return Source(url if kind == "repository" else final, kind, title, text[:LINK_CHARS], cut=cut)
 
 
 LINKS = """You read, for <<GUIDE>>, a link its editor gave: an article, a page, a report, the README of a project or

@@ -126,6 +126,9 @@ class Check:
     fixable: bool = True  # findings can go to a fix run
     fix_mode: str = "fix"  # "translation": a fix run on the French and English pages alone (fix.propose_translation)
     limit: dict | None = None  # what the check, or the run its leads go to, does not do: a line of its own on its card
+    # Its kind, as the list of the checks groups them: "health" (what is wrong in the guide), "light" (what makes
+    # it heavy), "news" (what it is missing)
+    kind: str = "health"
 
 
 def _tokens(paths: list[Path]) -> int:
@@ -604,7 +607,7 @@ CHECKS = [
                  "manifeste, aucun par défaut), est un avertissement, jamais un échec.",
            "en": "What each page weighs, what it gained in 90 days and its heaviest sections. A page that grew much (5 KB "
                  "or 25% by default), or one above the ceiling the guide set itself ([budget] of the manifest, none by "
-                 "default), is a warning, never a failure."}, None),
+                 "default), is a warning, never a failure."}, None, kind="light"),
     Check("compaction", {"fr": "Compactage : ce qui alourdit le guide", "en": "Compaction: what makes the guide heavy"},
           {"fr": "Claude lit toutes les pages d'un coup et liste, sans rien modifier : le même fait répété dans plusieurs "
                  "pages, l'historique empilé à côté du fait courant, les sections plus longues que ce qu'elles disent. Les "
@@ -612,7 +615,7 @@ CHECKS = [
            "en": "Claude reads every page at once and lists, without editing anything: the same fact repeated in several "
                  "pages, history piled up beside the current fact, sections longer than what they say. The leads you "
                  "keep go to a compaction run, reviewed like a correction."},
-          MODEL, needs=("sizes",), fix_mode="compact"),
+          MODEL, needs=("sizes",), fix_mode="compact", kind="light"),
     Check("news", {"fr": "Nouveautés : ce qu'un lecteur chercherait et ne trouve pas",
                    "en": "What is new: what a reader would look for and not find"},
           {"fr": "Claude lit toutes les pages d'un coup, avec ce que les veilles ont mis de côté sans l'écrire, et liste "
@@ -623,7 +626,7 @@ CHECKS = [
                  "without verifying or editing anything: what the guide presents as current and has probably moved on, "
                  "the subjects a reader would expect and no page covers. The leads you keep go to an addition run, which "
                  "checks each one on the web then proposes where to write it, reviewed like a correction."},
-          MODEL, fix_mode="add", limit=NO_NEW_PAGE),
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE, kind="news"),
     Check("explore", {"fr": "Nouveautés : exploration du web, chapitre par chapitre",
                       "en": "What is new: the web explored, chapter by chapter"},
           {"fr": "Pour chaque chapitre choisi, Claude cherche librement sur le web ce qui a bougé sur ses sujets et le "
@@ -634,7 +637,7 @@ CHECKS = [
                  "with the whole guide: it finds what nobody thought to ask, and each lead comes with its sources. It "
                  "costs more than the check above, and the web is paid for before you have seen anything. The leads you "
                  "keep go to the same addition run, where you can have one dug deeper."},
-          MODEL, fix_mode="add", limit=NO_NEW_PAGE),
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE, kind="news"),
     Check("links", {"fr": "Nouveautés : des liens à lire en entier", "en": "What is new: links to read whole"},
           {"fr": "Tu donnes des adresses (un article, une page, un PDF ; une vidéo plus tard, par dl-sub-dub). L'agent lit "
                  "chacune en entier, sans modèle, puis Claude la lit avec tout le guide et liste ce qui le concerne : des "
@@ -644,12 +647,19 @@ CHECKS = [
                  "one whole, without a model, then Claude reads it with the whole guide and lists what concerns it: leads, "
                  "nothing is verified or edited. The leads you keep go to the addition run, which checks them on primary "
                  "sources."},
-          MODEL, fix_mode="add", limit=NO_NEW_PAGE),
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE, kind="news"),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,
            "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks, "sizes": run_sizes,
            "compaction": run_compaction, "news": run_news, "explore": run_explore, "links": run_links}
 BY_ID = {c.id: c for c in CHECKS}
+KINDS = ("health", "light", "news")  # the order the list of the checks gives them
+
+
+def short_title(check: Check, lang: str = "en") -> str:
+    """The title of a check without its kind: « What is new: links to read whole » is « links to read whole »."""
+    head, _, rest = check.title[lang].partition(":")
+    return (rest.strip() if check.kind == "news" and rest else head.strip()) or check.title[lang]
 
 
 def plan(selected: list[str]) -> list[str]:
