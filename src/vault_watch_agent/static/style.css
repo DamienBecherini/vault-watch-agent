@@ -108,6 +108,13 @@ nav { align-items: baseline; }   /* « Watch » and its count on the line of the
 .crumb { font-size: 13px; color: var(--muted); margin-bottom: -4px; }
 .empty-note { color: var(--muted); font-size: 14px; border: 1px dashed var(--border); border-radius: 10px; padding: 9px 14px; }
 .launch-row { display: flex; flex-wrap: wrap; gap: 12px; }
+/* « What I already know » on a lead: the editor's own note, sent to the run as a check */
+.lead-note { margin: 8px 0 2px; }
+.lead-note .note-shown { border-left: 3px solid var(--accent); padding: 4px 10px; background: color-mix(in srgb, var(--accent) 7%, transparent); border-radius: 6px; }
+.lead-note .note-shown p { margin: 4px 0; white-space: pre-wrap; }
+.lead-note textarea { width: 100%; min-height: 80px; }
+.note-mark { font-size: 12px; color: var(--accent); white-space: nowrap; }
+.lead-note .ok-text { margin-left: 8px; }
 /* The guide's folder against the forge: behind (amber), up to date (green), the update refused (red) */
 .folder-box { border-left: 4px solid var(--attention); }
 .folder-box.done { border-left-color: var(--ok); } .folder-box.stop { border-left-color: var(--error); }

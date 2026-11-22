@@ -184,6 +184,13 @@ asked for a fuller look: several independent sources, what it replaces, how matu
 available it is, what it changes for each kind of reader, on several pages if need be. It costs a little more
 than a lead; keep it for the subjects that deserve it.
 
+**What I already know.** A lead unfolded has a link « + What I already know »: your own measurements, your
+experience, a figure you checked. The note is kept with the check (it survives a reload) and marked « 📝 a word from
+you » on the lead's line. It goes to the run with its lead, as the editor's note: the run uses it to check what the
+sources say and says when they contradict it, but never cites it, quotes it nor writes it into the guide, since a
+fact written still needs its published source. The review shows it in the lead's block; the pull request only says
+how many leads had one. The leads of the other checks have the same link under their text.
+
 The review shows, above the corrections, the pages the run says would be needed, then the leads it left without
 an edit and why: what a search found without writing anything is a result too.
 

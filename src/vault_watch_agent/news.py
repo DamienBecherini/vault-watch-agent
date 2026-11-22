@@ -386,7 +386,8 @@ def batches(pages: list[list[str]], most: int = PER_CALL) -> list[list[int]]:
 
 
 def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None = None,
-            deep: set[str] | list[str] | None = None, context: str = CONTEXT) -> tuple[list[dict], list[dict], list[dict]]:
+            deep: set[str] | list[str] | None = None, context: str = CONTEXT,
+            notes: dict[str, str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """The additions for the leads the editor kept: (items, proposals, usages), one proposal and one usage per call.
     Every call reads the whole guide when it fits the model (`compact.in_calls`: cached and shared on the Claude
     API, one call after the other elsewhere) and the web. A call that fails leaves its leads without an addition,
@@ -412,7 +413,7 @@ def propose(vault_dir: Path, leads: list[str], llm: LLM, excerpts: dict[str, lis
     return compact.in_calls(vault_dir, leads, llm, excerpts, groups, pages=pages, texts=texts, step="add",
                             system=ADD.replace("<<SEARCHES>>", str(webtools.MAX_SEARCHES)).replace("<<PAGES>>", str(webtools.MAX_PAGES)),
                             web=True, what=("Leads", "lead"), whole=True, above=ABOVE, headings=headings, narrow=narrow,
-                            before=f"<plan>\n{chapters.outline(vault_dir)}\n</plan>\n" if narrow else "")
+                            before=f"<plan>\n{chapters.outline(vault_dir)}\n</plan>\n" if narrow else "", notes=notes)
 
 
 _NOTE_DEF = re.compile(r"^\[\^([^\]\s]+)\]:", re.M)

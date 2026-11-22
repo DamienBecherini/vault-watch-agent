@@ -461,3 +461,42 @@ def test_the_interface_asks_for_the_pages_context(setup, tmp_path):
     assert run["status"] == "review" and [x["id"] for x in run["corrections"]] == ["C1"]
     asked = {node: system for node, (system, _) in llm.prompts.items() if node.startswith("add")}
     assert len(asked) == 2 and all("the plan of the guide" in system for system in asked.values())
+
+
+def test_what_the_editor_already_knows_goes_with_its_lead_and_is_never_a_source(setup, tmp_path):
+    """« What I already know » on a lead: kept with the check, sent with the lead to its run as the editor's note
+    (unpublished, a check, never cited), kept for the review, counted in the pull request; an empty one is removed."""
+    from vault_watch_agent.graph import pr_body
+    from vault_watch_agent.web import Settings, create_app
+
+    deps, llm = setup
+    act = {"X-Vault-Watch": "1"}
+    c = TestClient(create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    vid = c.post("/api/verifications", json={"checks": ["news"]}, headers=act).json()["id"]
+    for _ in range(200):
+        if not c.get(f"/api/verifications/{vid}").json()["running"]:
+            break
+        time.sleep(0.05)
+    mine = "Measured on my RTX 5070 8 GB: 6 to 8 tokens/s, context capped at 8 192 tokens."
+    assert c.post(f"/api/verifications/{vid}/note", json={"finding": LEADS[0], "text": f"  {mine}  "}, headers=act).json() == {
+        "notes": {LEADS[0]: mine}}
+    assert c.post(f"/api/verifications/{vid}/note", json={"finding": "not a lead", "text": "x"}, headers=act).status_code == 404
+    assert c.post(f"/api/verifications/{vid}/note", json={"finding": LEADS[1], "text": "kept?"}, headers=act).status_code == 200
+    assert c.post(f"/api/verifications/{vid}/note", json={"finding": LEADS[1], "text": " "}, headers=act).json() == {
+        "notes": {LEADS[0]: mine}}  # emptied: removed
+    assert c.get(f"/api/verifications/{vid}").json()["notes"] == {LEADS[0]: mine}  # the page shows it again
+
+    thread = c.post("/api/fix", json={"text": "\n".join(LEADS), "verification": vid, "mode": "add"}, headers=act).json()["thread"]
+    for _ in range(200):
+        run = c.get(f"/api/runs/{thread}").json()
+        if run["status"] != "running":
+            break
+        time.sleep(0.05)
+    prompts = "\n".join(p for _, p in llm.prompts.values())
+    assert f"<editor-note>{mine}</editor-note>" in prompts and "never cite it" in prompts
+    assert [i.get("editor_note", "") for i in run["items"].values()] == [mine, "", ""]  # the review shows it
+    state = {"source": thread, "mode": "add", "items": [{"id": "F1", "title": LEADS[0], "url": "", "editor_note": mine}],
+             "corrections": [], "applied": []}
+    body = pr_body(state)
+    assert "1 of them came with a note of the editor" in body and mine not in body

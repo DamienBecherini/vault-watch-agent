@@ -223,6 +223,10 @@ const TEXTS = {
       digCost: (m, a, each, d, deep, base, total) => `${m} piste${m > 1 ? "s" : ""} cochée${m > 1 ? "s" : ""} : ${a} normale${a > 1 ? "s" : ""} (≈ ${each} chacune) + ${d} creusée${d > 1 ? "s" : ""} (≈ ${deep} chacune) + la relecture croisée et les miroirs (≈ ${base}) = ${total} au prix catalogue`,
       digFree: (a, d, how) => `${a} normale${a > 1 ? "s" : ""}, ${d} creusée${d > 1 ? "s" : ""} · ${how}`,
       digWarn: m => `Tout creuser : ${m} appels qui ont chacun tout le web d'un appel. Plus cher, plus long, et plus de limite sur un abonnement.`,
+      noteAdd: "Ce que je sais déjà", noteTitle: "Ce que tu sais déjà", noteEdit: "Modifier", noteSave: "Enregistrer", noteCancel: "Annuler",
+      noteHint: "envoyé à la passe avec la piste, pour contrôler ; jamais cité ni publié",
+      noteHelp: "Tes mesures, ton expérience, un chiffre que tu as vérifié. La passe s'en sert pour contrôler ce que disent les sources, et dit quand elles le contredisent. Il n'est jamais cité dans le guide ni recopié dans la pull request (elle dit seulement qu'une piste en avait un). Vide, puis « Enregistrer » : il est retiré.",
+      noteSaved: "Enregistré.", noteMark: "un mot de toi",
       digButton: "Creuser cette piste", digWhat: "Un appel rien que pour elle : plusieurs sources indépendantes, plus de recherches, plusieurs pages possibles.",
       sourcesTitle: n => `Sources (${n})`, readTitle: n => `Pages à relire aussi (${n})`,
       unfold: "déplier", unfoldAll: "Tout déplier", foldAll: "Tout replier", howToRead: "Comment lire une piste",
@@ -644,6 +648,10 @@ const TEXTS = {
       digCost: (m, a, each, d, deep, base, total) => `${m} lead(s) ticked: ${a} plain (≈ ${each} each) + ${d} dug deeper (≈ ${deep} each) + the cross-check and the mirrors (≈ ${base}) = ${total} at list price`,
       digFree: (a, d, how) => `${a} plain, ${d} dug deeper · ${how}`,
       digWarn: m => `Dig all: ${m} calls that each have the whole web of a call. Dearer, longer, and more of a subscription's limit.`,
+      noteAdd: "What I already know", noteTitle: "What you already know", noteEdit: "Edit", noteSave: "Save", noteCancel: "Cancel",
+      noteHint: "sent to the run with the lead, as a check; never cited nor published",
+      noteHelp: "Your measurements, your experience, a figure you checked. The run uses it to check what the sources say, and says when they contradict it. It is never cited in the guide nor copied into the pull request (which only says a lead had one). Empty, then « Save »: it is removed.",
+      noteSaved: "Saved.", noteMark: "a word from you",
       digButton: "Dig deeper into this lead", digWhat: "A call of its own: several independent sources, more searches, several pages possible.",
       sourcesTitle: n => `Sources (${n})`, readTitle: n => `Pages to read also (${n})`,
       unfold: "unfold", unfoldAll: "Unfold all", foldAll: "Fold all", howToRead: "How to read a lead",
@@ -1814,6 +1822,7 @@ function viewReview(r, title) {
       ${i.name ? `<p class="muted small">${i.url ? `${T.leadSource}${T.colon}${extLink(i.url, esc(shortUrl(i.url)))} · ` : ""}${
         i.verification ? `<a href="#/check/${encodeURIComponent(i.verification)}">${T.seeCheck}</a>` : ""}</p>
         <details class="sent"><summary class="small muted">${T.verif.sentText}</summary><p class="small muted">${esc(i.title)}</p></details>` : ""}
+      ${i.editor_note ? `<div class="lead-note"><div class="note-shown"><b>📝 ${T.verif.noteTitle}</b> <span class="muted small">${T.verif.noteHint}</span><p>${esc(i.editor_note)}</p></div></div>` : ""}
       ${gs.map(groupBlock).join("")}</section>`;
   };
   const figures = [Object.values(r.triage).reduce((a, b) => a + b, 0), r.triage.correct, r.corrections.length, r.additions.length];
@@ -2550,7 +2559,35 @@ async function viewCheck(id) {
       + (p.sources.length ? `<div>${V.sources} ${p.sources.map(u => extLink(u, esc(shortUrl(u)))).join(" · ")}</div>` : "");
     return `<li><label><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="${mode}" data-card="${card}"> ${num} <span class="lead-body">${kind}${pages}${pages ? "<br>" : ""}${said || esc(p.text)}</span></label>${
       meta ? `<div class="lead-meta muted small">${meta}</div>` : ""}${
-      mode === "add" ? `<label class="dig muted small"><input type="checkbox" data-deep="${esc(f)}"> ${V.dig}</label>` : ""}${excerpts(passages)}</li>`;
+      mode === "add" ? `<label class="dig muted small"><input type="checkbox" data-deep="${esc(f)}"> ${V.dig}</label>` : ""}${excerpts(passages)}${noteBox(f)}</li>`;
+  }
+  // « What I already know » on an open lead: kept with the check (POST …/note), sent with the lead to its run
+  function noteBox(f) {
+    const note = v.notes?.[f] || "";
+    return `<div class="lead-note" data-note-box="${esc(f)}">${note
+      ? `<div class="note-shown"><b>📝 ${V.noteTitle}</b> <span class="muted small">${V.noteHint}</span><p>${esc(note)}</p>
+          <button type="button" class="link" data-note-edit>${V.noteEdit}</button></div>`
+      : `<button type="button" class="link" data-note-edit>+ ${V.noteAdd}</button>`}
+      <div class="note-edit" hidden><textarea data-note-text maxlength="4000">${esc(note)}</textarea><p class="muted small">${V.noteHelp}</p>
+        <button type="button" class="small-button" data-note-save>${V.noteSave}</button> <button type="button" class="small-button" data-note-cancel>${V.noteCancel}</button>
+        <span class="small" data-note-said></span></div></div>`;
+  }
+  function bindNote(box) {
+    const f = box.dataset.noteBox, edit = box.querySelector(".note-edit"), area = box.querySelector("[data-note-text]");
+    box.querySelector("[data-note-edit]").onclick = () => { edit.hidden = false; box.querySelector("[data-note-edit]").hidden = true; area.focus(); };
+    box.querySelector("[data-note-cancel]").onclick = () => { area.value = v.notes?.[f] || ""; edit.hidden = true; box.querySelector("[data-note-edit]").hidden = false; };
+    box.querySelector("[data-note-save]").onclick = async e => {
+      e.target.disabled = true;
+      try {
+        v.notes = (await api(`/api/verifications/${encodeURIComponent(id)}/note`, { finding: f, text: area.value })).notes;
+        box.outerHTML = noteBox(f);
+        const fresh = [...page.querySelectorAll("[data-note-box]")].find(b => b.dataset.noteBox === f);
+        bindNote(fresh);
+        fresh.insertAdjacentHTML("beforeend", `<span class="small ok-text">${V.noteSaved}</span>`);
+        const mark = [...page.querySelectorAll("[data-note-mark]")].find(m => m.dataset.noteMark === f);
+        if (mark && !v.notes[f]) mark.remove();
+      } catch (err) { box.querySelector("[data-note-said]").textContent = err.message; e.target.disabled = false; }
+    };
   }
   // A lead of an addition check: one line (its title, its page, where it comes from) that unfolds into the source
   // and the guide side by side, what to check, what it changes for the reader, « dig deeper », the sources and the
@@ -2576,7 +2613,8 @@ async function viewCheck(id) {
     })();
     return `<li class="lead-item">
       <div class="lead-row" data-unfold="${esc(key)}"><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="add" data-card="${card}" aria-label="${esc(title)}">
-        <span class="num">${n}.</span><span class="lead-title"><b>${esc(title)}</b>${p.pages[0] ? ` <span class="muted small">· ${esc(short(p.pages[0]))}</span>` : ""}</span>
+        <span class="num">${n}.</span><span class="lead-title"><b>${esc(title)}</b>${p.pages[0] ? ` <span class="muted small">· ${esc(short(p.pages[0]))}</span>` : ""}${
+          v.notes?.[f] ? ` <span class="note-mark" data-note-mark="${esc(f)}">📝 ${V.noteMark}</span>` : ""}</span>
         <span class="tag">${esc(from)}</span><label class="dig-mini" title="${esc(V.digWhat)}"><input type="checkbox" data-deep="${esc(f)}"> 🔍 ${V.digShort}</label><button type="button" class="unfold" aria-expanded="${open}" aria-label="${esc(V.unfold)}">${open ? "▾" : "▸"}</button></div>
       <div class="lead-open"${open ? "" : " hidden"}>
         <div class="where muted small">${where}</div>
@@ -2584,6 +2622,7 @@ async function viewCheck(id) {
           <div class="box"><h4>${V.detail.guide}</h4>${d.guide ? `<p>${said(d.guide)}</p>` : ""}${guideBox || (d.guide ? "" : `<p class="muted small">${V.nothingQuoted}</p>`)}</div></div>
         ${d.check || d.matters ? `<dl class="pair">${d.check ? `<dt>${V.detail.check}</dt><dd>${said(d.check)}</dd>` : ""}${d.matters ? `<dt>${V.detail.matters}</dt><dd>${said(d.matters)}</dd>` : ""}</dl>` : ""}
         <div class="lead-actions"><label class="digbtn"><input type="checkbox" data-deep="${esc(f)}"> 🔍 ${V.digButton}${extra}</label><span class="muted small">${V.digWhat}</span></div>
+        ${noteBox(f)}
         <div class="lead-lists">
           ${p.sources.length ? `<div><h5>${V.sourcesTitle(p.sources.length)}</h5><ul>${p.sources.map((u, i) => `<li>${extLink(u, esc(shortUrl(u)))} ↗${i === 0 && p.kind === "From a link" ? ` <span class="muted">${V.theLink}</span>` : ""}</li>`).join("")}</ul></div>` : ""}
           ${p.read.length ? `<div><h5>${V.readTitle(p.read.length)}</h5><ul>${p.read.map(x => `<li>${pageLink(x)}</li>`).join("")}</ul></div>` : ""}
@@ -2593,6 +2632,7 @@ async function viewCheck(id) {
   }
   const boxes = [...page.querySelectorAll("[data-lead]")];
   const ticked = () => boxes.filter(c => c.checked);
+  page.querySelectorAll("[data-note-box]").forEach(bindNote);
   // A lead unfolds by its line (not by its box, its links or its buttons); « unfold all » per card
   page.querySelectorAll("[data-unfold]").forEach(row => row.onclick = e => {
     if (e.target.closest("input, a, label") ) return;

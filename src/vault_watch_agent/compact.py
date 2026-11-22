@@ -181,7 +181,8 @@ def batches(pages: list[list[str]], size: dict[str, int]) -> list[list[int]]:
 
 
 def propose(vault_dir: Path, findings: list[str], llm: LLM,
-            excerpts: dict[str, list[dict]] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+            excerpts: dict[str, list[dict]] | None = None,
+            notes: dict[str, str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """The trims for the findings the editor kept: (items, proposals, usages), one proposal and one usage per call.
     Without the web, in several calls when the findings are many (`batches`). Two ways of reading:
     - the whole guide for every call, when the engine caches it and says when its answer begins (the Claude API)
@@ -200,14 +201,14 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM,
     if without:
         groups.append(without)
     return in_calls(vault_dir, findings, llm, excerpts, groups, pages=pages, texts=texts, step="compact",
-                    system=PROPOSE, web=False, what=("Findings", "finding"))
+                    system=PROPOSE, web=False, what=("Findings", "finding"), notes=notes)
 
 
 def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str, list[dict]] | None,
              groups: list[list[int]], *, pages: list[list[str]], texts: dict[str, str], step: str, system: str,
              web: bool, what: tuple[str, str], whole: bool = False, above: dict[str, str] | None = None,
              headings: list[tuple[str, str]] | None = None, narrow: bool = False,
-             before: str = "") -> tuple[list[dict], list[dict], list[dict]]:
+             before: str = "", notes: dict[str, str] | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """The proposals of a run made in several calls: (items, proposals, usages), one proposal and one usage per call.
     `groups`: the findings of each call, by index; `pages`: the pages each finding names; `system`: the instructions,
     with <<ABOVE>> where they say what the call reads (`above`, by default `ABOVE`); `step`: the step, which names
@@ -240,12 +241,13 @@ def in_calls(vault_dir: Path, findings: list[str], llm: LLM, excerpts: dict[str,
                                effort=steps.effort(step), web=web,
                                node=step if len(groups) == 1 else f"{step} {n + 1}/{len(groups)}",
                                excerpts=excerpts, what=headings[n] if headings else what, ids=ids,
-                               context=context if given else None, cached=narrow or not given, started=started)
+                               context=context if given else None, cached=narrow or not given, started=started,
+                               notes=notes)
         except ModelError as e:
             failed = {"item_ids": ids, "corrections": [], "error": str(e),
                       "outcomes": [{"item_id": i, "event": "", "no_change_reason": f"not handled, the call failed: {e}"}
                                    for i in ids]}
-            return fix.items_of(lines, excerpts, ids), failed, e.usage
+            return fix.items_of(lines, excerpts, ids, notes), failed, e.usage
     if len(groups) == 1:
         results = [one(0)]
     elif narrow:

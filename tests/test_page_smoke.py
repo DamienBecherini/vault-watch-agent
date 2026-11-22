@@ -204,5 +204,21 @@ def test_every_screen_is_drawn_without_a_javascript_error(served, chrome):
                     tab.settle(0.3)
                     problems += [f"{lang} menu: {e}" for e in tab.errors]
                     tab.errors.clear()
+        # « What I already know » on a lead: typed, saved, shown again after a reload
+        tab.call("Page.navigate", url=f"{base}/#/check/verif-2026-11-22-120000")
+        tab.settle(1.5)
+        tab.js("""(async () => {
+            document.querySelector('[data-unfold] .unfold').click();
+            document.querySelector('[data-note-edit]').click();
+            document.querySelector('[data-note-text]').value = 'Measured on my own PC: 6 to 8 tokens/s.';
+            document.querySelector('[data-note-save]').click();
+        })()""")
+        tab.settle(1.0)
+        tab.call("Page.reload")
+        tab.settle(1.5)
+        shown = tab.js("document.querySelector('.note-mark') && document.querySelector('.lead-note p').textContent") or ""
+        problems += [f"note: {e}" for e in tab.errors]
+        if "6 to 8 tokens/s" not in shown:
+            problems.append(f"note: not shown again after a reload: {shown!r}")
     httpx.get(f"http://127.0.0.1:{chrome}/json/close/{target['id']}")
     assert not problems, "\n".join(problems)

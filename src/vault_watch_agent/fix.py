@@ -38,17 +38,29 @@ together. One outcome per reported error."""
 
 
 def _passages(item: dict) -> str:
-    """The passages a reported error is about, as found in the pages when it was reported."""
-    return "".join(f"\n<passage page=\"{e['page']}\" line=\"{e['line']}\">{e['quote']}</passage>"
-                   for e in item.get("excerpts", []) if e["match"] == "exact")
+    """The passages a reported error is about, as found in the pages when it was reported; then what the editor
+    already knows of it, when they said (their own measurements, their experience: never a source)."""
+    passages = "".join(f"\n<passage page=\"{e['page']}\" line=\"{e['line']}\">{e['quote']}</passage>"
+                       for e in item.get("excerpts", []) if e["match"] == "exact")
+    note = item.get("editor_note", "")
+    return passages + (f"\n<editor-note>{note}</editor-note>" if note else "")
+
+
+# How the prompt reads an <editor-note> (said with the findings, so that the system prompts and their cache stay)
+EDITOR_NOTE = ("An <editor-note> inside a finding is what the editor of the guide already knows of it: their own "
+               "measurements or experience, not published. Use it to check and to weigh what the sources say, and say "
+               "in the outcome when they contradict it; never cite it, never quote it, never write it into the guide: "
+               "every fact written still needs its published source.")
 
 
 def items_of(findings: list[str], excerpts: dict[str, list[dict]] | None = None,
-             ids: list[str] | None = None) -> list[dict]:
-    """The findings as the items of a run (F1…, or the `ids` given)."""
+             ids: list[str] | None = None, notes: dict[str, str] | None = None) -> list[dict]:
+    """The findings as the items of a run (F1…, or the `ids` given). `notes`: what the editor already knows of a
+    finding (« What I already know » on a lead), kept as `editor_note`."""
     return [
         {"id": i, "domain": "fix", "tier": "", "title": f, "url": "", "date": "", "urgent": False,
-         "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, [])}
+         "severity": "", "notes": "", "excerpts": (excerpts or {}).get(f, []),
+         **({"editor_note": (notes or {})[f]} if (notes or {}).get(f) else {})}
         for i, f in zip(ids or [f"F{n}" for n in range(1, len(findings) + 1)], findings)
     ]
 
@@ -57,7 +69,7 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
             effort: str = "", web: bool = True, node: str = "fix",
             excerpts: dict[str, list[dict]] | None = None,
             what: tuple[str, str] = ("Reported errors", "error"), ids: list[str] | None = None,
-            cached: bool = True, started=None) -> tuple[list[dict], dict, dict]:
+            cached: bool = True, started=None, notes: dict[str, str] | None = None) -> tuple[list[dict], dict, dict]:
     """`excerpts`: per finding, the passages found in the pages (`quotes.locate`), shown in the pull request.
     `what`: how the findings are called in the prompt (its heading, the tag of each one).
     `ids`: the ids of the findings when the caller numbers them (a run made of several calls).
@@ -66,9 +78,11 @@ def propose(vault_dir: Path, findings: list[str], llm: LLM, system: str = SYSTEM
     `started`: called when the answer begins, for an engine that says so (`signals_start`)."""
     if "<<" in system:  # written with the markers of prompts.fill
         system = prompts.fill(system, vault_dir)
-    items = items_of(findings, excerpts, ids)
+    items = items_of(findings, excerpts, ids, notes)
     heading, tag = what
     listing = "\n".join(f"<{tag} id=\"{i['id']}\">{i['title']}{_passages(i)}</{tag}>" for i in items)
+    if any(i.get("editor_note") for i in items):
+        listing = f"{EDITOR_NOTE}\n\n{listing}"
     context, prompt = context or f"<guide>\n{vault.corpus(vault_dir)}\n</guide>", f"{heading}:\n\n{listing}"
     if not cached:
         context, prompt = None, f"{context}\n\n{prompt}"

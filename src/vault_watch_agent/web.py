@@ -47,6 +47,7 @@ from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line
 
 STATIC = Path(__file__).parent / "static"
+NOTE_CHARS = 4000  # « What I already know » on a lead: what the editor wrote, at most
 AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 # Where « Give my opinion » sends a mail (the reader's own mail program does; no account needed). Empty: the window
 # offers the issue and the copy only.
@@ -208,6 +209,11 @@ class Changes(BaseModel):
 class Later(BaseModel):
     ids: list[str]  # the proposals of the last source check to put off until the next one
     on: bool = True  # False: decide them now after all
+
+
+class LeadNote(BaseModel):
+    finding: str  # the lead's line, as the check wrote it
+    text: str = ""  # what the editor already knows of it; empty: the note is removed
 
 
 class Verification(BaseModel):
@@ -756,7 +762,8 @@ def create_app(settings: Settings) -> FastAPI:
         if not v and not job:
             raise HTTPException(404, f"no run {thread}")
         pending = [i.value for t in snapshot.tasks for i in t.interrupts]
-        items = {i["id"]: {"id": i["id"], "title": i["title"], "url": i["url"]} for i in v.get("items", [])}
+        items = {i["id"]: {"id": i["id"], "title": i["title"], "url": i["url"],
+                             **({"editor_note": i["editor_note"]} if i.get("editor_note") else {})} for i in v.get("items", [])}
         if v.get("mode") == "add":
             items = {k: {**i, **lead_of(thread, i["title"])} for k, i in items.items()}
         decisions = v.get("decisions", [])
@@ -923,9 +930,11 @@ def create_app(settings: Settings) -> FastAPI:
         base = f"{body.mode if body.mode in ('compact', 'add') else 'fix'}-{date.today().isoformat()}"
         thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100))) if t not in existing)
         # Findings of a check keep the passages found when it ran; a line typed by hand has none
-        excerpts, origin = {}, ""
+        excerpts, origin, notes = {}, "", {}
         if body.verification:
-            results = read_json(verif_path(body.verification))["results"]
+            data = read_json(verif_path(body.verification))
+            results = data["results"]
+            notes = {f: n for f, n in (data.get("notes") or {}).items() if f in findings and n}  # « What I already know »
             excerpts = {f: e for r in results.values() for f, e in r.get("excerpts", {}).items() if f in findings}
             # What the leads came from, in words: « links to read whole », for the run's source and its pull request
             origin = " + ".join(verify.short_title(verify.BY_ID[c]) for c, r in results.items()
@@ -939,14 +948,14 @@ def create_app(settings: Settings) -> FastAPI:
                                                                  excerpts)
                 label = "translation divergences reported in the interface"
             elif body.mode == "compact":
-                items, proposal, usage = compact.propose(guide, findings, deps.llm, excerpts)
+                items, proposal, usage = compact.propose(guide, findings, deps.llm, excerpts, notes=notes)
                 label = thread
             elif body.mode == "add":
                 items, proposal, usage = news.propose(guide, findings, deps.llm, excerpts, deep=body.deep,
-                                                      context=body.context)
+                                                      context=body.context, notes=notes)
                 label = thread
             else:
-                items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts)
+                items, proposal, usage = fix.propose(guide, findings, deps.llm, excerpts=excerpts, notes=notes)
                 label = "errors reported in the interface"
             spent = sum(u.get("cost_usd", 0.0) for u in (usage if isinstance(usage, list) else [usage]))
             job.events.append({"t": time.time(), "node": "propose", "cost": round(spent, 2)})
@@ -1187,6 +1196,26 @@ def create_app(settings: Settings) -> FastAPI:
                 else:
                     handled.pop(f, None)
             write_json(path, data)
+
+    @app.post("/api/verifications/{vid}/note")
+    def verif_note(vid: str, body: LeadNote):
+        """« What I already know » on a lead: kept with the check, sent with the lead to its run (marked as the
+        editor's, unpublished, a check, never cited: fix.EDITOR_NOTE). An empty text removes it."""
+        path = verif_path(vid)
+        with lock:
+            data = read_json(path)
+            if busy(vid):
+                raise HTTPException(409, "the check is still running")
+            if not any(body.finding in r.get("findings", []) for r in data["results"].values()):
+                raise HTTPException(404, "no such lead in this check")
+            notes = data.setdefault("notes", {})
+            text = body.text.strip()[:NOTE_CHARS]
+            if text:
+                notes[body.finding] = text
+            else:
+                notes.pop(body.finding, None)
+            write_json(path, data)
+        return {"notes": notes}
 
     @app.post("/api/verifications/{vid}/leads")
     def verif_handle(vid: str, body: Handle):

@@ -13,6 +13,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   `--safe-mode` (which also turns the agent's MCP server off): the user's settings, hooks, plugins and instructions
   stay out all the same (checked with a real call).
 - **pypdf ≥ 6.1** for the PDFs of the links read whole.
+- **« What I already know » on a lead** (proposed by the user, who had to retype a lead with their own measurements
+  as an idea to give them to the run): a note on any open lead of a check (`POST /api/verifications/{id}/note`),
+  kept with the check and marked on the lead's line. It goes with its lead to the run inside an `<editor-note>`, said
+  to be the editor's, unpublished, a check that is never cited nor written into the guide (`fix.EDITOR_NOTE`); the
+  review shows it in the lead's block, the pull request only counts the leads that had one.
 - **« Update my folder »** (proposed by the user, whose folder did not show a pull request merged until the next
   run): « To handle » says when the guide's folder lacks pull requests merged on the forge (which ones, the folder's
   branch, its changes not committed, when it last moved), and so does the page of a run merged when its pull request

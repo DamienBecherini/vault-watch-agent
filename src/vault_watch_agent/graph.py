@@ -950,11 +950,15 @@ def _pr_body(state: WatchState, passages: bool, why: int, rows_kept: int) -> str
     pages = news.pages_to_write(state) if state.get("mode") == "add" else []
     wanted = ("Not written: " + f"{len(pages)} subject(s) that would need a page of their own (the run adds to existing "
               "pages only).\n\n" + "".join(f"- {p['what']}\n" for p in pages) + "\n") if pages else ""
+    # « What I already know »: said, never shown (the editor's own measurements, unpublished)
+    noted = sum(1 for i in state.get("items", []) if i.get("editor_note"))
+    known = (f"{noted} of them came with a note of the editor (their own measurements or experience, not published): "
+             "used to check what the sources say, cited nowhere.\n\n") if noted else ""
     return (
-        (f"Trims of {state['source']}, reviewed before apply: the guide weighs less and says no less.\n\n{saved}" if trims else
-         f"Additions from {state['source']}, each checked on primary sources and reviewed before apply.\n\n{saved}{wanted}"
+        (f"Trims of {state['source']}, reviewed before apply: the guide weighs less and says no less.\n\n{saved}{known}" if trims else
+         f"Additions from {state['source']}, each checked on primary sources and reviewed before apply.\n\n{saved}{known}{wanted}"
          if state.get("mode") == "add" else
-         f"Corrections from {state['source']}, reviewed before apply.\n\n{saved}")
+         f"Corrections from {state['source']}, reviewed before apply.\n\n{saved}{known}")
         + "| # | Severity | Page | Why | Source |\n| :-- | :-- | :-- | :-- | :-- |\n"
         f"{rows}\n\n"
         + (f"{'What weighed' if trims else 'Leads' if state.get('mode') == 'add' else 'Reported errors'}:\n\n{errors}\n"

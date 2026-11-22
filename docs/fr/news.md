@@ -189,6 +189,14 @@ n'est plus creusée. Son appel reçoit alors la consigne d'aller plus loin : plu
 remplace, sa maturité et sa disponibilité, ce qu'il change pour chaque type de lecteur, sur plusieurs pages s'il
 le faut. Cela coûte un peu plus qu'une piste ; à garder pour les sujets qui le méritent.
 
+**Ce que je sais déjà.** Une piste dépliée a un lien « + Ce que je sais déjà » : vos propres mesures, votre
+expérience, un chiffre que vous avez vérifié. Le mot est gardé avec la vérification (il survit à un rechargement) et
+signalé « 📝 un mot de toi » sur la ligne de la piste. Il part dans le passage avec sa piste, comme une note de
+l'éditeur : le passage s'en sert pour contrôler ce que disent les sources et dit quand elles le contredisent, mais ne
+le cite jamais, ne le recopie pas et ne l'écrit pas dans le guide, car un fait écrit a toujours besoin de sa source
+publiée. La relecture le montre dans le bloc de la piste ; la pull request dit seulement combien de pistes en avaient
+un. Les pistes des autres contrôles ont le même lien sous leur texte.
+
 La relecture montre, au-dessus des corrections, les pages que le passage dit nécessaires, puis les pistes qu'il a
 laissées sans modification et pourquoi : ce qu'une recherche a trouvé sans rien écrire est aussi un résultat.
 
