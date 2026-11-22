@@ -36,7 +36,8 @@ class FakeClaude:
         option = lambda name: command[command.index(name) + 1]
         self.calls.append({"command": command, "env": kw["env"], "prompt": kw["input"].decode("utf-8"),
                            "instructions": Path(option("--system-prompt-file")).read_text(encoding="utf-8"),
-                           "schema": json.loads(option("--json-schema")), "tools": option("--tools")})
+                           "schema": json.loads(option("--json-schema")), "tools": option("--tools"),
+                           "mcp": json.loads(Path(option("--mcp-config")).read_text(encoding="utf-8")) if "--mcp-config" in command else None})
         out = self.result if isinstance(self.result, str) else json.dumps(self.result)
         return subprocess.CompletedProcess(command, 0, out.encode(), self.stderr.encode())
 
@@ -67,8 +68,12 @@ def test_a_call_runs_claude_bare_and_reads_the_structured_answer(claude, tmp_pat
     # The guide alone is the system prompt (one cached block); the instructions open the prompt.
     assert call["instructions"] == "<guide>…</guide>"
     assert call["prompt"] == "<instructions>\nBe exact.\n</instructions>\n\nCheck « é »."
-    assert call["schema"] == Answer.model_json_schema() and call["tools"] == "WebSearch,WebFetch"
-    for flag in ("-p", "--safe-mode", "--strict-mcp-config", "--no-session-persistence", "--disable-slash-commands"):
+    # Its WebSearch, and the agent's page reader in place of its WebFetch (which reads the LAN): an MCP server of the agent
+    assert call["schema"] == Answer.model_json_schema() and call["tools"] == "WebSearch"
+    assert call["command"][call["command"].index("--disallowedTools") + 1] == "WebFetch"
+    assert llm.FETCH_TOOL_NAME in call["command"][call["command"].index("--allowedTools") + 1]
+    assert call["mcp"]["mcpServers"]["vw"]["args"] == ["-m", "vault_watch_agent.mcp_fetch"]
+    for flag in ("-p", "--setting-sources", "--strict-mcp-config", "--no-session-persistence", "--disable-slash-commands"):
         assert flag in call["command"]
     assert call["command"][call["command"].index("--model") + 1] == "claude-opus-5-5"
     assert call["command"][call["command"].index("--effort") + 1] == "high"
@@ -175,7 +180,7 @@ def test_engines_declare_what_they_can_do():
     llm.CONTEXTS.clear()
     api, cc = llm.Claude("claude-opus-5-5", client=object()), llm.ClaudeCode("claude-opus-5-5")
     assert (api.capabilities().context, api.capabilities().billing, api.capabilities().exact_count) == (1_000_000, "token", True)
-    assert (cc.capabilities().billing, cc.capabilities().web_reading, cc.capabilities().exact_count) == ("subscription", "summary", False)
+    assert (cc.capabilities().billing, cc.capabilities().web_reading, cc.capabilities().exact_count) == ("subscription", "page", False)  # its pages through the agent's reader (mcp_fetch)
     assert llm.context_of("claude-mythos-7") == llm.UNKNOWN_CONTEXT  # unknown: the smaller window, never more
     assert llm.context_of("claude-sonnet-4-6-20260101") == llm.KNOWN_CONTEXT  # a dated id of a known model
     llm.CONTEXTS["claude-mythos-7"] = 2_000_000  # read from the Models API

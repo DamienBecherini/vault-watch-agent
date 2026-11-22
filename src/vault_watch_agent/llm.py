@@ -17,6 +17,7 @@ Engines share that method (`Engine`, docs/write-an-engine.md):
 from __future__ import annotations
 
 import json
+import sys
 import os
 import shutil
 import subprocess
@@ -271,6 +272,20 @@ def claude_code_program() -> str:
     return shutil.which(os.environ.get("VAULT_WATCH_CLAUDE") or "claude") or ""
 
 
+FETCH_TOOL_NAME = "mcp__vw__web_fetch"  # the agent's page reader, as Claude Code names a tool of the MCP server « vw »
+
+
+def fetch_server(folder: Path) -> Path:
+    """The MCP configuration that gives Claude Code the agent's page reader (mcp_fetch), run by this Python with
+    this very package; written in the call's temporary folder."""
+    config = folder / "mcp.json"
+    package_root = str(Path(__file__).resolve().parent.parent)
+    config.write_text(json.dumps({"mcpServers": {"vw": {
+        "command": sys.executable, "args": ["-m", "vault_watch_agent.mcp_fetch"],
+        "env": {"PYTHONPATH": package_root, "PYTHONIOENCODING": "utf-8"}}}}), encoding="utf-8")
+    return config
+
+
 def _claude_code_env() -> dict:
     """The environment given to Claude Code: without what would make it bill an API (a key, another provider) and
     without the variables of a Claude Code session this process was started from. Its sign-in is kept
@@ -317,8 +332,9 @@ class ClaudeCode(_Journal):
         self.checked = False
 
     def capabilities(self) -> Capabilities:
-        # Its WebFetch has a smaller model read the page and report; it cannot count tokens before a call.
-        return Capabilities(context=context_of(self.model), web_reading="summary", billing="subscription")
+        # Pages are read by the agent's own reader (mcp_fetch), whose text the model reads itself; it cannot count
+        # tokens before a call.
+        return Capabilities(context=context_of(self.model), web_reading="page", billing="subscription")
 
     def prepare(self) -> None:
         if self.checked:
@@ -350,11 +366,20 @@ class ClaudeCode(_Journal):
         with tempfile.TemporaryDirectory(prefix="vault-watch-claude-") as folder:
             instructions = Path(folder) / "instructions.txt"
             instructions.write_text(system, encoding="utf-8")
-            command = [claude_code_program(), "-p", "--safe-mode", "--strict-mcp-config", "--no-session-persistence",
+            # Bare: --safe-mode (no instructions, hooks, skills, plugins nor MCP server of the user). With the web, safe
+            # mode would also turn off the agent's own MCP page reader: no setting source is loaded instead (the
+            # user's settings, hooks and plugins stay out; measured 2026-11-22: no CLAUDE.md read either), and the
+            # only MCP server is the agent's (--strict-mcp-config).
+            bare = ["--setting-sources", ""] if web else ["--safe-mode"]
+            command = [claude_code_program(), "-p", *bare, "--strict-mcp-config", "--no-session-persistence",
                        "--disable-slash-commands", "--model", self.model, "--effort", effort,
                        "--output-format", "json", "--system-prompt-file", str(instructions),
                        "--json-schema", json.dumps(schema.model_json_schema(), ensure_ascii=True)]
-            command += ["--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"] if web else ["--tools", ""]
+            if web:  # its WebSearch, and the agent's page reader in place of its WebFetch, which reads the LAN (mcp_fetch)
+                command += ["--tools", "WebSearch", "--mcp-config", str(fetch_server(Path(folder))),
+                            "--allowedTools", f"WebSearch,{FETCH_TOOL_NAME}", "--disallowedTools", "WebFetch"]
+            else:
+                command += ["--tools", ""]
             try:
                 r = subprocess.run(command, input=prompt.encode("utf-8"), capture_output=True, timeout=CLAUDE_CODE_TIMEOUT,
                                    cwd=folder, env=_claude_code_env(), creationflags=_NO_WINDOW)

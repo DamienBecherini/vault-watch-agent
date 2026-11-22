@@ -3132,7 +3132,7 @@ function checkFound(c) {
       ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
         return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${!ok ? " disabled" : over ? "" : " checked"}>
           <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${esc(f.reason)}${
-            f.source_url ? ` · <a href="${esc(f.source_url)}" target="_blank" rel="noopener">${C.source}</a>` : ""}${
+            f.source_url ? ` · ${extLink(f.source_url, C.source)}` : ""}${
             ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}${
             over ? ` · <span class="attention-text">${C.overlaps(f.overlaps.join(", "))}</span>` : ""}</p>
           <div class="diff before">${before}</div><div class="diff after">${after || `<span class="muted">—</span>`}</div>

@@ -25,6 +25,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   unchecked into the LAN).
 - **Links in http(s) only**: a source written by a model, or a feed item's link, that is not an http(s) address is
   shown as text, never as a link (`javascript:`); in the pull request, a source must be an address or a page.
+- **Claude Code reads pages through the agent's reader**: its own WebFetch runs on the editor's machine and read
+  any address, the machine and its local network included (measured: it connected to 127.0.0.1 and to the PC's LAN
+  address). On the steps that use the web, Claude Code now gets the agent's page reader as a local MCP tool
+  (`mcp_fetch.py`, `web_fetch`: public addresses only, the one connected to as well, redirections checked) in place
+  of WebFetch, which is denied; its WebSearch stays. Those calls load no setting source of the user instead of
+  `--safe-mode` (which also turns the agent's MCP server off): the user's settings, hooks, plugins and instructions
+  stay out all the same (checked with a real call).
 - **Smaller**: a watch's `until` must be a date (it names the report and the branch); sops gets `--` before its file
   and a field name of letters and digits; the manifest's `base_branch` must be a branch name (never read as an option
   by git); `Host: testserver` is accepted under the tests only; pypdf ≥ 6.1 for PDFs.
