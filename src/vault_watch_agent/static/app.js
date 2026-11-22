@@ -1722,6 +1722,11 @@ async function viewCheck(id) {
       : `<div class="excerpt-head muted small">${V.line(e.line)}${e.match === "approx" ? ` · ${T.excerptApprox}` : ""} · <a href="${esc(obsidian(v.vault_name, e.page, e.heading))}">${V.openObsidian} ↗</a></div>
         <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(l => `<div${l.hit ? ' class="target"' : ""}><span class="n">${l.n}</span><span>${
           l.parts ? `${esc(l.parts[0])}<mark>${esc(l.parts[1])}</mark>${esc(l.parts[2])}` : esc(l.text)}</span></div>`).join("")}</div>`).join("") : "";
+    const extra = (() => {  // what digging adds to the cost of the run, when it is billed
+      const o = options.find(x => x.id === card) || {}, narrow = ADD_CONTEXT === "pages" && o.run_usd_deep_pages;
+      const more = narrow ? o.run_usd_deep_pages - o.run_usd_each_pages : (o.run_usd_deep || 0) - (o.run_usd_each || 0);
+      return billedStep("add") && more > 0 ? ` <small>· + ≈ ${dollars(more)}</small>` : "";
+    })();
     return `<li class="lead-item">
       <div class="lead-row" data-unfold="${esc(key)}"><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="add" data-card="${card}" aria-label="${esc(title)}">
         <span class="num">${n}.</span><span class="lead-title"><b>${esc(title)}</b>${p.pages[0] ? ` <span class="muted small">· ${esc(short(p.pages[0]))}</span>` : ""}</span>
@@ -1731,6 +1736,7 @@ async function viewCheck(id) {
         <div class="lead-cols"><div class="box"><h4>${V.detail.says}</h4>${d.says ? said(d.says) : esc(p.text)}</div>
           <div class="box"><h4>${V.detail.guide}</h4>${d.guide ? `<p>${said(d.guide)}</p>` : ""}${guideBox || (d.guide ? "" : `<p class="muted small">${V.nothingQuoted}</p>`)}</div></div>
         ${d.check || d.matters ? `<dl class="pair">${d.check ? `<dt>${V.detail.check}</dt><dd>${said(d.check)}</dd>` : ""}${d.matters ? `<dt>${V.detail.matters}</dt><dd>${said(d.matters)}</dd>` : ""}</dl>` : ""}
+        <div class="lead-actions"><label class="digbtn"><input type="checkbox" data-deep="${esc(f)}"> 🔍 ${V.digButton}${extra}</label><span class="muted small">${V.digWhat}</span></div>
         <div class="lead-lists">
           ${p.sources.length ? `<div><h5>${V.sourcesTitle(p.sources.length)}</h5><ul>${p.sources.map((u, i) => `<li>${extLink(u, esc(shortUrl(u)))} ↗${i === 0 && p.kind === "From a link" ? ` <span class="muted">${V.theLink}</span>` : ""}</li>`).join("")}</ul></div>` : ""}
           ${p.read.length ? `<div><h5>${V.readTitle(p.read.length)}</h5><ul>${p.read.map(x => `<li>${pageLink(x)}</li>`).join("")}</ul></div>` : ""}
@@ -1815,6 +1821,7 @@ async function viewCheck(id) {
   const digs = [...page.querySelectorAll("[data-deep]")];
   const deep = () => new Set(digs.filter(d => d.checked).map(d => d.dataset.deep));
   digs.forEach(d => d.onchange = () => {
+    digs.filter(x => x.dataset.deep === d.dataset.deep).forEach(x => { x.checked = d.checked; });  // line and card, in step
     if (d.checked) boxes.filter(c => c.dataset.lead === d.dataset.deep).forEach(c => c.checked = true);
     count();
   });
