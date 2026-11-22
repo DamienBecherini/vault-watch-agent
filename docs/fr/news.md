@@ -106,6 +106,8 @@ vault-watch --guide ../mon-guide fix mon-idee --findings idee.txt --add    # une
 
 ## Des liens à lire en entier
 
+![« Signaler ou proposer », onglet « Des liens à lire en entier » : une adresse par ligne, dl-sub-dub prêt pour les vidéos, et le bouton qui les lit](../images/links.fr.png)
+
 Un article, un rapport, la page d'un projet peuvent contenir plusieurs choses pour le guide, n'importe où dans leur
 texte ; une veille ne lit que le début d'un élément. « Signaler ou proposer », onglet « Des liens à lire en
 entier » (un lien sur « Vérifier le guide » y mène) : une adresse par ligne, 10 au plus.

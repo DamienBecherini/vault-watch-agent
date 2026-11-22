@@ -107,6 +107,8 @@ n corrections » goes on.
 
 ## The pause to retouch the pages
 
+![The retouch pause: the pages of the run, « Lend my folder to this run » for Obsidian, and the editor of the page, the passages the run changed in green, with the previous and next one](images/retouch.png)
+
 Once the corrections are applied on the branch, and before the mirrors follow them, the run stops again: you can
 read the pages as they now are and retouch the text. It is optional: « Skip » goes on at once. The corrections are
 on the run's branch, a copy of the guide of its own: your folder and main have not moved, so Obsidian does not see
@@ -139,6 +141,8 @@ gives its path), or `--retouch skip`. A run started before this pause existed re
 
 ## The publish screen
 
+![The publish screen: « Before publishing » (the guide's checks, the translation, a link to check, the weight of the pages), then each page changed with its translation, « Correct » and « Translate again »](images/publish.png)
+
 After the apply, the mirrors, the audits and the links, the run stops again. The branch exists only on this
 machine. From top to bottom:
 
@@ -165,6 +169,8 @@ description; the watch's issue closes when it is merged. « Do not publish » ke
 no repository keeps the branch in any case (« Finish (branch kept locally) »).
 
 ## After the merge: update your folder
+
+![« To handle » once a pull request is merged: the guide's folder is one PR behind GitHub, with « Update my folder »](images/folder.png)
 
 The pull request is merged on the forge, not in your guide's folder: Obsidian shows the pages as they were until the
 folder's base branch moves forward. « To handle » says when the folder lacks pull requests merged on the forge

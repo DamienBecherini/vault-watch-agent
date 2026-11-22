@@ -433,12 +433,12 @@ button.icon[data-tool="settings"] svg { width: 18px; height: 18px; }
 .cfg-sum { font-size: 13.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cfg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
 .cfg-dot[hidden], .cfg-page[hidden] { display: none; }
-.cfg-page { min-width: 0; display: grid; gap: 12px; align-content: start; }
+.cfg-page { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; }  /* its children never wider than it */
 .cfg-page > p, .cfg-page > ul { margin: 0; }
 .cfg-title { margin: 4px 0 0; font-size: 18px; }
 .cfg-sub { margin: 14px 0 0; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .cfg-list { padding-left: 20px; }
-.cfg-field { display: grid; gap: 6px; }
+.cfg-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }  /* the engine buttons wrap instead of widening it */
 .cfg-role { display: grid; gap: 8px; margin: 0; padding: 12px 14px 14px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
 .cfg-role legend { font-weight: 600; font-size: 15px; padding: 0 6px; }
 .cfg-role select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--text); width: 100%; max-width: 520px; }

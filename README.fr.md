@@ -182,6 +182,8 @@ relecture croisée), les retouches (votre dossier prêté à Obsidian, ou un éd
 publication (« Avant de publier » : les contrôles du guide, la traduction, les liens à vérifier vous-même ; puis
 chaque page modifiée à côté de sa traduction, encore corrigeable), puis la pull request. Autour :
 
+![« À traiter », la première page : le dossier du guide avec une PR de retard, aucune passe en pause, trois vérifications dont les pistes sont à trier, et ce qu'on peut lancer](docs/images/todo.fr.png)
+
 | Page | À quoi elle sert |
 | :-- | :-- |
 | Veille › À traiter | La première page : tout ce qui vous attend, d'où que ça vienne : un passage en pause pour votre relecture, une veille à lancer, les vérifications dont les pistes sont à trier, et votre dossier du guide quand il lui manque des pull requests fusionnées, avec « Mettre à jour mon dossier » ; le menu « Veille » en donne le nombre |

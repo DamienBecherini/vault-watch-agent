@@ -103,6 +103,8 @@ vault-watch --guide ../my-guide fix my-idea --findings idea.txt --add     # a li
 
 ## Links to read whole
 
+![« Report or suggest », tab « Links to read whole »: one address per line, dl-sub-dub ready for the videos, and the button that reads them](images/links.png)
+
 An article, a report, a project's page may hold several things for the guide, anywhere in their text; a watch
 reads only the start of an item. « Report or suggest », tab « Links to read whole » (a link on « Check the guide »
 leads there): one address per line, 10 at the most.

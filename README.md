@@ -176,6 +176,8 @@ retouches (your folder lent to Obsidian, or an editor in the page), the publish 
 guide's checks, the translation, the links to check yourself; then each page changed beside its translation, still
 correctable), then the pull request. Around them:
 
+![« To handle », the first page: the guide's folder one PR behind, no run paused, three checks whose leads are to sort, and what can be started](docs/images/todo.png)
+
 | Page | What it is for |
 | :-- | :-- |
 | Watch › To handle | The first page: everything that waits for you, wherever it comes from: a run paused for your review, a watch to start, the checks whose leads are to sort, and your guide's folder when it lacks pull requests merged, with « Update my folder »; the menu « Watch » shows how many |

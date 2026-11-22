@@ -110,6 +110,8 @@ commentaire) ; « Appliquer n corrections » continue.
 
 ## La pause pour retoucher les pages
 
+![La pause des retouches : les pages de la passe, « Prêter mon dossier à cette passe » pour Obsidian, et l'éditeur de la page, les passages modifiés par la passe en vert, avec le précédent et le suivant](../images/retouch.fr.png)
+
 Une fois les corrections appliquées sur la branche, et avant que les miroirs les suivent, le passage s'arrête de
 nouveau : vous pouvez relire les pages telles qu'elles sont maintenant et retoucher le texte. C'est facultatif :
 « Passer » continue aussitôt. Les corrections sont sur la branche du passage, une copie à part du guide : votre
@@ -145,6 +147,8 @@ pause existe reprend sans elle.
 
 ## L'écran de publication
 
+![L'écran de publication : « Avant de publier » (les contrôles du guide, la traduction, un lien à vérifier, le poids des pages), puis chaque page modifiée avec sa traduction, « Corriger » et « Retraduire »](../images/publish.fr.png)
+
 Après l'application, les miroirs, les contrôles et les liens, le passage s'arrête de nouveau. La branche n'existe
 que sur cette machine. De haut en bas :
 
@@ -172,6 +176,8 @@ description ; l'issue de la veille se ferme quand elle est fusionnée. « Ne pas
 Un guide sans dépôt garde la branche dans tous les cas (« Terminer (branche gardée en local) »).
 
 ## Après la fusion, mettre à jour votre dossier
+
+![« À traiter » une fois une pull request fusionnée : le dossier du guide a une PR de retard sur GitHub, avec « Mettre à jour mon dossier »](../images/folder.fr.png)
 
 La pull request est fusionnée sur la forge, pas dans votre dossier du guide : Obsidian montre les pages d'avant tant
 que la branche de base du dossier n'avance pas. « À traiter » signale quand il manque au dossier des pull requests
