@@ -330,20 +330,27 @@ const TEXTS = {
       runTitle: "Synchronisation des langues",
     },
     retouchPause: {
-      intro: "Les corrections sont appliquées sur la branche du passage ; rien n'est encore traduit ni publié. Tu peux relire les pages et retoucher le texte, dans ton Obsidian ou ici. Tes retouches seront commitées à ton nom, les miroirs les suivront, et les contrôles du guide passeront dessus. Ou passe cette étape.",
-      pages: "Les pages modifiées par ce passage :",
-      obsidian: "Dans Obsidian",
+      intro: (n, branch) => `Les ${n} corrections acceptées sont appliquées sur la branche du passage${branch ? ` (<code>${branch}</code>)` : ""} : une copie à part du guide, ton dossier et main n'ont pas bougé. Rien n'est encore traduit ni publié. C'est le moment de relire les pages telles qu'elles seront publiées, et d'y corriger ce qui ne va pas : tes retouches seront commitées à ton nom, la traduction anglaise les suivra, et les contrôles du guide passeront dessus. Rien à changer ? Clique « Passer ».`,
+      pages: "Les pages modifiées par ce passage",
+      openHere: "Ouvrir ici", openObsidian: "Ouvrir dans Obsidian",
+      obsidianLater: "Prête d'abord ton dossier (ci-dessous) : sinon Obsidian montrerait la page sans les corrections.",
+      obsidian: "Relire dans Obsidian",
       lend: "Prêter mon dossier à ce passage",
-      lendHelp: path => `Ton dossier du guide (<code>${path}</code>) passe sur la branche du passage le temps des retouches : Obsidian montre les pages corrigées. « J'ai fini » le remet où il était. Ne tape pas dans Obsidian pendant les deux secondes de la bascule.`,
+      lendHelp: path => `Obsidian affiche ton dossier du guide (<code>${path}</code>), qui est sur main : il ne voit pas les corrections, elles sont sur la branche du passage. Pour les relire dans Obsidian, avec son aperçu et ses liens, prête ton dossier au passage : il bascule sur cette branche le temps des retouches, et tu modifies les pages directement dans Obsidian. « J'ai fini » (ou « Passer ») le ramène sur main, comme avant. La bascule prend deux secondes : n'écris rien dans Obsidian à ce moment-là, ta frappe pourrait se perdre.`,
+      whyLend: "Tu peux aussi tout faire ici, dans le navigateur, sans prêter ton dossier.",
       dirty: n => `Ton dossier contient ${n} fichier${n > 1 ? "s" : ""} modifié${n > 1 ? "s" : ""} ou nouveau${n > 1 ? "x" : ""}, pas commité${n > 1 ? "s" : ""} :`,
       setAside: "Les mettre de côté et prêter le dossier",
       setAsideHelp: "Ils sont rangés dans une remise git nommée d'après ce passage, et remis en place quand le dossier revient.",
       blocked: why => `Impossible de prêter le dossier : ${why}. Termine-le, ou retouche ici.`,
       lentOther: t => `Ton dossier est prêté au passage ${t} : termine ses retouches d'abord, ou retouche ici.`,
       lentNow: path => `Ton dossier <code>${path}</code> est sur la branche du passage : retouche dans Obsidian, puis « J'ai fini ».`,
-      here: "Ici",
-      hereHelp: lent => lent ? "L'éditeur écrit dans ton dossier prêté : Obsidian voit ce que tu enregistres ici." : "L'éditeur écrit dans la copie de travail du passage.",
+      here: "Relire ici, dans le navigateur",
+      hereHelp: lent => lent ? "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Ton dossier étant prêté, ce que tu enregistres ici s'écrit dans ton dossier : Obsidian le voit aussitôt."
+        : "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Tu modifies la copie du passage, pas ton dossier : Obsidian ne verra le résultat qu'une fois la pull request fusionnée.",
       other: "ou une autre page (chemin dans le guide)", open: "Ouvrir", save: "Enregistrer", saved: "Enregistré.",
+      revert: "Annuler mes modifications", reverted: "Modifications annulées : la page est comme à son dernier enregistrement.",
+      unsaved: "Modifications non enregistrées", undoHelp: "Ctrl+Z et Ctrl+Y annulent et rétablissent ta frappe ; « Annuler mes modifications » revient à la dernière version enregistrée.",
+      confirmLeave: "Cette page a des modifications non enregistrées. Les abandonner ?",
       skip: "Passer", done: "J'ai fini",
       confirmSkip: "Passer cette étape et abandonner ce qui a été retouché ?",
       banner: (t, lent, n) => lent ? `Ton dossier du guide est prêté au passage ${t}.` : `${n} fichier(s) de ton dossier mis de côté pour le passage ${t} ne sont pas encore remis.`,
@@ -678,20 +685,27 @@ const TEXTS = {
       runTitle: "Sync of the languages",
     },
     retouchPause: {
-      intro: "The corrections are applied on the run's branch; nothing is translated or published yet. You can read the pages and retouch the text, in your Obsidian or here. Your retouches will be committed as yours, the mirrors will follow them, and the guide's checks will run on them. Or skip this step.",
-      pages: "The pages this run changed:",
-      obsidian: "In Obsidian",
+      intro: (n, branch) => `The ${n} corrections accepted are applied on the run's branch${branch ? ` (<code>${branch}</code>)` : ""}: a copy of the guide of its own, your folder and main have not moved. Nothing is translated or published yet. This is the time to read the pages as they will be published and fix what is wrong: your retouches will be committed as yours, the English translation will follow them, and the guide's checks will run on them. Nothing to change? Click « Skip ».`,
+      pages: "The pages this run changed",
+      openHere: "Open here", openObsidian: "Open in Obsidian",
+      obsidianLater: "Lend your folder first (below): otherwise Obsidian would show the page without the corrections.",
+      obsidian: "Read in Obsidian",
       lend: "Lend my folder to this run",
-      lendHelp: path => `Your guide's folder (<code>${path}</code>) goes onto the run's branch for the retouches: Obsidian shows the corrected pages. « I am done » brings it back to where it was. Do not type in Obsidian during the two seconds of the switch.`,
+      lendHelp: path => `Obsidian shows your guide's folder (<code>${path}</code>), which is on main: it does not see the corrections, they are on the run's branch. To read them in Obsidian, with its preview and its links, lend your folder to the run: it switches to that branch for the retouches, and you edit the pages right in Obsidian. « I am done » (or « Skip ») brings it back to main, as it was. The switch takes two seconds: do not type in Obsidian then, your typing could be lost.`,
+      whyLend: "You can also do it all here, in the browser, without lending your folder.",
       dirty: n => `Your folder holds ${n} file${n > 1 ? "s" : ""} changed or new, not committed:`,
       setAside: "Set them aside and lend the folder",
       setAsideHelp: "They go into a git stash named after this run, and come back when the folder does.",
       blocked: why => `The folder cannot be lent: ${why}. Finish it, or retouch here.`,
       lentOther: t => `Your folder is lent to the run ${t}: finish its retouches first, or retouch here.`,
       lentNow: path => `Your folder <code>${path}</code> is on the run's branch: retouch in Obsidian, then « I am done ».`,
-      here: "Here",
-      hereHelp: lent => lent ? "The editor writes into your lent folder: Obsidian sees what you save here." : "The editor writes into the run's working copy.",
+      here: "Read here, in the browser",
+      hereHelp: lent => lent ? "Pick a page, change its text (in Markdown), then « Save ». As your folder is lent, what you save here is written into your folder: Obsidian sees it at once."
+        : "Pick a page, change its text (in Markdown), then « Save ». You change the run's copy, not your folder: Obsidian will only see the result once the pull request is merged.",
       other: "or another page (path in the guide)", open: "Open", save: "Save", saved: "Saved.",
+      revert: "Cancel my changes", reverted: "Changes cancelled: the page is as it was last saved.",
+      unsaved: "Unsaved changes", undoHelp: "Ctrl+Z and Ctrl+Y undo and redo your typing; « Cancel my changes » goes back to the version last saved.",
+      confirmLeave: "This page has unsaved changes. Drop them?",
       skip: "Skip", done: "I am done",
       confirmSkip: "Skip this step and drop what was retouched?",
       banner: (t, lent, n) => lent ? `Your guide's folder is lent to the run ${t}.` : `${n} file(s) of your folder set aside for the run ${t} are not put back yet.`,
@@ -851,7 +865,17 @@ function stepCard(step, n, name, what = "") {
       <button type="button" class="small-button primary" data-step-ok="${step}">${T.perStep.applyOnce}</button>
     </span></div>`;
 }
-let BAR_ROOM = null;  // what keeps the page's room for the bar of a check as tall as the bar (ResizeObserver)
+let BAR_ROOM = null;  // what keeps the page's room for the bar at its bottom as tall as the bar (ResizeObserver)
+// A bar fixed at the bottom of a page (a check's, a review's, the retouches'): the page leaves room for it under its
+// last line, as tall as it is now, so that nothing stays hidden behind it
+function keepRoomForBar() {
+  BAR_ROOM?.disconnect();
+  const bar = page.querySelector(".bar");
+  document.body.style.paddingBottom = "";
+  if (!bar) return;
+  BAR_ROOM = new ResizeObserver(() => { document.body.style.paddingBottom = `${bar.offsetHeight}px`; });
+  BAR_ROOM.observe(bar);
+}
 let BAR_OPEN = (() => { try { return localStorage.getItem("vault-watch-bar-open") === "1"; } catch { return false; } })();
 // The buttons of the lines above, inside `root`; `redraw` draws the screen again once a choice is made
 function bindSteps(root, redraw) {
@@ -993,6 +1017,7 @@ async function route() {
     else if (h === "/languages") await viewLanguages();
     else if (h === "/chapters") await viewChapters();
     else await viewWatches();
+    keepRoomForBar();
     asideBanner();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
@@ -1477,18 +1502,26 @@ async function viewRetouch(r, title) {
     : f.changes.length ? `<p>${R.dirty(f.changes.length)}</p><ul>${f.changes.map(c => `<li><code>${esc(c)}</code></li>`).join("")}</ul>
         <p class="muted small">${R.setAsideHelp}</p><p><button id="lend" data-aside="1">${R.setAside}</button></p>`
     : `<p class="muted small">${R.lendHelp(esc(f.path))}</p><p><button id="lend">${R.lend}</button></p>`;
+  // Each page: open it in the editor below, or in Obsidian once the folder is lent (before, Obsidian shows main)
+  const vaultName = (f.path || "").split(/[\\/]/).filter(Boolean).pop() || "";
+  const pageRow = p => `<li><code>${esc(p)}</code> <button type="button" class="small-button" data-open-here="${esc(p)}">${R.openHere}</button>
+    ${lent ? `<a class="small" href="${obsidian(vaultName, p)}">${R.openObsidian}</a>` : `<span class="muted small" title="${esc(R.obsidianLater)}">${R.openObsidian} ⓘ</span>`}</li>`;
   page.innerHTML = `${title}
-    <div class="card"><p>${R.intro}</p>
-      ${pages.length ? `<p class="small">${R.pages} ${pages.map(p => `<code>${esc(p)}</code>`).join(", ")}</p>` : ""}</div>
+    <div class="card"><p>${R.intro((r.applied || []).length, esc(r.branch || ""))}</p>
+      ${pages.length ? `<p class="small"><b>${R.pages}</b></p><ul class="retouch-pages">${pages.map(pageRow).join("")}</ul>
+        ${lent ? "" : `<p class="muted small">${R.obsidianLater}</p>`}` : ""}</div>
     <h2>${R.obsidian}</h2>
-    <div class="card">${folderCard}<p class="error-text small" id="lend-error"></p></div>
+    <div class="card">${folderCard}${lent ? "" : `<p class="muted small">${R.whyLend}</p>`}<p class="error-text small" id="lend-error"></p></div>
     <h2>${R.here}</h2>
-    <div class="card"><p class="muted small">${R.hereHelp(lent)}</p>
+    <div class="card" id="here"><p class="muted small">${R.hereHelp(lent)}</p>
       <p class="tick-row"><select id="page-pick">${pages.map(p => `<option>${esc(p)}</option>`).join("")}</select>
         <input id="page-other" type="text" placeholder="${esc(R.other)}" spellcheck="false">
         <button type="button" id="page-open">${R.open}</button></p>
-      <div id="editor" hidden><textarea id="page-text" spellcheck="true"></textarea>
-        <p><button type="button" id="page-save">${R.save}</button> <span class="small" id="page-said"></span></p></div></div>
+      <div id="editor" hidden><p class="small"><code id="page-name"></code> <span class="badge attention" id="page-dirty" hidden>${R.unsaved}</span></p>
+        <textarea id="page-text" spellcheck="true"></textarea>
+        <p class="muted small">${R.undoHelp}</p>
+        <p class="tick-row"><button type="button" id="page-save" disabled>${R.save}</button>
+          <button type="button" id="page-revert" disabled>${R.revert}</button> <span class="small" id="page-said"></span></p></div></div>
     <p class="error-text" id="done-error"></p>
     <div class="bar"><button id="skip">${R.skip}</button><button class="primary" id="done">${R.done}</button></div>`;
   let open = "";
@@ -1497,30 +1530,62 @@ async function viewRetouch(r, title) {
     try { await api(`${at}/folder`, { set_aside: !!$("#lend").dataset.aside }); route(); }
     catch (e) { $("#lend-error").textContent = e.message; $("#lend").disabled = false; }
   };
-  $("#page-open").onclick = async () => {
-    const path = $("#page-other").value.trim() || $("#page-pick").value;
-    if (!path) return;
+  // The editor: the text as last saved is kept, so that what is not saved is said, and can be cancelled
+  let saved = "";
+  const dirty = () => !!open && $("#page-text").value !== saved;
+  const said = () => {
+    $("#page-dirty").hidden = !dirty();
+    $("#page-save").disabled = $("#page-revert").disabled = !dirty();
+  };
+  const load = async path => {
+    if (!path || (dirty() && !confirm(R.confirmLeave))) return;
     try {
       const p = await api(`${at}/page?path=${encodeURIComponent(path)}`);
       open = p.path;
+      saved = p.text;
       $("#page-text").value = p.text;
+      $("#page-name").textContent = p.path;
       $("#editor").hidden = false;
       $("#page-said").textContent = "";
       $("#page-text").style.height = "auto";
       $("#page-text").style.height = `${Math.min(window.innerHeight * 0.7, $("#page-text").scrollHeight + 4)}px`;
+      said();
     } catch (e) { $("#page-said").textContent = e.message; $("#editor").hidden = false; }
   };
+  $("#page-open").onclick = () => load($("#page-other").value.trim() || $("#page-pick").value);
+  page.querySelectorAll("[data-open-here]").forEach(b => b.onclick = async () => {
+    $("#page-pick").value = b.dataset.openHere;
+    $("#page-other").value = "";
+    await load(b.dataset.openHere);
+    $("#here").scrollIntoView({ block: "start", behavior: "smooth" });
+  });
+  $("#page-text").oninput = said;
   $("#page-save").onclick = async () => {
     if (!open) return;
-    try { await api(`${at}/page`, { path: open, text: $("#page-text").value }); $("#page-said").textContent = R.saved; }
-    catch (e) { $("#page-said").textContent = e.message; }
+    try {
+      await api(`${at}/page`, { path: open, text: $("#page-text").value });
+      saved = $("#page-text").value;
+      $("#page-said").textContent = R.saved;
+      said();
+    } catch (e) { $("#page-said").textContent = e.message; }
+  };
+  // Back to the text as last saved: typed over (not set), so that Ctrl+Z can still bring the changes back
+  $("#page-revert").onclick = () => {
+    const t = $("#page-text");
+    t.focus();
+    t.select();
+    if (!document.execCommand?.("insertText", false, saved)) t.value = saved;
+    t.setSelectionRange(0, 0);
+    t.scrollTop = 0;
+    $("#page-said").textContent = R.reverted;
+    said();
   };
   const finish = async keep => {
     page.querySelectorAll(".bar button").forEach(b => b.disabled = true);
     try { await api(`${at}/retouched`, { keep }); route(); }
     catch (e) { $("#done-error").textContent = e.message; page.querySelectorAll(".bar button").forEach(b => b.disabled = false); }
   };
-  $("#done").onclick = () => finish(true);
+  $("#done").onclick = () => (!dirty() || confirm(R.confirmLeave)) && finish(true);
   $("#skip").onclick = () => (!lent && !open) || confirm(R.confirmSkip) ? finish(false) : null;
 }
 
@@ -2019,9 +2084,7 @@ async function viewCheck(id) {
     apply(LeadRules.tickAll(state(), card.map(c => c.dataset.lead), !all));
   });
   // The page leaves room under its last line for the bar, as tall as it is now (its options open or folded)
-  BAR_ROOM?.disconnect();
-  BAR_ROOM = new ResizeObserver(() => { document.body.style.paddingBottom = `${$(".check-bar") ? $(".check-bar").offsetHeight : 0}px`; });
-  if ($(".check-bar")) BAR_ROOM.observe($(".check-bar"));
+  keepRoomForBar();
   // The options of the bar, opened or folded: the reader's choice, kept in the browser
   $("#bar-toggle").onclick = () => {
     BAR_OPEN = !BAR_OPEN;

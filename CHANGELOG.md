@@ -39,6 +39,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   « Added after « … » » and the new text alone (the paragraph it follows was shown twice); a group of corrections
   ticked by one box that says why they go together and that a text is changed by retouching it; the leads left
   without a change in a frame of their own, at the top.
+- **The retouches said plainly**: why lend the folder (Obsidian shows main and does not see the corrections until it
+  is lent), what the editor here writes to (the run's copy, or the lent folder); each page changed with « Open here »
+  and « Open in Obsidian » (once the folder is lent); the editor says what is not saved, and « Cancel my changes »
+  goes back to the version last saved (Ctrl+Z still brings the changes back).
+- Every bar fixed at the bottom of a page leaves room for itself: the end of the review was hidden behind its bar.
 - An addition run says what its leads came from (« links to read whole (add-…) », in its pull request too): it said
   « what a reader would look for and not find » whatever the check.
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
