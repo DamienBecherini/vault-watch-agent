@@ -211,7 +211,7 @@ Three ways to write these tables, all reviewed by you before they reach the guid
   The chapters it gives, with their weight, are shown again after each change, before anything is saved.
 - **By hand in the manifest.**
 
-![The Chapters page: the current split, here declared in the guide's manifest, each chapter with its pages, its weight and whether the web is explored on it by default; below, the model's proposal and the edit by hand](images/chapters.png)
+![The Chapters page: the current split, here declared in the guide's manifest, each chapter with its pages, its weight and whether the web is explored on it by default; below, the start of « 2. Prepare a new split »](images/chapters.png)
 
 Saving from the page writes the manifest on a branch of the guide (`chore/chapters-<date>`) and opens a pull
 request when the guide has a repository; the split applies once it is merged. `vault-watch chapters --propose

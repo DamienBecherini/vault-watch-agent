@@ -71,7 +71,7 @@ is new » reads them later, with what other watches set aside ([What is new](new
 
 ## The review screen
 
-![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](images/review.png)
+![The review screen: one block per item of the watch (here a vLLM release), its related corrections ticked together by one box, each card with its severity, its page, the cross-check's verdict, a word-level diff, its source and « Retouch »](images/review.png)
 
 What it shows, top to bottom:
 
@@ -213,7 +213,7 @@ pages:
   the dates, finds what a check of dates misses: on 21 November 2026 it found a bullet added to a French page of
   the IA on-prem guide in its first pull request and never carried to the English one.
 
-![The page « Languages »: a page ahead of its mirror, its passages changed, its estimate, and the button that translates it](images/sync-languages.png)
+![The page « Languages »: a page changed in the folder and not committed yet, the zone changed with two lines around, its estimate, and the three checks offered before translating](images/sync-languages.png)
 
 Each page shows its zones changed, two lines of context above and below, the change as a word-level diff: what
 the translation will follow, read before it is paid for. You tick the pages; each shows its passages changed and its
@@ -242,6 +242,6 @@ Each finding comes as a fix to tick, with its reason, its word-level diff and it
 as any edit), and the page shows the pages as they now are: a fix of another page makes that page one more to
 sync. Nothing is changed until then; a sync started without deciding goes without the fixes.
 
-![The check before translating: a typo fixed, a quote not found greyed out, a page made consistent, a doubt without a fix, and the button that applies the fixes ticked in the folder](images/sync-check.png)
+![The check before translating: a typo found, ticked, its text editable; a quote not found in the page, left unticked; « Apply 1 fix in my folder »; then the button that translates the page](images/sync-check.png)
 
-![The publish screen of a sync of the languages: the mirror page updated, the guide's audits, the links, and the diff of the branch with the passage translated](images/sync-publish.png)
+![The publish screen of a sync of the languages: « Before publishing » (the guide's audits, the translation, the links), the page changed beside its translation, and the raw diff of the branch, folded](images/sync-publish.png)

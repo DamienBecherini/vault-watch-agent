@@ -106,7 +106,7 @@ vault-watch --guide ../mon-guide fix mon-idee --findings idee.txt --add    # une
 
 ## Des liens à lire en entier
 
-![« Signaler ou proposer », onglet « Des liens à lire en entier » : une adresse par ligne, dl-sub-dub prêt pour les vidéos, et le bouton qui les lit](../images/links.fr.png)
+![« Signaler ou proposer », onglet « Des liens à lire en entier » : une adresse par ligne, la ligne qui dit si dl-sub-dub peut lire les vidéos (ici il ne répond pas), et le bouton qui lit les liens](../images/links.fr.png)
 
 Un article, un rapport, la page d'un projet peuvent contenir plusieurs choses pour le guide, n'importe où dans leur
 texte ; une veille ne lit que le début d'un élément. « Signaler ou proposer », onglet « Des liens à lire en
@@ -169,7 +169,7 @@ vault-watch --guide ../mon-guide fix add-2026-11-20 --findings pistes.txt --add
 Dans l'interface : cochez les pistes, puis « Créer une passe d'ajouts », dans la barre en bas de la page ; le
 bouton affiche une estimation qui suit le nombre de pistes cochées et de celles qui sont creusées.
 
-![Les pistes d'une vérification : chaque piste ouverte avec le passage du guide qu'elle concerne, la case « creuser », la liste qui choisit ce que lit chaque appel, et le bouton avec son estimation](../images/leads.fr.png)
+![Les pistes d'une vérification : une ligne par piste avec sa case « creuser », la première dépliée (la source et le passage du guide côte à côte, ce qu'il reste à vérifier, « Creuser cette piste », « Ce que je sais déjà », ses sources et les pages à relire aussi), et la barre en bas](../images/leads.fr.png)
 
 Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires, puis décide :
 

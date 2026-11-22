@@ -58,9 +58,9 @@ or any OpenAI-compatible server, local or hosted. The project measures and commi
 **Your decision.** The model never writes a file. Nothing is applied before your review, nothing is pushed before
 your go-ahead, and the pull request is merged by you.
 
-![The review screen: each proposed correction with its source, the cross-check's verdict and a word-level diff of the page, ticked or not by the editor before anything is applied](docs/images/review.png)
+![The review screen: one block per item of the watch (here a vLLM release), its related corrections ticked together by one box, each card with its severity, its page, the cross-check's verdict, a word-level diff, its source and « Retouch »](docs/images/review.png)
 
-*The review screen on a real watch of the reference guide (security advisories of LiteLLM).*
+*The review screen on a test watch (`watch.json`): a vLLM release that changes a sentence and its footnote, ticked together.*
 
 ## Quick start
 
@@ -176,7 +176,7 @@ retouches (your folder lent to Obsidian, or an editor in the page), the publish 
 guide's checks, the translation, the links to check yourself; then each page changed beside its translation, still
 correctable), then the pull request. Around them:
 
-![« To handle », the first page: the guide's folder one PR behind, no run paused, three checks whose leads are to sort, and what can be started](docs/images/todo.png)
+![« To handle », the first page: no run paused, three checks whose leads are to sort, and what can be started](docs/images/todo.png)
 
 | Page | What it is for |
 | :-- | :-- |
@@ -192,10 +192,10 @@ correctable), then the pull request. Around them:
 | Settings | The gear: engine, model and effort of each role or of one step, prices and where they come from, what the guide provides |
 | Give my opinion | A note, a bug, an idea: you send it yourself, as a GitHub issue or an e-mail; the agent sends nothing |
 
-![The leads of what is new: each lead with the passage of the guide it is about, a box to dig deeper, what each call reads, and the estimate of the run](docs/images/leads.png)
+![The leads of what is new: a lead unfolded, what the source says beside the passage of the guide it is about, what to check, what it changes for the reader, « Dig deeper into this lead », « What I already know », its sources and the pages to read also](docs/images/leads.png)
 
-*The leads of « what is new » on the reference guide: three are ticked, the button says what the addition run would
-cost.*
+*A lead of « Links to read whole » on the reference guide, unfolded; nothing is ticked yet, so the button asks to
+tick leads.*
 
 Every screen that starts a paid step says what it will cost (on a subscription, what it is worth at list price,
 struck through) and what will run it (engine, model, effort) before the click. The interface is in English or French, light or dark, with palettes and a text size of your choice. A

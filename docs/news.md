@@ -103,7 +103,7 @@ vault-watch --guide ../my-guide fix my-idea --findings idea.txt --add     # a li
 
 ## Links to read whole
 
-![« Report or suggest », tab « Links to read whole »: one address per line, dl-sub-dub ready for the videos, and the button that reads them](images/links.png)
+![« Report or suggest », tab « Links to read whole »: one address per line, the line that says whether dl-sub-dub can read the videos (here it does not answer), and the button that reads the links](images/links.png)
 
 An article, a report, a project's page may hold several things for the guide, anywhere in their text; a watch
 reads only the start of an item. « Report or suggest », tab « Links to read whole » (a link on « Check the guide »
@@ -163,7 +163,7 @@ vault-watch --guide ../my-guide fix add-2026-11-20 --findings leads.txt --add
 In the interface: tick the leads, then « Create an addition run », in the bar at the bottom of the page; the button
 shows an estimate that follows the number of leads ticked and of those dug deeper.
 
-![The leads of a check: each open lead with the passage of the guide it is about, the box « dig deeper », the list that chooses what each call reads, and the button with its estimate](images/leads.png)
+![The leads of a check: one line per lead with its box « dig », the first one unfolded (the source and the passage of the guide side by side, what to check, « Dig deeper into this lead », « What I already know », its sources and the pages to read also), and the bar at the bottom](images/leads.png)
 
 For each lead, the model searches the web and opens primary sources, then decides:
 

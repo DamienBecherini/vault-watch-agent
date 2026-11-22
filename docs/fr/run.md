@@ -71,7 +71,7 @@ Les pistes d'ajout d'une veille ne sont pas rédigées : la relecture les liste 
 
 ## L'écran de relecture
 
-![L'écran de relecture : chaque correction proposée avec sa source, le verdict de la relecture croisée et un diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](../images/review.fr.png)
+![L'écran de relecture : un bloc par élément de la veille (ici une version de vLLM), ses corrections liées cochées ensemble par une seule case, chaque carte avec sa gravité, sa page, le verdict de la relecture croisée, un diff mot à mot, sa source et « Retoucher »](../images/review.fr.png)
 
 Ce qu'il montre, de haut en bas :
 
@@ -225,7 +225,7 @@ sortes de pages :
   dates, trouve ce qu'un contrôle des dates manque : le 21 novembre 2026, une puce ajoutée à une page française du
   guide IA on-prem dans sa première pull request, jamais reportée dans la page anglaise.
 
-![La page « Langues » : une page en avance sur son miroir, ses passages modifiés, son estimation, et le bouton qui la traduit](../images/sync-languages.fr.png)
+![La page « Langues » : une page modifiée dans le dossier et pas encore commitée, la zone modifiée avec deux lignes autour, son estimation, et les trois vérifications proposées avant de traduire](../images/sync-languages.fr.png)
 
 Chaque page montre ses zones modifiées, deux lignes de contexte au-dessus et en dessous, le changement en diff mot
 à mot : ce que la traduction va suivre, lu avant de la payer. Vous cochez les pages ; chacune montre ses passages
@@ -256,6 +256,6 @@ aviez tapées (la citation trouvée une seule fois, comme toute modification), e
 qu'elles sont alors : une correction d'une autre page en fait une page de plus à synchroniser. Rien ne change
 avant ; une synchronisation lancée sans décider part sans les corrections.
 
-![La vérification avant de traduire : une faute corrigée, une citation introuvable grisée, une page rendue cohérente, un doute sans correction, et le bouton qui applique dans le dossier les corrections cochées](../images/sync-check.fr.png)
+![La vérification avant de traduire : une faute trouvée, cochée, son texte modifiable ; une citation introuvable dans la page, laissée décochée ; « Appliquer 1 correction dans mon dossier » ; puis le bouton qui traduit la page](../images/sync-check.fr.png)
 
-![L'écran de publication d'une synchronisation des langues : la page miroir mise à jour, les contrôles du guide, les liens, et le diff de la branche avec le passage traduit](../images/sync-publish.fr.png)
+![L'écran de publication d'une synchronisation des langues : « Avant de publier » (les contrôles du guide, la traduction, les liens), la page modifiée à côté de sa traduction, et le diff brut de la branche, replié](../images/sync-publish.fr.png)

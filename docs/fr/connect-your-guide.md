@@ -218,7 +218,7 @@ Trois façons d'écrire ces tables, toutes relues par vous avant d'atteindre le 
   avant tout enregistrement.
 - **À la main dans le manifeste.**
 
-![La page Chapitres : le découpage en vigueur, ici déclaré dans le manifeste du guide, chaque chapitre avec ses pages, son poids et s'il est exploré par défaut sur le web ; dessous, la proposition du modèle et la modification à la main](../images/chapters.fr.png)
+![La page Chapitres : le découpage en vigueur, ici déclaré dans le manifeste du guide, chaque chapitre avec ses pages, son poids et s'il est exploré par défaut sur le web ; dessous, le début de « 2. Préparer un nouveau découpage »](../images/chapters.fr.png)
 
 Enregistrer depuis la page écrit le manifeste sur une branche du guide (`chore/chapters-<date>`) et ouvre une
 pull request quand le guide a un dépôt ; le découpage s'applique une fois fusionné. `vault-watch chapters --propose

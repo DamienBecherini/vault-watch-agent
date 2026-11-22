@@ -36,7 +36,7 @@ sept font lire le guide par un modèle. Les estimations ci-dessous sont celles q
 prix public ; les coûts mesurés sont ceux des contrôles lancés les 8 et 17 novembre
 ([ce qu'est une estimation](costs.md#les-estimations)).
 
-![Le catalogue de « Vérifier le guide » : les contrôles gratuits cochés, puis chaque contrôle payant avec son estimation, le prix sur lequel elle est faite, ce qu'il lit, et le moteur, le modèle et l'effort avec lesquels il tournera, que « changer pour cette fois » modifie pour un contrôle](../images/check-catalogue.fr.png)
+![Le catalogue de « Vérifier le guide » : l'avertissement que des pistes restent à trier, les contrôles gratuits cochés, puis chaque contrôle payant avec son estimation (sur l'abonnement, son prix catalogue barré), ce qu'il lit, et le moteur, le modèle et l'effort avec lesquels il tournera, que « changer pour cette fois » modifie pour un contrôle](../images/check-catalogue.fr.png)
 
 
 | Contrôle | Ce qu'il lit | Modèle | Estimation | Mesuré | Ce qu'il trouve | Ses pistes partent dans |

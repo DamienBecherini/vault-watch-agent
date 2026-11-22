@@ -76,7 +76,7 @@ with the defaults: Opus 5.5 and Sonnet 5.5, at the normal effort, on the API.
 | For this run only | « change for this time », beside each check and under « Engine and models of this run » of « Report or suggest » and « Languages »; « change » on the card of each step, in the « Options » of the bar that creates a run from leads | The same choices, for one run, down to its mirrors; the Settings are not touched |
 | Prices | Set by hand, the public list, or the defaults | The amounts of the estimates and of the journal, never what the agent does ([where the prices come from](costs.md#where-the-prices-come-from)) |
 
-![The Settings, « Models and effort »: the model and the effort of the reasoning role, what each of its steps then runs at, and « Set a step apart », here the compaction on Claude Fable 5.2 at effort high](images/settings-models.png)
+![The Settings, « Models and effort »: the model and the effort of the reasoning role, what each of its steps then runs at, and « Set a step apart », here the two steps of the compaction on Claude Fable 5.2 at effort high](images/settings-models.png)
 
 
 With an OpenAI-compatible server, more settings: its address, the reference of its key, the model's window

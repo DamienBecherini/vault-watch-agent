@@ -82,7 +82,7 @@ mesurés avec les valeurs par défaut : Opus 5.5 et Sonnet 5.5, à l'effort norm
 | Pour ce passage seulement | « changer pour cette fois », à côté de chaque contrôle et sous « Moteur et modèles de cette passe » de « Signaler ou proposer » et de « Langues » ; « changer » sur la carte de chaque étape, dans les « Options » de la barre qui crée un passage à partir de pistes | Les mêmes choix, pour un passage, jusqu'à ses miroirs ; les Réglages ne sont pas touchés |
 | Prix | Fixés à la main, la liste publique, ou les valeurs par défaut | Les montants des estimations et du journal, jamais ce que fait l'agent ([d'où viennent les prix](costs.md#doù-viennent-les-prix)) |
 
-![Les Réglages, « Modèles et effort » : le modèle et l'effort du rôle de raisonnement, ce à quoi tourne alors chacune de ses étapes, et « Régler une étape à part », ici le compactage sur Claude Fable 5.2 à l'effort high](../images/settings-models.fr.png)
+![Les Réglages, « Modèles et effort » : le modèle et l'effort du rôle de raisonnement, ce à quoi tourne alors chacune de ses étapes, et « Régler une étape à part », ici les deux étapes du compactage sur Claude Fable 5.2 à l'effort élevé](../images/settings-models.fr.png)
 
 
 Avec un serveur compatible OpenAI, d'autres réglages : son adresse, la référence de sa clé, la fenêtre du modèle

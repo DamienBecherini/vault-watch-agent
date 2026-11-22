@@ -57,9 +57,9 @@ flowchart LR
 
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
-| [Une veille étape par étape](run.md) | Un élément d'une veille à travers chaque étape : ce que lit chacune, ce qui décide, ce qui peut arrêter une modification ; un exemple avec son coût ; l'écran de relecture, la pause pour retoucher les pages et l'écran de publication ; « Mettre à jour mon dossier » après la fusion ; pauses et reprises. Un schéma, une capture de la relecture |
+| [Une veille étape par étape](run.md) | Un élément d'une veille à travers chaque étape : ce que lit chacune, ce qui décide, ce qui peut arrêter une modification ; un exemple avec son coût ; l'écran de relecture, la pause pour retoucher les pages et l'écran de publication ; « Mettre à jour mon dossier » après la fusion ; pauses et reprises ; la synchronisation des langues. Un schéma, des captures de la relecture, des retouches, de l'écran de publication, de « À traiter » et de la page « Langues » |
 | [Vérifier le guide](check.md) | Les onze contrôles du catalogue et leurs trois sortes : ce que lit chacun, son estimation et ce qu'il a coûté, ce qu'il trouve, où partent ses pistes ; la liste des vérifications et la page d'une vérification ; la vie d'une piste ; les passages où elles partent ; « Signaler ou proposer ». Un schéma, une capture du catalogue |
-| [Nouveautés](news.md) | Ce qu'un lecteur chercherait et ne trouve pas : les pistes tirées du guide et du web, une idée à soi, des liens à lire en entier (une vidéo aussi), les ajouts et leur vérification sur le web, creuser une piste, ce que lit et coûte chaque appel. Une capture des pistes |
+| [Nouveautés](news.md) | Ce qu'un lecteur chercherait et ne trouve pas : les pistes tirées du guide et du web, une idée à soi, des liens à lire en entier (une vidéo aussi), les ajouts et leur vérification sur le web, creuser une piste, ce que lit et coûte chaque appel. Des captures de « Des liens à lire en entier » et des pistes |
 | [Chapitres](chapters.md) | Les trois étapes qui travaillent sur une partie du guide à la fois, d'où viennent les chapitres, la règle automatique et pourquoi 150 Ko et 20 Ko, ce que coûte un découpage mal adapté. Un schéma de la règle |
 | [Compactage](compact.md) | Empêcher un guide de s'alourdir : les tailles, le rapport, les coupes, quel modèle, ce que le code vérifie lui-même |
 

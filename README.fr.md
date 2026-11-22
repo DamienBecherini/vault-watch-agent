@@ -59,9 +59,9 @@ voir [Choisir un modèle](docs/fr/choose-a-model.md).
 **Votre décision.** Le modèle n'écrit jamais un fichier. Rien n'est appliqué avant votre relecture, rien n'est poussé
 avant votre feu vert, et c'est vous qui fusionnez la pull request.
 
-![L'écran de relecture : chaque correction proposée avec sa source, le verdict de la relecture croisée et un diff mot à mot de la page, cochée ou non par l'éditeur avant toute application](docs/images/review.fr.png)
+![L'écran de relecture : un bloc par élément de la veille (ici une version de vLLM), ses corrections liées cochées ensemble par une seule case, chaque carte avec sa gravité, sa page, le verdict de la relecture croisée, un diff mot à mot, sa source et « Retoucher »](docs/images/review.fr.png)
 
-*L'écran de relecture sur une vraie veille du guide de référence (avis de sécurité de LiteLLM).*
+*L'écran de relecture sur une veille de test (`watch.json`) : une version de vLLM qui change une phrase et sa note, cochées ensemble.*
 
 ## Démarrage rapide
 
@@ -198,10 +198,10 @@ chaque page modifiée à côté de sa traduction, encore corrigeable), puis la p
 | Réglages | L'engrenage : moteur, modèle et effort de chaque rôle ou d'une seule étape, les prix et d'où ils viennent, ce que le guide fournit |
 | Donner mon avis | Une note, un bug, une idée : vous l'envoyez vous-même, par une issue GitHub ou un e-mail ; l'agent n'envoie rien |
 
-![Les pistes de nouveautés : chaque piste avec le passage du guide qu'elle concerne, une case pour creuser, ce que lit chaque appel, et l'estimation du passage](docs/images/leads.fr.png)
+![Les pistes de nouveautés : une piste dépliée, ce que dit la source à côté du passage du guide qu'elle concerne, ce qu'il reste à vérifier, ce que ça change pour le lecteur, « Creuser cette piste », « Ce que je sais déjà », ses sources et les pages à relire aussi](docs/images/leads.fr.png)
 
-*Les pistes de « nouveautés » sur le guide de référence : trois sont cochées, le bouton dit ce que coûterait le
-passage d'ajouts.*
+*Une piste de « Des liens à lire en entier » sur le guide de référence, dépliée ; rien n'est encore coché, le bouton
+demande donc de cocher des pistes.*
 
 Chaque écran qui lance une étape payante dit ce qu'elle coûtera (sur un abonnement, ce qu'elle vaut au prix
 catalogue, barré) et ce qui la fera tourner (moteur, modèle, effort) avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
