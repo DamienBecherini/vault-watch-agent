@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "httpx>=0.28", "websockets>=13"]  # websockets: the page drawn in a headless Chrome (test_page_smoke)
-pdf = ["pypdf>=5"]  # the check « links » reads the text of a PDF (links.py)
+pdf = ["pypdf>=6.1"]  # the check « links » reads the text of a PDF (links.py)
 
 [project.scripts]
 vault-watch = "vault_watch_agent.cli:main"

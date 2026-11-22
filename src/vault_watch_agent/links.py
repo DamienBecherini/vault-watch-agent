@@ -107,6 +107,8 @@ def get(url: str, client: httpx.Client | None = None, check_address=webtools.pub
             check_address(url)
             try:
                 with client.stream("GET", url) as r:
+                    if check_address is webtools.public:
+                        webtools.connected_public(r)
                     if r.is_redirect:
                         url = urljoin(url, r.headers.get("location", ""))
                         continue

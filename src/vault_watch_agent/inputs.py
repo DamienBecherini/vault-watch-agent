@@ -67,7 +67,7 @@ def check_watch(data, where: str = "watch.json") -> dict:
             raise WatchError(f"{where}: item {n} lacks {', '.join(missing)}")
         if item["triage"] not in ("keep", "drop"):
             raise WatchError(f"{where}: item {n}: triage = {item['triage']!r}, keep or drop")
-    if not data.get("until"):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(data.get("until") or "")):  # it names the report and the branch
         raise WatchError(f"{where}: `until` (the end of the window, YYYY-MM-DD) is required")
     return data
 

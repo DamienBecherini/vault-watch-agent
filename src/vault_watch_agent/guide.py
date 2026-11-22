@@ -238,7 +238,7 @@ def parse(data: dict, root: Path) -> Guide:
     return Guide(
         root=root, name=name, language=language, repository=repository, forge=forge, forge_url=forge_url,
         forge_token=forge_token, site=_text(g, "guide", "site"), description=_text(g, "guide", "description"),
-        base_branch=_text(g, "guide", "base_branch") or "main",
+        base_branch=_branch(_text(g, "guide", "base_branch") or "main"),
         include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()), readonly=readonly,
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
         brief=_rule(root, rules, "brief"), translation_policy=_rule(root, rules, "translation_policy"),
@@ -363,6 +363,13 @@ def _forge(g: dict) -> tuple[str, str, str]:
         raise GuideError("[guide] forge_token: a reference to where the token is (env:NAME, sops:file#NAME or "
                          "file:path), never the token itself")
     return forge, url, token or "env:GITEA_TOKEN"
+
+
+def _branch(name: str) -> str:
+    """The guide's base branch, as git takes it: a name of letters, digits, « . _ / - », never read as an option."""
+    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._/-]*", name) or ".." in name or name.endswith((".", "/", ".lock")):
+        raise GuideError(f"[guide] base_branch = {name!r}: not a branch name")
+    return name
 
 
 def _text(table: dict, name: str, key: str, required: bool = False) -> str:

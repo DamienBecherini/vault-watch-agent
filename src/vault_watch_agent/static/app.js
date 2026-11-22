@@ -11,7 +11,9 @@ const dollars = n => `${(n ?? 0).toFixed(2)} $`;
 // A size in KB (« Ko » in French), one decimal under 10
 const kb = n => `${(n / 1024).toLocaleString(lang, { maximumFractionDigits: Math.abs(n) < 10240 ? 1 : 0 })} ${lang === "fr" ? "Ko" : "KB"}`;
 const signedKb = n => `${n > 0 ? "+" : ""}${kb(n)}`;
-const extLink = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>`;
+// A link out of the page: http(s) only (a source written by a model or a feed could be « javascript: »), else its text
+const webUrl = url => /^https?:\/\//i.test(String(url || ""));
+const extLink = (url, text) => webUrl(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>` : text;
 // A lead or a finding as one line (news.line, verify._line): « [kind] pages: text Read also: a, b. Sources: u, v ».
 // Its parts, to draw them apart; the line itself stays what is sent to a run.
 function leadParts(line) {
@@ -1236,7 +1238,7 @@ function watchCard(v) {
     <div class="grow">
       ${v.kind === "issue" ? `<b>#${v.number}</b> ` : ""}${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
       ${v.error ? `<div class="error-text small">${esc(v.error)}</div>` : ""}
-      <div class="muted small">${v.date} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
+      <div class="muted small">${esc(v.date)} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
         !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${costTag(r.cost, r.unbilled_usd, false)}` : ""}${
         r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div>
     </div>
@@ -2348,7 +2350,7 @@ function checkCardMaker(options) {
   const linksList = p => !p.links?.length ? "" : `<ul class="check-links">${p.links.slice(0, 3).map(linkItem).join("")}</ul>${
     p.links.length > 3 ? `<details class="check-links-more"><summary class="small">${V.moreLinks(p.links.length - 3)}</summary><ul class="check-links">${p.links.slice(3).map(linkItem).join("")}</ul></details>` : ""}`;
   const runLine = ([t, r]) => `<div class="run-line small"><span class="badge attention">${esc(T.statuses[r.status] || r.status)}</span>
-    <a href="${r.status === "pr-open" && r.pr_url ? esc(r.pr_url) : `#/run/${encodeURIComponent(t)}`}"${r.status === "pr-open" ? ' target="_blank" rel="noopener"' : ""}><button type="button" class="small-button">${
+    <a href="${r.status === "pr-open" && webUrl(r.pr_url) ? esc(r.pr_url) : `#/run/${encodeURIComponent(t)}`}"${r.status === "pr-open" ? ' target="_blank" rel="noopener"' : ""}><button type="button" class="small-button">${
       r.status === "pr-open" ? T.merge() : T.buttons[r.status] || T.details}</button></a> <span class="muted">${esc(t)}</span></div>`;
   const checkCard = p => `<div class="card row check-item kind-${p.kinds?.[0] || "health"}${["handled", "clear"].includes(p.status) ? " finished" : ""}" data-kinds="${(p.kinds || []).join(" ")}"><div class="grow">
         <div class="check-top">${(p.kinds || []).map(k => `<span class="kind-tag ${k}">${V.checkKinds[k]}</span>`).join("")}<b>${cardTitle(p)}</b>${

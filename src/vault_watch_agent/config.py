@@ -248,13 +248,13 @@ def resolve_key(reference: str) -> str:
             raise ConfigError(f"key file {path} cannot be read ({type(e).__name__})") from e
     if reference.startswith("sops:"):
         file, _, name = reference[5:].partition("#")
-        if not name:
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
             raise ConfigError("sops reference without a field name: expected sops:file#NAME")
         sops = shutil.which("sops")
         if not sops:
             raise ConfigError("sops is not installed (or not in the PATH)")
         try:
-            r = subprocess.run([sops, "-d", "--extract", f'["{name}"]', file], capture_output=True, text=True,
+            r = subprocess.run([sops, "-d", "--extract", f'["{name}"]', "--", file], capture_output=True, text=True,
                                encoding="utf-8", errors="replace", timeout=60, stdin=subprocess.DEVNULL,
                                creationflags=_NO_WINDOW)
         except (OSError, subprocess.SubprocessError) as e:
