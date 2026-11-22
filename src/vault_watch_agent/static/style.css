@@ -176,7 +176,7 @@ th button.sort:focus-visible, button.badge:focus-visible { outline: 2px solid va
 .correction input { width: 18px; height: 18px; margin-top: 3px; }
 .correction .header { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .correction code { font-size: 14px; }
-.diff { white-space: pre-wrap; border-radius: 8px; padding: 8px 10px; margin: 6px 0; font-size: 14px; }
+.diff { white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 8px; padding: 8px 10px; margin: 6px 0; font-size: 14px; }
 .diff.before { background: var(--minus); } .diff.after { background: var(--plus); }
 .diff.before del { background: var(--minus-strong); text-decoration: line-through; }
 .diff.after ins { background: var(--plus-strong); text-decoration: none; }
@@ -570,7 +570,8 @@ footer a { display: inline-block; padding: 4px 0; }
 .retouch textarea { min-height: 90px; font-size: 15px; }
 .retouch { margin: 8px 0; }
 #page-other { flex: 1; min-width: 220px; }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 10px 0; border-top: 1px solid var(--border); }
+/* minmax(0, 1fr): a long address in a text no longer widens its column past the screen */
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 10px 0; border-top: 1px solid var(--border); }
 .pair textarea { min-height: 70px; font-size: 15px; margin-top: 6px; }
 @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
 .hunks { margin: 4px 0 0 30px; } .hunks summary { font-size: 13px; color: var(--muted); cursor: pointer; }
