@@ -43,23 +43,23 @@ flowchart LR
 
 | Page | What it answers |
 | :-- | :-- |
-| [Overview](presentation.md) | Why a technical guide goes stale, the whole loop from a watch to a merged pull request, the two pauses, what the agent produced on the IA on-prem guide, what it is worth, where it goes next. Five diagrams |
+| [Overview](presentation.md) | Why a technical guide goes stale, the whole loop from a watch to a merged pull request, the three pauses, what the agent produced on the IA on-prem guide, what it is worth, where it goes next. Five diagrams |
 
 ## Connect and feed your guide
 
 | Page | What it answers |
 | :-- | :-- |
 | [Connect your guide](connect-your-guide.md) | The three commands to start, the manifest `vault-watch.toml` key by key, what each optional part unlocks, the sample guide to try it on. A screenshot of the « Chapters » page |
-| [Collecting a watch](collect.md) | `vault-watch collect`: the feeds a guide follows (`feeds.json`), the pre-triage without a model, the « Sources » page and the check of the sources, the weekly workflow on GitHub. A screenshot of the « Sources » page |
+| [Collecting a watch](collect.md) | `vault-watch collect`: the feeds a guide follows (`feeds.json`), the pre-triage without a model, the page « Sources followed » and the check of the sources, the weekly workflow on GitHub. A screenshot of that page |
 | [The watch format](watch-format.md) | `watch.json` field by field, for a guide that brings its own collector |
 
 ## What the agent does
 
 | Page | What it answers |
 | :-- | :-- |
-| [A run, step by step](run.md) | One item of a watch through every step: what each reads, what decides, what can stop an edit; an example with its cost; the review screen and the publish screen; pauses and resumes. A diagram, a screenshot of the review |
-| [Check the guide](check.md) | The eleven checks: what each reads, its estimate and what it cost, what it finds, where its leads go; the life of a lead; the runs they go to; « Report or suggest ». A diagram, a screenshot of the catalogue |
-| [What is new](news.md) | What a reader would look for and not find: the leads from the guide and from the web, an idea of your own, the additions and their check on the web, what each call reads and costs. A screenshot of the leads |
+| [A run, step by step](run.md) | One item of a watch through every step: what each reads, what decides, what can stop an edit; an example with its cost; the review screen, the pause to retouch the pages and the publish screen; « Update my folder » after the merge; pauses and resumes. A diagram, a screenshot of the review |
+| [Check the guide](check.md) | The eleven checks of the catalogue and their three kinds: what each reads, its estimate and what it cost, what it finds, where its leads go; the list of the checks and the page of a check; the life of a lead; the runs they go to; « Report or suggest ». A diagram, a screenshot of the catalogue |
+| [What is new](news.md) | What a reader would look for and not find: the leads from the guide and from the web, an idea of your own, links to read whole (a video too), the additions and their check on the web, digging deeper, what each call reads and costs. A screenshot of the leads |
 | [Chapters](chapters.md) | The three steps that work on a part of the guide at a time, where the chapters come from, the automatic rule and why 150 KB and 20 KB, what a split that fits badly costs. A diagram of the rule |
 | [Compaction](compact.md) | Keeping a guide from growing heavy: the sizes, the report, the trims, which model, what the code checks itself |
 
@@ -69,7 +69,7 @@ flowchart LR
 | :-- | :-- |
 | [Choose a model](choose-a-model.md) | The models measured on the IA on-prem guide, what each step asks of a model, a model for one step, what each setting changes, what was tried, measuring your own model. A screenshot of the Settings |
 | [Write an engine](write-an-engine.md) | What the graph asks of an engine, how to declare one, the example of Ollama's own API, the contract tests |
-| [Costs](costs.md) | What makes the price of a call (the prompt cache above all), where the money goes by kind of run, how the estimates are made and why they miss, where the prices come from, the journal and the « Costs » page, what lowers the cost. A diagram of the cache, a screenshot of the « Costs » page |
+| [Costs](costs.md) | What makes the price of a call (the prompt cache above all), where the money goes by kind of run, how the estimates are made and why they miss, the list price struck through on a subscription, where the prices come from, the journal and the « Costs » page, what lowers the cost. A diagram of the cache, a screenshot of the « Costs » page |
 
 ## Security and stability
 

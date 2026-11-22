@@ -227,7 +227,7 @@ takes no page any more.
 | `repository` | works locally: no issue, no pull request, no link to the forge. |
 | `mirrors` | has no translation step and no translation check. |
 | `modified_field` | leaves the dates of the pages as they are. |
-| `[watch]` | verifies the guide and fixes the errors you report (`vault-watch fix`, « Verify the guide » in the interface). |
+| `[watch]` | verifies the guide and fixes the errors you report (`vault-watch fix`, « Check the guide » in the interface). |
 | `[rules]` | follows its default brief and translation policy. |
 | a check of `[checks]` | says « not checked » where the check would have reported. |
 

@@ -82,8 +82,8 @@ Besides the biweekly watch, four other entries reuse the same graph and the same
 - **Compaction runs**: a watch only adds, so a check lists what is repeated, piled up or longer than it needs, and
   the trims the editor keeps are reviewed like corrections ([Compaction](compact.md)).
 - **Addition runs**: what no source of the watch announces. A check lists what a reader would look for and not
-  find, and each lead the editor keeps is checked on the web, then written where it belongs
-  ([What is new](news.md)).
+  find, or what the links the editor gives (a page, a PDF, a video) hold for the guide, and each lead the editor
+  keeps is checked on the web, then written where it belongs ([What is new](news.md)).
 
 ## The agent's graph
 
@@ -114,7 +114,7 @@ flowchart TD
 Blue steps call Claude; the others are plain code. The model **proposes**: every correction quotes the current text
 of the page, and the code refuses it unless that quote occurs exactly once. The model never writes a file.
 
-## Two pauses, days apart if needed
+## Three pauses, days apart if needed
 
 ```mermaid
 sequenceDiagram
