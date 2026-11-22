@@ -110,6 +110,14 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the
   guide says, what remains to check, what it changes for the reader; `news.in_language`); the lead's line stays in
   English, since it is what a run, its report and its pull request read.
+
+## 1.4.3 (2026-11-22)
+
+- **Fixed: the page refused to open from a link of another site** (« a request from another site »): 1.4.2 refused
+  any request the browser marks as coming from another site, the page itself included, so a link to it in Obsidian,
+  a mail or a dashboard failed (typing the address, a bookmark or the terminal worked). Only the API refuses another
+  site now; opening the page does nothing by itself, and its scripts call the API from the page.
+
 ## 1.4.2 (2026-11-22)
 
 A security release: an audit of the whole agent found two serious flaws, present since earlier versions. Update.
