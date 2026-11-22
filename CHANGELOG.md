@@ -5,44 +5,14 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
-### Security (an audit of the whole agent, 2026-11-22; the first two were in 1.4.1 as well)
-
-- **Critical: another site could make the server send a secret away.** `GET /api/models` resolved a key reference
-  given in its query (`env:`, `file:`, `sops:`) and sent it to the address of its query; a GET needed no header, so
-  an `<img>` on any page the editor visited (or a note rendered by Obsidian) was enough. Now every call of the API
-  must carry `X-Vault-Watch` (the page sends it on every call), a request the browser marks as coming from another
-  site (`Sec-Fetch-Site`, `Origin`) is refused, and only the browser's own requests go without it (the probes, a
-  run's stream, its report). The page is never shown in a frame (`X-Frame-Options`, CSP `frame-ancestors`), runs
-  only its own scripts (CSP) and is never sniffed.
-- **High: a correction could rewrite any file.** The page of a correction is written by a model from what it read
-  (a web page, a PDF, a video); it was only required to exist. A correction on the guide's audit script, its
-  manifest or a file outside the guide was applied once accepted, and the agent then ran that script. A correction
-  now touches only a content page of the guide or its mirror (`vault.is_page`: a relative path, inside the guide,
-  a Markdown page of `include`), else `not-a-page`; the editor's path stays in its tree (`C:x.md` included).
-- **The local network stays out of reach**: the address a page is actually read from is checked public, not only
-  the one its name gave when checked (DNS rebinding); an IPv6 address carrying a private IPv4 (NAT64, 6to4, Teredo)
-  counts as private; the notes of a watch item follow redirections one by one, each checked (they followed them
-  unchecked into the LAN).
-- **Links in http(s) only**: a source written by a model, or a feed item's link, that is not an http(s) address is
-  shown as text, never as a link (`javascript:`); in the pull request, a source must be an address or a page.
-- **Claude Code reads pages through the agent's reader**: its own WebFetch runs on the editor's machine and read
+- **Security: Claude Code reads pages through the agent's reader** (the rest of the audit of 2026-11-22 was published in 1.4.2): its own WebFetch runs on the editor's machine and read
   any address, the machine and its local network included (measured: it connected to 127.0.0.1 and to the PC's LAN
   address). On the steps that use the web, Claude Code now gets the agent's page reader as a local MCP tool
   (`mcp_fetch.py`, `web_fetch`: public addresses only, the one connected to as well, redirections checked) in place
   of WebFetch, which is denied; its WebSearch stays. Those calls load no setting source of the user instead of
   `--safe-mode` (which also turns the agent's MCP server off): the user's settings, hooks, plugins and instructions
   stay out all the same (checked with a real call).
-- **Smaller**: a watch's `until` must be a date (it names the report and the branch); sops gets `--` before its file
-  and a field name of letters and digits; the manifest's `base_branch` must be a branch name (never read as an option
-  by git); `Host: testserver` is accepted under the tests only; pypdf ≥ 6.1 for PDFs.
-
-### Other changes
-
-- **Two watches of the same day get their own branch** (`chore/watch-<date>-<issue>`): an urgent watch and a regular
-  one of the same date shared a branch and a worktree, the second run failing on the first one's corrections.
-- **A smoke test of the page**: every screen drawn in a headless Chrome, in French and in English, wide and on a
-  phone, without a JavaScript error, a refusal of the CSP, nor « undefined » shown (`tests/test_page_smoke.py`; it
-  caught the failure of « Languages » once put back). A view that fails also logs its error in the console.
+- **pypdf ≥ 6.1** for the PDFs of the links read whole.
 - **« Update my folder »** (proposed by the user, whose folder did not show a pull request merged until the next
   run): « To handle » says when the guide's folder lacks pull requests merged on the forge (which ones, the folder's
   branch, its changes not committed, when it last moved), and so does the page of a run merged when its pull request
@@ -64,8 +34,6 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   idea, links), kept while switching tabs and in the browser against a reload, a crash or a closed tab (written half
   a second after the last key, and when the page is left), with « Clear » and « Restore ». It empties once the run or
   the check has started; a refusal or a lost connection keeps it and says why, where the button stayed greyed before.
-- **Fixed: the page « Languages » failed** (« can't access property "onclick" ») when every page was in line with its
-  translation: there is nothing to check then, and the check's button is not drawn.
 - **Links to read whole** (D5 of the roadmap, proposed by the user): « Report or suggest », tab « Links to read
   whole », one address per line. Each link is read whole without a model (`links.py`: a page, a repository's README,
   a PDF with the optional `pip install "vault-watch-agent[pdf]"`; a video through dl-sub-dub), then one call per link with the whole guide,
@@ -132,6 +100,36 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the
   guide says, what remains to check, what it changes for the reader; `news.in_language`); the lead's line stays in
   English, since it is what a run, its report and its pull request read.
+## 1.4.2 (2026-11-22)
+
+A security release: an audit of the whole agent found two serious flaws, present since earlier versions. Update.
+
+- **Critical: another site could make the server send a secret away.** `GET /api/models` resolved a key reference
+  given in its query (`env:`, `file:`, `sops:`) and sent it to the address of its query; a GET needed no header, so
+  an `<img>` on any page the editor visited while `serve` ran (or a note rendered by Obsidian) was enough. Now every
+  call of the API must carry `X-Vault-Watch` (the page sends it on every call), a request the browser marks as
+  coming from another site (`Sec-Fetch-Site`, `Origin`) is refused, and only the browser's own requests go without
+  it (the probes, a run's stream, its report). The page is never shown in a frame (`X-Frame-Options`, CSP
+  `frame-ancestors`), runs only its own scripts (CSP) and is never sniffed. After updating, reload the page.
+- **High: a correction could rewrite any file.** The page of a correction is written by a model from what it read;
+  it was only required to exist. A correction on the guide's audit script, its manifest or a file outside the guide
+  was applied once accepted, and the agent then ran that script. A correction now touches only a content page of
+  the guide or its mirror (`vault.is_page`), else `not-a-page`; the editor's path stays in its tree.
+- **The local network stays out of reach**: the address a page is actually read from is checked public, not only
+  the one its name gave when checked (DNS rebinding); an IPv6 address carrying a private IPv4 (NAT64, 6to4, Teredo)
+  counts as private; the notes of a watch item follow redirections one by one, each checked.
+- **Links in http(s) only**: a source written by a model, or a feed item's link, that is not an http(s) address is
+  shown as text, never as a link (`javascript:`); in the pull request, a source must be an address or a page.
+- **Smaller**: a watch's `until` must be a date; sops gets `--` before its file and a field name of letters and
+  digits; the manifest's `base_branch` must be a branch name; `Host: testserver` is accepted under the tests only.
+
+Two bugs found by a new smoke test of the page (`tests/test_page_smoke.py`: every screen drawn in a headless Chrome,
+in French and in English, wide and on a phone, without a JavaScript error, a refusal of the CSP, nor « undefined »):
+
+- **Two watches of the same day get their own branch** (`chore/watch-<date>-<issue>`): an urgent watch and a regular
+  one of the same date shared a branch and a worktree, the second run failing on the first one's corrections.
+- **The page « Languages » failed** (« can't access property "onclick" ») when every page was in line with its
+  translation.
 
 ## 1.4.1 (2026-11-21)
 
