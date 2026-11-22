@@ -334,6 +334,9 @@ def build(deps: Deps, checkpointer=None):
         guide = vault.guide_of(wt)
         base = git("merge-base", deps.base, "HEAD", cwd=wt).strip()
         since = {page: base for page in mirrors.changed_pages(wt, base)} | dict(state.get("mirror_since") or {})
+        again = dict(state.get("mirror_only") or {})  # asked again from the publish pause: these pages only
+        if again:
+            since = again
         mirrored, problems, usage, pairs = [], [], [], []
         for (code, folder), page in ((m, p) for m in sorted(guide.mirrors.items()) for p in sorted(since)):
             changed = mirrors.edits_of(wt, page, since[page])
@@ -373,7 +376,14 @@ def build(deps: Deps, checkpointer=None):
         if mirrored:
             git("add", *mirrored, cwd=wt)
             git("commit", "-m", "chore(i18n): sync the mirrors with the source pages", cwd=wt)
-        return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage, "mirror_pairs": pairs}
+        tip = git("rev-parse", "HEAD", cwd=wt).strip()
+        if again:  # the pages translated again replace their pairs; the others are kept as they were
+            kept = [p for p in state.get("mirror_pairs", []) if p["page"] not in again]
+            return {"mirrored": sorted(set(state.get("mirrored", [])) | set(mirrored)), "usage": usage,
+                    "mirror_problems": [x for x in state.get("mirror_problems", []) if not any(x.startswith(f"{f}{p}:") for f in
+                                        guide.mirrors.values() for p in again)] + problems,
+                    "mirror_pairs": kept + pairs, "mirror_only": {}, "mirror_tip": tip}
+        return {"mirrored": mirrored, "mirror_problems": problems, "usage": usage, "mirror_pairs": pairs, "mirror_tip": tip}
 
     # -- translation (interrupt): a « Sync the languages » run shows the translation beside its source, editable ---
     def translation(state: WatchState) -> dict:
@@ -414,10 +424,10 @@ def build(deps: Deps, checkpointer=None):
         try:
             log = inputs.check("audits", Path(state["worktree"]))
             if log is None:  # None: not checked (the publish screen says so)
-                return {"audit_ok": None, "audit_log": "not checked: the guide declares no [checks] audits"}
-            return {"audit_ok": True, "audit_log": log[-3000:]}
+                return {"audit_ok": None, "audit_log": "not checked: the guide declares no [checks] audits", "recheck": ""}
+            return {"audit_ok": True, "audit_log": log[-3000:], "recheck": ""}
         except RuntimeError as e:
-            return {"audit_ok": False, "audit_log": str(e)[-3000:]}
+            return {"audit_ok": False, "audit_log": str(e)[-3000:], "recheck": ""}
 
     # -- links: the external sources of the changed pages still answer (vault script, no model) --
     def links(state: WatchState) -> dict:
@@ -435,6 +445,31 @@ def build(deps: Deps, checkpointer=None):
                                                {c["page"] for c in state["corrections"] if c["id"] in state["applied"]},
                                                added)}
 
+    def correct_again(state: WatchState, wt: Path, asked: dict) -> dict:
+        """Asked at the publish pause, once the page has corrected files of the branch (source or mirror pages): what
+        was corrected is committed as the editor's, then the run checks again, or translates again first: the French
+        corrected since the mirrors (`fresh` false), or a page whose translation starts over from the base (`fresh`)."""
+        edited = retouch.changed(wt)
+        if edited:
+            git("add", "-A", cwd=wt)
+            git("commit", "-q", "-m", "Corrected at the publish review", cwd=wt)
+        out = {"recheck": "audits", "publish_edits": sorted(set(state.get("publish_edits") or []) | set(edited))}
+        if asked["action"] != "retranslate":
+            return out
+        base = git("merge-base", deps.base, "HEAD", cwd=wt).strip()
+        since, guide = {}, vault.guide_of(wt)
+        for page in asked.get("pages") or []:
+            if asked.get("fresh"):  # its translation starts over: the mirror back to the base, then translated again
+                for folder in guide.mirrors.values():
+                    if git("ls-tree", "--name-only", base, "--", f"{folder}{page}", cwd=wt).strip():
+                        git("checkout", "-q", base, "--", f"{folder}{page}", cwd=wt)
+                if retouch.changed(wt):
+                    git("commit", "-q", "-am", f"chore(i18n): the translation of {page} started over", cwd=wt)
+                since[page] = base
+            else:
+                since[page] = state.get("mirror_tip") or base
+        return out | {"recheck": "mirror", "mirror_only": since}
+
     # -- publish (interrupt 2) -------------------------------------------------
     def publish(state: WatchState) -> dict:
         diffstat = git("diff", "--stat", f"{deps.base}...HEAD", cwd=Path(state["worktree"]))
@@ -451,9 +486,11 @@ def build(deps: Deps, checkpointer=None):
                             f"The guide has no repository: the corrections stay on the branch {state['branch']}. yes / no",
             }
         )
+        wt = Path(state["worktree"])
+        if isinstance(go, dict) and go.get("action") in ("recheck", "retranslate"):
+            return correct_again(state, wt, go)
         if go is not True or not deps.repo:
             return {}
-        wt = Path(state["worktree"])
         git("push", "-u", "origin", state["branch"], cwd=wt)
         body = pr_body(state)
         url = forge.get().open_pull_request(deps.repo, base=deps.base, head=state["branch"], title=pr_title(state),
@@ -482,7 +519,7 @@ def build(deps: Deps, checkpointer=None):
     g.add_edge("translation", "audits")
     g.add_edge("audits", "links")
     g.add_edge("links", "publish")
-    g.add_edge("publish", END)
+    g.add_conditional_edges("publish", lambda s: s.get("recheck") or END, ["mirror", "audits", END])
     return g.compile(checkpointer=checkpointer)
 
 
@@ -838,6 +875,8 @@ def _checks_lines(state: WatchState) -> str:
     return (
         (f"Retouched by the editor before the mirrors: {', '.join(f'`{p}`' for p in retouched)}.\n\n" if retouched else "")
         + (f"Translation retouched by the editor: {', '.join(f'`{p}`' for p in translated)}.\n\n" if translated else "")
+        + (f"Corrected by the editor before publishing: {', '.join(f'`{p}`' for p in state['publish_edits'])}.\n\n"
+           if state.get("publish_edits") else "")
         + "Guide audits: " + {True: "passed", None: "not checked (the guide declares no audits)"}.get(
             state.get("audit_ok"), "FAILED, see the log below") + ".\n\n"
         f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n"

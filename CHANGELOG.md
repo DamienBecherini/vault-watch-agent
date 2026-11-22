@@ -49,7 +49,16 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - **Take my folder back** (`POST /api/runs/<run>/folder/back`): the folder lent to a run comes back to main without
   ending the retouches; what was changed in it is committed onto the run's branch, and the folder can be lent
   again. « Skip » drops those retouches too: the branch goes back to what the review applied.
+- **The publish screen can correct and translate again**: « Before publishing » says one check a line (the guide's
+  audits, the translation, the links to check yourself with their page and whether the run added them, the weight
+  of the pages, each page a link down to it); each page changed is a line of one height (title, path, passages,
+  « Correct », « Translate again » with its estimate), open: its source beside its translation, shown as additions.
+  « Correct » opens the page and its mirror side by side at their first passage changed; « Save and check again »
+  commits them as the editor's and the run checks again (`POST /api/runs/<run>/publish` `{action: "recheck"}`), or
+  translates the French corrected first (`"retranslate"`), or a page from the start (`fresh`), then comes back to the
+  same pause. The pull request names what was corrected there. The raw diff stays, folded.
 - Every bar fixed at the bottom of a page leaves room for itself: the end of the review was hidden behind its bar.
+- A long address no longer widens the columns of a text beside its translation past the screen.
 - An addition run says what its leads came from (« links to read whole (add-…) », in its pull request too): it said
   « what a reader would look for and not find » whatever the check.
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then

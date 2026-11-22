@@ -228,3 +228,42 @@ def test_skipped_retouches_are_dropped_and_the_folder_given_back(setup, tmp_path
     assert run["status"] == "publish" and run["retouched"] == []
     assert git_out(folder, "status", "--porcelain") == "" and git_out(folder, "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert "Olama" not in c.get(f"/api/runs/{thread}/diff").text
+
+
+def test_at_the_publish_pause_a_page_is_corrected_checked_again_and_translated_again(setup, tmp_path):  # noqa: F811
+    deps, watch, llm = setup
+    c = TestClient(create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [])))
+    act = {"X-Vault-Watch": "1"}
+    from test_web import wait
+
+    thread = c.post("/api/analyses", json={"watch_json": str(watch)}, headers=act).json()["thread"]
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"]}, headers=act)
+    wait(c, thread)
+    c.post(f"/api/runs/{thread}/retouched", json={"keep": False}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish"
+    # What the page shows there: the titles of the pages, and what translating a page again would cost
+    assert run["titles"]["03-stack/engines.md"] == "Moteurs d'inférence" and set(run["retranslate_usd"]) == {"03-stack/engines.md"}
+    assert c.post(f"/api/runs/{thread}/publish", json={"action": "retranslate", "pages": []}, headers=act).status_code == 400
+
+    # A sentence corrected on the page, then checked again: committed as the editor's, back at the same pause
+    page = "03-stack/engines.md"
+    text = c.get(f"/api/runs/{thread}/page", params={"path": page}).json()["text"]
+    c.post(f"/api/runs/{thread}/page", json={"path": page, "text": text.replace("Ollama reste le plus simple",
+                                                                               "Ollama reste vraiment le plus simple")}, headers=act)
+    c.post(f"/api/runs/{thread}/publish", json={"action": "recheck"}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and run["pause"]["audit_ok"]
+    assert "vraiment" in c.get(f"/api/runs/{thread}/diff").text
+    assert "Corrected at the publish review" in git_out(Path(run["pause"]["worktree"]) if run["pause"].get("worktree")
+                                                         else deps.vault, "log", "--format=%s", f"main..{run['branch']}")
+
+    # The English page started over: translated again from the base, one call, back at the same pause
+    calls = len(llm.calls)
+    c.post(f"/api/runs/{thread}/publish", json={"action": "retranslate", "pages": [page], "fresh": True}, headers=act)
+    run = wait(c, thread)
+    assert run["status"] == "publish" and llm.calls[calls:] == ["mirror en/03-stack/engines.md"]
+    assert "vLLM 0.33 is the recommended minimum version (November 2026)" in c.get(f"/api/runs/{thread}/diff").text
+    assert run["mirrored"] == ["en/03-stack/engines.md"] and len(run["mirror_pairs"]) == 1

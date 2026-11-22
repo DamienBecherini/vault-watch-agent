@@ -157,7 +157,12 @@ class Retouch(BaseModel):
 
 
 class Publish(BaseModel):
-    go: bool
+    go: bool = False
+    # Instead of publishing: check again what was corrected on the page ("recheck"), or translate again ("retranslate":
+    # `pages`, from the French corrected since the mirrors, or started over from the base when `fresh`)
+    action: Literal["", "recheck", "retranslate"] = ""
+    pages: list[str] = []
+    fresh: bool = False
 
 
 class Report(BaseModel):
@@ -763,7 +768,24 @@ def create_app(settings: Settings) -> FastAPI:
             "link_problems": v.get("link_problems", []), "audit_ok": v.get("audit_ok"),
             "audit_log": v.get("audit_log", ""), "report_path": v.get("report_path", ""),
             "steps": STEPS,
+            # Paused at publishing: the titles of the pages, the vault Obsidian opens, and what translating each
+            # changed page again from the start would cost (the page offers it)
+            **(publish_extras(v) if pending and pending[0].get("step") == "publish" else {}),
         }
+
+    def publish_extras(v: dict) -> dict:
+        wt = Path(v.get("worktree") or "")
+        if not wt.is_dir():
+            return {}
+        cfg = user_settings.load(cfg_home)
+        model, table = llm.step_model(cfg, "mirror"), price_table()
+        again = {}
+        for pair in v.get("mirror_pairs", []):
+            moved = sum(len(o.encode("utf-8")) + len(n.encode("utf-8")) for o, n in pair["source"])
+            size = (wt / pair["mirror"]).stat().st_size if (wt / pair["mirror"]).is_file() else 0
+            again[pair["page"]] = round(verify._usd(model, tokens_in=int((size + moved) / verify.BYTES_PER_TOKEN) + 1500,
+                                                    tokens_out=int(moved / verify.BYTES_PER_TOKEN * 0.7) + 300, table=table), 4)
+        return {"titles": chapters_mod.titles(wt), "vault_name": settings.vault.name, "retranslate_usd": again}
 
     @app.get("/api/runs/{thread}/report", response_class=PlainTextResponse)
     def report(thread: str):
@@ -851,6 +873,14 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.post("/api/runs/{thread}/publish")
     def publish(thread: str, body: Publish):
+        """Publish (`go`), or not; or, instead, check again what was corrected on the page, or translate again first."""
+        if body.action:
+            paused_at_retouch(thread, ("publish",))
+            if body.action == "retranslate" and not body.pages:
+                raise HTTPException(400, "no page to translate again")
+            asked = {"action": body.action, "pages": body.pages, "fresh": body.fresh}
+            start(thread, body.action, "watch", lambda g, job: follow(g, job, Command(resume=asked)))
+            return {"thread": thread}
         start(thread, "publish", "watch", lambda g, job: follow(g, job, Command(resume=body.go)))
         return {"thread": thread}
 
@@ -1282,12 +1312,12 @@ def create_app(settings: Settings) -> FastAPI:
         return {"id": vid}
 
     # -- the pause to retouch the pages of the branch (H3, retouch.py) -------------------------------------------
-    def paused_at_retouch(thread: str) -> dict:
-        """The state of a run paused at the retouches; 409 otherwise."""
+    def paused_at_retouch(thread: str, steps: tuple = ("retouch",)) -> dict:
+        """The state of a run paused at the retouches (or at one of `steps`); 409 otherwise."""
         snapshot = viewer.get_state(config(thread))
         pending = [i.value for t in snapshot.tasks for i in t.interrupts]
-        if not pending or pending[0].get("step") != "retouch":
-            raise HTTPException(409, f"{thread} is not paused at the retouches")
+        if not pending or pending[0].get("step") not in steps:
+            raise HTTPException(409, f"{thread} is not paused at the {' or '.join(steps)}")
         return snapshot.values
 
     def folder_error(e: Exception) -> HTTPException:
@@ -1337,15 +1367,16 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.get("/api/runs/{thread}/page")
     def page_read(thread: str, path: str):
-        v = paused_at_retouch(thread)
+        v = paused_at_retouch(thread, ("retouch", "publish"))
         tree = retouch.where(settings.vault, settings.home, thread, Path(v["worktree"]))
         return {"path": path, "text": vault.read(page_path(tree, path)).replace("\r\n", "\n"),
                 "in": "folder" if tree == settings.vault else "worktree"}
 
     @app.post("/api/runs/{thread}/page")
     def page_write(thread: str, body: PageText):
-        """Writes a page retouched in the page of the agent, with the line endings the file had."""
-        v = paused_at_retouch(thread)
+        """Writes a page retouched in the page of the agent, with the line endings the file had (at the retouches, or
+        at the publish pause: committed when the run is asked to check again)."""
+        v = paused_at_retouch(thread, ("retouch", "publish"))
         tree = retouch.where(settings.vault, settings.home, thread, Path(v["worktree"]))
         path = page_path(tree, body.path)
         crlf = "\r\n" in vault.read(path)

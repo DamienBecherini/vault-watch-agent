@@ -118,6 +118,10 @@ class WatchState(TypedDict, total=False):
     mirror_pairs: list[dict]  # per mirror page: {page, mirror, source: [[old, new]], target: [[current, proposed, (the translator's)]], problem}
     translation_retouched: list[str]  # the mirror pages whose translation the editor retouched
     mirrored: list[str]  # EN pages updated
+    mirror_tip: str  # the commit after the mirrors followed the pages: what is corrected at the publish pause comes after
+    mirror_only: dict[str, str]  # translate again these source pages only, each from a commit (asked at the publish pause)
+    recheck: str  # asked at the publish pause: "mirror" (translate again, then check), "audits" (check again); else ""
+    publish_edits: list[str]  # the files the editor corrected at the publish pause
     mirror_problems: list[str]
     link_problems: list[str] | None  # external sources of the changed pages that do not answer; None: not checked
     audit_ok: bool

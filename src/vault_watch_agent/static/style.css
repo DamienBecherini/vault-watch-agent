@@ -589,3 +589,27 @@ ul.retouch-pages { margin: 4px 0 6px; padding-left: 20px; }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; outline: 3px solid var(--accent); outline-offset: 2px; } }
 ul.retouch-pages li { margin: 4px 0; }
 ul.retouch-pages code { font-size: 13px; }
+/* The publish screen: one check a line; each page changed folded to one line, its source beside its translation */
+.pub-checks { display: grid; gap: 10px; margin-top: 8px; }
+.pub-row { display: grid; grid-template-columns: 24px minmax(150px, 220px) minmax(0, 1fr); gap: 4px 10px; align-items: baseline; }
+.pub-row ul { margin: 0; padding-left: 18px; } .pub-row li { margin-bottom: 4px; overflow-wrap: anywhere; }
+.pub-i { text-align: center; font-weight: 700; } .ok-i { color: var(--ok); } .warn-i { color: var(--attention); }
+.bad-i { color: var(--error, #e5534b); } .info-i { color: var(--muted); }
+details.pub-page { border: 1px solid var(--border); border-radius: 12px; padding: 0 14px; margin: 0 0 10px; }
+details.pub-page > summary { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  min-height: 56px; padding: 6px 0; cursor: pointer; list-style: none; }
+details.pub-page > summary::-webkit-details-marker { display: none; }
+details.pub-page > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+details.pub-page[open] > summary::before { transform: rotate(90deg); }
+.pub-name { display: flex; flex-direction: column; min-width: 0; }
+.pub-name code { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-tools { display: flex; gap: 6px; white-space: nowrap; }
+.pub-tools .worth { color: var(--muted); }
+@media (max-width: 700px) { details.pub-page > summary { grid-template-columns: 14px minmax(0, 1fr) auto; }
+  details.pub-page > summary .pub-tools { grid-column: 2 / -1; } }
+details.pub-page[open] > summary { border-bottom: 1px solid var(--border); }
+.pub-editor { padding: 8px 0; } .pub-editor textarea { width: 100%; min-height: 160px; }
+.pub-warn { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border: 1px solid var(--attention); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+.pub-warn[hidden] { display: none; }
+@media (max-width: 700px) { .pub-row { grid-template-columns: 24px minmax(0, 1fr); } .pub-row > div { grid-column: 2; } }
