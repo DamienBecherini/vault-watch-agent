@@ -50,7 +50,7 @@ flowchart LR
 | Page | What it answers |
 | :-- | :-- |
 | [Connect your guide](connect-your-guide.md) | The three commands to start, the manifest `vault-watch.toml` key by key, what each optional part unlocks, the sample guide to try it on. A screenshot of the « Chapters » page |
-| [Collecting a watch](collect.md) | `vault-watch collect`: the feeds a guide follows (`feeds.json`), the pre-triage without a model, the page « Sources followed » and the check of the sources, the weekly workflow on GitHub. A screenshot of that page |
+| [Collecting a watch](collect.md) | `vault-watch collect`: the feeds a guide follows (`feeds.json`), the pre-triage without a model, the page « Sources followed » and the check of the sources, the workflow that collects it on GitHub. A screenshot of that page |
 | [The watch format](watch-format.md) | `watch.json` field by field, for a guide that brings its own collector |
 
 ## What the agent does

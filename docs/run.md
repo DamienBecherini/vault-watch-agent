@@ -60,7 +60,7 @@ cross-check sees every page.
 | sweep | The values the corrections remove (a version, a flag, an identifier) still found in other pages | The model: which of them must change too | What it leaves is listed: « removed values still present, left as they are » |
 | `report` | Everything above | The code writes the report; a correction that adds a version none of the footnotes it cites mentions carries a warning | |
 | `review` | ⏸ You | You tick | A group with one member that cannot apply is left out whole |
-| `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>` for a watch): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
+| `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>-<issue>` for a watch from an issue, `chore/watch-<date>` from a file): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
 | `retouch` | ⏸ You, if you want | You retouch the pages of the branch, in Obsidian or in the page, or skip | |
 | `mirror` | Each mirror page, with what changed in its source page on the branch, passage by passage (a paragraph, a table row, a list line): the corrections, and any edit by hand | The translator model: the same changes in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
 | `audits`, `links` | The branch | The guide's scripts: its audits, and the sources of the changed pages (new ones first) | Nothing is stopped: what fails is shown before you publish |
@@ -238,7 +238,7 @@ ticked:
   does not go through the cross-check otherwise.
 
 Each finding comes as a fix to tick, with its reason, its word-level diff and its text, which you can retouch.
-« Apply in my folder » writes the fixes ticked into your folder, as if you had typed them (the quote found once,
+« Apply n fixes in my folder » writes the fixes ticked into your folder, as if you had typed them (the quote found once,
 as any edit), and the page shows the pages as they now are: a fix of another page makes that page one more to
 sync. Nothing is changed until then; a sync started without deciding goes without the fixes.
 

@@ -43,7 +43,7 @@ and at the effort chosen for it when one is: that effort applies as it is, where
 « higher » move every other step one level. Everything else follows the role.
 
 The use this was made for: the [compaction](compact.md) on the strongest model, a few times a year, while the
-the watches stay on the model measured here. The estimates and the cost journal follow the model of each step.
+watches stay on the model measured here. The estimates and the cost journal follow the model of each step.
 In `settings.json`: `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
 
 A step can also have its own engine (`"steps": {"news": {"engine": "claude-code"}}`): the search for what is
@@ -69,7 +69,7 @@ with the defaults: Opus 5.5 and Sonnet 5.5, at the normal effort, on the API.
 
 | Setting | The choices | What it changes |
 | :-- | :-- | :-- |
-| Engine | Automatic (Claude Code when it is signed in with a subscription, otherwise the API), Claude Code, the API, an OpenAI-compatible server | Who pays: Claude Code counts in the subscription's limits and bills nothing; the API bills each token at list price ([Costs](costs.md)). How the web is read: on the API, the model reads the pages it opens; on Claude Code, a smaller model reads each page and reports what it found. A run stops at a subscription limit and resumes later: the agent never moves to the API by itself |
+| Engine | Automatic (Claude Code when it is signed in with a subscription, otherwise the API), Claude Code, the API, an OpenAI-compatible server | Who pays: Claude Code counts in the subscription's limits and bills nothing; the API bills each token at list price ([Costs](costs.md)). How the web is read: on the API, the model reads the pages it opens; on Claude Code, it searches with Claude Code's own search and reads the pages through the agent's page reader (public addresses only, 30,000 characters a page at most). A run stops at a subscription limit and resumes later: the agent never moves to the API by itself |
 | Model, per role | Reasoning: triage, proposals, cross-check, the checks of the guide, compaction, what is new, the chapters. Translation: the mirrors, the check of the translations, the fixes of translations | The quality of the work: the proposals and the cross-check are where a weaker model shows, by answering « nothing to change » ([What each step asks of a model](#what-each-step-asks-of-a-model)). The price of every call of the role. The window: a model that cannot read the whole guide makes the agent read it by chapter ([Chapters](chapters.md)) |
 | Effort, per role | Lower, normal, higher | Each step has its own level in the code (medium for the triage, the chapters, the dead links and the translator's steps; high for the others). This setting moves every step of the role one level, within low… max. Higher: more thinking, so more output tokens, a slower run and more of the cost or of the subscription's limits. Lower: the reverse, not measured on the guide |
 | A step set apart | Its engine, its model, its effort | That step alone, as set: its effort applies as it is, not moved by the role's. The compaction on Fable 5.2, for instance, about twice the price of Opus 5.5 for that step |

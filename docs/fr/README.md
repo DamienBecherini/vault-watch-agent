@@ -50,7 +50,7 @@ flowchart LR
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
 | [Brancher son guide](connect-your-guide.md) | Les trois commandes pour démarrer, le manifeste `vault-watch.toml` clé par clé, ce que débloque chaque partie facultative, le guide d'exemple pour essayer. Une capture de la page « Chapitres » |
-| [Collecter une veille](collect.md) | `vault-watch collect` : les flux que suit un guide (`feeds.json`), le pré-tri sans modèle, la page « Sources suivies » et le contrôle des sources, le workflow hebdomadaire sur GitHub. Une capture de cette page |
+| [Collecter une veille](collect.md) | `vault-watch collect` : les flux que suit un guide (`feeds.json`), le pré-tri sans modèle, la page « Sources suivies » et le contrôle des sources, le workflow qui la collecte sur GitHub. Une capture de cette page |
 | [Le format d'une veille](watch-format.md) | `watch.json` champ par champ, pour un guide qui apporte son propre collecteur |
 
 ## Ce que fait l'agent

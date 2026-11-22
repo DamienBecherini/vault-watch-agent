@@ -108,7 +108,7 @@ A price is the four rates of a model, with where it comes from. The first source
 | default | The list shipped with the agent, with the month it was checked (`defaults/prices.json`) | A new version of the agent |
 
 `vault-watch prices show` lists each model with its price and its source. An estimate made on a default price says
-so (« default of 2026-11 »). A model that no source knows has no price: its calls count 0, and the Settings say
+so (« default price of 2026-11 »). A model that no source knows has no price: its calls count 0, and the Settings say
 it. A dated model id takes the price of the longest known id it begins with.
 
 ## The journal and the « Costs » page

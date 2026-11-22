@@ -10,8 +10,8 @@
 
 ---
 
-About 10,500 lines of Python in [`src/vault_watch_agent/`](../src/vault_watch_agent/), a static page without build step
-(about 3,500 lines of JavaScript and CSS),
+About 12,800 lines of Python in [`src/vault_watch_agent/`](../src/vault_watch_agent/), a static page without build step
+(about 5,300 lines of JavaScript and CSS),
 and tests that run the whole graph against a fake model and a throwaway git repository. Start with
 [`graph.py`](../src/vault_watch_agent/graph.py): everything else either feeds it or drives it.
 
@@ -74,49 +74,50 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 
 | Module | Lines | Role |
 | :-- | --: | :-- |
-| `web.py` | 1267 | `create_app(settings)`: REST routes, server-sent events, background jobs, the data of each page (watches, sources, checks, chapters, costs), the user's settings, the notices of the page, the static page |
-| `graph.py` | 742 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
-| `cli.py` | 674 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
-| `collect.py` | 661 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
-| `llm.py` | 653 | The engines (API, Claude Code on a subscription, the OpenAI-compatible one, and those of other packages, `EngineKind`, protocol 1): structured output, prompt caching, web search and fetch, capabilities, cost journal |
-| `verify.py` | 596 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
-| `news.py` | 422 | Look for what is new: the prompt of the leads, what past watches set aside (read from their reports), the leads found on the web chapter by chapter, the additions for the leads kept, one lead per call with the web, on the pages the lead names and the plan of the guide, or on the whole guide (`compact.in_calls` makes the calls); what two calls add to the same page put together |
-| `links.py` | 244 | A run from links (D5): each address read whole without a model (a page, a repository's README, a PDF with the optional `pypdf`; a video through dl-sub-dub, `videos.py`), then one call per link with the whole guide, without the web, for the leads it holds; a check of « Check the guide » (`verify.run_links`) |
+| `web.py` | 1778 | `create_app(settings)`: REST routes, server-sent events, background jobs, the data of each page (watches, sources, checks, chapters, costs), the user's settings, the notices of the page, the static page |
+| `graph.py` | 975 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
+| `cli.py` | 747 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
+| `collect.py` | 702 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
+| `llm.py` | 678 | The engines (API, Claude Code on a subscription, the OpenAI-compatible one, and those of other packages, `EngineKind`, protocol 1): structured output, prompt caching, web search and fetch, capabilities, cost journal |
+| `verify.py` | 670 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
+| `news.py` | 463 | Look for what is new: the prompt of the leads, what past watches set aside (read from their reports), the leads found on the web chapter by chapter, the additions for the leads kept, one lead per call with the web, on the pages the lead names and the plan of the guide, or on the whole guide (`compact.in_calls` makes the calls); what two calls add to the same page put together |
+| `links.py` | 269 | A run from links (D5): each address read whole without a model (a page, a repository's README, a PDF with the optional `pypdf`; a video through dl-sub-dub, `videos.py`), then one call per link with the whole guide, without the web, for the leads it holds; a check of « Check the guide » (`verify.run_links`) |
 | `videos.py` | 149 | The text of a video through dl-sub-dub's route « text of a video » (contract 1): its state followed until it ends, the token read from its reference, what it says when it cannot (busy, stopped, older); the site's description, chapters and words in paragraphs with their time |
-| `mirrors.py` | 224 | What changed in a source page, as passages a translator can carry to its mirror (a paragraph, a table row, a list line, from git); the pages ahead of their mirror; the branch and the state of a « Sync the languages » run |
-| `proofread.py` | 143 | The editor's edits checked before a sync (an option of the page « Languages »): spelling by the translation model, facts on the web by the reasoning model, consistency with the rest of the guide by the cross-check; the fixes accepted applied in the guide's folder |
+| `mirrors.py` | 245 | What changed in a source page, as passages a translator can carry to its mirror (a paragraph, a table row, a list line, from git); the pages ahead of their mirror; the branch and the state of a « Sync the languages » run |
+| `proofread.py` | 155 | The editor's edits checked before a sync (an option of the page « Languages »): spelling by the translation model, facts on the web by the reasoning model, consistency with the rest of the guide by the cross-check; the fixes accepted applied in the guide's folder |
 | `retouch.py` | 175 | The pause to retouch the pages of a run's branch: the guide's folder lent to the run (detached at the branch's tip, what it held set aside in a stash named after the run), the retouches committed as the editor's, the branch moved forward, the folder given back |
-| `guide.py` | 407 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
-| `chapters.py` | 398 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
+| `guide.py` | 414 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
+| `chapters.py` | 413 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
 | `sourcecheck.py` | 386 | « Check the sources »: asks each source itself (network, no model), reads the guide again, proposes changes to the feeds file and rewrites it for a pull request |
-| `compact.py` | 370 | Compaction: the prompts of the report, of the trims and of their cross-check; the notes a trim orphans removed with it, a trim that would leave a sentence citing a removed note refused; `in_calls`, several calls that share the guide in the cache or read only the pages they name |
-| `vault.py` | 357 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit (a passage removed whole leaves no hole), leftovers sweep, the values no page states any more |
+| `compact.py` | 372 | Compaction: the prompts of the report, of the trims and of their cross-check; the notes a trim orphans removed with it, a trim that would leave a sentence citing a removed note refused; `in_calls`, several calls that share the guide in the cache or read only the pages they name |
+| `vault.py` | 465 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit (a passage removed whole leaves no hole), leftovers sweep, the values no page states any more |
 | `onboard.py` | 348 | `init` (a manifest from what a repository shows) and `doctor` (what will run, what is missing) |
 | `openai_compat.py` | 323 | The OpenAI-compatible engine (llama.cpp, vLLM, Ollama, a hosted service): structured output, the web tools loop, usage and cost |
 | `crosscheck.py` | 266 | Second reading of the corrections with the whole guide cached in context (or chapter by chapter), then the sweep |
-| `config.py` | 254 | The user's settings (`settings.json`): engine, models, prices, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
-| `webtools.py` | 234 | Web search (SearXNG) and page reading for the engines without a web of their own; public addresses only |
+| `config.py` | 273 | The user's settings (`settings.json`): engine, models, prices, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
+| `webtools.py` | 261 | Web search (SearXNG) and page reading for the engines without a web of their own, and for Claude Code; public addresses only |
+| `mcp_fetch.py` | 70 | That page reader offered to Claude Code as a local MCP tool (`web_fetch`) in place of its WebFetch: a minimal MCP server over standard input and output |
 | `forge.py` | 229 | Issues, artifacts and pull requests behind a `Forge` interface: GitHub (through `gh`) and Gitea (its REST API, a token by reference); `for_guide` picks the manifest's |
 | `sizes.py` | 190 | What each page weighs against its budget, its heaviest sections, the guide's growth read from Git; no model |
-| `fix.py` | 187 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
+| `fix.py` | 205 | Turns findings into proposals, then into an initial state that enters the graph after `propose` |
 | `prices.py` | 182 | The price of a model and its origin: the user's, a fetched list, the defaults |
 | `sources.py` | 179 | What each feed of the watch brought and what became of it, with a verdict by rule, from the watches and the runs kept on the machine; no model, no network |
-| `quotes.py` | 158 | Locates the passage a finding talks about: exact match, else the closest window of lines on normalised text |
+| `quotes.py` | 173 | Locates the passage a finding talks about: exact match, else the closest window of lines on normalised text |
 | `evaluate.py` | 148 | Hunks of the human's merged diff vs. the agent's proposals, matched by a judge model |
 | `watches.py` | 140 | Where the watches come from (`[watch] source`): GitHub issues, `watch.json` files, the agent's own collection, none |
 | `prompts.py` | 135 | System prompts built from the guide's own editorial brief and translation policy |
 | `inputs.py` | 124 | The watch as the contract says (`check_watch`), its kept items, its artifact; the guide's scripts; freshness claims due |
-| `state.py` | 118 | `WatchState` and the Pydantic schemas the model must answer with |
+| `state.py` | 129 | `WatchState` and the Pydantic schemas the model must answer with |
 | `reading.py` | 101 | How the guide is read: whole in one call, or chapter by chapter when it does not fit the model's window |
 | `costs.py` | 87 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |
-| `steps.py` | 80 | Each step that calls the model: its role, its effort, what it needs from an engine |
+| `steps.py` | 88 | Each step that calls the model: its role, its effort, what it needs from an engine |
 | `store.py` | 53 | The runs database kept light: only the last checkpoint of each run stays, the space is given back to the disk |
 | `notify.py` | 47 | Windows toast notifications for `serve --notify` |
 
 The page is plain JavaScript in [`static/`](../src/vault_watch_agent/static/), loaded as it is: `app.js` (the
 router, the texts in both languages, every screen), `settings.js` (the Settings window), `feedback.js` (« Give my
 opinion »), `themes.js` and `boot.js` (light or dark, the palettes, the size of the text, applied before the first
-paint), `notify.js` (the notifications of the browser).
+paint), `notify.js` (the notifications of the browser), `rules.js` (what may be ticked on the page of a check).
 
 ## The graph, node by node
 
@@ -275,6 +276,8 @@ trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
 | [`tests/test_news.py`](../tests/test_news.py), [`tests/test_explore.py`](../tests/test_explore.py), [`tests/test_chapters.py`](../tests/test_chapters.py) | The leads, the additions (one lead per call, what each call reads, a lead left unchecked), the web explored by chapter; the chapters |
 | [`tests/test_rules.py`](../tests/test_rules.py) | What may be ticked on the page of a check (`static/rules.js`, run with node): a lead dug deeper is always a lead ticked, whatever the order of the clicks |
 | [`tests/test_forge.py`](../tests/test_forge.py) | GitHub and Gitea behind the same interface |
+| [`tests/test_network_guard.py`](../tests/test_network_guard.py), [`tests/test_mcp_fetch.py`](../tests/test_mcp_fetch.py), [`tests/test_pages_only.py`](../tests/test_pages_only.py) | The page reader never reaches the machine or its local network (DNS rebinding, an IPv6 address carrying a private IPv4, a redirection); the MCP tool Claude Code gets; a correction touches only a content page of the guide or its mirror |
+| [`tests/test_page_smoke.py`](../tests/test_page_smoke.py) | Every screen of the page drawn in a headless Chrome, in French and in English, without a JavaScript error nor « undefined » shown |
 
 No test calls the real API nor the real Claude Code. `vault-watch eval` is the measure against real watches (results in
 [`metrics/eval/`](../metrics/eval/)).

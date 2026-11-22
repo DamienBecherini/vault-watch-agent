@@ -317,7 +317,7 @@ src/vault_watch_agent/
   vault.py       pages: search, exact-quote check, apply an edit, the whole guide for the cross-check
   chapters.py    the chapters of a guide; reading.py the guide read whole, or chapter by chapter
   llm.py         the engines (Claude API, Claude Code, plug-ins); openai_compat.py the OpenAI-compatible one
-  webtools.py    web search and page reading for the engines without a web of their own
+  webtools.py    web search and page reading for the engines without a web of their own, and for Claude Code (mcp_fetch.py)
   steps.py       each step that calls the model: its role, its effort, what it needs
   forge.py       GitHub (gh) and Gitea (API): issues, artifacts, pull requests
   watches.py     where the watches come from; collect.py the agent's own collection; inputs.py the watch format

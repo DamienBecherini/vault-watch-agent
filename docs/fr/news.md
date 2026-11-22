@@ -145,7 +145,7 @@ Pour le régler, une fois :
 1. dans dl-sub-dub, créez un jeton pour ce client (« Réglages › Autres programmes », ou
    `<dossier de dl-sub-dub>/.venv/Scripts/python -m subtitles.web --token-add vault-watch-agent`) : il est écrit
    dans un fichier du dossier des réglages de dl-sub-dub, lisible par vous seul ;
-2. dans les réglages de l'agent (`.vault-watch/settings.json`), donnez son adresse, la référence de ce fichier
+2. dans les réglages de l'agent (`~/.vault-watch/settings.json`), donnez son adresse, la référence de ce fichier
    (jamais le jeton lui-même) et la commande qui le démarre :
 
 ```json

@@ -114,7 +114,7 @@ l'emporte :
 | par défaut | La liste livrée avec l'agent, avec le mois où elle a été vérifiée (`defaults/prices.json`) | Une nouvelle version de l'agent |
 
 `vault-watch prices show` liste chaque modèle avec son prix et sa source. Une estimation faite sur un prix par
-défaut le dit (« par défaut (2026-11) »). Un modèle qu'aucune source ne connaît n'a pas de prix : ses appels
+défaut le dit (« prix par défaut de 2026-11 »). Un modèle qu'aucune source ne connaît n'a pas de prix : ses appels
 comptent 0, et les Réglages le disent. Un identifiant de modèle daté prend le prix de l'identifiant connu le plus
 long par lequel il commence.
 

@@ -190,7 +190,7 @@ Les propositions cochées partent dans une seule pull request (une branche, pour
 `feeds.json` et rien d'autre : les lignes des autres flux ne sont pas touchées. Un nouveau flux reçoit le domaine
 des flux cités dans les mêmes pages ; corrigez-le dans la pull request s'il est faux.
 
-## Chaque semaine, sur GitHub
+## À heure fixe, sur GitHub
 
 Le workflow réutilisable [`collect.yml`](../../.github/workflows/collect.yml) fait la collecte sur GitHub. Il installe
 l'agent, collecte, garde `watch.json` comme artefact et ouvre une issue avec le rapport. Ajoutez ce fichier au guide
@@ -225,7 +225,9 @@ l'artefact contient la veille. Les paramètres du workflow :
 | `open_issue` | `true` | `false` : garder l'artefact, ne rien ouvrir. |
 | `agent_ref` | la version du workflow | La version de l'agent à installer. |
 
-Aucune issue n'est ouverte quand rien n'est retenu.
+Aucune issue n'est ouverte quand rien n'est retenu. Le workflow du guide de référence tourne chaque lundi et ouvre
+une issue une semaine sur deux, avec une fenêtre de 15 jours ; les autres semaines il tourne avec `urgent_only`, et
+un avis urgent arrive plus tôt.
 
 ## Le collecteur du guide IA on-premise
 
@@ -233,6 +235,6 @@ Aucune issue n'est ouverte quand rien n'est retenu.
 mêmes types de flux, les mêmes règles, le même format de résultat. Avant que le guide ne change, les deux ont tourné
 sur ses 63 flux et sur la même fenêtre, et ont donné les mêmes éléments avec le même tri, les mêmes notes et les
 mêmes urgences (comparaison du 18 novembre 2026 : 172 éléments, 105 retenus depuis le 3 novembre ; 455 éléments, 241
-retenus depuis le 1er juin). Depuis le 19 novembre 2026, le workflow hebdomadaire du guide appelle le workflow
+retenus depuis le 1er juin). Depuis le 19 novembre 2026, le workflow du guide appelle le workflow
 réutilisable ci-dessus, et son script a disparu. Un guide peut garder son propre collecteur : l'agent ne lit que le
 `watch.json`.

@@ -140,7 +140,7 @@ To set it up, once:
 1. in dl-sub-dub, create a token for this client (« Settings › Other programs », or
    `<dl-sub-dub's folder>/.venv/Scripts/python -m subtitles.web --token-add vault-watch-agent`): it is written in a
    file of dl-sub-dub's settings folder, readable by you alone;
-2. in the agent's settings (`.vault-watch/settings.json`), give its address, the reference of that file (never the
+2. in the agent's settings (`~/.vault-watch/settings.json`), give its address, the reference of that file (never the
    token itself) and the command that starts it:
 
 ```json

@@ -183,7 +183,7 @@ The proposals you tick go to one pull request (a branch, for a guide without a r
 `feeds.json` and nothing else: the lines of the other feeds are not touched. A new feed gets the domain of the
 feeds cited in the same pages; correct it in the pull request if it is wrong.
 
-## Every week, on GitHub
+## On a schedule, on GitHub
 
 The reusable workflow [`collect.yml`](../.github/workflows/collect.yml) does the collection on GitHub. It installs
 the agent, collects, keeps `watch.json` as an artifact and opens an issue with the report. Add this file to the
@@ -218,7 +218,9 @@ artifact holds the watch. The workflow's inputs:
 | `open_issue` | `true` | `false`: keep the artifact, open nothing. |
 | `agent_ref` | the version of the workflow | The version of the agent to install. |
 
-No issue is opened when nothing is kept.
+No issue is opened when nothing is kept. The reference guide's workflow runs every Monday and opens an issue every
+other week, with a window of 15 days; on the other weeks it runs with `urgent_only`, so an urgent advisory comes
+sooner.
 
 ## The IA on-prem guide's collector
 
@@ -226,5 +228,5 @@ No issue is opened when nothing is kept.
 feed types, the same rules, the same output format. Before the guide changed over, both were run on its 63 feeds
 over the same window and gave the same items with the same triage, the same notes and the same urgencies (compared
 on 18 November 2026: 172 items, 105 kept since 3 November; 455 items, 241 kept since 1 June). Since 19 November
-2026 the guide's weekly workflow calls the reusable workflow above, and its script is gone. A guide can keep its
+2026 the guide's workflow calls the reusable workflow above, and its script is gone. A guide can keep its
 own collector: the agent only reads the `watch.json`.

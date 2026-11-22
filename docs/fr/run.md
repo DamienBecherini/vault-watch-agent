@@ -60,7 +60,7 @@ des extraits du guide, la relecture croisée voit toutes les pages.
 | balayage | Les valeurs que les corrections retirent (une version, une option, un identifiant) encore présentes dans d'autres pages | Le modèle : lesquelles doivent changer aussi | Ce qu'il laisse est listé : « valeurs retirées encore présentes, laissées telles quelles » |
 | `report` | Tout ce qui précède | Le code écrit le rapport ; une correction qui ajoute une version qu'aucune des notes qu'elle cite ne mentionne porte un avertissement | |
 | `review` | ⏸ Vous | Vous cochez | Un groupe dont un membre ne peut pas s'appliquer est écarté en entier |
-| `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>` pour une veille) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
+| `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>-<issue>` pour une veille venue d'une issue, `chore/watch-<date>` d'un fichier) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
 | `retouch` | ⏸ Vous, si vous le voulez | Vous retouchez les pages de la branche, dans Obsidian ou dans la page, ou vous passez | |
 | `mirror` | Chaque page miroir, avec ce qui a changé dans sa page source sur la branche, passage par passage (un paragraphe, une ligne de tableau, une ligne de liste) : les corrections, et toute modification à la main | Le modèle de traduction : les mêmes changements dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
 | `audits`, `links` | La branche | Les scripts du guide : ses contrôles, et les sources des pages modifiées (les nouvelles d'abord) | Rien n'est arrêté : ce qui échoue est montré avant la publication |
@@ -251,7 +251,7 @@ modifiés dans les pages cochées :
   abonnement). Sans elle, une synchronisation ne passe pas par la relecture croisée.
 
 Chaque remarque arrive comme une correction à cocher, avec sa raison, son diff mot à mot et son texte, que vous
-pouvez retoucher. « Appliquer dans mon dossier » écrit les corrections cochées dans votre dossier, comme si vous les
+pouvez retoucher. « Appliquer n corrections dans mon dossier » écrit les corrections cochées dans votre dossier, comme si vous les
 aviez tapées (la citation trouvée une seule fois, comme toute modification), et la page montre les pages telles
 qu'elles sont alors : une correction d'une autre page en fait une page de plus à synchroniser. Rien ne change
 avant ; une synchronisation lancée sans décider part sans les corrections.

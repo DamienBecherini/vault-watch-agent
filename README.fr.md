@@ -330,7 +330,7 @@ src/vault_watch_agent/
   vault.py       les pages : recherche, contrôle de citation exacte, application d'une modification, tout le guide
   chapters.py    les chapitres d'un guide ; reading.py le guide lu en entier, ou chapitre par chapitre
   llm.py         les moteurs (API Claude, Claude Code, extensions) ; openai_compat.py celui compatible OpenAI
-  webtools.py    recherche web et lecture de pages pour les moteurs qui n'ont pas de web à eux
+  webtools.py    recherche web et lecture de pages pour les moteurs qui n'ont pas de web à eux, et pour Claude Code (mcp_fetch.py)
   steps.py       chaque étape qui appelle le modèle : son rôle, son effort, ce dont elle a besoin
   forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
   watches.py     d'où viennent les veilles ; collect.py la collecte de l'agent ; inputs.py le format de la veille
