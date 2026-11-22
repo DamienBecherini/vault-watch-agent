@@ -57,7 +57,8 @@ four parts: what the source says, what the guide says, what remains to check, wh
 to four sentences, the terms explained; the sources it cites are links). In any language, each lead has a short
 title.
 
-The page lists the leads one line each: the title, the page, where the lead comes from. A lead unfolds into the
+The page lists the leads one line each: a box to tick it, the title, the page, where the lead comes from, and a
+box « 🔍 dig » ([below](#the-additions)). A lead unfolds into the
 source and the guide side by side (the passage of the page, with a link that opens it in Obsidian at the nearest
 heading), what to check, what it changes for the reader, the button « Dig deeper into this lead », the sources and
 the pages to read also (their titles, then their place), and the text sent to the run, folded. « How to read a
@@ -118,7 +119,9 @@ leads there): one address per line, 10 at the most.
    deeper, and send them to an addition run, which checks each one on primary sources (a video, a blog or a
    newsletter tells where to look; it is never the source).
 
-The page of the check lists the links, each with what was read (its number of characters) or why it was not.
+The page of the check lists the links, each with what was read (its number of characters) or why it was not. On
+the list of the checks, such a check is « Links to read whole · 2 links », marked « from Report or suggest », with
+its links ([Check the guide](check.md#the-list-of-the-checks-and-the-page-of-a-check)).
 
 ### A video
 
@@ -155,8 +158,8 @@ the most, one request of a program at a time), and its page can stop a reading a
 vault-watch --guide ../my-guide fix add-2026-11-20 --findings leads.txt --add
 ```
 
-In the interface: tick the leads, then « Create an addition run »; the button shows an estimate that follows the
-number of leads ticked.
+In the interface: tick the leads, then « Create an addition run », in the bar at the bottom of the page; the button
+shows an estimate that follows the number of leads ticked and of those dug deeper.
 
 ![The leads of a check: each open lead with the passage of the guide it is about, the box « dig deeper », the list that chooses what each call reads, and the button with its estimate](images/leads.png)
 
@@ -172,8 +175,12 @@ For each lead, the model searches the web and opens primary sources, then decide
 - it would need a page of its own: the page is not written. The report says « needs a page » with what it would
   hold and where; writing a new page stays your decision.
 
-**Dig deeper.** Beside each lead, a box « dig deeper » (on the command line, a `!` at the start of its line in the
-file). Its call is then asked for a fuller look: several independent sources, what it replaces, how mature and
+**Dig deeper.** The line of each lead has a box « 🔍 dig », and the lead unfolded the button « Dig deeper into this
+lead » (on the command line, a `!` at the start of its line in the file). « Dig every lead ticked » and « Dig
+nothing », above the list, act on a whole check. In the bar, « Options », then « Dig deeper and reading »: « Dig
+deeper: None · Dig n of m · All », and the price of the run part by part (the plain leads, the leads dug deeper, the
+cross-check and the mirrors). A lead dug deeper is ticked too; a lead unticked is no longer dug. Its call is then
+asked for a fuller look: several independent sources, what it replaces, how mature and
 available it is, what it changes for each kind of reader, on several pages if need be. It costs a little more
 than a lead; keep it for the subjects that deserve it.
 
@@ -188,7 +195,8 @@ review, the mirrors, the guide's checks and the pull request, on a branch `feat/
 The leads take one call that reads the whole guide. The additions take one call per lead. The web of a call has
 a ceiling (20 searches, 30 pages), and leads that shared a call took it from one another: on the first real run,
 a lead about six price lists left its three neighbours unchecked. A lead its call could not look at is marked
-« not checked by the run » on the verification, with a button that puts it back among the leads to handle. What
+« not checked by the run » on the verification, with a button, « Put back to handle », that puts it back among the
+leads to sort. What
 two calls add to the same page is put together by the program (a footnote marker both chose is renamed, two rows
 after the same row both apply). What a call reads of the guide is your choice (below): its lead's pages and the
 plan of the guide by default, several calls running at the same time, or the whole guide. With the whole guide on
@@ -213,8 +221,9 @@ been about 17 $. What does not depend on the leads is the cross-check, about 4 $
 version is not cheaper than another with the whole guide (16 to 25 rounds of search, each reading the guide again
 from the cache); with its own pages a lead cost 0.40 to 1.30 $.
 
-**What each lead's call reads** is chosen when the run is created (a list above the button on the leads page;
-`--context pages` or `--context guide` on the command line; the lead's pages and the plan by default).
+**What each lead's call reads** is chosen when the run is created (« Each lead's call reads », in « Options », « Dig
+deeper and reading », of the bar of the leads page, the choice kept in the browser; `--context pages` or
+`--context guide` on the command line; the lead's pages and the plan by default).
 
 - *The whole guide*: the call sees every page. The safest, and the most expensive.
 - *The lead's pages and the plan of the guide*: the call reads the pages the lead names, those it asks to read,
