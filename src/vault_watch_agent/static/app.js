@@ -226,6 +226,8 @@ const TEXTS = {
       interruptedText: names => `Cette vérification s'est arrêtée avant la fin (serveur fermé pendant qu'elle tournait). Contrôles non faits : ${names}. Ce qu'elle a trouvé reste utilisable ; pour le reste, lance une nouvelle vérification.`,
       remove: "Supprimer cette vérification",
       confirmRemove: "Supprimer cette vérification et ses pistes ? Les passes fix déjà lancées restent.",
+      runRunning: "passe en cours", follow: "suivre",
+      confirmParallel: names => `Une passe est déjà en cours : ${names}.\n\nEn lancer une autre en même temps ? Chacune travaille sur sa propre branche, mais le dépôt du guide n'accepte qu'une pull request à la fois : tu publieras la seconde après la fusion de la première.`,
     },
     loading: "Chargement…",
     serverDown: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passages en pause n'ont rien perdu.",
@@ -564,6 +566,8 @@ const TEXTS = {
       interruptedText: names => `This check stopped before its end (the server was closed while it ran). Checks not done: ${names}. What it found stays usable; for the rest, start a new check.`,
       remove: "Delete this check",
       confirmRemove: "Delete this check and its leads? The fix runs already started stay.",
+      runRunning: "run in progress", follow: "follow",
+      confirmParallel: names => `A run is already in progress: ${names}.\n\nStart another one at the same time? Each works on its own branch, but publish their pull requests one after the other if the guide's repository takes one at a time.`,
     },
     loading: "Loading…",
     serverDown: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
@@ -1600,7 +1604,9 @@ async function viewChecks() {
   const remaining = pending.reduce((s, p) => s + p.counts.open, 0);
   const checkCard = p => `<div class="card row${["handled", "clear"].includes(p.status) ? " finished" : ""}"><div class="grow"><b>${new Date(p.started * 1000).toLocaleString(lang)}</b>
         <div class="muted small">${p.checks.map(c => esc(titles[c] || c)).join(" · ")} · ${dollars(p.cost)}</div>
-        <div class="muted small">${V.counts(p.counts)}</div></div>
+        <div class="muted small">${V.counts(p.counts)}</div>
+        ${Object.entries(p.runs || {}).filter(([, r]) => r.status === "running").map(([t]) =>
+          `<div class="small"><span class="badge attention">${V.runRunning}</span> <a href="#/run/${encodeURIComponent(t)}">${esc(t)} · ${V.follow}</a></div>`).join("")}</div>
         ${checkBadge(p)}
         <a href="#/check/${encodeURIComponent(p.id)}"><button${p.status === "to-handle" ? ' class="primary"' : ""}>${p.status === "to-handle" ? V.handle : T.details}</button></a></div>`;
   const older = verifs.filter(p => !pending.includes(p));
@@ -1925,6 +1931,8 @@ async function viewCheck(id) {
   else {
     page.querySelectorAll("[data-dismiss]").forEach(b => b.onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed"));
     $("#fix").onclick = async () => {
+      const busy = (await api("/api/runs").catch(() => [])).filter(r => r.status === "running").map(r => r.thread);
+      if (busy.length && !confirm(V.confirmParallel(busy.join(", ")))) return;
       $("#fix").disabled = true;
       // One run per mode: content fixes, translation fixes, trims and additions do not take the same path
       const threads = [];
