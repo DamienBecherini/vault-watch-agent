@@ -273,6 +273,7 @@ trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
 | [`tests/test_collect.py`](../tests/test_collect.py), [`tests/test_sources.py`](../tests/test_sources.py), [`tests/test_sourcecheck.py`](../tests/test_sourcecheck.py) | The collection of a watch and its pre-triage; what each source brought; the check of the sources |
 | [`tests/test_compact.py`](../tests/test_compact.py), [`tests/test_sizes.py`](../tests/test_sizes.py) | Compaction: the report, the trims, the notes removed with them; the weight and the growth of the pages |
 | [`tests/test_news.py`](../tests/test_news.py), [`tests/test_explore.py`](../tests/test_explore.py), [`tests/test_chapters.py`](../tests/test_chapters.py) | The leads, the additions (one lead per call, what each call reads, a lead left unchecked), the web explored by chapter; the chapters |
+| [`tests/test_rules.py`](../tests/test_rules.py) | What may be ticked on the page of a check (`static/rules.js`, run with node): a lead dug deeper is always a lead ticked, whatever the order of the clicks |
 | [`tests/test_forge.py`](../tests/test_forge.py) | GitHub and Gitea behind the same interface |
 
 No test calls the real API nor the real Claude Code. `vault-watch eval` is the measure against real watches (results in

@@ -26,6 +26,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   options open above it (kept open or folded in the browser): dig deeper and reading, then the steps of the run as
   cards (what each does, its engine, model and effort as chips, how it is paid; changed for this run: framed). On a
   phone, « ⋯ » opens them, a « ? » keeps what each step does, and a lead's title takes the whole width.
+- A lead unticked is no longer dug deeper (it stayed dug, and counted, before): what may be ticked follows one rule,
+  `static/rules.js`, tested with node (`tests/test_rules.py`, every order of the clicks).
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
   the pages to read also and its sources, short and clickable, instead of one block. A check started from the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the

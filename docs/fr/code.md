@@ -275,6 +275,7 @@ des allègements proposés par `compact.py`, avec une relecture croisée écrite
 | [`tests/test_collect.py`](../../tests/test_collect.py), [`tests/test_sources.py`](../../tests/test_sources.py), [`tests/test_sourcecheck.py`](../../tests/test_sourcecheck.py) | La collecte d'une veille et son pré-tri ; ce que chaque source a apporté ; le contrôle des sources |
 | [`tests/test_compact.py`](../../tests/test_compact.py), [`tests/test_sizes.py`](../../tests/test_sizes.py) | Le compactage : le rapport, les allègements, les notes retirées avec eux ; le poids et la croissance des pages |
 | [`tests/test_news.py`](../../tests/test_news.py), [`tests/test_explore.py`](../../tests/test_explore.py), [`tests/test_chapters.py`](../../tests/test_chapters.py) | Les pistes, les ajouts (une piste par appel, ce que lit chaque appel, une piste restée sans vérification), le web exploré par chapitre ; les chapitres |
+| [`tests/test_rules.py`](../../tests/test_rules.py) | Ce qui peut être coché sur la page d'un contrôle (`static/rules.js`, exécuté par node) : une piste creusée est toujours une piste cochée, quel que soit l'ordre des clics |
 | [`tests/test_forge.py`](../../tests/test_forge.py) | GitHub et Gitea derrière la même interface |
 
 Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est la mesure sur de vraies veilles (résultats dans

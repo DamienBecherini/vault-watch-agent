@@ -1867,30 +1867,28 @@ async function viewCheck(id) {
     $("#bar-toggle").innerHTML = `<span class="wide-only">${V.barOptions} ${BAR_OPEN ? "▾" : "▴"}</span><span class="narrow-only">${BAR_OPEN ? "✕" : "⋯"}</span>`;
     $("#bar-toggle").hidden = !wanted.length;
   };
-  boxes.forEach(c => c.onchange = count);
-  // « Dig deeper » on a lead: it is then kept too
+  // The boxes follow LeadRules (rules.js): read them, apply a rule, set them again (the box of a lead's line and the
+  // button of its card are one choice), then count
   const digs = [...page.querySelectorAll("[data-deep]")];
   const deep = () => new Set(digs.filter(d => d.checked).map(d => d.dataset.deep));
-  digs.forEach(d => d.onchange = () => {
-    digs.filter(x => x.dataset.deep === d.dataset.deep).forEach(x => { x.checked = d.checked; });  // line and card, in step
-    if (d.checked) boxes.filter(c => c.dataset.lead === d.dataset.deep).forEach(c => c.checked = true);
-    count();
-  });
-  // Dig deeper into every lead ticked, or into none: in one card, or in the whole run (the bar)
-  const digTicked = (on, card = null) => {
-    digs.filter(d => !card || boxes.some(c => c.dataset.lead === d.dataset.deep && c.dataset.card === card))
-      .forEach(d => { d.checked = on && boxes.some(c => c.checked && c.dataset.lead === d.dataset.deep); });
+  const state = () => ({ ticked: new Set(ticked().map(c => c.dataset.lead)), dug: deep() });
+  const apply = s => {
+    boxes.forEach(c => { c.checked = s.ticked.has(c.dataset.lead); });
+    digs.forEach(d => { d.checked = s.dug.has(d.dataset.deep); });
     count();
   };
-  page.querySelectorAll("[data-dig-card]").forEach(b => b.onclick = () => digTicked(b.dataset.dig === "all", b.dataset.digCard));
-  page.querySelectorAll("[data-dig-all]").forEach(b => b.onclick = () => digTicked(b.dataset.digAll === "all"));
+  const leadsOf = card => boxes.filter(c => !card || c.dataset.card === card).map(c => c.dataset.lead);
+  boxes.forEach(c => c.onchange = () => apply(LeadRules.tick(state(), c.dataset.lead, c.checked)));
+  digs.forEach(d => d.onchange = () => apply(LeadRules.dig(state(), d.dataset.deep, d.checked)));
+  // Dig deeper into every lead ticked, or into none: in one card, or in the whole run (the bar)
+  page.querySelectorAll("[data-dig-card]").forEach(b => b.onclick = () => apply(LeadRules.digTicked(state(), leadsOf(b.dataset.digCard), b.dataset.dig === "all")));
+  page.querySelectorAll("[data-dig-all]").forEach(b => b.onclick = () => apply(LeadRules.digTicked(state(), leadsOf(null), b.dataset.digAll === "all")));
   // Tick or untick every open finding of one card (all ticked: untick)
   page.querySelectorAll("[data-fold]").forEach(d => d.ontoggle = () => { FOLDS[d.dataset.fold] = d.open; });
   page.querySelectorAll("[data-tick-card]").forEach(b => b.onclick = e => {
     e.preventDefault();  // in the card's summary: tick, do not fold
     const card = boxes.filter(c => c.dataset.card === b.dataset.tickCard), all = card.every(c => c.checked);
-    card.forEach(c => c.checked = !all);
-    count();
+    apply(LeadRules.tickAll(state(), card.map(c => c.dataset.lead), !all));
   });
   // The options of the bar, opened or folded: the reader's choice, kept in the browser
   $("#bar-toggle").onclick = () => {
