@@ -349,7 +349,7 @@ const TEXTS = {
       hereHelp: lent => lent ? "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Ton dossier étant prêté, ce que tu enregistres ici s'écrit dans ton dossier : Obsidian le voit aussitôt."
         : "Choisis une page, modifie son texte (en Markdown), puis « Enregistrer ». Tu modifies la copie du passage, pas ton dossier : Obsidian ne verra le résultat qu'une fois la pull request fusionnée.",
       other: "ou une autre page (chemin dans le guide)", open: "Ouvrir", save: "Enregistrer", saved: "Enregistré.",
-      revert: "Annuler mes modifications", reverted: "Modifications annulées : la page est comme à son dernier enregistrement.",
+      revert: "Annuler mes modifications", close: "Fermer la page", reverted: "Modifications annulées : la page est comme à son dernier enregistrement.",
       unsaved: "Modifications non enregistrées", undoHelp: "Ctrl+Z et Ctrl+Y annulent et rétablissent ta frappe ; « Annuler mes modifications » revient à la dernière version enregistrée.",
       confirmLeave: "Cette page a des modifications non enregistrées. Les abandonner ?",
       skip: "Passer", done: "J'ai fini",
@@ -705,7 +705,7 @@ const TEXTS = {
       hereHelp: lent => lent ? "Pick a page, change its text (in Markdown), then « Save ». As your folder is lent, what you save here is written into your folder: Obsidian sees it at once."
         : "Pick a page, change its text (in Markdown), then « Save ». You change the run's copy, not your folder: Obsidian will only see the result once the pull request is merged.",
       other: "or another page (path in the guide)", open: "Open", save: "Save", saved: "Saved.",
-      revert: "Cancel my changes", reverted: "Changes cancelled: the page is as it was last saved.",
+      revert: "Cancel my changes", close: "Close the page", reverted: "Changes cancelled: the page is as it was last saved.",
       unsaved: "Unsaved changes", undoHelp: "Ctrl+Z and Ctrl+Y undo and redo your typing; « Cancel my changes » goes back to the version last saved.",
       confirmLeave: "This page has unsaved changes. Drop them?",
       skip: "Skip", done: "I am done",
@@ -1507,7 +1507,7 @@ async function viewRetouch(r, title) {
   // Each page: open it in the editor below, or in Obsidian once the folder is lent (before, Obsidian shows main)
   const vaultName = (f.path || "").split(/[\\/]/).filter(Boolean).pop() || "";
   const pageRow = p => `<li><code>${esc(p)}</code> <button type="button" class="small-button" data-open-here="${esc(p)}">${R.openHere}</button>
-    ${lent ? `<a class="small" href="${obsidian(vaultName, p)}">${R.openObsidian}</a>` : `<a class="muted small" href="#" data-to-lend title="${esc(R.obsidianLater)}">${R.openObsidian} ⓘ</a>`}</li>`;
+    ${lent ? `<a class="small" href="${obsidian(vaultName, p)}">${R.openObsidian}</a>` : `<a class="muted small" href="#" data-to-lend title="${esc(R.obsidianLater)}">${R.openObsidian}</a>`}</li>`;
   page.innerHTML = `${title}
     <div class="card"><p>${R.intro((r.applied || []).length, esc(r.branch || ""))}</p>
       ${pages.length ? `<p class="small"><b>${R.pages}</b></p><ul class="retouch-pages">${pages.map(pageRow).join("")}</ul>
@@ -1523,7 +1523,7 @@ async function viewRetouch(r, title) {
         <textarea id="page-text" spellcheck="true"></textarea>
         <p class="muted small">${R.undoHelp}</p>
         <p class="tick-row"><button type="button" id="page-save" disabled>${R.save}</button>
-          <button type="button" id="page-revert" disabled>${R.revert}</button> <span class="small" id="page-said"></span></p></div></div>
+          <button type="button" id="page-revert">${R.close}</button> <span class="small" id="page-said"></span></p></div></div>
     <p class="error-text" id="done-error"></p>
     <div class="bar"><button id="skip">${R.skip}</button><button class="primary" id="done">${R.done}</button></div>`;
   let open = "";
@@ -1537,7 +1537,8 @@ async function viewRetouch(r, title) {
   const dirty = () => !!open && $("#page-text").value !== saved;
   const said = () => {
     $("#page-dirty").hidden = !dirty();
-    $("#page-save").disabled = $("#page-revert").disabled = !dirty();
+    $("#page-save").disabled = !dirty();
+    $("#page-revert").textContent = dirty() ? R.revert : R.close;  // nothing to cancel: it closes the page
   };
   const load = async path => {
     if (!path || (dirty() && !confirm(R.confirmLeave))) return;
@@ -1584,6 +1585,11 @@ async function viewRetouch(r, title) {
   };
   // Back to the text as last saved: typed over (not set), so that Ctrl+Z can still bring the changes back
   $("#page-revert").onclick = () => {
+    if (!dirty()) {  // nothing changed: the page is closed
+      open = saved = "";
+      $("#editor").hidden = true;
+      return;
+    }
     const t = $("#page-text");
     t.focus();
     t.select();
