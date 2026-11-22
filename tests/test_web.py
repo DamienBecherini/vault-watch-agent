@@ -102,6 +102,23 @@ def test_foreign_host_is_refused(client):
     assert c.get("/api/runs", headers={"Host": "evil.example"}).status_code == 403
 
 
+def test_another_site_cannot_use_the_api_even_to_read(client):
+    """An <img> of another site once made /api/models resolve a key and send it to an address of its own."""
+    c, _ = client
+    bait = {"engine": "openai", "base_url": "http://127.0.0.1:9/v1", "key": "env:PATH"}
+    assert c.get("/api/models", params=bait, headers={"X-Vault-Watch": ""}).status_code == 403  # no header: refused
+    for header in ({"Sec-Fetch-Site": "cross-site"}, {"Sec-Fetch-Site": "same-site"}, {"Origin": "https://evil.example"}):
+        assert c.get("/api/runs", headers=header).status_code == 403, header
+        assert c.post("/api/analyses", json={}, headers={**ACT, **header}).status_code == 403, header
+    assert c.get("/api/runs", headers={"Sec-Fetch-Site": "same-origin", "Origin": "http://127.0.0.1:4430"}).status_code == 200
+    # What the browser asks by itself, without a header: the probes, a run's stream, its report
+    assert c.get("/api/health", headers={"X-Vault-Watch": ""}).status_code == 200
+    assert c.get("/api/notices", headers={"X-Vault-Watch": ""}).status_code == 200
+    page = c.get("/", headers={"X-Vault-Watch": "", "Sec-Fetch-Site": "none"})
+    assert page.status_code == 200 and page.headers["X-Frame-Options"] == "DENY"
+    assert "frame-ancestors 'none'" in page.headers["Content-Security-Policy"]
+
+
 def test_check_of_the_guide_runs_what_its_checks_need(client):
     c, _ = client
     options = {o["id"]: o for o in c.get("/api/verifications/options").json()}
