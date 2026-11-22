@@ -294,11 +294,14 @@ def create_app(settings: Settings) -> FastAPI:
         path = request.url.path
         if (request.headers.get("host") or "").split(":")[0] not in hosts:
             return refused("local access only")
-        if request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
-            return refused("a request from another site")
-        origin = request.headers.get("origin")
-        if origin and origin.split("://")[-1].split(":")[0] not in hosts:
-            return refused("a request from another site")
+        # The API only: the page itself may be opened from a link anywhere (a mail, a chat, Obsidian), which the
+        # browser marks as coming from another site; opening it does nothing, and its scripts call the API from here
+        if path.startswith("/api/") or request.method != "GET":
+            if request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
+                return refused("a request from another site")
+            origin = request.headers.get("origin")
+            if origin and origin.split("://")[-1].split(":")[0] not in hosts:
+                return refused("a request from another site")
         mine = request.headers.get("x-vault-watch") == "1"
         if not mine and (request.method != "GET" or path.startswith("/api/") and not without_header.fullmatch(path)):
             return refused("missing X-Vault-Watch header")
