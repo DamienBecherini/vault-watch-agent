@@ -817,7 +817,7 @@ function stepCard(step, n, name, what = "") {
     <div class="step-head"><b>${n} · ${esc(name)}</b>${what ? `<span class="narrow-only">${tip(what)}</span>` : ""}
       ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.perStep.edit : T.perStep.changeShort}">${OWN[step] ? T.perStep.edit : T.perStep.changeShort}</button>`}</div>
     ${what ? `<div class="step-what wide-only">${esc(what)}</div>` : ""}
-    <div class="chips"><span class="chip">${esc(s.engine_label)}</span><span class="chip">${esc(s.model ? modelName(s.model) : "?")}</span><span class="chip">${T.perStep.effort(s.effort)}</span><span class="chip ${pay[0]}">${pay[1]}</span></div>
+    <div class="chips"><span class="chip">${esc(s.engine_label.replace(/\s*\([^)]*\)$/, ""))}</span><span class="chip">${esc(s.model ? modelName(s.model) : "?")}</span><span class="chip">${T.perStep.effort(s.effort)}</span><span class="chip ${pay[0]}">${pay[1]}</span></div>
     ${OWN[step] ? `<div class="step-once">${T.perStep.once}${STEPS.forced ? "" : ` · <button type="button" class="link-button" data-step-reset="${step}">${T.perStep.reset}</button>`}</div>` : ""}
     <span class="step-fields" data-step-fields="${step}" hidden>
       <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>

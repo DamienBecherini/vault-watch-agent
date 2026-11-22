@@ -284,7 +284,7 @@ ul.leads li.lead-item:first-child { border-top: 0; }
 .check-bar .bar-row { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; } .check-bar .bar-row.end { justify-content: flex-end; }
 .check-bar .dig-cost { margin-top: 4px; } .check-bar #dig-warn { margin-top: 2px; }
 .check-bar .add-context { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.step-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; align-items: start; }
+.step-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; align-items: stretch; }
 .step-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; display: grid; gap: 5px; text-align: left; align-content: start; }
 .step-card.changed { border-color: var(--accent); }
 .step-card .step-head { display: flex; gap: 6px; align-items: center; } .step-card .step-head b { flex: 1; font-size: 14.5px; }
