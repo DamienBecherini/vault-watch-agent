@@ -57,6 +57,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   commits them as the editor's and the run checks again (`POST /api/runs/<run>/publish` `{action: "recheck"}`), or
   translates the French corrected first (`"retranslate"`), or a page from the start (`fresh`), then comes back to the
   same pause. The pull request names what was corrected there. The raw diff stays, folded.
+- **The passages a run changed, in green in the editors** (the retouches, the publish screen), with « ◀ passage
+  n / m ▶ » to go from one to the next; the editor opens at the first. A layer behind the text area holds the same
+  text in the same box (width, borders, scroll bar), coloured through the CSS Custom Highlight API (`<mark>` where
+  it is missing), and follows its size, the page's zoom, its scrolling and the typing; checked aligned to the line
+  on the 16 texts of a real run at 80 to 150 % and at a phone's width.
 - Every bar fixed at the bottom of a page leaves room for itself: the end of the review was hidden behind its bar.
 - A long address no longer widens the columns of a text beside its translation past the screen.
 - An addition run says what its leads came from (« links to read whole (add-…) », in its pull request too): it said

@@ -610,6 +610,15 @@ details.pub-page[open] > summary::before { transform: rotate(90deg); }
   details.pub-page > summary .pub-tools { grid-column: 2 / -1; } }
 details.pub-page[open] > summary { border-bottom: 1px solid var(--border); }
 .pub-editor { padding: 8px 0; } .pub-editor textarea { width: 100%; min-height: 160px; }
+/* The passages a run changed, in green behind the text area (highlightEditor) */
+.hl-wrap { position: relative; }
+.hl-wrap > textarea { position: relative; z-index: 1; background: transparent !important; }
+.hl-back { position: absolute; z-index: 0; overflow: hidden; color: transparent; pointer-events: none; box-sizing: border-box; margin: 0; border: 0; }
+.hl-back mark { color: transparent; background: color-mix(in srgb, var(--ok) 30%, transparent); border-radius: 3px; }
+::highlight(vw-passage) { background-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+.hl-head { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.hl-nav { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+.hl-nav[hidden] { display: none; }
 .pub-warn { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border: 1px solid var(--attention); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
 .pub-warn[hidden] { display: none; }
 @media (max-width: 700px) { .pub-row { grid-template-columns: 24px minmax(0, 1fr); } .pub-row > div { grid-column: 2; } }

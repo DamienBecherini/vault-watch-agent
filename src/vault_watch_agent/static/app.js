@@ -320,6 +320,7 @@ const TEXTS = {
       new: () => "Ce passage n'a pas commencé.",
     },
     resume: "Reprendre", applied: "Appliquées",
+    hl: { count: (i, n) => `passage ${i} / ${n}`, prev: "Passage modifié précédent", next: "Passage modifié suivant" },
     pub: {
       before: "Avant de publier", audits: "Contrôles du guide", auditsWhat: "(front matter, diagrammes, miroirs, liens internes)", log: "Le journal",
       translation: "Traduction", mirrored: n => `${n} page${n > 1 ? "s" : ""} traduite${n > 1 ? "s" : ""} mise${n > 1 ? "s" : ""} à jour`,
@@ -694,6 +695,7 @@ const TEXTS = {
       new: () => "This run has not started.",
     },
     resume: "Resume", applied: "Applied",
+    hl: { count: (i, n) => `passage ${i} / ${n}`, prev: "Previous passage changed", next: "Next passage changed" },
     pub: {
       before: "Before publishing", audits: "Guide audits", auditsWhat: "(front matter, diagrams, mirrors, internal links)", log: "The log",
       translation: "Translation", mirrored: n => `${n} translated page${n > 1 ? "s" : ""} updated`,
@@ -1355,6 +1357,126 @@ function excerpts(list) {
 const RETOUCH = {};
 const mineOf = (r, id) => RETOUCH[r.thread]?.[id];
 
+// --- The passages a run changed, highlighted in an editor -----------------------------------------------------------
+// A text area cannot colour part of its text: a layer behind it holds the same text, with the same font, padding,
+// width and wrapping, its passages in <mark>; the text area, transparent, is typed in as usual (undo, selection,
+// spelling). The layer follows its size (the page's zoom, the browser's, a resize), its scrolling and its typing.
+// What a passage adds when it only adds (a sentence after a paragraph): that part alone
+const addedPart = (before, after) => after.length > before.length && after.startsWith(before) ? after.slice(before.length) : after;
+// Where the passages are in a text: each one whole, else its lines long enough to be found again (a passage typed over)
+function passageRanges(text, passages) {
+  const found = [];
+  for (const p of passages) {
+    const whole = String(p || "").trim();
+    if (!whole) continue;
+    const at = text.indexOf(whole);
+    if (at >= 0) { found.push([at, at + whole.length]); continue; }
+    for (const line of whole.split("\n").map(l => l.trim()).filter(l => l.length >= 12)) {
+      const i = text.indexOf(line);
+      if (i >= 0) found.push([i, i + line.length]);
+    }
+  }
+  found.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const r of found) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1] + 1) last[1] = Math.max(last[1], r[1]); else merged.push([...r]);
+  }
+  return merged;
+}
+// Every editor's passages in one highlight of the page (CSS Custom Highlight API), its colour in style.css
+const HL_RANGES = new Map();
+function hlRefresh() {
+  for (const [layer] of HL_RANGES) if (!layer.isConnected) HL_RANGES.delete(layer);  // an editor closed, a page left
+  CSS.highlights.set("vw-passage", new Highlight(...[...HL_RANGES.values()].flat()));
+}
+const HL_COPY = ["fontFamily", "fontSize", "fontWeight", "fontStyle", "lineHeight", "letterSpacing", "wordSpacing", "tabSize",
+  "textIndent", "textTransform", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "whiteSpace", "overflowWrap",
+  "wordBreak", "direction", "textAlign", "fontVariant", "fontStretch", "fontKerning", "fontFeatureSettings",
+  "fontVariationSettings", "hyphens", "textRendering", "lineBreak"];
+function highlightEditor(t, passages, nav) {
+  const wrap = document.createElement("div"), back = document.createElement("div");
+  back.style.backgroundColor = getComputedStyle(t).backgroundColor;  // read before the text area turns transparent
+  wrap.className = "hl-wrap";
+  back.className = "hl-back";
+  back.setAttribute("aria-hidden", "true");
+  if (t.lang) back.lang = t.lang;  // the lines break by the rules of the text's language (French spaces before « : ; ? ! »)
+  t.parentNode.insertBefore(wrap, t);
+  wrap.append(back, t);
+  let list = passages, frame = 0, current = -1;
+  const place = () => {
+    const cs = getComputedStyle(t);
+    HL_COPY.forEach(k => { back.style[k] = cs[k]; });
+    // The same box as the text area: its whole width (100% of the wrapper, to the fraction of a pixel), its borders
+    // (transparent), its scroll bar when it has one. A box narrower by the bar, even to the pixel, wraps some lines
+    // elsewhere than a text area does.
+    back.style.top = `${t.offsetTop}px`;
+    back.style.left = `${t.offsetLeft}px`;
+    back.style.width = "100%";
+    back.style.height = `${t.offsetHeight}px`;
+    back.style.borderStyle = "solid";
+    back.style.borderColor = "transparent";
+    ["Top", "Right", "Bottom", "Left"].forEach(side => { back.style[`border${side}Width`] = cs[`border${side}Width`]; });
+    back.style.overflowY = t.scrollHeight > t.clientHeight + 1 ? "scroll" : "hidden";
+    back.scrollTop = t.scrollTop;
+    back.scrollLeft = t.scrollLeft;
+  };
+  // The passages' places in the layer: ranges of its one text (CSS highlights), or its <mark> where the API is missing
+  let spans = [];
+  const said = () => {
+    if (!nav) return;
+    const n = spans.length;
+    nav.hidden = !n;
+    nav.querySelector("[data-hl-count]").textContent = n ? T.hl.count(Math.max(0, current) + 1, n) : "";
+  };
+  const draw = () => {
+    const text = t.value, found = passageRanges(text, list);
+    // A text ending with a line break: the text area shows an empty last line, which a layer shows only when told
+    const end = text.endsWith("\n") ? "\n" : "";
+    if (window.CSS?.highlights && window.Highlight) {
+      back.textContent = text + end;
+      const node = back.firstChild;
+      spans = node ? found.map(([a, b]) => { const r = new Range(); r.setStart(node, a); r.setEnd(node, b); return r; }) : [];
+      HL_RANGES.set(back, spans);
+      hlRefresh();
+    } else {
+      let html = "", pos = 0;
+      for (const [a, b] of found) { html += `${esc(text.slice(pos, a))}<mark>${esc(text.slice(a, b))}</mark>`; pos = b; }
+      back.innerHTML = `${html}${esc(text.slice(pos))}${end}`;
+      spans = [...back.querySelectorAll("mark")];
+    }
+    place();
+    said();
+  };
+  const later = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); };
+  // A passage: brought into view in the text area (a few lines above it), the cursor at its start
+  const go = i => {
+    if (!spans.length) return;
+    current = (i + spans.length) % spans.length;
+    // Its top in the layer's own pixels: measured on the screen, then brought back from the page's zoom
+    const box = back.getBoundingClientRect(), scale = box.height / (back.clientHeight || 1) || 1;
+    const top = (spans[current].getBoundingClientRect().top - box.top) / scale + back.scrollTop;
+    t.scrollTop = Math.max(0, top - 3 * (parseFloat(getComputedStyle(t).lineHeight) || 20));
+    const start = passageRanges(t.value, list)[current]?.[0] ?? 0;
+    t.focus({ preventScroll: true });
+    t.setSelectionRange(start, start);
+    place();
+    said();
+  };
+  t.addEventListener("input", later);
+  t.addEventListener("scroll", () => { back.scrollTop = t.scrollTop; back.scrollLeft = t.scrollLeft; });
+  new ResizeObserver(later).observe(t);
+  window.addEventListener("resize", later);
+  if (nav) {
+    nav.querySelector("[data-hl-prev]").onclick = () => go(current - 1);
+    nav.querySelector("[data-hl-next]").onclick = () => go(current + 1);
+  }
+  draw();
+  return { go, draw, set: p => { list = p; current = -1; draw(); } };
+}
+const hlNav = () => `<span class="hl-nav" hidden><button type="button" class="small-button" data-hl-prev title="${esc(T.hl.prev)}">◀</button>
+  <span class="small muted" data-hl-count></span><button type="button" class="small-button" data-hl-next title="${esc(T.hl.next)}">▶</button></span>`;
+
 // A change, as the review shows it: what is added after the text kept, when it only adds (a sentence after a
 // paragraph, a footnote after another); else the text before and after, word by word
 const changeView = (current, text) => {
@@ -1567,7 +1689,7 @@ async function viewRetouch(r, title) {
       <p class="tick-row"><select id="page-pick">${pages.map(p => `<option>${esc(p)}</option>`).join("")}</select>
         <input id="page-other" type="text" placeholder="${esc(R.other)}" spellcheck="false">
         <button type="button" id="page-open">${R.open}</button></p>
-      <div id="editor" hidden><p class="small"><code id="page-name"></code> <span class="badge attention" id="page-dirty" hidden>${R.unsaved}</span></p>
+      <div id="editor" hidden><p class="small hl-head"><code id="page-name"></code> <span class="badge attention" id="page-dirty" hidden>${R.unsaved}</span> ${hlNav()}</p>
         <textarea id="page-text" spellcheck="true"></textarea>
         <p class="muted small">${R.undoHelp}</p>
         <p class="tick-row"><button type="button" id="page-save" disabled>${R.save}</button>
@@ -1593,6 +1715,7 @@ async function viewRetouch(r, title) {
     $("#page-save").disabled = !dirty();
     $("#page-revert").textContent = dirty() ? R.revert : R.close;  // nothing to cancel: it closes the page
   };
+  let marked = null;  // the passages highlighted in the editor (highlightEditor), made with its first page
   const load = async path => {
     if (!path || (dirty() && !confirm(R.confirmLeave))) return;
     try {
@@ -1605,6 +1728,11 @@ async function viewRetouch(r, title) {
       $("#page-said").textContent = "";
       $("#page-text").style.height = "auto";
       $("#page-text").style.height = `${Math.min(window.innerHeight * 0.7, $("#page-text").scrollHeight + 4)}px`;
+      // What the corrections applied to this page, in green; the editor opened at the first
+      const passages = (r.corrections || []).filter(c => (r.applied || []).includes(c.id) && c.page === p.path).map(c => addedPart(c.current, c.proposed));
+      marked ||= highlightEditor($("#page-text"), passages, $("#editor .hl-nav"));
+      marked.set(passages);
+      marked.go(0);
       said();
     } catch (e) { $("#page-said").textContent = e.message; $("#editor").hidden = false; }
   };
@@ -1850,22 +1978,17 @@ async function viewPublish(r, title) {
     const saved = [...texts];
     box.hidden = false;
     box.innerHTML = `<p class="muted small">${P.correctHelp}</p>
-      <div class="pair">${paths.map((path, k) => `<div><p class="muted small">${k ? T.pairs.target : T.pairs.source} · <code>${esc(path)}</code></p>
+      <div class="pair">${paths.map((path, k) => `<div><p class="muted small hl-head">${k ? T.pairs.target : T.pairs.source} · <code>${esc(path)}</code> ${hlNav()}</p>
         <textarea data-text-of="${k}" spellcheck="true" lang="${k ? "en" : "fr"}">${esc(texts[k])}</textarea></div>`).join("")}</div>
       <p class="muted small">${T.retouchPause.undoHelp}</p>
       <div class="pub-warn" hidden></div>
       <p class="tick-row"><button type="button" data-save>${P.saveCheck}</button> <button type="button" data-close>${T.retouchPause.close}</button></p>`;
     const areas = [...box.querySelectorAll("textarea")];
     areas.forEach(t => { t.style.height = `${Math.min(window.innerHeight * 0.6, t.scrollHeight + 4)}px`; });
-    // Each text opened at its first passage changed (the source's new text, the translation's), not at the top
+    // Each text with the passages the run changed in green (the source's new text, the translation's), opened at the first
     areas.forEach((t, k) => {
-      const m = k ? x.mirrors[k - 1] : x.mirrors[0], passage = (k ? m.target[0]?.[1] : m.source[0]?.[1]) || "";
-      const firstLine = passage.split("\n").find(l => l.trim()) || "";
-      const at = firstLine ? t.value.indexOf(firstLine.trim().slice(0, 60)) : -1;
-      if (at < 0) return;
-      t.setSelectionRange(at, at);
-      const lines = t.value.slice(0, at).split("\n").length, all = t.value.split("\n").length;
-      t.scrollTop = Math.max(0, t.scrollHeight * (lines / all) - 40);
+      const passages = k ? x.mirrors[k - 1].target.map(([a, b]) => addedPart(a, b)) : x.mirrors[0].source.map(([a, b]) => addedPart(a, b));
+      highlightEditor(t, passages, t.closest(".pair > div").querySelector(".hl-nav")).go(0);
     });
     const changed = () => areas.map((t, k) => t.value !== saved[k]);
     const said = () => {
