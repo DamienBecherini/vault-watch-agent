@@ -63,9 +63,59 @@ def public(url: str) -> None:
     except socket.gaierror as e:
         raise WebError(f"{parts.hostname}: unknown host") from e
     for info in infos:
-        ip = ipaddress.ip_address(info[4][0].split("%")[0])
-        if not ip.is_global:
+        if not is_public(info[4][0]):
             raise WebError(f"{parts.hostname}: a private or local address is not read")
+
+
+def get(url: str) -> bytes:
+    """The body of `url` (at most MAX_BYTES): redirections followed one by one, each address checked public, and the
+    address each request reached checked as well. WebError when it cannot be read."""
+    with httpx.Client(timeout=TIMEOUT, headers={"User-Agent": UA}, follow_redirects=False) as client:
+        for _ in range(MAX_REDIRECTS + 1):
+            public(url)
+            try:
+                with client.stream("GET", url) as r:
+                    connected_public(r)
+                    if r.is_redirect:
+                        url = urljoin(url, r.headers.get("location", ""))
+                        continue
+                    if r.status_code != 200:
+                        raise WebError(f"HTTP {r.status_code}")
+                    body = b""
+                    for chunk in r.iter_bytes():
+                        body += chunk
+                        if len(body) > MAX_BYTES:
+                            break
+                    return body
+            except httpx.HTTPError as e:
+                raise WebError(f"could not be read ({type(e).__name__})") from e
+        raise WebError(f"more than {MAX_REDIRECTS} redirections")
+
+
+NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
+def is_public(address: str) -> bool:
+    """Whether an IP address is on the public Internet, an IPv6 address that carries an IPv4 one (NAT64, 6to4,
+    Teredo, mapped) judged by that IPv4 one: « 64:ff9b::c0a8:101 » is 192.168.1.1."""
+    ip = ipaddress.ip_address(str(address).split("%")[0])
+    if not ip.is_global:
+        return False
+    if ip.version == 6:
+        inner = [ip.ipv4_mapped, ip.sixtofour, ip.teredo[1] if ip.teredo else None,
+                 ipaddress.IPv4Address(ip.packed[-4:]) if ip in NAT64 else None]
+        return all(v4 is None or v4.is_global for v4 in inner)
+    return True
+
+
+def connected_public(response: httpx.Response) -> None:
+    """WebError unless the address the request actually reached is public: a name can answer a public address when
+    it is checked and a private one when the connection is made (DNS rebinding). Called once the headers are in,
+    before the body is read; a response without a network stream (a test's fake transport) is let through."""
+    stream = response.extensions.get("network_stream")
+    peer = stream.get_extra_info("server_addr") if stream is not None else None
+    if peer and not is_public(peer[0]):
+        raise WebError(f"{response.url.host}: answered from a private or local address, not read")
 
 
 class _Text(HTMLParser):
@@ -169,6 +219,8 @@ class WebTools:
             self.check_address(url)
             try:
                 with self.client.stream("GET", url) as r:
+                    if self.check_address is public:
+                        connected_public(r)
                     if r.is_redirect:
                         url = urljoin(url, r.headers.get("location", ""))
                         continue

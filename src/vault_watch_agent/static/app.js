@@ -11,7 +11,9 @@ const dollars = n => `${(n ?? 0).toFixed(2)} $`;
 // A size in KB (« Ko » in French), one decimal under 10
 const kb = n => `${(n / 1024).toLocaleString(lang, { maximumFractionDigits: Math.abs(n) < 10240 ? 1 : 0 })} ${lang === "fr" ? "Ko" : "KB"}`;
 const signedKb = n => `${n > 0 ? "+" : ""}${kb(n)}`;
-const extLink = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>`;
+// A link out of the page: http(s) only (a source written by a model or a feed could be « javascript: »), else its text
+const webUrl = url => /^https?:\/\//i.test(String(url || ""));
+const extLink = (url, text) => webUrl(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>` : text;
 let source = null;  // EventSource of the run being followed
 
 // --- Languages ---------------------------------------------------------------------------------------
@@ -821,6 +823,7 @@ async function route() {
     asideBanner();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
+    console.error(e);  // a view that failed: in the console as well, where a bug of the page shows its stack
   }
 }
 addEventListener("hashchange", route);
@@ -860,7 +863,7 @@ function drawWatches(watches, others) {
         <div class="grow">
           ${v.kind === "issue" ? `<b>#${v.number}</b> ` : ""}${esc(v.title)} ${v.urgent ? `<span class="badge ${FINISHED.includes(r.status) ? "neutral" : "error"}">urgent</span>` : ""}
           ${v.error ? `<div class="error-text small">${esc(v.error)}</div>` : ""}
-          <div class="muted small">${v.date} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
+          <div class="muted small">${esc(v.date)} · ${v.kind === "issue" ? T.issue(v.state === "open") : T.watchFile(v.items)}${
             !["new", "closed"].includes(r.status) ? ` · ${T.count(r.corrections, r.applied)} · ${dollars(r.cost)}` : ""}${
             r.pr_url ? ` · ${extLink(r.pr_url, "pull request")}` : ""}</div>
         </div>
@@ -2019,7 +2022,7 @@ function checkFound(c) {
       ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
         return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${!ok ? " disabled" : over ? "" : " checked"}>
           <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${esc(f.reason)}${
-            f.source_url ? ` · <a href="${esc(f.source_url)}" target="_blank" rel="noopener">${C.source}</a>` : ""}${
+            f.source_url ? ` · ${extLink(f.source_url, C.source)}` : ""}${
             ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}${
             over ? ` · <span class="attention-text">${C.overlaps(f.overlaps.join(", "))}</span>` : ""}</p>
           <div class="diff before">${before}</div><div class="diff after">${after || `<span class="muted">—</span>`}</div>
@@ -2032,6 +2035,7 @@ function checkFound(c) {
 function bindCheck(d, boxes) {
   const C = T.languages.check, c = d.check;
   clearTimeout(checkTimer);
+  if (!$("#proofread")) return;  // every page in line with its translation: nothing to check
   if (c && (c.running || !c.done)) {  // follow it until it is done
     checkTimer = setTimeout(() => { if (location.hash.slice(1) === "/languages") viewLanguages(); }, 1500);
     return;

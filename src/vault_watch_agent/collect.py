@@ -170,7 +170,8 @@ def tag(block: str, name: str) -> str:
 def atom_link(block: str) -> str:
     m = (re.search(r'<link[^>]*rel="alternate"[^>]*href="([^"]+)"', block, re.I)
          or re.search(r'<link[^>]*href="([^"]+)"', block, re.I))
-    return m.group(1) if m else tag(block, "link")
+    link = m.group(1) if m else tag(block, "link")
+    return link if re.match(r"https?://", link.strip(), re.I) else ""  # a feed's own link: http(s), never « javascript: »
 
 
 def parse_date(text) -> datetime | None:
@@ -546,8 +547,11 @@ class Collector:
         body = ""
         for address in [*tries, url]:
             try:
-                webtools.public(address)
-                body = self._get(address)
+                if self.get:  # the tests' reader
+                    webtools.public(address)
+                    body = self._get(address)
+                else:  # each redirection checked public, and the address connected to (webtools.get)
+                    body = webtools.get(address).decode("utf-8", errors="replace")
                 break
             except Exception:  # noqa: BLE001 - the next address, else the item stays as its feed gave it
                 continue
