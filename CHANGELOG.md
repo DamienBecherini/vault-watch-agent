@@ -19,6 +19,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - **The leads of what is new as a list that unfolds**: a title per lead, the source and the guide side by side,
   the passage of the guide opened in Obsidian at its heading, the sources cited as links, « Dig deeper » as a
   button, the sources and the pages to read also as lists, « How to read a lead » once above the list.
+- **Dig deeper, on each line or for all the leads ticked**: a box « dig » on the line of each lead, « Dig every
+  lead ticked » above the list, and in the bar « Dig nothing / Dig n of m / Dig all » with the price of the run part
+  by part (plain leads, leads dug deeper, the cross-check and the mirrors); the button says how many are dug.
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
   the pages to read also and its sources, short and clickable, instead of one block. A check started from the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the

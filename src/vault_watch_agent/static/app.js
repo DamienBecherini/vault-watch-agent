@@ -168,6 +168,11 @@ const TEXTS = {
       sentText: "Texte envoyé à la passe (en anglais)",
       readIn: "Lu dans", writeIn: "à écrire dans", openObsidian: "Ouvrir dans Obsidian", line: n => `ligne ${n}`,
       nothingQuoted: "Aucun passage cité : le sujet n'est dans aucune page.", theLink: "(le lien lu)",
+      digShort: "creuser", digNone: "Ne rien creuser", digAll: "Tout creuser", digTicked: "Creuser toutes les cochées",
+      digSome: (d, m) => `Creuser ${d} sur ${m}`,
+      digCost: (m, a, each, d, deep, base, total) => `${m} piste${m > 1 ? "s" : ""} cochée${m > 1 ? "s" : ""} : ${a} normale${a > 1 ? "s" : ""} (≈ ${each} chacune) + ${d} creusée${d > 1 ? "s" : ""} (≈ ${deep} chacune) + la relecture croisée et les miroirs (≈ ${base}) = ${total} au prix catalogue`,
+      digFree: (a, d, how) => `${a} normale${a > 1 ? "s" : ""}, ${d} creusée${d > 1 ? "s" : ""} · ${how}`,
+      digWarn: m => `Tout creuser : ${m} appels qui ont chacun tout le web d'un appel. Plus cher, plus long, et plus de limite sur un abonnement.`,
       digButton: "Creuser cette piste", digWhat: "Un appel rien que pour elle : plusieurs sources indépendantes, plus de recherches, plusieurs pages possibles.",
       sourcesTitle: n => `Sources (${n})`, readTitle: n => `Pages à relire aussi (${n})`,
       unfold: "déplier", unfoldAll: "Tout déplier", foldAll: "Tout replier", howToRead: "Comment lire une piste",
@@ -189,7 +194,7 @@ const TEXTS = {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"], ["add", "ajouts", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
         if (!kinds.length) return "Coche des pistes pour créer une passe";
         return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2], k[0])})`).join(", ")}`
-          : `Créer une passe ${kinds[0][0] === "add" ? "d'ajouts" : kinds[0][1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
+          : `Créer une passe ${kinds[0][0] === "add" ? "d'ajouts" : kinds[0][1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s)${kinds[0][0] === "add" && runs.dug ? ` (${runs.dug} creusée${runs.dug > 1 ? "s" : ""})` : ""} · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
       heaviest: "Pages les plus lourdes", flaggedFirst: "Pages signalées, puis les plus lourdes", perChapter: "Par chapitre",
       over: "au-dessus de son plafond", grew: "a beaucoup grossi", newPage: "nouvelle page",
@@ -493,6 +498,11 @@ const TEXTS = {
       sentText: "Text sent to the run",
       readIn: "Read in", writeIn: "to write in", openObsidian: "Open in Obsidian", line: n => `line ${n}`,
       nothingQuoted: "No passage quoted: the subject is in no page.", theLink: "(the link read)",
+      digShort: "dig", digNone: "Dig nothing", digAll: "Dig all", digTicked: "Dig every lead ticked",
+      digSome: (d, m) => `Dig ${d} of ${m}`,
+      digCost: (m, a, each, d, deep, base, total) => `${m} lead(s) ticked: ${a} plain (≈ ${each} each) + ${d} dug deeper (≈ ${deep} each) + the cross-check and the mirrors (≈ ${base}) = ${total} at list price`,
+      digFree: (a, d, how) => `${a} plain, ${d} dug deeper · ${how}`,
+      digWarn: m => `Dig all: ${m} calls that each have the whole web of a call. Dearer, longer, and more of a subscription's limit.`,
       digButton: "Dig deeper into this lead", digWhat: "A call of its own: several independent sources, more searches, several pages possible.",
       sourcesTitle: n => `Sources (${n})`, readTitle: n => `Pages to read also (${n})`,
       unfold: "unfold", unfoldAll: "Unfold all", foldAll: "Fold all", howToRead: "How to read a lead",
@@ -513,7 +523,7 @@ const TEXTS = {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"], ["add", "addition", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
         if (!kinds.length) return "Tick leads to create a run";
         return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} lead(s) as ${/^a/.test(k[1]) ? "an" : "a"} ${k[1]} run (${c(k[2], k[0])})`).join(", ")}`
-          : `Create ${kinds[0]?.[0] === "add" ? "an" : "a"} ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} lead(s) · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
+          : `Create ${kinds[0]?.[0] === "add" ? "an" : "a"} ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} lead(s)${kinds[0][0] === "add" && runs.dug ? ` (${runs.dug} dug deeper)` : ""} · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
       heaviest: "Heaviest pages", flaggedFirst: "Flagged pages, then the heaviest", perChapter: "Per chapter",
       over: "over its ceiling", grew: "grew much", newPage: "new page",
@@ -1653,7 +1663,9 @@ async function viewCheck(id) {
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<details class="lead-legend"><summary>${V.howToRead}</summary><p>${V.leadsAdd}</p><dl>${
             V.legend.map(([k, t]) => `<dt>${k}</dt><dd>${t}</dd>`).join("")}</dl></details>
-            <p class="small"><button type="button" class="small-button" data-unfold-card="${c}">${V.unfoldAll}</button></p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
+            <p class="small lead-tools"><button type="button" class="small-button" data-unfold-card="${c}">${V.unfoldAll}</button>
+              <button type="button" class="small-button" data-dig-card="${c}" data-dig="all">🔍 ${V.digTicked}</button>
+              <button type="button" class="small-button" data-dig-card="${c}" data-dig="none">${V.digNone}</button></p>` : ""}${stuck.length ? `<div class="unchecked-all" role="status"><span>${V.uncheckedAll(stuck.length)}</span>
             <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads"${r.mode === "add" ? ` data-card-list="${c}"` : ""}>${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f], r.details?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
@@ -1661,6 +1673,9 @@ async function viewCheck(id) {
       <details class="run-steps" id="run-steps-box" hidden><summary>${T.perStep.title}</summary><div id="run-steps"></div></details>
       <label class="add-context small" id="add-context-box" hidden>${V.context}
         <select id="add-context"><option value="pages">${V.contextPages}</option><option value="guide">${V.contextGuide}</option></select>${tip(V.contextTip)}</label>
+      <div class="dig-box" id="dig-box" hidden>
+        <span class="seg"><button type="button" data-dig-all="none">${V.digNone}</button><button type="button" data-dig-all="some" disabled></button><button type="button" data-dig-all="all">${V.digAll}</button></span>
+        <div class="dig-cost muted small" id="dig-cost"></div><div class="attention-text small" id="dig-warn" hidden></div></div>
       <button id="all">${V.tickAll}</button><button id="nothing">${V.untickAll}</button>
       <button id="dismiss"></button>
       <button class="primary" id="fix"></button>
@@ -1707,21 +1722,15 @@ async function viewCheck(id) {
       : `<div class="excerpt-head muted small">${V.line(e.line)}${e.match === "approx" ? ` · ${T.excerptApprox}` : ""} · <a href="${esc(obsidian(v.vault_name, e.page, e.heading))}">${V.openObsidian} ↗</a></div>
         <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(l => `<div${l.hit ? ' class="target"' : ""}><span class="n">${l.n}</span><span>${
           l.parts ? `${esc(l.parts[0])}<mark>${esc(l.parts[1])}</mark>${esc(l.parts[2])}` : esc(l.text)}</span></div>`).join("")}</div>`).join("") : "";
-    const extra = (() => {  // what digging adds to the cost of the run, when it is billed
-      const o = options.find(x => x.id === card) || {}, pages = ADD_CONTEXT === "pages" && o.run_usd_deep_pages;
-      const more = pages ? o.run_usd_deep_pages - o.run_usd_each_pages : (o.run_usd_deep || 0) - (o.run_usd_each || 0);
-      return billedStep("add") && more > 0 ? ` <small>· + ≈ ${dollars(more)}</small>` : "";
-    })();
     return `<li class="lead-item">
       <div class="lead-row" data-unfold="${esc(key)}"><input type="checkbox" data-lead="${esc(f)}" data-fixable="${fixable}" data-mode="add" data-card="${card}" aria-label="${esc(title)}">
         <span class="num">${n}.</span><span class="lead-title"><b>${esc(title)}</b>${p.pages[0] ? ` <span class="muted small">· ${esc(short(p.pages[0]))}</span>` : ""}</span>
-        <span class="tag">${esc(from)}</span><button type="button" class="unfold" aria-expanded="${open}" aria-label="${esc(V.unfold)}">${open ? "▾" : "▸"}</button></div>
+        <span class="tag">${esc(from)}</span><label class="dig-mini" title="${esc(V.digWhat)}"><input type="checkbox" data-deep="${esc(f)}"> 🔍 ${V.digShort}</label><button type="button" class="unfold" aria-expanded="${open}" aria-label="${esc(V.unfold)}">${open ? "▾" : "▸"}</button></div>
       <div class="lead-open"${open ? "" : " hidden"}>
         <div class="where muted small">${where}</div>
         <div class="lead-cols"><div class="box"><h4>${V.detail.says}</h4>${d.says ? said(d.says) : esc(p.text)}</div>
           <div class="box"><h4>${V.detail.guide}</h4>${d.guide ? `<p>${said(d.guide)}</p>` : ""}${guideBox || (d.guide ? "" : `<p class="muted small">${V.nothingQuoted}</p>`)}</div></div>
         ${d.check || d.matters ? `<dl class="pair">${d.check ? `<dt>${V.detail.check}</dt><dd>${said(d.check)}</dd>` : ""}${d.matters ? `<dt>${V.detail.matters}</dt><dd>${said(d.matters)}</dd>` : ""}</dl>` : ""}
-        <div class="lead-actions"><label class="digbtn"><input type="checkbox" data-deep="${esc(f)}"> 🔍 ${V.digButton}${extra}</label><span class="muted small">${V.digWhat}</span></div>
         <div class="lead-lists">
           ${p.sources.length ? `<div><h5>${V.sourcesTitle(p.sources.length)}</h5><ul>${p.sources.map((u, i) => `<li>${extLink(u, esc(shortUrl(u)))} ↗${i === 0 && p.kind === "From a link" ? ` <span class="muted">${V.theLink}</span>` : ""}</li>`).join("")}</ul></div>` : ""}
           ${p.read.length ? `<div><h5>${V.readTitle(p.read.length)}</h5><ul>${p.read.map(x => `<li>${pageLink(x)}</li>`).join("")}</ul></div>` : ""}
@@ -1775,7 +1784,22 @@ async function viewCheck(id) {
       return `≈ ${dollars(o.run_usd_pages + (adds.some(f => NO_PAGE.test(f)) ? o.run_usd - o.run_usd_pages : 0) + adds.reduce((s, f) => s + (each(f) || 0), 0))}`;
     };
     $("#fix").textContent = V.createFix(by, (usd, mode) => costOf(MODE_STEP[mode] || "fix", usd),
-      { compact: runOf("compaction", by.compact || 0), add: addCost() });
+      { compact: runOf("compaction", by.compact || 0), add: addCost(), dug });
+    // The leads of an addition run: how many are dug deeper, and what the run costs, part by part
+    $("#dig-box").hidden = !adds.length;
+    if (adds.length) {
+      const o = options.find(o => o.id === "news") || {}, narrow = ADD_CONTEXT === "pages" && o.run_usd_pages;
+      const base = narrow ? o.run_usd_pages + (adds.some(f => NO_PAGE.test(f)) ? o.run_usd - o.run_usd_pages : 0) : o.run_usd;
+      const each = narrow ? o.run_usd_each_pages : o.run_usd_each, deeper = narrow ? o.run_usd_deep_pages : o.run_usd_deep;
+      const seg = $("#dig-box").querySelectorAll("[data-dig-all]");
+      seg[0].classList.toggle("on", dug === 0); seg[2].classList.toggle("on", dug === adds.length);
+      seg[1].classList.toggle("on", dug > 0 && dug < adds.length); seg[1].textContent = V.digSome(dug, adds.length);
+      $("#dig-cost").textContent = billedStep("add") && o.run_usd
+        ? V.digCost(adds.length, adds.length - dug, dollars(each || 0), dug, dollars(deeper || 0), dollars(base || 0), addCost())
+        : V.digFree(adds.length - dug, dug, costOf("add", ""));
+      $("#dig-warn").hidden = !(dug === adds.length && adds.length > 1);
+      $("#dig-warn").textContent = V.digWarn(adds.length);
+    }
     // The steps of the run(s) these leads go to: what runs each, changeable for this time
     const kinds = Object.keys(by);
     const wanted = [...kinds.map(k => MODE_STEP[k]), ...(kinds.some(k => k !== "translation") ? ["crosscheck"] : []), ...(kinds.length ? ["mirror"] : [])];
@@ -1794,6 +1818,14 @@ async function viewCheck(id) {
     if (d.checked) boxes.filter(c => c.dataset.lead === d.dataset.deep).forEach(c => c.checked = true);
     count();
   });
+  // Dig deeper into every lead ticked, or into none: in one card, or in the whole run (the bar)
+  const digTicked = (on, card = null) => {
+    digs.filter(d => !card || boxes.some(c => c.dataset.lead === d.dataset.deep && c.dataset.card === card))
+      .forEach(d => { d.checked = on && boxes.some(c => c.checked && c.dataset.lead === d.dataset.deep); });
+    count();
+  };
+  page.querySelectorAll("[data-dig-card]").forEach(b => b.onclick = () => digTicked(b.dataset.dig === "all", b.dataset.digCard));
+  page.querySelectorAll("[data-dig-all]").forEach(b => b.onclick = () => digTicked(b.dataset.digAll === "all"));
   // Tick or untick every open finding of one card (all ticked: untick)
   page.querySelectorAll("[data-fold]").forEach(d => d.ontoggle = () => { FOLDS[d.dataset.fold] = d.open; });
   page.querySelectorAll("[data-tick-card]").forEach(b => b.onclick = e => {
