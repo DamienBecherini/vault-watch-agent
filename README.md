@@ -118,10 +118,10 @@ flowchart TD
 | `mirror` | Translates into the guide's mirrors (an English copy under `en/`, for instance) what changed in each source page on the branch, passage by passage: the corrections, and any edit by hand |
 | `audits` | Runs the guide's own checks, if the manifest declares them |
 | `links` | Checks the external links of the changed pages |
-| `publish` | ⏸ Pause: on a yes, pushes the branch and opens the pull request (a local guide keeps the branch) |
+| `publish` | ⏸ Pause: the pages and their translation can still be corrected or translated again, then checked again; on a yes, pushes the branch and opens the pull request (a local guide keeps the branch) |
 
-What decides at each step, an example with its cost, and the two screens where you decide:
-[A run, step by step](docs/run.md).
+What decides at each step, an example with its cost, the screens where you decide (the review, the retouches, the
+publish step) and how your folder gets the pull request once merged: [A run, step by step](docs/run.md).
 
 Two more kinds of run use the same review and pull request: a **fix run** turns reported errors (a reader's, a
 check's) into checked corrections, and a **check of the guide**, on demand, looks for what is wrong or
@@ -137,7 +137,7 @@ belongs ([What is new](docs/news.md)).
   refuses it unless the quote occurs exactly once in the page. Pages declared read-only are never edited.
 - **Human in the loop, writing.** The run stops after the report (LangGraph `interrupt`), where each proposal can
   be retouched; again after the corrections are applied, to retouch the pages themselves if you want; and before
-  anything leaves the machine. A paused run is checkpointed in SQLite and resumed later, from another process,
+  anything leaves the machine, where the pages and their translation can still be corrected. A paused run is checkpointed in SQLite and resumed later, from another process,
   days later if needed.
 - **Evidence, not memory.** Proposals rely on the release notes and advisories of the watch, and the cross-check
   on primary sources read on the web, never on the model's memory alone.
@@ -170,9 +170,11 @@ vault-watch serve --idle-exit 3600    # stops after 1 h without a visit or a run
 vault-watch serve --notify en         # Windows notification when a run waits for you, ends or fails
 ```
 
-One screen per step of a run: a run in progress (each finished step streamed to the page), the review (one card per
-correction with a word-level diff, its sources and the cross-check's verdict), the publish step (checks, link
-problems, the diff of the branch), then the pull request. Around them:
+One screen per step of a run: a run in progress (each finished step streamed to the page), the review (one block per
+item or lead, one card per correction with a word-level diff, its source and the cross-check's verdict), the
+retouches (your folder lent to Obsidian, or an editor in the page), the publish step (« Before publishing »: the
+guide's checks, the translation, the links to check yourself; then each page changed beside its translation, still
+correctable), then the pull request. Around them:
 
 | Page | What it is for |
 | :-- | :-- |
@@ -180,8 +182,8 @@ problems, the diff of the branch), then the pull request. Around them:
 | Watch › Automatic watch | The watches with their status and a button to analyse one |
 | Watch › Every run | Every run, newest first: the watches', and those started from a check, from « Report or suggest » or from « Languages » |
 | Watch › Sources followed | What each source of the watch brought and what became of it, and a check of the sources themselves, whose changes go to a pull request ([which sources earn their place](docs/collect.md#which-sources-earn-their-place)) |
-| Watch › Check the guide | Checks on demand, the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are sorted, then sent to a run ([Check the guide](docs/check.md)) |
-| Report or suggest | Errors to fix, an idea or a piece of news to check and write, or links to read whole (an article, a page, a PDF) for the leads they hold |
+| Watch › Check the guide | Checks on demand, of three kinds shown in colour (guide health, lighter guide, what is new), the free ones and the paid ones with their estimate: audits, links, freshness, consistency, translations, what makes the guide heavy, what is new. Their leads are sorted, then sent to a run ([Check the guide](docs/check.md)) |
+| Report or suggest | Errors to fix, an idea or a piece of news to check and write, or links to read whole (an article, a page, a PDF, a video) for the leads they hold; what you type is kept as a draft, one per tab |
 | Languages | The pages ahead of their mirror, and those you changed in your folder without committing: what changed is translated, then the usual checks and pull request ([A run, step by step](docs/run.md#sync-the-languages)) |
 | Chapters | In the menu under the guide's name: the chapters the agent works on, proposed by a model or written by hand: why and how, [Chapters](docs/chapters.md) |
 | Costs | What the upkeep costs, by month and by run ([Costs](docs/costs.md)) |
@@ -193,8 +195,8 @@ problems, the diff of the branch), then the pull request. Around them:
 *The leads of « what is new » on the reference guide: three are ticked, the button says what the addition run would
 cost.*
 
-Every screen that starts a paid step says what it will cost and what will run it (engine, model, effort) before
-the click. The interface is in English or French, light or dark, with palettes and a text size of your choice. A
+Every screen that starts a paid step says what it will cost (on a subscription, what it is worth at list price,
+struck through) and what will run it (engine, model, effort) before the click. The interface is in English or French, light or dark, with palettes and a text size of your choice. A
 run started here can be resumed from the command line, and the reverse. The server listens on 127.0.0.1 only
 ([Security](docs/security.md)).
 
