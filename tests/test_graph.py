@@ -560,3 +560,11 @@ def test_a_review_given_as_one_string_of_ids_applies_them(setup):
     graph.invoke({"source": str(watch), "issue": None}, config)
     graph.invoke(Command(resume=" C1 , "), config)
     assert graph.get_state(config).values["accepted"] == ["C1", "C3", "C5"]  # C1 and its group
+
+
+def test_two_watches_of_the_same_day_never_share_a_branch():
+    from vault_watch_agent.graph import watch_branch
+    assert watch_branch({"as_of": "2026-10-10", "issue": 26}) == "chore/watch-2026-10-10-26"
+    assert watch_branch({"as_of": "2026-10-10", "issue": 30}) == "chore/watch-2026-10-10-30"
+    assert watch_branch({"as_of": "2026-10-10", "source": "D:/x/watch-2026-10-10.json"}) == "chore/watch-2026-10-10"
+    assert watch_branch({"as_of": "2026-10-10", "source": "D:/x/urgent watch.json"}) == "chore/watch-2026-10-10-urgent-watch"

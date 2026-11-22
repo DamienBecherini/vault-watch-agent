@@ -1211,6 +1211,7 @@ async function route() {
     asideBanner();
   } catch (e) {
     page.innerHTML = `<p class="error-text">${esc(e.message)}</p>`;
+    console.error(e);  // a view that failed: in the console as well, where a bug of the page shows its stack
   }
 }
 addEventListener("hashchange", route);

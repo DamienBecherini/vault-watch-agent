@@ -59,6 +59,18 @@ def sorted_proposals(state: WatchState) -> list[dict]:
     return sorted(state.get("proposals", []), key=lambda p: order[p["item_ids"][0]])
 
 
+def watch_branch(state: WatchState) -> str:
+    """The branch of a watch's run: `chore/watch-<as_of>`, then its issue (`-55`), or the name of its watch file
+    when that name does not already say the date, so that two watches of the same day never share a branch."""
+    name = f"chore/watch-{state['as_of']}"
+    if state.get("issue"):
+        return f"{name}-{state['issue']}"
+    stem = Path(str(state.get("source") or "")).stem
+    if not stem or state["as_of"] in stem:
+        return name
+    return f"{name}-{re.sub(r'[^A-Za-z0-9._-]+', '-', stem).strip('-.')}"
+
+
 def build(deps: Deps, checkpointer=None):
     # -- collect ------------------------------------------------------------
     def collect(state: WatchState) -> dict:
@@ -266,8 +278,9 @@ def build(deps: Deps, checkpointer=None):
 
     # -- apply ----------------------------------------------------------------
     def apply(state: WatchState) -> dict:
-        # One branch per run: a watch is named after its window, a fix run after its own label.
-        branch = state.get("branch_name") or f"chore/watch-{state['as_of']}"
+        # One branch per run: a watch is named after its window and its issue (two watches of the same day, a weekly
+        # one and an urgent one, would share a branch and a worktree otherwise), a fix run after its own label.
+        branch = state.get("branch_name") or watch_branch(state)
         worktree = deps.home / "worktrees" / branch.replace("/", "-")
         if not worktree.exists():
             with vault._GIT:  # not while another run syncs main or resets the reading copy
