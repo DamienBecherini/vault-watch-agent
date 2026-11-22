@@ -2,8 +2,8 @@
 
 # Vérifier le guide : les contrôles, leurs pistes, et où elles partent
 
-Une veille ne regarde que ce que ses sources annoncent. La page « Vérifier le guide » de l'interface regarde le
-guide lui-même, à la demande : si ses scripts passent, si ses sources répondent encore, si ses pages sont d'accord
+Une veille ne regarde que ce que ses sources annoncent. La page « Vérifier le guide » de l'interface (dans le menu
+« Veille ») regarde le guide lui-même, à la demande : si ses scripts passent, si ses sources répondent encore, si ses pages sont d'accord
 entre elles, si ses traductions disent la même chose, si ses affirmations datées tiennent toujours, ce qui
 l'alourdit, et ce qu'un lecteur chercherait sans le trouver. Cette page dit ce que lit chaque contrôle, ce qu'il
 coûte, ce qu'il trouve, et ce que devient ce qu'il trouve.
@@ -53,6 +53,12 @@ prix public ; les coûts mesurés sont ceux des contrôles lancés les 8 et 17 n
 | Nouveautés | Toutes les pages, et ce que les veilles passées ont mis de côté | raisonnement | 2,45 $ | 2,28 $ | Ce que le guide présente comme actuel et qui a sans doute évolué, les sujets qu'un lecteur attendrait et qu'aucune page ne couvre ([Nouveautés](news.md)) | un passage d'ajouts |
 | Nouveautés : exploration du web | Un appel par chapitre coché, chacun avec le web et tout le guide | raisonnement | 2,05 $, puis 4,81 $ par chapitre | pas encore lancé | Ce que le web dit des sujets d'un chapitre et que le guide ne dit pas, chaque piste avec ses sources ([Chapitres](chapters.md)) | un passage d'ajouts |
 
+Les contrôles sont de trois sortes, que la liste des vérifications montre par des étiquettes en couleur : **santé
+du guide** (les contrôles du guide, les liens morts, la fraîcheur, la cohérence, les traductions, les affirmations,
+le remplacement des liens morts), **allègement** (la taille des pages, le compactage) et **nouveautés** (les deux
+contrôles de nouveautés, et « Des liens à lire en entier », un douzième contrôle absent du catalogue : il se lance
+depuis « Signaler ou proposer », [plus bas](#signaler-ou-proposer)).
+
 Trois contrôles ont besoin d'un autre avant eux, qui tourne même s'il n'est pas coché : la revérification des
 affirmations a besoin de « Fraîcheur », le remplacement des liens morts de « Liens morts », le compactage de
 « Taille des pages ». Un contrôle dont le manifeste ne déclare pas le script dit qu'il n'a pas vérifié, faute de
@@ -78,15 +84,41 @@ inspire confiance. L'estimation compte ce que pèse le guide ; le web, elle ne p
   l'agent le cherche dans la page et l'affiche encadré, la phrase en surligné. Un passage introuvable porte
   « extrait introuvable dans la page », ou « passage le plus proche, pas une citation exacte ». Les liens morts
   sont trouvés par le code lui-même : leurs passages sont toujours exacts.
-- **Une gravité** pour chaque piste : Critical, Major ou Minor. Une divergence de traduction que le modèle juge, à
+- **Une gravité** pour chaque piste : « Critique », « Majeur » ou « Mineur » (Critical, Major ou Minor dans la
+  ligne envoyée au passage). Une divergence de traduction que le modèle juge, à
   la réflexion, dire la même chose des deux côtés est écartée ; une page sans miroir est une piste Major trouvée
   par le code.
+
+## La liste des vérifications, et la page d'une vérification
+
+La page « Vérifier le guide » montre d'abord, sous « À trier », les vérifications dont des pistes restent à trier
+(ou qui tournent) ; puis « Nouvelle vérification », le catalogue, replié tant que des pistes restent à trier ; puis
+« Vérifications précédentes », que l'on peut restreindre à une sorte (« Toutes », « Santé du guide »,
+« Allègement », « Nouveautés »). Chaque vérification est une carte : sa sorte en couleur, un titre court
+(« 7 contrôles », « Compactage », « Des liens à lire en entier · 2 liens »), « depuis Signaler ou proposer » pour une
+vérification lancée là, les liens qu'elle a lus, ce qu'elle a coûté (sur un abonnement, ce qu'elle vaut au prix
+catalogue, barré : [Coûts](costs.md#les-estimations)), ses pistes (« n à trier · n envoyée(s) à une passe ·
+n écartée(s) »), et les passages où sont parties ses pistes tant qu'ils attendent quelque chose, chacun avec le
+bouton de son étape (« Suivre », « Relire », « Valider la publication », « Fusionner sur GitHub »). Les
+vérifications dont des pistes sont à trier sont aussi sur « À traiter », la première page de l'interface ; « Trier »
+ouvre la page de la vérification.
+
+Sur la page d'une vérification, chaque contrôle est une carte, repliée quand il n'y reste rien à faire, avec
+« Cocher / décocher les n » pour ses pistes encore ouvertes. Une barre reste en bas de la page : ce qui est coché et
+ce que cela coûte, « Options », « Écarter n piste(s) » et le bouton qui crée le passage (« Créer une passe fix ·
+≈ 6-8 $ », ou « Créer 2 passes : … » quand les pistes cochées partent dans deux sortes de passage). « Options »
+s'ouvre au-dessus de la barre, ouvert ou replié selon votre dernier choix dans le navigateur : pour les pistes de
+nouveautés, « Creuser et lecture » ([Nouveautés](news.md#les-ajouts)) ; puis « Moteur et modèles de cette passe »,
+une carte par étape du passage (ce qu'elle fait, son moteur, son modèle et son effort, comment elle est payée),
+chacune avec « changer » pour ce passage seulement, une étape ainsi changée étant encadrée. Sur un téléphone, « ⋯ »
+ouvre les options, et un « ? » sur chaque carte dit ce que fait son étape. Quand un passage tourne déjà, le bouton
+demande avant d'en lancer un autre en même temps.
 
 ## La vie d'une piste
 
 | État | Ce qu'il veut dire | Ce que vous pouvez faire |
 | :-- | :-- | :-- |
-| À traiter | Trouvée par le contrôle, pas encore décidée | La cocher et l'envoyer dans un passage, ou l'écarter |
+| À trier | Trouvée par le contrôle, pas encore décidée | La cocher et l'envoyer dans un passage, ou l'écarter |
 | Envoyée à une passe | C'est un élément d'un passage, affiché avec l'état du passage (relecture, publication, pull request à fusionner, fusionnée) | Suivre le passage |
 | Pas vérifiée par la passe | Envoyée dans un passage d'ajouts dont l'appel n'a pas pu la regarder (son web épuisé, l'appel en échec) : rien n'a été cherché ni modifié pour elle | La remettre à traiter, pour la renvoyer |
 | Écartée | Vous l'avez jugée fausse ou sans intérêt | La rétablir |
@@ -96,8 +128,9 @@ deux de traduction font un passage de correction et un passage de correction des
 que chacun coûtera. Une piste qu'un passage de correction trouve déjà juste, ou fausse, reçoit une issue avec sa
 raison dans le rapport du passage, pas une modification.
 
-Deux habitudes gardent la liste honnête. Une nouvelle vérification alors que des pistes restent à traiter les
-retrouverait : la page prévient avant de la lancer, traitez-les ou écartez-les d'abord. Supprimer une vérification
+Deux habitudes gardent la liste honnête. Une nouvelle vérification alors que des pistes restent à trier les
+retrouverait : la page prévient avant de la lancer, triez-les d'abord (envoyez-les dans un passage, ou écartez-les).
+Supprimer une vérification
 supprime ses pistes, jamais les passages déjà lancés à partir d'elle.
 
 ## Les passages où partent les pistes
@@ -115,7 +148,8 @@ relecture, application sur une branche, miroirs, contrôles, liens, votre feu ve
 
 ## Signaler ou proposer
 
-La page « Signaler ou proposer » saute la recherche de pistes, quand vous savez déjà quoi vérifier :
+La page « Signaler ou proposer » (dans la barre de l'interface, ou « Écrire » sur « À traiter ») saute la recherche
+de pistes, quand vous savez déjà quoi vérifier :
 
 - **Une erreur à corriger** : une par ligne, la page, ce qui est faux, et si possible la bonne information. Cela
   fait un passage de correction, comme le ferait une piste de « Cohérence » (5 à 7 $ environ sur l'API ; rien de
@@ -123,14 +157,20 @@ La page « Signaler ou proposer » saute la recherche de pistes, quand vous save
 - **Une idée ou une information à creuser** : un sujet par ligne, avec une adresse si vous en avez une. Cela fait
   un passage d'ajouts, comme le ferait une piste de « Nouveautés » ; une case demande de creuser chaque sujet
   (plusieurs sources, plus de recherches, un peu plus cher), et la page donne le compte avant de lancer.
-- **Des liens à lire en entier** : une adresse par ligne (un article, une page, un PDF). Chaque lien est lu en
-  entier, puis Claude le lit avec tout le guide et liste des pistes, qui arrivent sur la page d'un contrôle « Des
-  liens à lire en entier », à cocher et à envoyer dans un passage d'ajouts ([détails](news.md#des-liens-à-lire-en-entier)).
+- **Des liens à lire en entier** : une adresse par ligne (un article, une page, un PDF, le dépôt d'un projet, une
+  vidéo). Chaque lien est lu en entier, puis Claude le lit avec tout le guide et liste des pistes, qui arrivent sur
+  la page d'un contrôle « Des liens à lire en entier », à cocher et à envoyer dans un passage d'ajouts
+  ([détails](news.md#des-liens-à-lire-en-entier)).
+
+Ce que vous tapez est gardé comme brouillon, un par onglet : quand vous changez d'onglet, et dans le navigateur
+contre un rechargement, un plantage ou un onglet fermé. « Effacer » le vide, « Rétablir » le fait revenir. Il se
+vide une fois le passage ou la vérification lancé ; un refus ou une connexion perdue le garde, et la page dit
+pourquoi.
 
 Une ligne tapée à la main n'a pas de passage encadré : le passage trouve les pages lui-même, avec tout le guide en
 contexte. Ce que la relecture croisée d'un passage remarque ailleurs dans le guide, hors de ses corrections, est
-listé dans sa relecture sous « Remarqué ailleurs dans le guide » : copiez les lignes dans « Signaler une erreur »
-pour les faire corriger.
+listé dans sa relecture sous « Remarqué ailleurs dans le guide » : copiez les lignes dans « Signaler ou proposer »,
+onglet « Une erreur à corriger », pour les faire corriger.
 
 En ligne de commande, `vault-watch news` (`--explore` pour le web) et `vault-watch compact --report` lancent trois
 de ces contrôles ; `vault-watch fix <nom> --findings fichier.txt` fait un passage à partir d'un fichier de pistes,

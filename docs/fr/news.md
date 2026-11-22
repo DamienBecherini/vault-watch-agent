@@ -58,7 +58,8 @@ piste, en quatre parties : ce que dit la source, ce que dit le guide, ce qui res
 pour le lecteur (deux à quatre phrases, les termes expliqués ; les sources qu'il cite sont des liens). Dans toutes
 les langues, chaque piste a un titre court.
 
-La page liste les pistes une ligne chacune : le titre, la page, d'où vient la piste. Une piste se déplie en la
+La page liste les pistes une ligne chacune : une case pour la cocher, le titre, la page, d'où vient la piste, et une
+case « 🔍 creuser » ([plus bas](#les-ajouts)). Une piste se déplie en la
 source et le guide côte à côte (le passage de la page, avec un lien qui l'ouvre dans Obsidian à l'intertitre le
 plus proche), ce qu'il reste à vérifier, ce que ça change pour le lecteur, le bouton « Creuser cette piste », les
 sources et les pages à relire aussi (leur titre, puis leur emplacement), et le texte envoyé à la passe, replié.
@@ -122,7 +123,9 @@ entier » (un lien sur « Vérifier le guide » y mène) : une adresse par ligne
    (une vidéo, un blog ou une lettre d'information disent où chercher ; ce n'est jamais la source).
 
 La page du contrôle liste les liens, chacun avec ce qui a été lu (son nombre de caractères) ou pourquoi il ne l'a
-pas été.
+pas été. Dans la liste des vérifications, une telle vérification s'appelle « Des liens à lire en entier · 2 liens »,
+marquée « depuis Signaler ou proposer », avec ses liens
+([Vérifier le guide](check.md#la-liste-des-vérifications-et-la-page-dune-vérification)).
 
 ### Une vidéo
 
@@ -161,8 +164,8 @@ moment.
 vault-watch --guide ../mon-guide fix add-2026-11-20 --findings pistes.txt --add
 ```
 
-Dans l'interface : cochez les pistes, puis « Créer une passe ajouts » ; le bouton affiche une estimation qui suit
-le nombre de pistes cochées.
+Dans l'interface : cochez les pistes, puis « Créer une passe d'ajouts », dans la barre en bas de la page ; le
+bouton affiche une estimation qui suit le nombre de pistes cochées et de celles qui sont creusées.
 
 ![Les pistes d'une vérification : chaque piste ouverte avec le passage du guide qu'elle concerne, la case « creuser », la liste qui choisit ce que lit chaque appel, et le bouton avec son estimation](../images/leads.fr.png)
 
@@ -177,8 +180,12 @@ Pour chaque piste, le modèle cherche sur le web et ouvre des sources primaires,
 - il faudrait une page à part : la page n'est pas écrite. Le rapport dit « needs a page », avec ce qu'elle
   contiendrait et où ; écrire une nouvelle page reste votre décision.
 
-**Creuser.** À côté de chaque piste, une case « creuser » (en ligne de commande, un `!` en début de ligne dans le
-fichier). Son appel reçoit alors la consigne d'aller plus loin : plusieurs sources indépendantes, ce que le sujet
+**Creuser.** La ligne de chaque piste a une case « 🔍 creuser », et la piste dépliée le bouton « Creuser cette
+piste » (en ligne de commande, un `!` en début de ligne dans le fichier). « Creuser toutes les cochées » et « Ne rien
+creuser », au-dessus de la liste, agissent sur tout un contrôle. Dans la barre, « Options », puis « Creuser et
+lecture » : « Creuser : Rien · Creuser n sur m · Tout », et le prix du passage poste par poste (les pistes normales,
+les pistes creusées, la relecture croisée et les miroirs). Une piste creusée est aussi cochée ; une piste décochée
+n'est plus creusée. Son appel reçoit alors la consigne d'aller plus loin : plusieurs sources indépendantes, ce que le sujet
 remplace, sa maturité et sa disponibilité, ce qu'il change pour chaque type de lecteur, sur plusieurs pages s'il
 le faut. Cela coûte un peu plus qu'une piste ; à garder pour les sujets qui le méritent.
 
@@ -194,8 +201,8 @@ rouverte), votre relecture, les miroirs, les contrôles du guide et la pull requ
 Les pistes prennent un appel, qui lit tout le guide. Les ajouts prennent un appel par piste. Le web d'un appel
 a un plafond (20 recherches, 30 pages), et des pistes réunies dans un appel se le disputaient : au premier
 passage réel, une piste sur six grilles de prix a laissé ses trois voisines sans vérification. Une piste que son
-appel n'a pas pu regarder est marquée « pas vérifiée par la passe » sur la vérification, avec un bouton qui la
-remet parmi les pistes à traiter. Ce que deux appels ajoutent à la même page est assemblé par le programme (un
+appel n'a pas pu regarder est marquée « pas vérifiée par la passe » sur la vérification, avec un bouton,
+« Remettre à traiter », qui la remet parmi les pistes à trier. Ce que deux appels ajoutent à la même page est assemblé par le programme (un
 numéro de note choisi par les deux est renommé, deux lignes ajoutées après la même ligne s'appliquent toutes les
 deux). Ce qu'un appel lit du guide se choisit (plus bas) : les pages de sa piste et le plan du guide par défaut,
 plusieurs appels tournant en même temps, ou tout le guide. Avec tout le guide sur l'API Claude, le premier appel
@@ -221,8 +228,9 @@ relecture croisée, environ 4 $ à chaque fois. Avec tout le guide, une piste qu
 pas moins qu'une autre (16 à 25 tours de recherche, chacun relisant le guide depuis le cache) ; avec ses propres
 pages, une piste a coûté de 0,40 à 1,30 $.
 
-**Ce que lit l'appel de chaque piste** se choisit à la création du passage (une liste au-dessus du bouton sur la
-page des pistes ; `--context pages` ou `--context guide` en ligne de commande ; les pages de la piste et le plan
+**Ce que lit l'appel de chaque piste** se choisit à la création du passage (« Chaque appel de piste lit », dans
+« Options », « Creuser et lecture », de la barre de la page des pistes, le choix gardé dans le navigateur ;
+`--context pages` ou `--context guide` en ligne de commande ; les pages de la piste et le plan
 par défaut).
 
 - *Tout le guide* : l'appel voit chaque page. Le plus sûr, et le plus cher.

@@ -85,7 +85,8 @@ En plus de la veille de quinzaine, quatre autres entrées réutilisent le même 
   plus long que nécessaire, et les allègements que l'éditeur garde sont relus comme des corrections
   ([Compactage](compact.md)).
 - **Passages d'ajouts** : ce qu'aucune source de la veille n'annonce. Un contrôle liste ce qu'un lecteur chercherait
-  et ne trouve pas, et chaque piste que l'éditeur garde est vérifiée sur le web, puis écrite là où elle a sa place
+  et ne trouve pas, ou ce que les liens donnés par l'éditeur (une page, un PDF, une vidéo) contiennent pour le guide,
+  et chaque piste que l'éditeur garde est vérifiée sur le web, puis écrite là où elle a sa place
   ([Nouveautés](news.md)).
 
 ## Le graphe de l'agent
@@ -118,7 +119,7 @@ Les étapes en bleu appellent Claude ; les autres sont du code ordinaire. Le mod
 le texte actuel de la page, et le code la refuse si cette citation n'apparaît pas exactement une fois. Le modèle n'écrit
 jamais un fichier.
 
-## Deux pauses, à des jours d'intervalle s'il le faut
+## Trois pauses, à des jours d'intervalle s'il le faut
 
 ```mermaid
 sequenceDiagram

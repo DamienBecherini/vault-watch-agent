@@ -25,7 +25,7 @@ GitHub limits requests without a token. Set `GITHUB_TOKEN` (or `GH_TOKEN`), for 
 
 ```toml
 [watch]
-source = "feeds"                    # the interface lists the collected watches and has a « Collect a watch » button
+source = "feeds"                    # « Automatic watch » lists the collected watches and has a « Collect a watch » button
 feeds = "watch/feeds.json"          # the feeds to read (any source can name it: `vault-watch collect` works anyway)
 floors = "watch/floors.json"        # optional: the lowest versions the guide recommends
 seen = "watch/seen.md"              # optional: items already triaged, dropped when they come back
@@ -129,8 +129,8 @@ triaged works.
 
 ## Which sources earn their place
 
-The « Sources » page of the interface (`GET /api/sources`) shows, for each feed of `feeds.json`, what it brought
-and what became of it. Nothing is asked of a model or of the network: the table is computed from the watches kept
+The page « Sources followed » of the interface (in the menu « Watch », `GET /api/sources`) shows, for each feed
+of `feeds.json`, what it brought and what became of it. Nothing is asked of a model or of the network: the table is computed from the watches kept
 on the machine (each item names its feed) and from the runs made from them.
 
 ![The « Sources » page: the button that checks the sources, the proposals to remove four of them put off, the verdicts with their rule, then one row per source with what it brought and what came out of it](images/sources.png)

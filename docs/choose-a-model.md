@@ -57,7 +57,7 @@ Three levels, from the most general to the most particular:
 | :-- | :-- | :-- |
 | The defaults | The agent itself | A machine where nothing was set |
 | The Settings | « Engine », « Models and effort », « Set a step apart » | Every run from then on |
-| This run only | « change for this time », beside each check and above the button that creates a run | That run, down to its last step (the mirrors after the review); the Settings are not touched |
+| This run only | « change for this time », beside each check and under « Engine and models of this run » of « Report or suggest » and « Languages »; « change » on the card of each step, in the « Options » of the bar that creates a run from leads | That run, down to its last step (the mirrors after the review); the Settings are not touched |
 
 Each screen that starts a run shows what will run each of its steps (engine, model, effort) and how it is paid,
 before the click. An engine forced for a whole command (`VAULT_WATCH_ENGINE`) wins over all three.
@@ -73,7 +73,7 @@ with the defaults: Opus 5.5 and Sonnet 5.5, at the normal effort, on the API.
 | Model, per role | Reasoning: triage, proposals, cross-check, the checks of the guide, compaction, what is new, the chapters. Translation: the mirrors, the check of the translations, the fixes of translations | The quality of the work: the proposals and the cross-check are where a weaker model shows, by answering « nothing to change » ([What each step asks of a model](#what-each-step-asks-of-a-model)). The price of every call of the role. The window: a model that cannot read the whole guide makes the agent read it by chapter ([Chapters](chapters.md)) |
 | Effort, per role | Lower, normal, higher | Each step has its own level in the code (medium for the triage, the chapters, the dead links and the translator's steps; high for the others). This setting moves every step of the role one level, within low… max. Higher: more thinking, so more output tokens, a slower run and more of the cost or of the subscription's limits. Lower: the reverse, not measured on the guide |
 | A step set apart | Its engine, its model, its effort | That step alone, as set: its effort applies as it is, not moved by the role's. The compaction on Fable 5.2, for instance, about twice the price of Opus 5.5 for that step |
-| For this run only | « change for this time », beside each check and above the button that creates a run | The same choices, for one run, down to its mirrors; the Settings are not touched |
+| For this run only | « change for this time », beside each check and under « Engine and models of this run » of « Report or suggest » and « Languages »; « change » on the card of each step, in the « Options » of the bar that creates a run from leads | The same choices, for one run, down to its mirrors; the Settings are not touched |
 | Prices | Set by hand, the public list, or the defaults | The amounts of the estimates and of the journal, never what the agent does ([where the prices come from](costs.md#where-the-prices-come-from)) |
 
 ![The Settings, « Models and effort »: the model and the effort of the reasoning role, what each of its steps then runs at, and « Set a step apart », here the compaction on Claude Fable 5.2 at effort high](images/settings-models.png)

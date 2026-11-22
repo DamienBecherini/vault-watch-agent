@@ -43,23 +43,23 @@ flowchart LR
 
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
-| [Présentation](presentation.md) | Pourquoi un guide technique vieillit vite, toute la boucle d'une veille à une pull request fusionnée, les deux pauses, ce que l'agent a produit sur le guide IA on-prem, ce que ça vaut, la suite. Cinq schémas |
+| [Présentation](presentation.md) | Pourquoi un guide technique vieillit vite, toute la boucle d'une veille à une pull request fusionnée, les trois pauses, ce que l'agent a produit sur le guide IA on-prem, ce que ça vaut, la suite. Cinq schémas |
 
 ## Brancher et alimenter son guide
 
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
 | [Brancher son guide](connect-your-guide.md) | Les trois commandes pour démarrer, le manifeste `vault-watch.toml` clé par clé, ce que débloque chaque partie facultative, le guide d'exemple pour essayer. Une capture de la page « Chapitres » |
-| [Collecter une veille](collect.md) | `vault-watch collect` : les flux que suit un guide (`feeds.json`), le pré-tri sans modèle, la page « Sources » et le contrôle des sources, le workflow hebdomadaire sur GitHub. Une capture de la page « Sources » |
+| [Collecter une veille](collect.md) | `vault-watch collect` : les flux que suit un guide (`feeds.json`), le pré-tri sans modèle, la page « Sources suivies » et le contrôle des sources, le workflow hebdomadaire sur GitHub. Une capture de cette page |
 | [Le format d'une veille](watch-format.md) | `watch.json` champ par champ, pour un guide qui apporte son propre collecteur |
 
 ## Ce que fait l'agent
 
 | Page | Ce à quoi elle répond |
 | :-- | :-- |
-| [Une veille étape par étape](run.md) | Un élément d'une veille à travers chaque étape : ce que lit chacune, ce qui décide, ce qui peut arrêter une modification ; un exemple avec son coût ; l'écran de relecture et celui de publication ; pauses et reprises. Un schéma, une capture de la relecture |
-| [Vérifier le guide](check.md) | Les onze contrôles : ce que lit chacun, son estimation et ce qu'il a coûté, ce qu'il trouve, où partent ses pistes ; la vie d'une piste ; les passages où elles partent ; « Signaler ou proposer ». Un schéma, une capture du catalogue |
-| [Nouveautés](news.md) | Ce qu'un lecteur chercherait et ne trouve pas : les pistes tirées du guide et du web, une idée à soi, les ajouts et leur vérification sur le web, ce que lit et coûte chaque appel. Une capture des pistes |
+| [Une veille étape par étape](run.md) | Un élément d'une veille à travers chaque étape : ce que lit chacune, ce qui décide, ce qui peut arrêter une modification ; un exemple avec son coût ; l'écran de relecture, la pause pour retoucher les pages et l'écran de publication ; « Mettre à jour mon dossier » après la fusion ; pauses et reprises. Un schéma, une capture de la relecture |
+| [Vérifier le guide](check.md) | Les onze contrôles du catalogue et leurs trois sortes : ce que lit chacun, son estimation et ce qu'il a coûté, ce qu'il trouve, où partent ses pistes ; la liste des vérifications et la page d'une vérification ; la vie d'une piste ; les passages où elles partent ; « Signaler ou proposer ». Un schéma, une capture du catalogue |
+| [Nouveautés](news.md) | Ce qu'un lecteur chercherait et ne trouve pas : les pistes tirées du guide et du web, une idée à soi, des liens à lire en entier (une vidéo aussi), les ajouts et leur vérification sur le web, creuser une piste, ce que lit et coûte chaque appel. Une capture des pistes |
 | [Chapitres](chapters.md) | Les trois étapes qui travaillent sur une partie du guide à la fois, d'où viennent les chapitres, la règle automatique et pourquoi 150 Ko et 20 Ko, ce que coûte un découpage mal adapté. Un schéma de la règle |
 | [Compactage](compact.md) | Empêcher un guide de s'alourdir : les tailles, le rapport, les coupes, quel modèle, ce que le code vérifie lui-même |
 
@@ -69,7 +69,7 @@ flowchart LR
 | :-- | :-- |
 | [Choisir un modèle](choose-a-model.md) | Les modèles mesurés sur le guide IA on-prem, ce que chaque étape demande à un modèle, un modèle pour une étape, ce que change chaque réglage, ce qui a été essayé, mesurer son propre modèle. Une capture des Réglages |
 | [Écrire un moteur](write-an-engine.md) | Ce que le graphe demande à un moteur, comment le déclarer, l'exemple de l'API propre d'Ollama, les tests de contrat |
-| [Coûts](costs.md) | Ce qui fait le prix d'un appel (le cache de prompt avant tout), où part l'argent selon la sorte de passage, comment sont faites les estimations et pourquoi elles se trompent, d'où viennent les prix, le journal et la page « Coûts », ce qui fait baisser le coût. Un schéma du cache, une capture de la page « Coûts » |
+| [Coûts](costs.md) | Ce qui fait le prix d'un appel (le cache de prompt avant tout), où part l'argent selon la sorte de passage, comment sont faites les estimations et pourquoi elles se trompent, le prix catalogue barré sur un abonnement, d'où viennent les prix, le journal et la page « Coûts », ce qui fait baisser le coût. Un schéma du cache, une capture de la page « Coûts » |
 
 ## Sécurité et stabilité
 

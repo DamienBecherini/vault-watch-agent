@@ -120,9 +120,10 @@ flowchart TD
 | `mirror` | Traduit dans les copies du guide (une copie anglaise sous `en/`, par exemple) ce qui a changé dans chaque page source sur la branche, passage par passage : les corrections, et toute modification à la main |
 | `audits` | Lance les contrôles du guide, si le manifeste en déclare |
 | `links` | Vérifie les liens externes des pages modifiées |
-| `publish` | ⏸ Pause : sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
+| `publish` | ⏸ Pause : les pages et leur traduction peuvent encore être corrigées ou retraduites, puis recontrôlées ; sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
 
-Ce qui décide à chaque étape, un exemple avec son coût, et les deux écrans où vous décidez :
+Ce qui décide à chaque étape, un exemple avec son coût, les écrans où vous décidez (la relecture, les retouches, la
+publication) et comment votre dossier reçoit la pull request une fois fusionnée :
 [Une veille étape par étape](docs/fr/run.md).
 
 Deux autres sortes de passage passent par la même relecture et la même pull request : un **passage de correction**
@@ -141,7 +142,8 @@ web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
   jamais modifiées.
 - **Un humain dans la boucle, qui écrit.** Le passage s'arrête après le rapport (`interrupt` de LangGraph), où chaque
   proposition peut être retouchée ; de nouveau une fois les corrections appliquées, pour retoucher les pages
-  elles-mêmes si vous le voulez ; et avant que quoi que ce soit ne quitte la machine. Un passage en pause est sauvegardé dans SQLite et repris
+  elles-mêmes si vous le voulez ; et avant que quoi que ce soit ne quitte la machine, où les pages et leur
+  traduction peuvent encore être corrigées. Un passage en pause est sauvegardé dans SQLite et repris
   plus tard, depuis un autre processus, des jours après s'il le faut.
 - **Des preuves, pas la mémoire.** Les propositions s'appuient sur les notes de version et les avis de la veille, et
   la relecture croisée sur des sources primaires lues sur le web, jamais sur la seule mémoire du modèle.
@@ -174,9 +176,11 @@ vault-watch serve --idle-exit 3600    # s'arrête après 1 h sans visite ni anal
 vault-watch serve --notify fr         # notification Windows quand un passage vous attend, se termine ou échoue
 ```
 
-Un écran par étape d'un passage : un passage en cours (chaque étape terminée envoyée à la page), la relecture (une
-carte par correction avec un diff mot à mot, ses sources et le verdict de la relecture croisée), l'étape de
-publication (contrôles, liens en défaut, le diff de la branche), puis la pull request. Autour :
+Un écran par étape d'un passage : un passage en cours (chaque étape terminée envoyée à la page), la relecture (un
+bloc par élément ou par piste, une carte par correction avec un diff mot à mot, sa source et le verdict de la
+relecture croisée), les retouches (votre dossier prêté à Obsidian, ou un éditeur dans la page), l'étape de
+publication (« Avant de publier » : les contrôles du guide, la traduction, les liens à vérifier vous-même ; puis
+chaque page modifiée à côté de sa traduction, encore corrigeable), puis la pull request. Autour :
 
 | Page | À quoi elle sert |
 | :-- | :-- |
@@ -184,8 +188,8 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 | Veille › Veille automatique | Les veilles avec leur état et un bouton pour en analyser une |
 | Veille › Toutes les passes | Tous les passages, les plus récents d'abord : ceux des veilles, et ceux lancés depuis une vérification, depuis « Signaler ou proposer » ou depuis « Langues » |
 | Veille › Sources suivies | Ce que chaque source de la veille a apporté et ce qu'il en est sorti, et un contrôle des sources elles-mêmes, dont les changements partent dans une pull request ([quelles sources méritent leur place](docs/fr/collect.md#quelles-sources-méritent-leur-place)) |
-| Veille › Vérifier le guide | Des contrôles à la demande, les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se trient, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
-| Signaler ou proposer | Des erreurs à corriger, une idée ou une nouvelle à vérifier et à écrire, ou des liens à lire en entier (un article, une page, un PDF) pour les pistes qu'ils contiennent |
+| Veille › Vérifier le guide | Des contrôles à la demande, de trois sortes montrées en couleur (santé du guide, allègement, nouveautés), les gratuits et les payants avec leur estimation : audits, liens, fraîcheur, cohérence, traductions, ce qui alourdit le guide, les nouveautés. Leurs pistes se trient, puis partent dans un passage ([Vérifier le guide](docs/fr/check.md)) |
+| Signaler ou proposer | Des erreurs à corriger, une idée ou une nouvelle à vérifier et à écrire, ou des liens à lire en entier (un article, une page, un PDF, une vidéo) pour les pistes qu'ils contiennent ; ce que vous tapez est gardé comme brouillon, un par onglet |
 | Langues | Les pages en avance sur leur miroir, et celles que vous avez modifiées dans votre dossier sans les commiter : ce qui a changé est traduit, puis contrôles et pull request habituels ([Une veille étape par étape](docs/fr/run.md#synchroniser-les-langues)) |
 | Chapitres | Dans le menu sous le nom du guide : les chapitres sur lesquels l'agent travaille, proposés par un modèle ou écrits à la main : pourquoi et comment, [Chapitres](docs/fr/chapters.md) |
 | Coûts | Ce que coûte l'entretien, par mois et par passage ([Coûts](docs/fr/costs.md)) |
@@ -197,8 +201,8 @@ publication (contrôles, liens en défaut, le diff de la branche), puis la pull 
 *Les pistes de « nouveautés » sur le guide de référence : trois sont cochées, le bouton dit ce que coûterait le
 passage d'ajouts.*
 
-Chaque écran qui lance une étape payante dit ce qu'elle coûtera et ce qui la fera tourner (moteur, modèle, effort)
-avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
+Chaque écran qui lance une étape payante dit ce qu'elle coûtera (sur un abonnement, ce qu'elle vaut au prix
+catalogue, barré) et ce qui la fera tourner (moteur, modèle, effort) avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
 au choix. Un passage lancé ici peut être repris en ligne de commande, et l'inverse. Le serveur n'écoute que sur
 127.0.0.1 ([Sécurité](docs/fr/security.md)).
 

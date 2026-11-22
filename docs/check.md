@@ -2,8 +2,8 @@
 
 # Check the guide: the checks, their leads, and where they go
 
-A watch only looks at what its sources announce. The page « Check the guide » of the interface looks at the
-guide itself, on demand: whether its scripts pass, whether its sources still answer, whether its pages agree with
+A watch only looks at what its sources announce. The page « Check the guide » of the interface (in the menu
+« Watch ») looks at the guide itself, on demand: whether its scripts pass, whether its sources still answer, whether its pages agree with
 one another, whether its translations say the same thing, whether its dated claims still hold, what makes it heavy,
 and what a reader would look for and not find. This page says what each check reads, what it costs, what it finds,
 and what becomes of what it finds.
@@ -51,6 +51,11 @@ the checks run on 8 and 17 November ([what an estimate is](costs.md#the-estimate
 | What is new | Every page, and what past watches set aside | reasoning | 2.45 $ | 2.28 $ | What the guide presents as current and has probably moved on, the subjects a reader would expect and no page covers ([What is new](news.md)) | an addition run |
 | What is new: the web explored | One call per chapter ticked, each with the web and the whole guide | reasoning | 2.05 $, then 4.81 $ a chapter | not run yet | What the web says about a chapter's subjects that the guide does not, each lead with its sources ([Chapters](chapters.md)) | an addition run |
 
+The checks are of three kinds, which the list of the checks shows as tags in colour: **guide health** (the audits,
+the dead links, freshness, consistency, the translations, the claims, the replacement of dead links), **lighter
+guide** (the size of the pages, compaction) and **what is new** (the two checks of what is new, and « Links to read
+whole », a twelfth check that is not in the catalogue: it starts from « Report or suggest », [below](#report-or-suggest)).
+
 Three checks need another one first, which runs even when it is not ticked: the re-check of claims needs
 « Freshness », the replacement of dead links needs « Dead links », compaction needs « Size of the pages ». A
 check whose script the manifest does not declare says « not checked: the guide declares no [checks] … » and
@@ -80,11 +85,33 @@ weighs; the web it cannot count in advance.
   thought, to say the same thing on both sides is dropped; a page with no mirror is a Major lead found by the
   code.
 
+## The list of the checks, and the page of a check
+
+The page « Check the guide » shows first, under « To sort », the checks whose leads are still to sort (or that are
+running); then « New check », the catalogue, folded while leads remain to sort; then « Previous checks », which can
+be narrowed to one kind (« All », « Guide health », « Lighter guide », « What is new »). Each check is a card: its
+kind in colour, a short title (« 7 checks », « Compaction », « Links to read whole · 2 links »), « from Report or
+suggest » for a check started there, the links it read, what it cost (on a subscription, what it is worth at list
+price, struck through: [Costs](costs.md#the-estimates)), its leads (« n to sort · n sent to a run · n dismissed »),
+and the runs its leads went to while they wait for something, each with the button of its step (« Follow »,
+« Review », « Approve publishing », « Merge on GitHub »). The checks whose leads are to sort are also on « To
+handle », the first page of the interface; « Sort » opens the page of the check.
+
+On the page of a check, each check is a card, folded once nothing is left to do in it, with « Tick / untick the n »
+for its leads still open. A bar stays at the bottom of the page: what is ticked and what it costs, « Options »,
+« Dismiss n lead(s) » and the button that creates the run (« Create a fix run · ≈ 6-8 $ », or « Create 2 runs: … »
+when the leads ticked go to two kinds of run). « Options » opens above the bar, kept open or folded in the browser:
+for the leads of what is new, « Dig deeper and reading » ([What is new](news.md#the-additions)); then « Engine and
+models of this run », one card per step of the run (what it does, its engine, model and effort, how it is paid),
+each with « change » for this run alone, a step changed so being framed. On a phone, « ⋯ » opens the options and a
+« ? » on each card says what its step does. When a run is already in progress, the button asks before starting
+another one at the same time.
+
 ## The life of a lead
 
 | State | What it means | What you can do |
 | :-- | :-- | :-- |
-| To handle | Found by the check, not decided yet | Tick it and send it to a run, or dismiss it |
+| To sort | Found by the check, not decided yet | Tick it and send it to a run, or dismiss it |
 | Sent to a run | It is an item of a run, shown with where the run stands (review, publish, pull request to merge, merged) | Follow the run |
 | Not checked by the run | Sent to an addition run whose call could not look at it (its web ran out, the call failed): nothing was searched or edited for it | Put it back to handle, to send it again |
 | Dismissed | You judged it wrong or not worth it | Reopen it |
@@ -93,8 +120,8 @@ The leads ticked together go to as many runs as they have kinds: three consisten
 leads make one fix run and one translation fix run, and the button says what each will cost. A lead that a fix run
 finds already right, or wrong, gets an outcome with its reason in the run's report, not an edit.
 
-Two habits keep the list honest. A new check while leads are still to handle finds them again, so the page warns
-before it starts: handle or dismiss them first. Deleting a check deletes its leads, never the runs already started
+Two habits keep the list honest. A new check while leads are still to sort finds them again, so the page warns
+before it starts: sort them first (send them to a run, or dismiss them). Deleting a check deletes its leads, never the runs already started
 from it.
 
 ## The runs the leads go to
@@ -111,20 +138,26 @@ mirrors, audits, links, your go-ahead, pull request ([A run, step by step](run.m
 
 ## Report or suggest
 
-The page « Report or suggest » skips the search for leads, when you already know what to check:
+The page « Report or suggest » (in the bar of the interface, or « Write » on « To handle ») skips the search for
+leads, when you already know what to check:
 
 - **An error to fix**: one per line, the page, what is wrong, and the right information if you have it. It makes a
   fix run, as a lead of « Consistency » would (about 5 to 7 $ on the API; nothing billed on a subscription).
 - **An idea or a piece of news to dig into**: one subject per line, with an address if you have one. It makes an
   addition run, as a lead of « What is new » would; a box asks to dig each subject deeper (several sources, more
   searches, a little more expensive), and the page shows the count before you start.
-- **Links to read whole**: one address per line (an article, a page, a PDF). Each link is read whole, then Claude
-  reads it with the whole guide and lists leads, which come on the page of a check « Links to read whole », to tick
-  and send to an addition run ([details](news.md#links-to-read-whole)).
+- **Links to read whole**: one address per line (an article, a page, a PDF, a project's repository, a video). Each
+  link is read whole, then Claude reads it with the whole guide and lists leads, which come on the page of a check
+  « Links to read whole », to tick and send to an addition run ([details](news.md#links-to-read-whole)).
+
+What you type is kept as a draft, one per tab: while you switch tabs, and in the browser against a reload, a crash
+or a closed tab. « Clear » empties it, « Restore » brings it back. It empties once the run or the check has started;
+a refusal or a lost connection keeps it, and the page says why.
 
 A line typed by hand has no framed passage: the run finds the pages itself, with the whole guide in context. What
 the cross-check of any run notices elsewhere in the guide, outside its corrections, is listed in its review under
-« Noticed elsewhere in the guide »: copy the lines into « Report an error » to have them fixed.
+« Noticed elsewhere in the guide »: copy the lines into « Report or suggest », tab « An error to fix », to have them
+fixed.
 
 On the command line, `vault-watch news` (`--explore` for the web) and `vault-watch compact --report` run three of
 these checks; `vault-watch fix <name> --findings file.txt` makes a run from a file of leads, one per line, with
