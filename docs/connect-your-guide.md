@@ -102,7 +102,7 @@ Where the items of a watch come from.
 | `feeds` | `feeds` | The watches the agent collected from the guide's feeds (`vault-watch collect`, or the « Collect a watch » button of the interface), kept in the guide's working folder. |
 
 With any source, `feeds` (a `feeds.json`), `floors` and `seen` let `vault-watch collect` gather a watch from the
-guide's feeds, without a model; the reusable GitHub workflow does it every week and opens the issue:
+guide's feeds, without a model; the reusable GitHub workflow does it on the guide's schedule (every two weeks for the reference guide) and opens the issue:
 [Collecting a watch](collect.md).
 
 `changes_page` (any source) names a page where a watch records changes as dated lines, such as « What changed

@@ -639,11 +639,11 @@ CHECKS = [
                  "keep go to the same addition run, where you can have one dug deeper."},
           MODEL, fix_mode="add", limit=NO_NEW_PAGE, kind="news"),
     Check("links", {"fr": "Nouveautés : des liens à lire en entier", "en": "What is new: links to read whole"},
-          {"fr": "Tu donnes des adresses (un article, une page, un PDF ; une vidéo plus tard, par dl-sub-dub). L'agent lit "
+          {"fr": "Tu donnes des adresses (un article, une page, un PDF, une vidéo par dl-sub-dub). L'agent lit "
                  "chacune en entier, sans modèle, puis Claude la lit avec tout le guide et liste ce qui le concerne : des "
                  "pistes, rien n'est vérifié ni modifié. Les pistes gardées partent dans la passe d'ajouts, qui les "
                  "vérifie sur des sources primaires.",
-           "en": "You give addresses (an article, a page, a PDF; a video later, through dl-sub-dub). The agent reads each "
+           "en": "You give addresses (an article, a page, a PDF, a video through dl-sub-dub). The agent reads each "
                  "one whole, without a model, then Claude reads it with the whole guide and lists what concerns it: leads, "
                  "nothing is verified or edited. The leads you keep go to the addition run, which checks them on primary "
                  "sources."},

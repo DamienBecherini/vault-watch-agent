@@ -135,7 +135,7 @@ d'une vidéo » (contrat 1) : les sous-titres écrits sur le site, sinon ceux qu
 transcrit par son serveur de transcription ; rien n'est traduit, et l'audio est effacé une fois transcrit. Le modèle
 lit ce que le site dit de la vidéo (sa description, qui cite souvent les sources, et ses chapitres), puis ses
 paroles en paragraphes d'une trentaine de secondes, chacun avec l'heure où il commence, pour qu'une piste dise « à
-12:34 ». Les sous-titres se lisent depuis la machine de l'éditeur, jamais depuis la collecte hebdomadaire : YouTube
+12:34 ». Les sous-titres se lisent depuis la machine de l'éditeur, jamais depuis la collecte sur GitHub : YouTube
 refuse souvent les adresses des centres de données.
 
 Pour le régler, une fois :
@@ -269,7 +269,7 @@ abonnement, rien n'est facturé, et ces appels comptent dans ses limites.
 
 - Il n'écrit pas de nouvelle page, ni de nouvelle entrée de lexique dans un fichier à elle : il dit qu'il en
   faudrait une.
-- Il ne remplace pas la veille : la veille lit chaque semaine ce que publient ses sources, pour quelques
+- Il ne remplace pas la veille : la veille lit toutes les deux semaines ce que publient ses sources, pour quelques
   centimes ; ce passage cherche, de temps en temps, ce qu'aucune source n'annonce.
 - Il ne contrôle pas ce que le guide dit déjà (les contrôles « Cohérence de tout le guide » et « Revérification
   des affirmations datées » le font).
@@ -277,4 +277,4 @@ abonnement, rien n'est facturé, et ces appels comptent dans ses limites.
 ## Quand
 
 Après un compactage plutôt qu'avant : ce passage ajoute au guide, et il le lit en entier. Une fois par trimestre
-est un rythme raisonnable pour un guide qu'une veille hebdomadaire suit déjà, ou quand un sujet bouge vite.
+est un rythme raisonnable pour un guide qu'une veille régulière suit déjà, ou quand un sujet bouge vite.

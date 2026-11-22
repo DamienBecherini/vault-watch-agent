@@ -11,8 +11,8 @@
 
 const NOTIFY_TEXTS = {
   fr: {
-    off: "Notifications désactivées : cliquer pour être prévenu quand un passage attend ta relecture ou ton feu vert, se termine ou s'arrête sur une erreur (le navigateur demandera l'autorisation)",
-    on: "Notifications activées (relecture à faire, publication à valider, fin ou erreur d'un passage), quand la page n'est pas affichée : cliquer pour les désactiver",
+    off: "Notifications désactivées : cliquer pour être prévenu quand une passe attend ta relecture ou ton feu vert, se termine ou s'arrête sur une erreur (le navigateur demandera l'autorisation)",
+    on: "Notifications activées (relecture à faire, publication à valider, fin ou erreur d'une passe), quand la page n'est pas affichée : cliquer pour les désactiver",
     blocked: "Notifications refusées pour cette page dans le navigateur : pour les autoriser, cliquer sur l'icône à gauche de l'adresse, puis Notifications",
     refused: "Le navigateur n'a pas autorisé les notifications : la cloche reste désactivée. Rien ne sera redemandé.",
   },

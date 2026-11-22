@@ -167,4 +167,4 @@ pile up », since 1.0.1): history stays in Git and in the source. Less is piled 
 ## When
 
 On demand: after a few months of watches, or when `doctor` shows pages over their budget and a guide that grew
-fast. Try the free part first. Quarterly is a sensible rhythm for a guide watched every week.
+fast. Try the free part first. Quarterly is a sensible rhythm for a guide watched every two weeks.

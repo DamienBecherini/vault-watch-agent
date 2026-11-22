@@ -47,7 +47,7 @@ quel, alors que « plus bas » et « plus haut » du rôle décalent d'un cran t
 suit le rôle.
 
 L'usage pour lequel c'est fait : le [compactage](compact.md) sur le modèle le plus fort, quelques fois par an,
-pendant que les veilles hebdomadaires restent sur le modèle mesuré ici. Les estimations et le journal des coûts
+pendant que les veilles restent sur le modèle mesuré ici. Les estimations et le journal des coûts
 suivent le modèle de chaque étape. Dans `settings.json` :
 `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
 

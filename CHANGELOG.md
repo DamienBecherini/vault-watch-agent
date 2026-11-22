@@ -13,6 +13,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   `--safe-mode` (which also turns the agent's MCP server off): the user's settings, hooks, plugins and instructions
   stay out all the same (checked with a real call).
 - **pypdf ≥ 6.1** for the PDFs of the links read whole.
+- **Words of the interface**: in French a run of the agent is now always « passe » (« passage » stays for a piece of
+  text: a passage changed, the passage of a page), in the page, the settings and the notifications; « Report or
+  suggest » everywhere « Report an error » was left; the links check reads a video (no longer « later »). Docs: the
+  reference guide is watched every two weeks (its workflow runs every Monday and opens an issue every other week,
+  sooner for an urgent advisory), not every week.
 - **« What I already know » on a lead** (proposed by the user, who had to retype a lead with their own measurements
   as an idea to give them to the run): a note on any open lead of a check (`POST /api/verifications/{id}/note`),
   kept with the check and marked on the lead's line. It goes with its lead to the run inside an `<editor-note>`, said

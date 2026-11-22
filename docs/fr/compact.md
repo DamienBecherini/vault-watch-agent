@@ -176,4 +176,4 @@ moins, donc on a moins à compacter.
 ## Quand
 
 À la demande : après quelques mois de veilles, ou quand `doctor` montre des pages hors budget et un guide qui a
-vite grossi. Commencez par la partie gratuite. Un rythme trimestriel convient à un guide veillé chaque semaine.
+vite grossi. Commencez par la partie gratuite. Un rythme trimestriel convient à un guide veillé toutes les deux semaines.

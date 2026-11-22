@@ -102,7 +102,7 @@ D'où viennent les éléments d'une veille.
 | `feeds` | `feeds` | Les veilles que l'agent a collectées depuis les flux du guide (`vault-watch collect`, ou le bouton « Collecter une veille » de l'interface), rangées dans le dossier de travail du guide. |
 
 Quelle que soit la source, `feeds` (un `feeds.json`), `floors` et `seen` permettent à `vault-watch collect` de
-rassembler une veille depuis les flux du guide, sans modèle ; le workflow GitHub réutilisable le fait chaque semaine
+rassembler une veille depuis les flux du guide, sans modèle ; le workflow GitHub réutilisable le fait au rythme du guide (toutes les deux semaines pour le guide de référence)
 et ouvre l'issue : [Collecter une veille](collect.md).
 
 `changes_page` (quelle que soit la source) désigne une page où la veille note les changements en lignes datées, comme

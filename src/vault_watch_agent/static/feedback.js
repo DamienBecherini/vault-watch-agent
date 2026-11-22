@@ -23,7 +23,7 @@ const FEEDBACK_TEXTS = {
     emailPrivate: a => `Sans compte, et privé lui aussi : ouvre ta messagerie avec le message prêt, pour ${a}.`,
     securitySubject: v => `Faille de sécurité dans vault-watch ${v}`,
     diagnostic: "Joindre les informations techniques",
-    diagnosticWhat: d => `Ajoute : ${d}. La version est toujours jointe. Rien du guide n'est transmis : ni son nom, ni ses pages, ni le passage affiché.`,
+    diagnosticWhat: d => `Ajoute : ${d}. La version est toujours jointe. Rien du guide n'est transmis : ni son nom, ni ses pages, ni la passe affichée.`,
     preview: "Ce qui sera envoyé",
     github: "Ouvrir un ticket GitHub", githubHelp: "Public, avec un compte GitHub. Tu relis le ticket avant de le publier.",
     email: "Envoyer par e-mail", emailHelp: a => `Sans compte, et privé : ouvre ta messagerie avec le message prêt, pour ${a}.`,

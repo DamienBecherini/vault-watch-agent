@@ -43,7 +43,7 @@ and at the effort chosen for it when one is: that effort applies as it is, where
 « higher » move every other step one level. Everything else follows the role.
 
 The use this was made for: the [compaction](compact.md) on the strongest model, a few times a year, while the
-weekly watches stay on the model measured here. The estimates and the cost journal follow the model of each step.
+the watches stay on the model measured here. The estimates and the cost journal follow the model of each step.
 In `settings.json`: `"steps": {"compaction": {"model": "claude-fable-5-2", "effort": "high"}}`.
 
 A step can also have its own engine (`"steps": {"news": {"engine": "claude-code"}}`): the search for what is

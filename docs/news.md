@@ -131,7 +131,7 @@ video » (contract 1): the subtitles written on the site, else those the site ge
 by its transcription server; nothing is translated, and the audio is deleted once transcribed. The model reads what
 the site says of the video (its description, which often cites the sources, and its chapters), then its words in
 paragraphs of about 30 seconds, each with the time it starts at, so that a lead says « at 12:34 ». Subtitles are read
-from the editor's machine, never from the weekly collection: YouTube often refuses the addresses of data centres.
+from the editor's machine, never from the collection on GitHub: YouTube often refuses the addresses of data centres.
 
 To set it up, once:
 
@@ -257,7 +257,7 @@ and these calls count in its limits.
 ## What it does not do
 
 - It does not write a new page, nor a new lexicon entry in a file of its own: it says one is needed.
-- It does not replace the watch: the watch reads what its sources publish every week, for a few cents; this run
+- It does not replace the watch: the watch reads what its sources publish, every two weeks, for a few cents; this run
   looks, now and then, for what no source announces.
 - It does not check what the guide already says (the checks « Consistency of the whole guide » and « Re-check of
   dated claims » do).
@@ -265,4 +265,4 @@ and these calls count in its limits.
 ## When
 
 After a compaction rather than before: this run adds to the guide, and it reads it whole. Once a quarter is a
-reasonable rhythm for a guide that a weekly watch already follows, or when a subject moves fast.
+reasonable rhythm for a guide that a regular watch already follows, or when a subject moves fast.

@@ -3,7 +3,7 @@ what in it concerns the guide.
 
 A watch reads the start of an item (its feed's text, or its page's: C3); a talk of 20 minutes is 3,000 to 4,000
 words, an article or a report as many, and what concerns the guide may be anywhere in them. So the editor gives one
-or more addresses (an article, a page, a PDF; a video later, through dl-sub-dub), and:
+or more addresses (an article, a page, a PDF, a video through dl-sub-dub), and:
 
 1. each link is read here, without a model (`read`): the readable text of a page, the README of a repository, the
    text of a PDF (the optional `pypdf`: `pip install "vault-watch-agent[pdf]"`), at most LINK_CHARS characters;
