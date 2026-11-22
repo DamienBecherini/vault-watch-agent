@@ -168,6 +168,13 @@ const TEXTS = {
       sentText: "Texte envoyé à la passe (en anglais)",
       readIn: "Lu dans", writeIn: "à écrire dans", openObsidian: "Ouvrir dans Obsidian", line: n => `ligne ${n}`,
       nothingQuoted: "Aucun passage cité : le sujet n'est dans aucune page.", theLink: "(le lien lu)",
+      digSect: "Creuser et lecture", digLabel: "Creuser :", digNoneShort: "Rien", digAllShort: "Tout",
+      barOptions: "Options", createShort: "Créer la passe",
+      barSum: (n, d, price) => `<b>${n} piste${n > 1 ? "s" : ""} cochée${n > 1 ? "s" : ""}</b>${d ? `, dont ${d} creusée${d > 1 ? "s" : ""}` : ""}${price ? ` · ${price}` : ""}`,
+      barSumShort: (n, price) => `<b>${n}</b>${price ? ` · ${price}` : ""}`,
+      stepWhat: { add: "Vérifie chaque piste sur le web, puis écrit où elle va", fix: "Vérifie chaque erreur sur les sources, puis la corrige",
+        "fix-translation": "Corrige la traduction à partir du français", compact: "Propose les allègements de chaque piste",
+        crosscheck: "Relit tout le guide avec les modifications : ce qu'elles contredisent ailleurs", mirror: "Traduit les pages modifiées dans les autres langues" },
       digShort: "creuser", digNone: "Ne rien creuser", digAll: "Tout creuser", digTicked: "Creuser toutes les cochées",
       digSome: (d, m) => `Creuser ${d} sur ${m}`,
       digCost: (m, a, each, d, deep, base, total) => `${m} piste${m > 1 ? "s" : ""} cochée${m > 1 ? "s" : ""} : ${a} normale${a > 1 ? "s" : ""} (≈ ${each} chacune) + ${d} creusée${d > 1 ? "s" : ""} (≈ ${deep} chacune) + la relecture croisée et les miroirs (≈ ${base}) = ${total} au prix catalogue`,
@@ -193,6 +200,7 @@ const TEXTS = {
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "traduction", "< 1 $"], ["compact", "compactage", runs.compact || "≈ 5-6 $"], ["add", "ajouts", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
         if (!kinds.length) return "Coche des pistes pour créer une passe";
+        if (kinds.length === 1 && runs.short) return `Créer une passe ${kinds[0][0] === "add" ? "d'ajouts" : kinds[0][1]} · ${c(kinds[0][2], kinds[0][0])}`;
         return kinds.length > 1 ? `Créer ${kinds.length} passes : ${kinds.map(k => `${by[k[0]]} piste(s) en ${k[1]} (${c(k[2], k[0])})`).join(", ")}`
           : `Créer une passe ${kinds[0][0] === "add" ? "d'ajouts" : kinds[0][1]} avec ${kinds[0] ? by[kinds[0][0]] : 0} piste(s)${kinds[0][0] === "add" && runs.dug ? ` (${runs.dug} creusée${runs.dug > 1 ? "s" : ""})` : ""} · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
@@ -374,6 +382,7 @@ const TEXTS = {
     ideaDeep: "Creuser chaque sujet : plusieurs sources, plus de recherches, un peu plus cher",
     ideaLimit: "Limite : la passe d'ajouts n'écrit jamais de nouvelle page. Elle signale celles qu'il faudrait.",
     perStep: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
+      applyOnce: "Appliquer pour cette fois", changeShort: "changer", chipBilled: "à l'usage (API)", chipSubscription: "abonnement", chipLocal: "local, gratuit", chipProvider: "autre fournisseur",
       cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
       restUnbilled: "le reste non facturé",
       effort: e => ({ low: "effort faible", medium: "effort moyen", high: "effort élevé", xhigh: "effort très élevé", max: "effort maximal" })[e] || e,
@@ -498,6 +507,13 @@ const TEXTS = {
       sentText: "Text sent to the run",
       readIn: "Read in", writeIn: "to write in", openObsidian: "Open in Obsidian", line: n => `line ${n}`,
       nothingQuoted: "No passage quoted: the subject is in no page.", theLink: "(the link read)",
+      digSect: "Dig deeper and reading", digLabel: "Dig deeper:", digNoneShort: "None", digAllShort: "All",
+      barOptions: "Options", createShort: "Create the run",
+      barSum: (n, d, price) => `<b>${n} lead(s) ticked</b>${d ? `, ${d} dug deeper` : ""}${price ? ` · ${price}` : ""}`,
+      barSumShort: (n, price) => `<b>${n}</b>${price ? ` · ${price}` : ""}`,
+      stepWhat: { add: "Checks each lead on the web, then writes it where it belongs", fix: "Checks each error on the sources, then fixes it",
+        "fix-translation": "Fixes the translation from the source language", compact: "Proposes the trims of each lead",
+        crosscheck: "Reads the whole guide with the changes: what they contradict elsewhere", mirror: "Translates the pages changed into the other languages" },
       digShort: "dig", digNone: "Dig nothing", digAll: "Dig all", digTicked: "Dig every lead ticked",
       digSome: (d, m) => `Dig ${d} of ${m}`,
       digCost: (m, a, each, d, deep, base, total) => `${m} lead(s) ticked: ${a} plain (≈ ${each} each) + ${d} dug deeper (≈ ${deep} each) + the cross-check and the mirrors (≈ ${base}) = ${total} at list price`,
@@ -522,6 +538,7 @@ const TEXTS = {
       createFix: (by, c, runs = {}) => {
         const kinds = [["fix", "fix", "≈ 6-8 $"], ["translation", "translation", "< 1 $"], ["compact", "compaction", runs.compact || "≈ 5-6 $"], ["add", "addition", runs.add || "≈ 15-25 $"]].filter(k => by[k[0]]);
         if (!kinds.length) return "Tick leads to create a run";
+        if (kinds.length === 1 && runs.short) return `Create ${kinds[0][0] === "add" ? "an" : "a"} ${kinds[0][1]} run · ${c(kinds[0][2], kinds[0][0])}`;
         return kinds.length > 1 ? `Create ${kinds.length} runs: ${kinds.map(k => `${by[k[0]]} lead(s) as ${/^a/.test(k[1]) ? "an" : "a"} ${k[1]} run (${c(k[2], k[0])})`).join(", ")}`
           : `Create ${kinds[0]?.[0] === "add" ? "an" : "a"} ${(kinds[0] || [0, "fix"])[1]} run with ${kinds[0] ? by[kinds[0][0]] : 0} lead(s)${kinds[0][0] === "add" && runs.dug ? ` (${runs.dug} dug deeper)` : ""} · ${c((kinds[0] || [0, 0, "≈ 6-8 $"])[2], (kinds[0] || ["fix"])[0])}`;
       },
@@ -701,6 +718,7 @@ const TEXTS = {
     ideaDeep: "Dig deeper into each subject: several sources, more searches, a little more expensive",
     ideaLimit: "Limit: the addition run never writes a new page. It says which ones would be needed.",
     perStep: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
+      applyOnce: "Apply for this time", changeShort: "change", chipBilled: "pay per use (API)", chipSubscription: "subscription", chipLocal: "local, free", chipProvider: "another provider",
       cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
       restUnbilled: "the rest not billed",
       effort: e => ({ low: "low effort", medium: "medium effort", high: "high effort", xhigh: "very high effort", max: "maximum effort" })[e] || e,
@@ -788,6 +806,28 @@ function stepLine(step, name = "") {
       <button type="button" class="small-button" data-step-ok="${step}">${T.perStep.apply}</button>
     </span></div>`;
 }
+// One card per step of a run (the bar of a check): its number and name, what it does (on a phone, in a « ? »), what
+// runs it as chips, and the same fields as stepLine to change it for this run (bindSteps)
+function stepCard(step, n, name, what = "") {
+  const s = stepNow(step);
+  if (!s) return "";
+  const pay = s.billing === "subscription" ? ["free", T.perStep.chipSubscription] : s.billing === "none" ? ["free", T.perStep.chipLocal]
+    : s.engine !== "api" ? ["", T.perStep.chipProvider] : ["bill", T.perStep.chipBilled];
+  return `<div class="step-card${OWN[step] ? " changed" : ""}" data-step-line="${step}">
+    <div class="step-head"><b>${n} · ${esc(name)}</b>${what ? `<span class="narrow-only">${tip(what)}</span>` : ""}
+      ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.perStep.edit : T.perStep.changeShort}">${OWN[step] ? T.perStep.edit : T.perStep.changeShort}</button>`}</div>
+    ${what ? `<div class="step-what wide-only">${esc(what)}</div>` : ""}
+    <div class="chips"><span class="chip">${esc(s.engine_label)}</span><span class="chip">${esc(s.model ? modelName(s.model) : "?")}</span><span class="chip">${T.perStep.effort(s.effort)}</span><span class="chip ${pay[0]}">${pay[1]}</span></div>
+    ${OWN[step] ? `<div class="step-once">${T.perStep.once}${STEPS.forced ? "" : ` · <button type="button" class="link-button" data-step-reset="${step}">${T.perStep.reset}</button>`}</div>` : ""}
+    <span class="step-fields" data-step-fields="${step}" hidden>
+      <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
+      <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.perStep.modelOfRole)}" aria-label="${T.perStep.model}" spellcheck="false">
+      <datalist id="models-${step}"></datalist>
+      <select data-f="effort" aria-label="${T.perStep.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.perStep.effort(e)}</option>`).join("")}</select>
+      <button type="button" class="small-button primary" data-step-ok="${step}">${T.perStep.applyOnce}</button>
+    </span></div>`;
+}
+let BAR_OPEN = (() => { try { return localStorage.getItem("vault-watch-bar-open") === "1"; } catch { return false; } })();
 // The buttons of the lines above, inside `root`; `redraw` draws the screen again once a choice is made
 function bindSteps(root, redraw) {
   const fields = step => root.querySelector(`[data-step-fields="${step}"]`);
@@ -1669,16 +1709,22 @@ async function viewCheck(id) {
             <button type="button" class="primary" data-reopen-card="${c}">${V.resendAll(stuck.length)}</button></div>` : ""}<ul class="leads"${r.mode === "add" ? ` data-card-list="${c}"` : ""}>${r.findings.map((f, i) => lead(f, r.fixable, c, r.mode, i + 1, r.excerpts?.[f], r.details?.[f])).join("")}</ul>` : ""}` : ""}
       </details>`;
     }).join("")}
-    <div class="bar">
-      <details class="run-steps" id="run-steps-box" hidden><summary>${T.perStep.title}</summary><div id="run-steps"></div></details>
-      <label class="add-context small" id="add-context-box" hidden>${V.context}
-        <select id="add-context"><option value="pages">${V.contextPages}</option><option value="guide">${V.contextGuide}</option></select>${tip(V.contextTip)}</label>
-      <div class="dig-box" id="dig-box" hidden>
-        <span class="seg"><button type="button" data-dig-all="none">${V.digNone}</button><button type="button" data-dig-all="some" disabled></button><button type="button" data-dig-all="all">${V.digAll}</button></span>
-        <div class="dig-cost muted small" id="dig-cost"></div><div class="attention-text small" id="dig-warn" hidden></div></div>
-      <button id="all">${V.tickAll}</button><button id="nothing">${V.untickAll}</button>
-      <button id="dismiss"></button>
-      <button class="primary" id="fix"></button>
+    <div class="bar check-bar">
+      <div class="bar-options" id="bar-options"${BAR_OPEN ? "" : " hidden"}>
+        <div class="bar-sect" id="dig-box" hidden><div class="sect">${V.digSect}</div>
+          <div class="bar-row"><span class="small">${V.digLabel}</span><span class="seg"><button type="button" data-dig-all="none">${V.digNoneShort}</button><button type="button" data-dig-all="some" disabled></button><button type="button" data-dig-all="all">${V.digAllShort}</button></span>
+            <label class="add-context small" id="add-context-box">${V.context}
+              <select id="add-context"><option value="pages">${V.contextPages}</option><option value="guide">${V.contextGuide}</option></select>${tip(V.contextTip)}</label></div>
+          <div class="dig-cost muted small" id="dig-cost"></div><div class="attention-text small" id="dig-warn" hidden></div></div>
+        <div class="bar-sect" id="run-steps-box" hidden><div class="sect">${T.perStep.title}</div><div class="step-cards" id="run-steps"></div></div>
+        <div class="narrow-only bar-row end"><button type="button" class="ghost" data-dismiss></button></div>
+      </div>
+      <div class="bar-line">
+        <span class="bar-sum" id="bar-sum"></span>
+        <button type="button" class="ghost" id="bar-toggle" aria-expanded="${BAR_OPEN}"></button>
+        <button type="button" class="ghost wide-only" id="dismiss" data-dismiss></button>
+        <button class="primary" id="fix"></button>
+      </div>
     </div>`;
   // A finding is open (checkbox), sent to a fix run (link to the run) or dismissed (can be reopened)
   // Handled findings stay one line; an open one shows the passages it is about
@@ -1782,7 +1828,6 @@ async function viewCheck(id) {
     // An addition run whose calls read their lead's pages and the plan: priced so, except the leads that name no
     // page, which read the whole guide (the first of them writes it to the cache: the difference of the two bases)
     const adds = ok.filter(c => c.dataset.mode === "add").map(c => c.dataset.lead);
-    $("#add-context-box").hidden = !adds.length;
     const addCost = () => {
       const o = options.find(o => o.id === "news") || {};
       if (ADD_CONTEXT !== "pages" || !o.run_usd_pages) return runOf("news", adds.length, dug);
@@ -1790,7 +1835,7 @@ async function viewCheck(id) {
       return `≈ ${dollars(o.run_usd_pages + (adds.some(f => NO_PAGE.test(f)) ? o.run_usd - o.run_usd_pages : 0) + adds.reduce((s, f) => s + (each(f) || 0), 0))}`;
     };
     $("#fix").textContent = V.createFix(by, (usd, mode) => costOf(MODE_STEP[mode] || "fix", usd),
-      { compact: runOf("compaction", by.compact || 0), add: addCost(), dug });
+      { compact: runOf("compaction", by.compact || 0), add: addCost(), dug, short: true });
     // The leads of an addition run: how many are dug deeper, and what the run costs, part by part
     $("#dig-box").hidden = !adds.length;
     if (adds.length) {
@@ -1811,10 +1856,16 @@ async function viewCheck(id) {
     const wanted = [...kinds.map(k => MODE_STEP[k]), ...(kinds.some(k => k !== "translation") ? ["crosscheck"] : []), ...(kinds.length ? ["mirror"] : [])];
     $("#run-steps-box").hidden = !wanted.length;
     $("#run-steps").innerHTML = (STEPS.forced ? `<p class="muted small">${T.perStep.forced(STEPS.forced)}</p>` : "")
-      + wanted.map(s => stepLine(s, T.perStep.names[s])).join("");
+      + wanted.map((s, i) => stepCard(s, i + 1, T.perStep.names[s], V.stepWhat[s] || "")).join("");
     bindSteps($("#run-steps"), count);
     $("#fix").disabled = n === 0 || v.running;
-    $("#dismiss").textContent = V.dismiss(e); $("#dismiss").disabled = e === 0 || v.running;
+    page.querySelectorAll("[data-dismiss]").forEach(b => { b.textContent = V.dismiss(e); b.disabled = e === 0 || v.running; });
+    // The line of the bar: what is ticked and what it costs; the full label of the button on a wide screen
+    const price = kinds.length === 1 ? (kinds[0] === "add" ? costOf("add", addCost()) : "") : "";
+    $("#bar-sum").innerHTML = n ? `<span class="wide-only">${V.barSum(n, dug, price)}</span><span class="narrow-only">${V.barSumShort(n, price)}</span>` : "";
+    $("#fix").innerHTML = n ? `<span class="wide-only">${esc($("#fix").textContent)}</span><span class="narrow-only">${V.createShort}</span>` : esc($("#fix").textContent);
+    $("#bar-toggle").innerHTML = `<span class="wide-only">${V.barOptions} ${BAR_OPEN ? "▾" : "▴"}</span><span class="narrow-only">${BAR_OPEN ? "✕" : "⋯"}</span>`;
+    $("#bar-toggle").hidden = !wanted.length;
   };
   boxes.forEach(c => c.onchange = count);
   // « Dig deeper » on a lead: it is then kept too
@@ -1841,8 +1892,14 @@ async function viewCheck(id) {
     card.forEach(c => c.checked = !all);
     count();
   });
-  $("#all").onclick = () => { boxes.forEach(c => c.checked = true); count(); };
-  $("#nothing").onclick = () => { boxes.forEach(c => c.checked = false); count(); };
+  // The options of the bar, opened or folded: the reader's choice, kept in the browser
+  $("#bar-toggle").onclick = () => {
+    BAR_OPEN = !BAR_OPEN;
+    $("#bar-options").hidden = !BAR_OPEN;
+    $("#bar-toggle").setAttribute("aria-expanded", BAR_OPEN);
+    try { localStorage.setItem("vault-watch-bar-open", BAR_OPEN ? "1" : "0"); } catch { /* private window: per page only */ }
+    count();
+  };
   count();
   const leads = (findings, status) => api(`/api/verifications/${encodeURIComponent(id)}/leads`, { findings, status }).then(() => viewCheck(id));
   if ($("#remove")) $("#remove").onclick = () => confirm(V.confirmRemove)
@@ -1852,7 +1909,7 @@ async function viewCheck(id) {
     (v.results[b.dataset.reopenCard].findings || []).filter(f => v.unchecked?.[f] && v.handled[f]?.status === "fix"), "open"));
   if (!boxes.length) page.querySelector(".bar").remove();
   else {
-    $("#dismiss").onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed");
+    page.querySelectorAll("[data-dismiss]").forEach(b => b.onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed"));
     $("#fix").onclick = async () => {
       $("#fix").disabled = true;
       // One run per mode: content fixes, translation fixes, trims and additions do not take the same path

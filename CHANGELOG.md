@@ -22,6 +22,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 - **Dig deeper, on each line or for all the leads ticked**: a box « dig » on the line of each lead, « Dig every
   lead ticked » above the list, and in the bar « Dig nothing / Dig n of m / Dig all » with the price of the run part
   by part (plain leads, leads dug deeper, the cross-check and the mirrors); the button says how many are dug.
+- **The bar of a check folded to one line**: what is ticked, its price, « Options », « Dismiss » and the button. The
+  options open above it (kept open or folded in the browser): dig deeper and reading, then the steps of the run as
+  cards (what each does, its engine, model and effort as chips, how it is paid; changed for this run: framed). On a
+  phone, « ⋯ » opens them, a « ? » keeps what each step does, and a lead's title takes the whole width.
 - **A lead in parts, in your language.** The page of a check draws a lead as its kind and pages, its text, then
   the pages to read also and its sources, short and clickable, instead of one block. A check started from the
   interface in another language than English has each lead explained in it (`detail`: what the source says, what the

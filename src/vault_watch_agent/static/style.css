@@ -272,6 +272,42 @@ ul.leads li.lead-item:first-child { border-top: 0; }
 .lead-open .pair { display: grid; grid-template-columns: 190px 1fr; gap: 8px 14px; margin: 12px 0 4px; font-size: 14px; }
 .lead-open .pair dt { color: var(--muted); } .lead-open .pair dd { margin: 0; }
 .lead-actions { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin: 12px 0 10px; }
+/* The bar of a check: one line, its options above it when opened */
+.bar.check-bar { display: block; padding: 8px 16px; }
+.check-bar .bar-line { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.check-bar .bar-sum { font-size: 14px; color: var(--muted); } .check-bar .bar-sum b { color: var(--text); }
+.check-bar button.ghost { background: none; color: var(--muted); }
+.check-bar .bar-options { max-width: 1100px; margin: 0 auto 8px; display: grid; gap: 12px; max-height: 60vh; overflow-y: auto; }
+.check-bar .bar-options[hidden] { display: none; }
+.check-bar .bar-sect[hidden] { display: none; }
+.check-bar .sect { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; }
+.check-bar .bar-row { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; } .check-bar .bar-row.end { justify-content: flex-end; }
+.check-bar .dig-cost { margin-top: 4px; } .check-bar #dig-warn { margin-top: 2px; }
+.check-bar .add-context { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.step-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; align-items: start; }
+.step-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; display: grid; gap: 5px; text-align: left; align-content: start; }
+.step-card.changed { border-color: var(--accent); }
+.step-card .step-head { display: flex; gap: 6px; align-items: center; } .step-card .step-head b { flex: 1; font-size: 14.5px; }
+.step-card .step-what { font-size: 12.5px; color: var(--muted); }
+.step-card .chips { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.step-card .chip { font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; background: var(--card); }
+.step-card .chip.bill { color: var(--attention); border-color: color-mix(in srgb, var(--attention) 50%, var(--border)); }
+.step-card .chip.free { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, var(--border)); }
+.step-card .step-once { font-size: 12px; color: var(--accent); }
+.step-card .link-button { border: 0; background: none; padding: 0; min-height: 0; color: var(--accent); text-decoration: underline; font-size: 12px; }
+.step-card .step-fields select, .step-card .step-fields input[type=text] { max-width: 100%; }
+.narrow-only { display: none !important; }
+.check-bar .add-context { flex-basis: auto; justify-content: flex-start; }
+@media (max-width: 720px) {
+  .wide-only { display: none !important; } span.narrow-only { display: inline !important; } div.narrow-only { display: flex !important; }
+  .check-bar .bar-line { flex-wrap: nowrap; justify-content: space-between; }
+  .check-bar .bar-options { max-height: 70vh; }
+  .step-cards { grid-template-columns: 1fr; }
+  /* A lead on a phone: its title across, its number and « dig » below it */
+  .lead-row { grid-template-columns: 20px auto 1fr 28px; grid-template-areas: "box title title fold" "box num dig fold"; row-gap: 4px; }
+  .lead-row > input { grid-area: box; } .lead-row .lead-title { grid-area: title; } .lead-row .num { grid-area: num; font-size: 12px; text-align: left; min-width: 0; }
+  .lead-row .dig-mini { grid-area: dig; justify-self: start; } .lead-row .unfold { grid-area: fold; } .lead-row .tag { display: none; }
+}
 label.dig-mini { display: inline-flex; gap: 4px; align-items: center; border: 1px solid var(--border); border-radius: 6px; padding: 0 8px;
   font-size: 12.5px; color: var(--muted); cursor: pointer; white-space: nowrap; }
 label.dig-mini input { margin: 0; } label.dig-mini:has(input:checked) { border-color: var(--accent); color: var(--accent); }
@@ -294,8 +330,7 @@ details.lead-legend { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
 details.lead-legend summary { cursor: pointer; } details.lead-legend dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 6px 0; }
 details.lead-legend dt { color: var(--text); } details.lead-legend dd { margin: 0; }
 @media (max-width: 720px) { .lead-cols, .lead-lists { grid-template-columns: 1fr; } .lead-open { margin-left: 0; }
-  .lead-open .pair { grid-template-columns: 1fr; } .lead-row { grid-template-columns: 20px 2.2em 1fr 28px; } .lead-row .tag { display: none; }
-  .lead-row { grid-template-columns: 20px 2.2em 1fr max-content 28px; } }
+  .lead-open .pair { grid-template-columns: 1fr; } }
 ul.leads .lead-detail { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 4px 0 0; }
 ul.leads .lead-detail dt { color: var(--muted); font-size: 13px; } ul.leads .lead-detail dd { margin: 0; }
 @media (max-width: 640px) { ul.leads .lead-detail { grid-template-columns: 1fr; } ul.leads .lead-detail dd { margin-bottom: 4px; } }
