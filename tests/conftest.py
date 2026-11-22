@@ -5,8 +5,23 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 SAMPLE = Path(__file__).resolve().parent.parent / "examples" / "sample-guide"
+
+_get = TestClient.get
+
+
+@pytest.fixture(autouse=True)
+def page_reads_with_its_header(monkeypatch):
+    """The tests read the API as the page does: every GET carries X-Vault-Watch (web.local_only refuses the API
+    without it), unless a test sets the header itself, to check a refusal."""
+    def get(self, url, *args, headers=None, **kwargs):
+        headers = dict(headers or {})
+        if not any(k.lower() == "x-vault-watch" for k in headers):
+            headers["X-Vault-Watch"] = "1"
+        return _get(self, url, *args, headers=headers, **kwargs)
+    monkeypatch.setattr(TestClient, "get", get)
 
 
 def _git(*args, cwd):

@@ -56,6 +56,8 @@ class Tab:
         if method == "Runtime.exceptionThrown":
             d = params.get("exceptionDetails", {})
             self.errors.append(f"uncaught: {(d.get('exception') or {}).get('description') or d.get('text')}"[:400])
+        elif method == "Log.entryAdded" and params.get("entry", {}).get("source") == "security":  # the page's CSP
+            self.errors.append(f"refused by the CSP: {params['entry'].get('text')}"[:400])
         elif method == "Runtime.consoleAPICalled" and params.get("type") == "error":
             self.errors.append("console.error: " + " ".join(str(a.get("description") or a.get("value")) for a in params.get("args", []))[:400])
 
@@ -174,6 +176,7 @@ def test_every_screen_is_drawn_without_a_javascript_error(served, chrome):
     with websockets.connect(target["webSocketDebuggerUrl"], max_size=None) as ws:
         tab = Tab(ws)
         tab.call("Runtime.enable")
+        tab.call("Log.enable")
         tab.call("Page.enable")
         for lang in ("fr", "en"):
             for width in (1100, 390):  # a wide window, and a phone: the header folds under one button

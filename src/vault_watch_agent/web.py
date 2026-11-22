@@ -271,20 +271,44 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.idle_seconds = idle_seconds
 
     # -- local only ----------------------------------------------------------------------------
+    # Only the page of the agent, in the editor's own browser, may use the server. Another site the editor visits
+    # (or a note rendered by Obsidian) can make the browser send requests here: it is refused when the browser says
+    # so (Sec-Fetch-Site, Origin), and every request of the API must carry X-Vault-Watch, a header no other site
+    # can set without a preflight the server never answers. A GET included (an <img> once asked /api/models to try
+    # a key at an address of its own: the key was sent there). Exempt: what the browser asks by itself, without a
+    # header: the probes, the stream of a run (EventSource), the report opened in a tab.
+    hosts = ("127.0.0.1", "localhost") + (("testserver",) if "PYTEST_CURRENT_TEST" in os.environ else ())
+    without_header = re.compile(r"/api/(health|notices|runs/[A-Za-z0-9._-]+/(events|report))")
+
+    def refused(why: str) -> JSONResponse:
+        return JSONResponse({"detail": why}, status_code=403)
+
     @app.middleware("http")
     async def local_only(request: Request, call_next):
-        host = (request.headers.get("host") or "").split(":")[0]
-        if host not in ("127.0.0.1", "localhost", "testserver"):
-            return JSONResponse({"detail": "local access only"}, status_code=403)
-        if request.method != "GET" and request.headers.get("x-vault-watch") != "1":
-            return JSONResponse({"detail": "missing X-Vault-Watch header"}, status_code=403)
-        if request.url.path not in ("/api/health", "/api/notices"):  # probes: a page left open is not someone using it
+        path = request.url.path
+        if (request.headers.get("host") or "").split(":")[0] not in hosts:
+            return refused("local access only")
+        if request.headers.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
+            return refused("a request from another site")
+        origin = request.headers.get("origin")
+        if origin and origin.split("://")[-1].split(":")[0] not in hosts:
+            return refused("a request from another site")
+        mine = request.headers.get("x-vault-watch") == "1"
+        if not mine and (request.method != "GET" or path.startswith("/api/") and not without_header.fullmatch(path)):
+            return refused("missing X-Vault-Watch header")
+        if path not in ("/api/health", "/api/notices"):  # probes: a page left open is not someone using it
             app.state.last_activity = time.time()
         response = await call_next(request)
-        if request.url.path == "/" or request.url.path.startswith("/static/"):
+        if path == "/" or path.startswith("/static/"):
             # The page and its scripts go together: the browser asks again each time (a 304 when nothing changed),
             # so an update never leaves an old page with new scripts.
             response.headers["Cache-Control"] = "no-cache"
+        # Never in a frame of another site (a click lured onto « Publish »), only its own scripts, no sniffing
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                                                       "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
+                                                       "base-uri 'none'; form-action 'self'")
         return response
 
     # -- notifications when background work stops: what the human has to do next. On the desktop with

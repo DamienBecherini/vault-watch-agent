@@ -917,8 +917,9 @@ const CLASSES = {
 const FINISHED = ["closed", "merged", "pr-closed", "nothing-applied", "not-published"];
 const badge = st => `<span class="badge ${CLASSES[st] || "neutral"}">${T.statuses[st] || st}</span>`;
 
+// Every call of the API says it comes from this page (X-Vault-Watch, a GET included: the server refuses the others)
 async function api(path, body) {
-  const opts = body === undefined ? {} : {
+  const opts = body === undefined ? { headers: { "X-Vault-Watch": "1" } } : {
     method: "POST", body: JSON.stringify(body),
     headers: { "Content-Type": "application/json", "X-Vault-Watch": "1" },
   };
