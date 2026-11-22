@@ -653,6 +653,10 @@ and put back untouched, and its pull request passes the guide's checks.
 
 Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
 
+- [ ] **End-to-end tests of the page** (asked by the user, 2026-11-22, for later): Playwright with pytest, a real
+  browser on a throwaway server: the page loads, ticking and digging deeper, the bar's options open. Beside the
+  unit tests of `static/rules.js` (run with node), they would catch a script broken as a whole (a name declared
+  twice across the page's scripts broke it once, 2026-11-22).
 - [x] **First real run on the subscription** (2026-11-19: fix run `fix-2026-11-19`, 8 reported points, 30
   corrections in 6 minutes, 2 Opus calls reading 4.9 M tokens of which 4.0 M from the cache, 8.95 $ at list price,
   nothing billed; its translation went to the API, 0.16 $, because the settings named it: the review now warns).
