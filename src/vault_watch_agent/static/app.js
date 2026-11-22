@@ -3167,7 +3167,7 @@ function checkFound(c) {
   c.fixes.forEach(f => (byPage[f.page] ||= []).push(f));
   return `<h2>${C.title}</h2>
     ${c.error ? `<p class="error-text small">${C.error}${T.colon}${esc(c.error)}</p>` : ""}
-    <p class="muted small">${C.found(c.fixes.length, dollars(c.cost))}</p>
+    <p class="muted small">${C.found(c.fixes.length, costTag(c.cost, c.unbilled_usd || 0, false))}</p>
     ${Object.entries(byPage).map(([p, fixes]) => `<div class="pair-page"><div class="header"><code>${esc(p)}</code></div>
       ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
         return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${!ok ? " disabled" : over ? "" : " checked"}>

@@ -1611,7 +1611,9 @@ def create_app(settings: Settings) -> FastAPI:
                 changes += [(p, mirrors.edits_of_commit(copy, p, ahead[p])) for p in body.pages]
                 found = proofread.run(settings.vault, changes, set(asked), deps.translator or deps.llm, deps.llm)
                 data.update(fixes=found["fixes"], notes=found["notes"],
-                            cost=round(sum(u.get("cost_usd", 0) for u in found["usage"]), 2))
+                            cost=round(sum(u.get("cost_usd", 0) for u in found["usage"]), 2),
+                            # on a subscription: what its calls are worth at list price, shown struck through
+                            unbilled_usd=round(sum(u.get("list_usd") or 0.0 for u in found["usage"] if not u.get("cost_usd")), 2))
             except Exception as e:  # shown on the page, the edits untouched
                 data["error"] = f"{type(e).__name__}: {e}"[:500]
                 if getattr(e, "usage", None):

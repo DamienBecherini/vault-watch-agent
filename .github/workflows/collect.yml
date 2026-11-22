@@ -2,7 +2,7 @@ name: Collect a watch
 
 # Reusable: a guide calls it on a schedule (docs/collect.md). It installs vault-watch-agent, runs `vault-watch collect`
 # on the guide's feeds ([watch] feeds of its vault-watch.toml), keeps watch.json and watch.md as an artifact, and
-# opens an issue with the report: the guide's manifest then reads it with source = "github-issue". No model, no
+# opens an issue with the report: the guide's manifest then reads it with source = "issues". No model, no
 # secret: GitHub's own token reads the feeds (security advisories need it) and opens the issue.
 #
 # The caller (in the guide's repository, .github/workflows/watch.yml):
