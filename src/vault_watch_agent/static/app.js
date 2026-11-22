@@ -334,9 +334,10 @@ const TEXTS = {
       pages: "Les pages modifiées par ce passage",
       openHere: "Ouvrir ici", openObsidian: "Ouvrir dans Obsidian",
       obsidianLater: "Prête d'abord ton dossier (ci-dessous) : sinon Obsidian montrerait la page sans les corrections.",
+      obsidianFirst: a => `Pour les ouvrir dans Obsidian, ${a} : sinon il montrerait les pages sans les corrections.`, lendFirst: "prête d'abord ton dossier",
       obsidian: "Relire dans Obsidian",
       lend: "Prêter mon dossier à ce passage",
-      lendHelp: path => `Obsidian affiche ton dossier du guide (<code>${path}</code>), qui est sur main : il ne voit pas les corrections, elles sont sur la branche du passage. Pour les relire dans Obsidian, avec son aperçu et ses liens, prête ton dossier au passage : il bascule sur cette branche le temps des retouches, et tu modifies les pages directement dans Obsidian. « J'ai fini » (ou « Passer ») le ramène sur main, comme avant. La bascule prend deux secondes : n'écris rien dans Obsidian à ce moment-là, ta frappe pourrait se perdre.`,
+      lendHelp: path => `Obsidian affiche ton dossier du guide (${path}), qui est sur main : il ne voit pas les corrections, elles sont sur la branche du passage. Pour les relire dans Obsidian, avec son aperçu et ses liens, prête ton dossier au passage : il bascule sur cette branche le temps des retouches, et tu modifies les pages directement dans Obsidian. « J'ai fini » (ou « Passer ») le ramène sur main, comme avant. La bascule prend deux secondes : n'écris rien dans Obsidian à ce moment-là, ta frappe pourrait se perdre.`,
       whyLend: "Tu peux aussi tout faire ici, dans le navigateur, sans prêter ton dossier.",
       dirty: n => `Ton dossier contient ${n} fichier${n > 1 ? "s" : ""} modifié${n > 1 ? "s" : ""} ou nouveau${n > 1 ? "x" : ""}, pas commité${n > 1 ? "s" : ""} :`,
       setAside: "Les mettre de côté et prêter le dossier",
@@ -689,9 +690,10 @@ const TEXTS = {
       pages: "The pages this run changed",
       openHere: "Open here", openObsidian: "Open in Obsidian",
       obsidianLater: "Lend your folder first (below): otherwise Obsidian would show the page without the corrections.",
+      obsidianFirst: a => `To open them in Obsidian, ${a}: otherwise it would show the pages without the corrections.`, lendFirst: "lend your folder first",
       obsidian: "Read in Obsidian",
       lend: "Lend my folder to this run",
-      lendHelp: path => `Obsidian shows your guide's folder (<code>${path}</code>), which is on main: it does not see the corrections, they are on the run's branch. To read them in Obsidian, with its preview and its links, lend your folder to the run: it switches to that branch for the retouches, and you edit the pages right in Obsidian. « I am done » (or « Skip ») brings it back to main, as it was. The switch takes two seconds: do not type in Obsidian then, your typing could be lost.`,
+      lendHelp: path => `Obsidian shows your guide's folder (${path}), which is on main: it does not see the corrections, they are on the run's branch. To read them in Obsidian, with its preview and its links, lend your folder to the run: it switches to that branch for the retouches, and you edit the pages right in Obsidian. « I am done » (or « Skip ») brings it back to main, as it was. The switch takes two seconds: do not type in Obsidian then, your typing could be lost.`,
       whyLend: "You can also do it all here, in the browser, without lending your folder.",
       dirty: n => `Your folder holds ${n} file${n > 1 ? "s" : ""} changed or new, not committed:`,
       setAside: "Set them aside and lend the folder",
@@ -1501,17 +1503,17 @@ async function viewRetouch(r, title) {
     : f.blocked ? `<p class="attention-text">${R.blocked(esc(f.blocked))}</p>`
     : f.changes.length ? `<p>${R.dirty(f.changes.length)}</p><ul>${f.changes.map(c => `<li><code>${esc(c)}</code></li>`).join("")}</ul>
         <p class="muted small">${R.setAsideHelp}</p><p><button id="lend" data-aside="1">${R.setAside}</button></p>`
-    : `<p class="muted small">${R.lendHelp(esc(f.path))}</p><p><button id="lend">${R.lend}</button></p>`;
+    : `<p><button id="lend">${R.lend}</button>${tip(R.lendHelp(f.path))}</p>`;
   // Each page: open it in the editor below, or in Obsidian once the folder is lent (before, Obsidian shows main)
   const vaultName = (f.path || "").split(/[\\/]/).filter(Boolean).pop() || "";
   const pageRow = p => `<li><code>${esc(p)}</code> <button type="button" class="small-button" data-open-here="${esc(p)}">${R.openHere}</button>
-    ${lent ? `<a class="small" href="${obsidian(vaultName, p)}">${R.openObsidian}</a>` : `<span class="muted small" title="${esc(R.obsidianLater)}">${R.openObsidian} ⓘ</span>`}</li>`;
+    ${lent ? `<a class="small" href="${obsidian(vaultName, p)}">${R.openObsidian}</a>` : `<a class="muted small" href="#" data-to-lend title="${esc(R.obsidianLater)}">${R.openObsidian} ⓘ</a>`}</li>`;
   page.innerHTML = `${title}
     <div class="card"><p>${R.intro((r.applied || []).length, esc(r.branch || ""))}</p>
       ${pages.length ? `<p class="small"><b>${R.pages}</b></p><ul class="retouch-pages">${pages.map(pageRow).join("")}</ul>
-        ${lent ? "" : `<p class="muted small">${R.obsidianLater}</p>`}` : ""}</div>
+        ${lent ? "" : `<p class="muted small">${R.obsidianFirst(`<a href="#" data-to-lend>${R.lendFirst}</a>`)}</p>`}` : ""}</div>
     <h2>${R.obsidian}</h2>
-    <div class="card">${folderCard}${lent ? "" : `<p class="muted small">${R.whyLend}</p>`}<p class="error-text small" id="lend-error"></p></div>
+    <div class="card" id="folder-card">${folderCard}${lent ? "" : `<p class="muted small">${R.whyLend}</p>`}<p class="error-text small" id="lend-error"></p></div>
     <h2>${R.here}</h2>
     <div class="card" id="here"><p class="muted small">${R.hereHelp(lent)}</p>
       <p class="tick-row"><select id="page-pick">${pages.map(p => `<option>${esc(p)}</option>`).join("")}</select>
@@ -1560,6 +1562,17 @@ async function viewRetouch(r, title) {
     $("#here").scrollIntoView({ block: "start", behavior: "smooth" });
   });
   $("#page-text").oninput = said;
+  // « Lend your folder first »: the button comes into view and glows for a moment (the card, when it has none)
+  page.querySelectorAll("[data-to-lend]").forEach(a => a.onclick = e => {
+    e.preventDefault();
+    const target = $("#lend") || $("#folder-card");
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    target.classList.remove("flash");
+    void target.offsetWidth;  // the glow starts again on a second click
+    target.classList.add("flash");
+    setTimeout(() => target.classList.remove("flash"), 1800);
+    if (target.id === "lend") setTimeout(() => target.focus({ preventScroll: true }), 400);
+  });
   $("#page-save").onclick = async () => {
     if (!open) return;
     try {

@@ -582,5 +582,9 @@ footer a { display: inline-block; padding: 4px 0; }
 #proofread h2 { margin-top: 0; }
 
 ul.retouch-pages { margin: 4px 0 6px; padding-left: 20px; }
+/* What a link points to (« lend your folder first »): it glows for a moment */
+@keyframes flash { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 35% { box-shadow: 0 0 0 5px var(--accent); } }
+.flash { animation: flash .8s ease 2; }
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; outline: 3px solid var(--accent); outline-offset: 2px; } }
 ul.retouch-pages li { margin: 4px 0; }
 ul.retouch-pages code { font-size: 13px; }
