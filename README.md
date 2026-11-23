@@ -4,7 +4,7 @@
 
 # vault-watch-agent
 
-**Keep a Markdown guide up to date with what changes in its field: a LangGraph agent proposes sourced corrections, you review them, it opens the pull request.**
+**Keep a Markdown guide true, complete and light: a LangGraph agent follows its field, proposes sourced corrections and additions, and reviews yours; you decide, it opens the pull request.**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.2-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
@@ -15,18 +15,30 @@
 
 **English** · [Français](README.fr.md)
 
-**[All the documentation](docs/README.md)** · [Connect your guide](docs/connect-your-guide.md) · [A run, step by step](docs/run.md) · [Check the guide](docs/check.md) · [Collecting a watch](docs/collect.md) · [Compaction](docs/compact.md) · [What is new](docs/news.md) · [Chapters](docs/chapters.md) · [Choose a model](docs/choose-a-model.md) · [Costs](docs/costs.md) · [Security](docs/security.md) · [What stays stable](docs/compatibility.md) · [Overview with diagrams](docs/presentation.md) · [How the code fits together](docs/code.md)
+**[All the documentation](docs/README.md)** · [Connect your guide](docs/connect-your-guide.md) · [A run, step by step](docs/run.md) · [Check the guide](docs/check.md) · [Costs](docs/costs.md) · [Security](docs/security.md)
 
 </div>
 
 ---
 
-A technical guide goes stale one release at a time: a version number, a flag that was renamed, a security advisory
-that changes a recommendation. vault-watch-agent reads what changed in your guide's field (release notes,
-advisories, feeds), finds the sentences of the guide that are now wrong, and proposes corrections that quote the
-current text, give the new one and cite a source. It re-reads them with the whole guide in context, waits for your
-review, applies what you accepted on a branch, translates the changes into the guide's mirrors, runs the guide's
-own checks and, after a second yes, opens the pull request.
+A technical guide goes stale one release at a time. vault-watch-agent helps you keep it up, both ways: it proposes
+and you review; you write and it reviews.
+
+- **Watch**: every two weeks, the release notes, security advisories and feeds of the field; the sentences now
+  wrong, with a sourced correction.
+- **Check**: on demand, the whole guide: audits, links, freshness, consistency between pages, translations.
+- **Complete**: what a reader would look for and not find, or a lead of yours (an idea, an article, a PDF, a video,
+  what you already know), checked on the web and written where it belongs.
+- **Lighten**: what is repeated, piled up or longer than it needs.
+- **Fix**: the errors you or a reader report.
+- **Review and translate your edits**: what you write in Obsidian, reviewed (spelling, facts checked on the web,
+  consistency with the rest of the guide), then translated into the other languages, passage by passage.
+
+Every proposal goes through your review, where you can retouch it, then the guide's own checks and the pull
+request, on your yes. One page, « To handle », shows what waits for you.
+
+**In use** on a guide of about 400 k tokens: more than twenty pull requests merged after review, and a past watch
+replayed found the 11 corrections the editor had made, none wrong ([the reference guide](#the-reference-guide)).
 
 **The idea.** Three pieces, each in its own repository. You write a technical guide in
 [Obsidian](https://obsidian.md), as plain Markdown notes in a git repository. An engine,
@@ -71,7 +83,7 @@ cd my-guide                 # the root of the guide's git repository
 vault-watch init            # writes vault-watch.toml from what the folder shows; read it, adjust it
 vault-watch doctor          # what is ready, what is missing before a first run
 vault-watch collect         # optional: what the feeds the manifest lists say, without a model
-vault-watch serve           # http://127.0.0.1:4430/: watches, review, publish, settings
+vault-watch serve           # http://127.0.0.1:4430/: To handle, review, publish, settings
 ```
 
 `init` guesses the language, the mirrors, the GitHub repository of the `origin` remote (a Gitea one is three lines to add) and the guide's own scripts; every
@@ -96,11 +108,11 @@ flowchart TD
   locate -->|"Send: one branch per group"| propose --> number
   locate -->|nothing to check| number
   number --> crosscheck --> report --> review{{"⏸ human review"}}
-  review -->|accepted| apply --> retouch{{"⏸ your retouches (optional)"}} --> mirror --> audits --> links --> publish{{"⏸ push + PR?"}}
+  review -->|accepted| apply --> retouch{{"⏸ your retouches (optional)"}} --> mirror --> translation{{"⏸ translation (Languages)"}} --> audits --> links --> publish{{"⏸ push + PR?"}}
   review -->|none| stop((end))
   publish --> stop
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,publish human
+  class review,retouch,translation,publish human
 ```
 
 | Step | What it does |
@@ -116,6 +128,7 @@ flowchart TD
 | `apply` | Applies the accepted corrections on a git worktree of a new branch and bumps the pages' date field |
 | `retouch` | ⏸ Optional pause: you read and retouch the pages of the branch, in your Obsidian (the guide's folder is lent to the run, what it held set aside and put back after) or in the page, or you skip; your retouches are committed as yours ([A run, step by step](docs/run.md#the-pause-to-retouch-the-pages)) |
 | `mirror` | Translates into the guide's mirrors (an English copy under `en/`, for instance) what changed in each source page on the branch, passage by passage: the corrections, and any edit by hand |
+| `translation` | ⏸ Pause of a « Languages » run only: each passage of the source beside its translation, which you can retouch |
 | `audits` | Runs the guide's own checks, if the manifest declares them |
 | `links` | Checks the external links of the changed pages |
 | `publish` | ⏸ Pause: the pages and their translation can still be corrected or translated again, then checked again; on a yes, pushes the branch and opens the pull request (a local guide keeps the branch) |
@@ -123,13 +136,9 @@ flowchart TD
 What decides at each step, an example with its cost, the screens where you decide (the review, the retouches, the
 publish step) and how your folder gets the pull request once merged: [A run, step by step](docs/run.md).
 
-Two more kinds of run use the same review and pull request: a **fix run** turns reported errors (a reader's, a
-check's) into checked corrections, and a **check of the guide**, on demand, looks for what is wrong or
-inconsistent in the whole guide. A **compaction run** keeps the guide from growing heavy: a watch only adds, so a
-check lists what is repeated, piled up or longer than it needs, and the trims you keep are reviewed like corrections
-([Compaction](docs/compact.md)). An **addition run** looks for what no source of the watch announces: a check lists
-what a reader would look for and not find, and each lead you keep is checked on the web, then written where it
-belongs ([What is new](docs/news.md)).
+The other runs share this review and this pull request: a fix run on reported errors, the leads of a check of the
+guide ([Check the guide](docs/check.md)), a compaction ([Compaction](docs/compact.md)), an addition run
+([What is new](docs/news.md)) and a sync of the languages ([Sync the languages](docs/run.md#sync-the-languages)).
 
 ## Principles
 
@@ -137,8 +146,9 @@ belongs ([What is new](docs/news.md)).
   refuses it unless the quote occurs exactly once in the page. Pages declared read-only are never edited.
 - **Human in the loop, writing.** The run stops after the report (LangGraph `interrupt`), where each proposal can
   be retouched; again after the corrections are applied, to retouch the pages themselves if you want; and before
-  anything leaves the machine, where the pages and their translation can still be corrected. A paused run is checkpointed in SQLite and resumed later, from another process,
-  days later if needed.
+  anything leaves the machine, where the pages and their translation can still be corrected; a « Languages » run
+  also stops beside each translation. A paused run is checkpointed in SQLite and resumed later, from another
+  process, days later if needed.
 - **Evidence, not memory.** Proposals rely on the release notes and advisories of the watch, and the cross-check
   on primary sources read on the web, never on the model's memory alone.
 - **The guide's rules.** The editorial brief and the translation policy live in the guide and are read at each
@@ -198,8 +208,9 @@ correctable), then the pull request. Around them:
 tick leads.*
 
 Every screen that starts a paid step says what it will cost (on a subscription, what it is worth at list price,
-struck through) and what will run it (engine, model, effort) before the click. The interface is in English or French, light or dark, with palettes and a text size of your choice. A
-run started here can be resumed from the command line, and the reverse. The server listens on 127.0.0.1 only
+struck through) and what will run it (engine, model, effort) before the click. The interface is in English or
+French, light or dark, with palettes and a text size of your choice. A run started here can be resumed from the
+command line, and the reverse. The server listens on 127.0.0.1 only
 ([Security](docs/security.md)).
 
 ## The command line
@@ -233,11 +244,12 @@ under `en/`, readable in Obsidian as it is. The guide's CI rebuilds the site wit
 merge on `main` that changes a page. The agent knows nothing of the engine: it reads and edits the vault's
 Markdown, runs the guide's own checks, and opens a pull request; the merge then redeploys the site.
 
-**Produced.** Nineteen pull requests of the guide made by the agent and merged after review (as of 20 November
-2026), for example [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a watch),
+**Produced.** More than twenty pull requests of the guide made by the agent and merged after review (as of 22
+November 2026), for example [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (a watch),
 [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections from a check of the whole guide),
-[#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) (a compaction) and
-[#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) (additions checked on the web).
+[#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) (a compaction),
+[#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) (additions checked on the web) and
+[#109](https://github.com/DamienBecherini/ia-on-prem-vault/pull/109) (additions from the leads of a video, retouched by the editor).
 
 **Evaluated.** `vault-watch eval` replays a past watch on the guide as it was and has a judge model (always Claude)
 match each proposal with the diff the human merged ([`metrics/eval/`](metrics/eval/)). On 18 November 2026 the
@@ -263,7 +275,7 @@ about 0.08 $. Two full watches a month come to about 100 $ a year; a guide half 
 Claude Code with a subscription, nothing is billed, but a cross-check weighs on the subscription's limits.
 
 These amounts are indicative: they are what the calls are worth at the API's list price. The author's calls went
-through the API access of his Claude subscription: he paid his subscription and nothing more. With a key billed
+through the API access of a Claude subscription: only the subscription was paid. With a key billed
 per token, they are what you would pay. What makes the price, how the estimates are made, and the journal:
 [Costs](docs/costs.md).
 
@@ -274,12 +286,12 @@ per token, they are what you would pay. What makes the price, how the estimates 
 | `StateGraph` over a `TypedDict` state | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | One node per step; the state holds plain JSON so a paused run can be stored |
 | Reducers (`Annotated[list, operator.add]`) | `state.py` | Parallel branches append their proposals and their usage without overwriting each other |
 | `Send` fan-out from a conditional edge | `fan_out` in `graph.py` | One `propose` branch per group of items, run in parallel |
-| `interrupt()` and `Command(resume=…)` | `review` and `publish` nodes | The two human pauses; your answer is the value `interrupt()` returns |
+| `interrupt()` and `Command(resume=…)` | `review`, `retouch`, `translation` and `publish` nodes | The human pauses; your answer is the value `interrupt()` returns |
 | `SqliteSaver` checkpointer, one thread per run | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` and `resume` are separate processes, days apart; the web page and the command line share the runs |
 | `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | A fix run makes its own proposals, then enters the graph as if `propose` had run |
 | `stream(stream_mode="updates")` | `web.py` | Each finished step is pushed to the page (server-sent events) |
 
-Every model call answers into a Pydantic model (structured output). More than 270 tests (pytest) run the whole graph against
+Every model call answers into a Pydantic model (structured output). More than 350 tests (pytest) run the whole graph against
 a fake model and a throwaway git repository; an engine contract checks any engine. How the modules fit together:
 [docs/code.md](docs/code.md).
 
@@ -311,10 +323,12 @@ a fake model and a throwaway git repository; an engine contract checks any engin
 
 ```
 src/vault_watch_agent/
-  graph.py       the graph: nodes, edges, the two pauses, report and pull request text
+  graph.py       the graph: nodes, edges, the human pauses, report and pull request text
   state.py       graph state and the structured outputs the model must answer with (Pydantic)
   guide.py       the guide as its manifest describes it (vault-watch.toml)
   vault.py       pages: search, exact-quote check, apply an edit, the whole guide for the cross-check
+  quotes.py      the passage a finding is about; retouch.py the pause to retouch, your folder lent to Obsidian
+  mirrors.py     what changed in a page, passage by passage; proofread.py your edits checked before they are translated
   chapters.py    the chapters of a guide; reading.py the guide read whole, or chapter by chapter
   llm.py         the engines (Claude API, Claude Code, plug-ins); openai_compat.py the OpenAI-compatible one
   webtools.py    web search and page reading for the engines without a web of their own, and for Claude Code (mcp_fetch.py)
@@ -325,6 +339,7 @@ src/vault_watch_agent/
   crosscheck.py  whole-guide cross-check; fix.py fix runs; verify.py checks of the guide; evaluate.py replays
   sizes.py       what each page weighs and gained; compact.py compaction: what weighs, the trims
   news.py        what a reader would look for and not find: the leads, the additions checked on the web
+  links.py       links read whole (a page, a README, a PDF); videos.py the text of a video, through dl-sub-dub
   prompts.py     system prompts, from the guide's brief and translation policy
   config.py      the user's settings; prices.py, costs.py what the calls cost
   store.py       the runs database kept light; notify.py desktop notifications

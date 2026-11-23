@@ -4,7 +4,7 @@
 
 # vault-watch-agent
 
-**Tenir un guide Markdown à jour de ce qui change dans son domaine : un agent LangGraph propose des corrections sourcées, vous les relisez, il ouvre la pull request.**
+**Garder un guide Markdown juste, complet et léger : un agent LangGraph suit son domaine, propose des corrections et des ajouts sourcés, et relit les vôtres ; vous décidez, il ouvre la pull request.**
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.2-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
@@ -15,18 +15,31 @@
 
 [English](README.md) · **Français**
 
-**[Toute la documentation](docs/fr/README.md)** · [Brancher son guide](docs/fr/connect-your-guide.md) · [Une veille étape par étape](docs/fr/run.md) · [Vérifier le guide](docs/fr/check.md) · [Collecter une veille](docs/fr/collect.md) · [Compactage](docs/fr/compact.md) · [Nouveautés](docs/fr/news.md) · [Chapitres](docs/fr/chapters.md) · [Choisir un modèle](docs/fr/choose-a-model.md) · [Coûts](docs/fr/costs.md) · [Sécurité](docs/fr/security.md) · [Ce qui reste stable](docs/fr/compatibility.md) · [Présentation avec schémas](docs/fr/presentation.md) · [Structure du code](docs/fr/code.md)
+**[Toute la documentation](docs/fr/README.md)** · [Brancher son guide](docs/fr/connect-your-guide.md) · [Une veille étape par étape](docs/fr/run.md) · [Vérifier le guide](docs/fr/check.md) · [Coûts](docs/fr/costs.md) · [Sécurité](docs/fr/security.md)
 
 </div>
 
 ---
 
-Un guide technique vieillit une version à la fois : un numéro de version, une option renommée, un avis de sécurité
-qui change une recommandation. vault-watch-agent lit ce qui a changé dans le domaine de votre guide (notes de
-version, avis de sécurité, flux), trouve les phrases du guide devenues fausses, et propose des corrections qui citent
-le texte actuel, donnent le nouveau et citent une source. Il les relit avec tout le guide en contexte, attend votre
-relecture, applique sur une branche ce que vous avez accepté, traduit les changements dans les copies du guide en
-d'autres langues, lance les contrôles propres au guide et, après un second oui, ouvre la pull request.
+Un guide technique se périme une version à la fois. vault-watch-agent vous épaule pour l'entretien, dans les deux
+sens : il propose et vous relisez ; vous écrivez et il relit.
+
+- **Veiller** : toutes les deux semaines, les notes de version, les avis de sécurité et les flux du domaine ; les
+  phrases devenues fausses, avec une correction sourcée.
+- **Vérifier** : à la demande, le guide entier : contrôles, liens, fraîcheur, cohérence entre les pages, traductions.
+- **Compléter** : ce qu'un lecteur chercherait sans le trouver, ou une piste à vous (une idée, un article, un PDF,
+  une vidéo, ce que vous savez déjà), vérifiée sur le web et écrite là où elle a sa place.
+- **Alléger** : ce qui se répète, s'empile ou est plus long que nécessaire.
+- **Corriger** : les erreurs signalées par vous ou par un lecteur.
+- **Relire et traduire vos modifications** : ce que vous écrivez dans Obsidian, relu (orthographe, faits vérifiés sur
+  le web, cohérence avec le reste du guide), puis traduit dans les autres langues, passage par passage.
+
+Chaque proposition passe par votre relecture, où vous pouvez la retoucher, puis par les contrôles du guide et la
+pull request, sur votre oui. Une page, « À traiter », montre ce qui vous attend.
+
+**En service** sur un guide d'environ 400 k tokens : plus de vingt pull requests fusionnées après relecture, et une
+veille passée, rejouée, a retrouvé les 11 corrections faites par l'éditeur, aucune fausse
+([le guide de référence](#le-guide-de-référence)).
 
 **L'idée de départ.** Trois pièces, chacune dans son dépôt. Vous écrivez un guide technique dans
 [Obsidian](https://obsidian.md), en simples notes Markdown dans un dépôt git. Un moteur,
@@ -72,7 +85,7 @@ cd mon-guide                # la racine du dépôt git du guide
 vault-watch init            # écrit vault-watch.toml d'après ce que montre le dossier ; relisez-le, ajustez-le
 vault-watch doctor          # ce qui est prêt, ce qui manque avant une première passe
 vault-watch collect         # facultatif : ce que disent les flux listés par le manifeste, sans modèle
-vault-watch serve           # http://127.0.0.1:4430/ : veilles, relecture, publication, réglages
+vault-watch serve           # http://127.0.0.1:4430/ : À traiter, relecture, publication, réglages
 ```
 
 `init` devine la langue, les copies traduites, le dépôt GitHub du remote `origin` (un dépôt Gitea, c'est trois
@@ -98,11 +111,11 @@ flowchart TD
   locate -->|"Send : une branche par groupe"| propose --> number
   locate -->|rien à vérifier| number
   number --> crosscheck --> report --> review{{"⏸ relecture humaine"}}
-  review -->|acceptées| apply --> retouch{{"⏸ vos retouches (facultatif)"}} --> mirror --> audits --> links --> publish{{"⏸ push + PR ?"}}
+  review -->|acceptées| apply --> retouch{{"⏸ vos retouches (facultatif)"}} --> mirror --> translation{{"⏸ traduction (Langues)"}} --> audits --> links --> publish{{"⏸ push + PR ?"}}
   review -->|aucune| stop((fin))
   publish --> stop
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,publish human
+  class review,retouch,translation,publish human
 ```
 
 | Étape | Ce qu'elle fait |
@@ -118,6 +131,7 @@ flowchart TD
 | `apply` | Applique les corrections acceptées dans un worktree git sur une nouvelle branche et met à jour le champ de date des pages |
 | `retouch` | ⏸ Pause facultative : vous relisez et retouchez les pages de la branche, dans votre Obsidian (le dossier du guide est prêté à la passe, ce qu'il contenait mis de côté puis remis) ou dans la page, ou vous passez ; vos retouches sont commitées à votre nom ([Une veille étape par étape](docs/fr/run.md#la-pause-pour-retoucher-les-pages)) |
 | `mirror` | Traduit dans les copies du guide (une copie anglaise sous `en/`, par exemple) ce qui a changé dans chaque page source sur la branche, passage par passage : les corrections, et toute modification à la main |
+| `translation` | ⏸ Pause d'une passe « Langues » seulement : chaque passage de la source à côté de sa traduction, que vous pouvez retoucher |
 | `audits` | Lance les contrôles du guide, si le manifeste en déclare |
 | `links` | Vérifie les liens externes des pages modifiées |
 | `publish` | ⏸ Pause : les pages et leur traduction peuvent encore être corrigées ou retraduites, puis recontrôlées ; sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
@@ -126,14 +140,10 @@ Ce qui décide à chaque étape, un exemple avec son coût, les écrans où vous
 publication) et comment votre dossier reçoit la pull request une fois fusionnée :
 [Une veille étape par étape](docs/fr/run.md).
 
-Deux autres sortes de passe suivent la même relecture et la même pull request : une **passe de correction**
-transforme des erreurs signalées (par un lecteur, par une vérification) en corrections contrôlées, et une
-**vérification du guide**, à la demande, cherche ce qui est faux ou incohérent dans tout le guide. Une **passe de
-compactage** empêche le guide de s'alourdir : une veille ne fait qu'ajouter, donc un contrôle liste ce qui est
-répété, empilé ou plus long que nécessaire, et les allègements que vous gardez sont relus comme des corrections
-([Compactage](docs/fr/compact.md)). Une **passe d'ajouts** cherche ce qu'aucune source de la veille n'annonce : un
-contrôle liste ce qu'un lecteur chercherait et ne trouve pas, et chaque piste que vous gardez est vérifiée sur le
-web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
+Les autres passes suivent la même relecture et la même pull request : une passe de correction sur des erreurs
+signalées, les pistes d'une vérification du guide ([Vérifier le guide](docs/fr/check.md)), un compactage
+([Compactage](docs/fr/compact.md)), une passe d'ajouts ([Nouveautés](docs/fr/news.md)) et une synchronisation des
+langues ([Synchroniser les langues](docs/fr/run.md#synchroniser-les-langues)).
 
 ## Principes
 
@@ -143,8 +153,9 @@ web, puis écrite là où elle a sa place ([Nouveautés](docs/fr/news.md)).
 - **Un humain dans la boucle, qui écrit.** La passe s'arrête après le rapport (`interrupt` de LangGraph), où chaque
   proposition peut être retouchée ; de nouveau une fois les corrections appliquées, pour retoucher les pages
   elles-mêmes si vous le voulez ; et avant que quoi que ce soit ne quitte la machine, où les pages et leur
-  traduction peuvent encore être corrigées. Une passe en pause est sauvegardée dans SQLite et reprise
-  plus tard, depuis un autre processus, des jours après s'il le faut.
+  traduction peuvent encore être corrigées ; une passe « Langues » s'arrête aussi à côté de chaque traduction. Une
+  passe en pause est sauvegardée dans SQLite et reprise plus tard, depuis un autre processus, des jours après s'il
+  le faut.
 - **Des preuves, pas la mémoire.** Les propositions s'appuient sur les notes de version et les avis de la veille, et
   la relecture croisée sur des sources primaires lues sur le web, jamais sur la seule mémoire du modèle.
 - **Les règles du guide.** La consigne éditoriale et la politique de traduction sont dans le guide et lues à chaque
@@ -204,8 +215,9 @@ chaque page modifiée à côté de sa traduction, encore corrigeable), puis la p
 demande donc de cocher des pistes.*
 
 Chaque écran qui lance une étape payante dit ce qu'elle coûtera (sur un abonnement, ce qu'elle vaut au prix
-catalogue, barré) et ce qui la fera tourner (moteur, modèle, effort) avant le clic. L'interface est en français ou en anglais, claire ou sombre, avec des palettes et une taille de texte
-au choix. Une passe lancée ici peut être reprise en ligne de commande, et l'inverse. Le serveur n'écoute que sur
+catalogue, barré) et ce qui la fera tourner (moteur, modèle, effort) avant le clic. L'interface est en français
+ou en anglais, claire ou sombre, avec des palettes et une taille de texte au choix. Une passe lancée ici peut être
+reprise en ligne de commande, et l'inverse. Le serveur n'écoute que sur
 127.0.0.1 ([Sécurité](docs/fr/security.md)).
 
 ## La ligne de commande
@@ -240,11 +252,13 @@ starlight-obsidian-engine à chaque fusion sur `main` qui touche une page. L'age
 modifie le Markdown du coffre, lance les contrôles du guide et ouvre une pull request ; la fusion redéploie ensuite
 le site.
 
-**Produit.** Dix-neuf pull requests du guide faites par l'agent et fusionnées après relecture (au 20 novembre
+**Produit.** Plus de vingt pull requests du guide faites par l'agent et fusionnées après relecture (au 22 novembre
 2026), par exemple [#78](https://github.com/DamienBecherini/ia-on-prem-vault/pull/78) (une veille),
 [#79](https://github.com/DamienBecherini/ia-on-prem-vault/pull/79) (30 corrections issues d'une vérification de tout
-le guide), [#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) (un compactage) et
-[#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) (des ajouts vérifiés sur le web).
+le guide), [#91](https://github.com/DamienBecherini/ia-on-prem-vault/pull/91) (un compactage),
+[#98](https://github.com/DamienBecherini/ia-on-prem-vault/pull/98) (des ajouts vérifiés sur le web) et
+[#109](https://github.com/DamienBecherini/ia-on-prem-vault/pull/109) (des ajouts tirés des pistes d'une vidéo, retouchés par
+l'éditeur).
 
 **Évalué.** `vault-watch eval` rejoue une veille passée sur le guide tel qu'il était et fait apparier par un modèle
 juge (toujours Claude) chaque proposition avec le diff fusionné par l'humain ([`metrics/eval/`](metrics/eval/)). Le
@@ -273,7 +287,7 @@ coûte à peu près moitié moins. Avec Claude Code sur un abonnement, rien n'es
 pèse sur les limites de l'abonnement.
 
 Ces montants sont indicatifs : c'est ce que valent les appels au prix public de l'API. Les appels de l'auteur sont
-passés par l'accès API de son abonnement Claude : il a payé son abonnement, rien de plus. Avec une clé facturée au
+passés par l'accès API d'un abonnement Claude : seul l'abonnement a été payé. Avec une clé facturée au
 token, c'est ce que vous paieriez. Ce qui fait le prix, comment sont faites les estimations, et le journal :
 [Coûts](docs/fr/costs.md).
 
@@ -284,12 +298,12 @@ token, c'est ce que vous paieriez. Ce qui fait le prix, comment sont faites les 
 | `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'une passe en pause puisse être stockée |
 | Réducteurs (`Annotated[list, operator.add]`) | `state.py` | Les branches parallèles ajoutent leurs propositions et leur usage sans s'écraser |
 | `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, en parallèle |
-| `interrupt()` et `Command(resume=…)` | nœuds `review` et `publish` | Les deux pauses humaines ; votre réponse est la valeur que renvoie `interrupt()` |
+| `interrupt()` et `Command(resume=…)` | nœuds `review`, `retouch`, `translation` et `publish` | Les pauses humaines ; votre réponse est la valeur que renvoie `interrupt()` |
 | Checkpointer `SqliteSaver`, un fil par passe | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passes |
 | `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Une passe de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné |
 | `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
 
-Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 270 tests (pytest) font tourner tout le
+Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 350 tests (pytest) font tourner tout le
 graphe avec un faux modèle et un dépôt git jetable ; un contrat de moteur vérifie n'importe quel moteur. Comment les
 modules s'emboîtent : [docs/fr/code.md](docs/fr/code.md).
 
@@ -324,10 +338,12 @@ modules s'emboîtent : [docs/fr/code.md](docs/fr/code.md).
 
 ```
 src/vault_watch_agent/
-  graph.py       le graphe : nœuds, arêtes, les deux pauses, texte du rapport et de la pull request
+  graph.py       le graphe : nœuds, arêtes, les pauses humaines, texte du rapport et de la pull request
   state.py       état du graphe et sorties structurées imposées au modèle (Pydantic)
   guide.py       le guide tel que son manifeste le décrit (vault-watch.toml)
   vault.py       les pages : recherche, contrôle de citation exacte, application d'une modification, tout le guide
+  quotes.py      le passage dont parle un constat ; retouch.py la pause pour retoucher, votre dossier prêté à Obsidian
+  mirrors.py     ce qui a changé dans une page, passage par passage ; proofread.py vos modifications relues avant traduction
   chapters.py    les chapitres d'un guide ; reading.py le guide lu en entier, ou chapitre par chapitre
   llm.py         les moteurs (API Claude, Claude Code, extensions) ; openai_compat.py celui compatible OpenAI
   webtools.py    recherche web et lecture de pages pour les moteurs qui n'ont pas de web à eux, et pour Claude Code (mcp_fetch.py)
@@ -338,6 +354,7 @@ src/vault_watch_agent/
   crosscheck.py  relecture croisée ; fix.py passes de correction ; verify.py vérifications ; evaluate.py rejeux
   sizes.py       ce que pèse chaque page et ce qu'elle a pris ; compact.py compactage : ce qui pèse, les allègements
   news.py        ce qu'un lecteur chercherait et ne trouve pas : les pistes, les ajouts vérifiés sur le web
+  links.py       des liens lus en entier (une page, un README, un PDF) ; videos.py le texte d'une vidéo, par dl-sub-dub
   prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
   config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
   store.py       la base des passes gardée légère ; notify.py les notifications du bureau
