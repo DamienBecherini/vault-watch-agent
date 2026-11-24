@@ -4,7 +4,8 @@
 
 The [README](../README.md#how-a-run-goes) shows a run as three entries and one path. This page follows one item of
 a watch through every step: what each step reads, what decides there, and what can stop an edit before you see it. Then
-the screens where you decide: the review, the pause to retouch the pages, and the publish step; and, once the pull
+the screens where you decide: the review, the pause to retouch the pages, the proofreading of your edits, and the
+publish step; and, once the pull
 request is merged, how your guide's folder gets it.
 
 ```mermaid
@@ -24,9 +25,10 @@ flowchart TD
   cross -->|"keep / revise"| review{{"⏸ your review"}}
   cross -->|"edits on other pages,<br/>checked the same way"| review
   review -->|ticked| apply["apply on a branch"] --> retouch{{"⏸ your retouches<br/>(optional)"}}
-  retouch --> rest["mirrors, audits, links"] --> publish{{"⏸ push + PR"}}
+  retouch --> proof{{"⏸ your edits proofread<br/>(optional)"}}
+  proof --> rest["mirrors, audits, links"] --> publish{{"⏸ push + PR"}}
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,publish human
+  class review,retouch,proof,publish human
 ```
 
 ## An example: the watch of 16 November 2026
@@ -61,11 +63,13 @@ cross-check sees every page.
 | `report` | Everything above | The code writes the report; a correction that adds a version none of the footnotes it cites mentions carries a warning | |
 | `review` | ⏸ You | You tick | A group with one member that cannot apply is left out whole |
 | `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>-<issue>` for a watch from an issue, `chore/watch-<date>` from a file): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
-| `retouch` | ⏸ You, if you want | You retouch the pages of the branch, in Obsidian or in the page, or skip | |
+| `retouch` | ⏸ You, if you want | You retouch the pages of the branch, in Obsidian or in the page, or skip; « I am done » can ask for your retouches to be proofread | |
+| `proofread` | When you asked for it: the passages of the source pages you changed by hand (not the corrections of the run), and for the facts their whole page and the web, for the consistency the whole guide | The models: spelling (the translation model), facts (the reasoning model, on the web), consistency (the cross-check) | |
+| `proofread_review` | ⏸ You, when the proofreading found something | You tick the fixes to apply, retouch them or leave them; those accepted are committed as yours | A fix whose quote is no longer found once in the page |
 | `mirror` | Each mirror page, with what changed in its source page on the branch, passage by passage (a paragraph, a table row, a list line): the corrections, and any edit by hand | The translator model: the same changes in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
 | `translation` | ⏸ You, on a « Languages » run only | You approve each passage of the translation, beside its source, or retouch it | |
 | `audits`, `links` | The branch | The guide's scripts: its audits, and the sources of the changed pages (new ones first) | Nothing is stopped: what fails is shown before you publish |
-| `publish` | ⏸ You | You say yes or no; or you correct a page, translate it again or check it again, and the run goes back to the mirrors or to the checks | |
+| `publish` | ⏸ You | You say yes or no; or you correct a page, translate it again, check it again or have what you corrected proofread, and the run goes back to the proofreading, the mirrors or the checks | |
 
 The addition candidates of a watch are not drafted: the review lists them with the reason, and the check « What
 is new » reads them later, with what other watches set aside ([What is new](news.md)).
@@ -140,6 +144,31 @@ folder taken back: the branch goes back to what the review applied. On the comma
 `vault-watch resume <run> --retouch done` once the files of the run's worktree are retouched (`vault-watch status`
 gives its path), or `--retouch skip`. A run started before this pause existed resumes without it.
 
+## Have your edits proofread
+
+Below the editor, « Have your retouches proofread (optional) » offers the three checks of the page « Languages »
+([Check before translating](#check-before-translating-optional)), on what you changed by hand since the corrections
+were applied, never on the corrections of the run, already reviewed: spelling and grammar (the translation model, on
+the passages alone), truth and relevance on the web (the reasoning model looks for each fact's source, the page given
+whole for its context), consistency with the rest of the guide (the cross-check reads the whole guide: what your
+changes contradict or make outdated elsewhere). Each says its estimate; the boxes wait until something is retouched
+(« Refresh » after a change made in Obsidian). Ticked, « I am done » becomes « I am done, proofread · ≈ x $ ».
+
+The run then stops on what was found, before the mirrors: each fix with its reason, its source for a fact, its
+word-level diff and its text, which you can retouch; a fix whose quote holds another's is left unticked; the doubts
+without a fix are listed under them. « Apply n fixes and go on » commits those ticked as yours (« Proofread fixes
+accepted »), then the translation follows, your retouches and the fixes included. Nothing found: no pause. The
+pull request says what was proofread and how many fixes were accepted.
+
+At the publish step, once a source page is corrected (« Correct », then « Save »), the same three checks are
+offered beside « Check again »: « Proofread, then translate and check again » proofreads what you just corrected,
+stops on its fixes, then translates the source pages changed since the mirrors last followed and runs the guide's
+checks again. A correction of a translation alone is not proofread: it goes to the checks.
+
+On the command line: `vault-watch resume <run> --retouch done --proofread spelling,facts` (some of
+`spelling,facts,consistency`), then, at the pause, `vault-watch resume <run> --accept F1,F3` (or `all`, `none`;
+`--edit F2=my-text.md` for your own text of a fix).
+
 ## The publish screen
 
 ![The publish screen: « Before publishing » (the guide's checks, the translation, a link to check, the weight of the pages), then each page changed with its translation, « Correct » and « Translate again »](images/publish.png)
@@ -161,7 +190,8 @@ machine. From top to bottom:
 « ◀ passage n / m ▶ »). « Save and check again » commits what you corrected as yours on the run's branch, then the
 guide's checks and the links run again, without a model; the run comes back to the same pause. When only the source
 page was corrected, the screen says its translation no longer follows it, and offers « Translate my corrections »
-(the translation model, on what you changed) or « Check without translating ». « Translate again » translates a
+(the translation model, on what you changed) or « Check without translating »; and, whenever the source was
+corrected, to have it proofread first ([above](#have-your-edits-proofread)). « Translate again » translates a
 page from the start, after asking: its current translation is replaced, what you corrected in it included. The
 pull request names the pages corrected there.
 

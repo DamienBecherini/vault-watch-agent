@@ -74,9 +74,9 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 
 | Module | Lines | Role |
 | :-- | --: | :-- |
-| `web.py` | 1778 | `create_app(settings)`: REST routes, server-sent events, background jobs, the data of each page (watches, sources, checks, chapters, costs), the user's settings, the notices of the page, the static page |
-| `graph.py` | 975 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
-| `cli.py` | 747 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
+| `web.py` | 1840 | `create_app(settings)`: REST routes, server-sent events, background jobs, the data of each page (watches, sources, checks, chapters, costs), the user's settings, the notices of the page, the static page |
+| `graph.py` | 1053 | Builds the graph (`build(deps, checkpointer)`), one closure per node; report, PR title and body |
+| `cli.py` | 754 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
 | `collect.py` | 702 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
 | `llm.py` | 678 | The engines (API, Claude Code on a subscription, the OpenAI-compatible one, and those of other packages, `EngineKind`, protocol 1): structured output, prompt caching, web search and fetch, capabilities, cost journal |
 | `verify.py` | 670 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
@@ -84,7 +84,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `links.py` | 269 | A run from links (D5): each address read whole without a model (a page, a repository's README, a PDF with the optional `pypdf`; a video through dl-sub-dub, `videos.py`), then one call per link with the whole guide, without the web, for the leads it holds; a check of « Check the guide » (`verify.run_links`) |
 | `videos.py` | 149 | The text of a video through dl-sub-dub's route « text of a video » (contract 1): its state followed until it ends, the token read from its reference, what it says when it cannot (busy, stopped, older); the site's description, chapters and words in paragraphs with their time |
 | `mirrors.py` | 245 | What changed in a source page, as passages a translator can carry to its mirror (a paragraph, a table row, a list line, from git); the pages ahead of their mirror; the branch and the state of a « Sync the languages » run |
-| `proofread.py` | 155 | The editor's edits checked before a sync (an option of the page « Languages »): spelling by the translation model, facts on the web by the reasoning model, consistency with the rest of the guide by the cross-check; the fixes accepted applied in the guide's folder |
+| `proofread.py` | 155 | The editor's edits checked before a sync (an option of the page « Languages »), or during a run when asked (the nodes `proofread` and `proofread_review` of the graph): spelling by the translation model, facts on the web by the reasoning model, consistency with the rest of the guide by the cross-check; the fixes accepted applied in the guide's folder |
 | `retouch.py` | 175 | The pause to retouch the pages of a run's branch: the guide's folder lent to the run (detached at the branch's tip, what it held set aside in a stash named after the run), the retouches committed as the editor's, the branch moved forward, the folder given back |
 | `guide.py` | 414 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget |
 | `chapters.py` | 413 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |

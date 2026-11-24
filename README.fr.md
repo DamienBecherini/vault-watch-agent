@@ -118,19 +118,23 @@ flowchart LR
   edits["Vos propres modifications<br/>dans Obsidian"] -->|"« Langues »"| translate
   cross["Relecture croisée<br/>avec tout le guide"] --> review{{"⏸ Votre relecture"}}
   review --> retouch{{"⏸ Vos retouches<br/>(facultatif)"}}
-  retouch --> translate["Traduction<br/>dans les autres langues"]
+  retouch --> proof{{"⏸ Relecture de vos modifications<br/>(facultatif)"}}
+  proof --> translate["Traduction<br/>dans les autres langues"]
   translate --> checks["Les contrôles du guide<br/>et ses liens"]
   checks --> pr{{"⏸ Pull request<br/>sur votre oui"}}
   pr -.->|"corriger, retraduire<br/>ou recontrôler"| translate
+  pr -.->|"corriger,<br/>puis faire relire"| proof
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,pr human
+  class review,retouch,proof,pr human
 ```
 
 Toutes les passes suivent ce chemin ; seul leur point de départ change. Une veille part du domaine : l'agent trie ses
 éléments, trouve les pages concernées et rédige les corrections. Une passe de correction, d'ajouts ou de compactage
 part des pistes que vous avez gardées (une vérification du guide ne fait que donner des pistes), ses propositions
 déjà rédigées. Une passe « Langues » part de vos modifications, relues d'abord si vous le voulez (orthographe,
-faits, cohérence), et s'arrête à côté de chaque traduction. Chaque étape, ce qui y décide et les écrans où vous
+faits, cohérence), et s'arrête à côté de chaque traduction. Ce que vous écrivez pendant une passe, aux retouches ou
+à la publication, peut être relu de la même façon avant de continuer : la passe s'arrête sur les corrections
+trouvées, et vous choisissez. Chaque étape, ce qui y décide et les écrans où vous
 décidez : [Une veille étape par étape](docs/fr/run.md) ; les autres passes :
 [Vérifier le guide](docs/fr/check.md), [Compactage](docs/fr/compact.md), [Nouveautés](docs/fr/news.md),
 [Synchroniser les langues](docs/fr/run.md#synchroniser-les-langues).
@@ -291,25 +295,29 @@ flowchart TD
   own(["correction, ajouts, compactage<br/>update_state(as_node=propose)"]) -.-> number
   lang(["Langues<br/>update_state(as_node=apply)"]) -.-> retouch
   number --> crosscheck --> report --> review{{"⏸ review"}}
-  review -->|acceptées| apply --> retouch{{"⏸ retouch"}} --> mirror --> translation{{"⏸ translation"}} --> audits --> links --> publish{{"⏸ publish"}}
+  review -->|acceptées| apply --> retouch{{"⏸ retouch"}} --> proofread --> proofread_review{{"⏸ proofread_review"}}
+  proofread_review --> mirror --> translation{{"⏸ translation"}} --> audits --> links --> publish{{"⏸ publish"}}
+  proofread_review -->|"aucune page source changée"| audits
   review -->|aucune| stop((END))
   publish -->|"oui / non"| stop
   publish -->|recheck| audits
   publish -->|retranslate| mirror
+  publish -->|proofread| proofread
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,translation,publish human
+  class review,retouch,proofread_review,translation,publish human
 ```
 
 *Le graphe de [`graph.py`](src/vault_watch_agent/graph.py) : une veille entre à `collect`, une passe qui a ses propres
 propositions comme si `propose` avait tourné, une passe « Langues » après `apply` (elle saute la pause des retouches
-et s'arrête à `translation`).*
+et s'arrête à `translation`). `proofread` et sa pause ne travaillent que si l'éditeur le demande ; sinon, elles
+laissent passer la passe.*
 
 | Fonction de LangGraph | Où | Pour quoi |
 | :-- | :-- | :-- |
 | `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'une passe en pause puisse être stockée |
 | Réducteurs (`Annotated[list, operator.add]`) | `state.py` | Les branches parallèles ajoutent leurs propositions et leur usage sans s'écraser |
 | `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, en parallèle |
-| `interrupt()` et `Command(resume=…)` | nœuds `review`, `retouch`, `translation` et `publish` | Les pauses humaines ; votre réponse est la valeur que renvoie `interrupt()` |
+| `interrupt()` et `Command(resume=…)` | nœuds `review`, `retouch`, `proofread_review`, `translation` et `publish` | Les cinq pauses humaines ; votre réponse est la valeur que renvoie `interrupt()`. Un nœud qui reprend repart de son début : les appels au modèle qu'une pause montre sont dans le nœud d'avant (`report`, `proofread`) |
 | Checkpointer `SqliteSaver`, un fil par passe | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passes |
 | `update_state(…, as_node=…)` | [`fix.py`](src/vault_watch_agent/fix.py), [`mirrors.py`](src/vault_watch_agent/mirrors.py) | Une passe de correction, d'ajouts ou de compactage fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné ; une passe « Langues » entre après `apply` |
 | `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
@@ -354,7 +362,7 @@ src/vault_watch_agent/
   guide.py       le guide tel que son manifeste le décrit (vault-watch.toml)
   vault.py       les pages : recherche, contrôle de citation exacte, application d'une modification, tout le guide
   quotes.py      le passage dont parle un constat ; retouch.py la pause pour retoucher, votre dossier prêté à Obsidian
-  mirrors.py     ce qui a changé dans une page, passage par passage ; proofread.py vos modifications relues avant traduction
+  mirrors.py     ce qui a changé dans une page, passage par passage ; proofread.py vos modifications relues (avant une synchro, dans une passe)
   chapters.py    les chapitres d'un guide ; reading.py le guide lu en entier, ou chapitre par chapitre
   llm.py         les moteurs (API Claude, Claude Code, extensions) ; openai_compat.py celui compatible OpenAI
   webtools.py    recherche web et lecture de pages pour les moteurs qui n'ont pas de web à eux, et pour Claude Code (mcp_fetch.py)

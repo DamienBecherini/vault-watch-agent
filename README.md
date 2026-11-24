@@ -115,18 +115,22 @@ flowchart LR
   edits["Your own edits<br/>in Obsidian"] -->|"« Languages »"| translate
   cross["Cross-check<br/>with the whole guide"] --> review{{"⏸ Your review"}}
   review --> retouch{{"⏸ Your retouches<br/>(optional)"}}
-  retouch --> translate["Translation<br/>into the other languages"]
+  retouch --> proof{{"⏸ Your edits proofread<br/>(optional)"}}
+  proof --> translate["Translation<br/>into the other languages"]
   translate --> checks["The guide's checks<br/>and its links"]
   checks --> pr{{"⏸ Pull request<br/>on your yes"}}
   pr -.->|"correct, translate<br/>or check again"| translate
+  pr -.->|"correct,<br/>then proofread"| proof
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,pr human
+  class review,retouch,proof,pr human
 ```
 
 Every run takes this path; only where it starts differs. A watch starts from the field: the agent sorts its items,
 finds the pages concerned and drafts the corrections. A fix, addition or compaction run starts from the leads you
 kept (a check of the guide only gives leads), its proposals already drafted. A « Languages » run starts from your
-edits, checked first if you want (spelling, facts, consistency), and stops beside each translation. Each step, what
+edits, checked first if you want (spelling, facts, consistency), and stops beside each translation. What you write
+during a run, at the retouches or at the publish step, can be proofread the same way before it goes on: the run
+stops on the fixes found, and you choose. Each step, what
 decides there and the screens where you decide: [A run, step by step](docs/run.md); the other runs:
 [Check the guide](docs/check.md), [Compaction](docs/compact.md), [What is new](docs/news.md),
 [Sync the languages](docs/run.md#sync-the-languages).
@@ -280,24 +284,28 @@ flowchart TD
   own(["fix, additions, compaction<br/>update_state(as_node=propose)"]) -.-> number
   lang(["Languages<br/>update_state(as_node=apply)"]) -.-> retouch
   number --> crosscheck --> report --> review{{"⏸ review"}}
-  review -->|accepted| apply --> retouch{{"⏸ retouch"}} --> mirror --> translation{{"⏸ translation"}} --> audits --> links --> publish{{"⏸ publish"}}
+  review -->|accepted| apply --> retouch{{"⏸ retouch"}} --> proofread --> proofread_review{{"⏸ proofread_review"}}
+  proofread_review --> mirror --> translation{{"⏸ translation"}} --> audits --> links --> publish{{"⏸ publish"}}
+  proofread_review -->|"no source page changed"| audits
   review -->|none| stop((END))
   publish -->|"yes / no"| stop
   publish -->|recheck| audits
   publish -->|retranslate| mirror
+  publish -->|proofread| proofread
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,translation,publish human
+  class review,retouch,proofread_review,translation,publish human
 ```
 
 *The graph of [`graph.py`](src/vault_watch_agent/graph.py): a watch enters at `collect`, a run with its own proposals
-as if `propose` had run, a « Languages » run after `apply` (it skips the retouch pause and stops at `translation`).*
+as if `propose` had run, a « Languages » run after `apply` (it skips the retouch pause and stops at `translation`).
+`proofread` and its pause run only when the editor asks for it; otherwise they let the run through.*
 
 | LangGraph feature | Where | What for |
 | :-- | :-- | :-- |
 | `StateGraph` over a `TypedDict` state | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | One node per step; the state holds plain JSON so a paused run can be stored |
 | Reducers (`Annotated[list, operator.add]`) | `state.py` | Parallel branches append their proposals and their usage without overwriting each other |
 | `Send` fan-out from a conditional edge | `fan_out` in `graph.py` | One `propose` branch per group of items, run in parallel |
-| `interrupt()` and `Command(resume=…)` | `review`, `retouch`, `translation` and `publish` nodes | The human pauses; your answer is the value `interrupt()` returns |
+| `interrupt()` and `Command(resume=…)` | `review`, `retouch`, `proofread_review`, `translation` and `publish` nodes | The five human pauses; your answer is the value `interrupt()` returns. A node that resumes runs again from its start, so the model calls a pause shows sit in the node before it (`report`, `proofread`) |
 | `SqliteSaver` checkpointer, one thread per run | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` and `resume` are separate processes, days apart; the web page and the command line share the runs |
 | `update_state(…, as_node=…)` | [`fix.py`](src/vault_watch_agent/fix.py), [`mirrors.py`](src/vault_watch_agent/mirrors.py) | A fix, addition or compaction run makes its own proposals, then enters the graph as if `propose` had run; a « Languages » run enters after `apply` |
 | `stream(stream_mode="updates")` | `web.py` | Each finished step is pushed to the page (server-sent events) |
@@ -339,7 +347,7 @@ src/vault_watch_agent/
   guide.py       the guide as its manifest describes it (vault-watch.toml)
   vault.py       pages: search, exact-quote check, apply an edit, the whole guide for the cross-check
   quotes.py      the passage a finding is about; retouch.py the pause to retouch, your folder lent to Obsidian
-  mirrors.py     what changed in a page, passage by passage; proofread.py your edits checked before they are translated
+  mirrors.py     what changed in a page, passage by passage; proofread.py your edits proofread (before a sync, in a run)
   chapters.py    the chapters of a guide; reading.py the guide read whole, or chapter by chapter
   llm.py         the engines (Claude API, Claude Code, plug-ins); openai_compat.py the OpenAI-compatible one
   webtools.py    web search and page reading for the engines without a web of their own, and for Claude Code (mcp_fetch.py)

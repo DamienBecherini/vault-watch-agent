@@ -5,6 +5,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **What you write during a run, proofread when you ask** (proposed by the user: only the translation and the
+  guide's checks ran again on an edit by hand, never a check of its facts): at the retouch pause, « I am done » can
+  ask for the three checks of the page « Languages » (spelling, facts on the web, consistency with the whole guide)
+  on what was changed by hand since the corrections were applied, never on the corrections of the run; at the publish
+  step, a source page corrected can be proofread the same way, then translated and checked again. The run stops on
+  the fixes found (a new pause, `proofread_review`, after the node `proofread` that calls the models, so that they
+  are called once), each to tick, retouch or leave; those accepted are committed as the editor's, and the pull
+  request says what was proofread. Nothing asked, or nothing found: no call, no pause. On the command line:
+  `resume --retouch done --proofread spelling,facts`, then `resume --accept F1`.
 - **Desktop notifications on macOS and Linux too** (`serve --notify`, Windows only before): `terminal-notifier` on
   macOS when it is installed (a click opens the page), else `osascript`; `notify-send` on Linux, with a button that
   opens the page when it supports actions. The title and the text go as arguments, never into a script. Without a

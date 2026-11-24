@@ -5,7 +5,7 @@
 Le [README](../../README.fr.md#déroulé-dune-passe) montre une passe comme trois entrées et un seul chemin. Cette
 page suit un élément d'une veille à travers chaque étape : ce que lit chaque étape, ce qui y décide, et ce qui peut arrêter une
 modification avant que vous la voyiez. Puis les écrans où vous décidez : la relecture, la pause pour retoucher les
-pages, et la publication ; et, une fois la pull request fusionnée, comment votre dossier du guide la reçoit.
+pages, la relecture de vos modifications, et la publication ; et, une fois la pull request fusionnée, comment votre dossier du guide la reçoit.
 
 ```mermaid
 flowchart TD
@@ -24,9 +24,10 @@ flowchart TD
   cross -->|"garder / réviser"| review{{"⏸ votre relecture"}}
   cross -->|"modifications d'autres pages,<br/>vérifiées de la même façon"| review
   review -->|cochées| apply["application sur une branche"] --> retouch{{"⏸ vos retouches<br/>(facultatif)"}}
-  retouch --> rest["miroirs, contrôles, liens"] --> publish{{"⏸ push + PR"}}
+  retouch --> proof{{"⏸ relecture de vos modifications<br/>(facultatif)"}}
+  proof --> rest["miroirs, contrôles, liens"] --> publish{{"⏸ push + PR"}}
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,publish human
+  class review,retouch,proof,publish human
 ```
 
 ## Un exemple : la veille du 16 novembre 2026
@@ -61,11 +62,13 @@ des extraits du guide, la relecture croisée voit toutes les pages.
 | `report` | Tout ce qui précède | Le code écrit le rapport ; une correction qui ajoute une version qu'aucune des notes qu'elle cite ne mentionne porte un avertissement | |
 | `review` | ⏸ Vous | Vous cochez | Un groupe dont un membre ne peut pas s'appliquer est écarté en entier |
 | `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>-<issue>` pour une veille venue d'une issue, `chore/watch-<date>` d'un fichier) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
-| `retouch` | ⏸ Vous, si vous le voulez | Vous retouchez les pages de la branche, dans Obsidian ou dans la page, ou vous passez | |
+| `retouch` | ⏸ Vous, si vous le voulez | Vous retouchez les pages de la branche, dans Obsidian ou dans la page, ou vous passez ; « J'ai fini » peut demander que vos retouches soient relues | |
+| `proofread` | Si vous l'avez demandé : les passages des pages sources que vous avez changés à la main (pas les corrections de la passe), et pour les faits leur page entière et le web, pour la cohérence tout le guide | Les modèles : l'orthographe (le modèle de traduction), les faits (le modèle de raisonnement, sur le web), la cohérence (la relecture croisée) | |
+| `proofread_review` | ⏸ Vous, quand la relecture a trouvé quelque chose | Vous cochez les corrections à appliquer, les retouchez ou les laissez ; celles acceptées sont commitées à votre nom | Une correction dont la citation ne se trouve plus une seule fois dans la page |
 | `mirror` | Chaque page miroir, avec ce qui a changé dans sa page source sur la branche, passage par passage (un paragraphe, une ligne de tableau, une ligne de liste) : les corrections, et toute modification à la main | Le modèle de traduction : les mêmes changements dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
 | `translation` | ⏸ Vous, sur une passe « Langues » seulement | Vous validez chaque passage de la traduction, à côté de sa source, ou vous le retouchez | |
 | `audits`, `links` | La branche | Les scripts du guide : ses contrôles, et les sources des pages modifiées (les nouvelles d'abord) | Rien n'est arrêté : ce qui échoue est montré avant la publication |
-| `publish` | ⏸ Vous | Vous dites oui ou non ; ou vous corrigez une page, la faites retraduire ou recontrôler, et la passe revient aux miroirs ou aux contrôles | |
+| `publish` | ⏸ Vous | Vous dites oui ou non ; ou vous corrigez une page, la faites retraduire, recontrôler ou relire, et la passe revient à la relecture, aux miroirs ou aux contrôles | |
 
 Les pistes d'ajout d'une veille ne sont pas rédigées : la relecture les liste avec leur raison, et le contrôle
 « Nouveautés » les lit plus tard, avec ce que d'autres veilles ont mis de côté ([Nouveautés](news.md)).
@@ -146,6 +149,34 @@ commande : `vault-watch resume <passe> --retouch done` une fois les fichiers de 
 passe retouchés (`vault-watch status` donne son chemin), ou `--retouch skip`. Une passe commencée avant que cette
 pause existe reprend sans elle.
 
+## Faire relire vos modifications
+
+Sous l'éditeur, « Faire relire tes retouches (facultatif) » propose les trois vérifications de la page « Langues »
+([Vérifier avant de traduire](#vérifier-avant-de-traduire-facultatif)), sur ce que vous avez changé à la main depuis
+l'application des corrections, jamais sur les corrections de la passe, déjà relues : l'orthographe et la grammaire
+(le modèle de traduction, sur les passages seuls), la véracité et la pertinence sur le web (le modèle de
+raisonnement cherche la source de chaque fait, la page donnée entière pour son contexte), la cohérence avec le reste
+du guide (la relecture croisée lit tout le guide : ce que vos changements contredisent ou rendent obsolète ailleurs).
+Chacune dit son estimation ; les cases attendent qu'une retouche soit faite (« Actualiser » après une modification
+faite dans Obsidian). Cochées, « J'ai fini » devient « J'ai fini, faire relire · ≈ x $ ».
+
+La passe s'arrête alors sur ce qui a été trouvé, avant les miroirs : chaque correction avec sa raison, sa source pour
+un fait, son diff mot à mot et son texte, que vous pouvez retoucher ; une correction dont la citation contient celle
+d'une autre reste décochée ; les doutes sans correction sont listés dessous. « Appliquer n corrections et continuer »
+les commite à votre nom (« Proofread fixes accepted »), puis la traduction suit, vos retouches et les corrections
+comprises. Rien trouvé : pas de pause. La pull request dit ce qui a été relu et combien de corrections ont été
+acceptées.
+
+À la publication, une fois une page source corrigée (« Corriger », puis « Enregistrer »), les mêmes trois
+vérifications sont proposées à côté de « Recontrôler » : « Faire relire, puis traduire et recontrôler » relit ce que
+vous venez de corriger, s'arrête sur ses corrections, puis traduit les pages sources changées depuis le dernier
+passage des miroirs et relance les contrôles du guide. Une correction de la traduction seule n'est pas relue : elle
+va aux contrôles.
+
+En ligne de commande : `vault-watch resume <passe> --retouch done --proofread spelling,facts` (parmi
+`spelling,facts,consistency`), puis, à la pause, `vault-watch resume <passe> --accept F1,F3` (ou `all`, `none` ;
+`--edit F2=mon-texte.md` pour votre propre texte d'une correction).
+
 ## L'écran de publication
 
 ![L'écran de publication : « Avant de publier » (les contrôles du guide, la traduction, un lien à vérifier, le poids des pages), puis chaque page modifiée avec sa traduction, « Corriger » et « Retraduire »](../images/publish.fr.png)
@@ -169,7 +200,8 @@ que sur cette machine. De haut en bas :
 passe, puis les contrôles du guide et les liens repassent, sans modèle ; la passe revient à la même pause.
 Quand seule la page source a été corrigée, l'écran prévient que sa traduction ne la suit plus, et propose
 « Retraduire mes corrections » (le modèle de traduction, sur ce que vous avez changé) ou « Contrôler sans
-retraduire ». « Retraduire » traduit une page depuis le début, après confirmation : sa traduction actuelle est
+retraduire » ; et, dès que la source a été corrigée, de la faire relire d'abord ([plus haut](#faire-relire-vos-modifications)).
+« Retraduire » traduit une page depuis le début, après confirmation : sa traduction actuelle est
 remplacée, y compris ce que vous y avez corrigé. La pull request nomme les pages corrigées à cette étape.
 
 « Pousser et ouvrir la pull request » pousse la branche et l'ouvre, avec les corrections et leurs sources dans sa
