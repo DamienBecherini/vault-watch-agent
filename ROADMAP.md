@@ -543,6 +543,32 @@ Done when: a compaction run on the IA on-prem guide (several months of watches) 
 right, and the trims chosen from it are merged with the guide's checks passing. Try it there first: the
 second guide, just generated, has nothing piled up yet.
 
+### M7. Other subscriptions: a « command » engine (proposed by the user, 2026-11-24)
+
+Someone with opencode, Codex or another CLI on a subscription from another provider than Anthropic cannot use the
+agent today, unless the provider also gives a key and an OpenAI-compatible address (the `openai` engine then works,
+with SearXNG for the web). Decided with the user: look for testers first (a real session per CLI is needed, on their
+subscription), nothing before the code-quality pass (1.6.0), which reworks `llm.py`.
+
+- T7.1: a page « Another subscription than Claude » (EN + FR): a key and an address → the `openai` engine, what to
+  fill in; a subscription that works only inside a CLI → the `command` engine.
+- T7.2: « subscription » billing for any engine (`billing: subscription` for `openai` and the plug-ins): today only
+  `claude-code` is one (`billing_of` in `llm.py`, `costs.py`, `graph.py`), so such calls show as billed « without a
+  price ». The journal and the page say « not billed », or « not measured » when the usage is unknown.
+- T7.3: the `command` engine: a program and its arguments (a list, never a shell line) with `{model}`, `{effort}`,
+  `{schema_file}`, `{mcp_config}`, `{workdir}`, `{out_file}`; the request always on stdin; the JSON answer read,
+  validated, asked again once when malformed. Presets tested on recorded outputs: Codex first (`codex exec`,
+  native JSON schema, usage given), then opencode, then Antigravity. A free « custom » mode for any other CLI,
+  without the web and without costs.
+- Security: the command is set by hand in `settings.json`, never through the page (it is code that runs); a temporary
+  empty working folder, never the guide; the environment filtered (no `*_API_KEY`, no `GH_TOKEN`); the CLI keeps no
+  shell, no file access and no page reader of its own (the LAN hole closed for Claude Code in 1.5.0), the web goes
+  through the agent's MCP server (`mcp_fetch.py`, plus a `web_search` through SearXNG); a CLI that cannot be locked
+  down gets no step that reads the web. `docs/security.md` says the whole guide goes to that provider.
+
+Done when: a tester runs a watch and a check of the IA on-prem guide through one preset, the costs say « not billed »,
+and the steps that read the web went through the agent's reader only.
+
 ### Order, and what can move
 
 M0 → M1 are strictly first. After M1, the price half of M2 (T2.1 to T2.4) can ship at any time. M3 and M4 do not
