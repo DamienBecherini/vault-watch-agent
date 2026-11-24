@@ -5,6 +5,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **Desktop notifications on macOS and Linux too** (`serve --notify`, Windows only before): `terminal-notifier` on
+  macOS when it is installed (a click opens the page), else `osascript`; `notify-send` on Linux, with a button that
+  opens the page when it supports actions. The title and the text go as arguments, never into a script. Without a
+  notifier, nothing is shown and the run goes on, as before. The README says how `pipx` installs the command.
 - **Security: Claude Code reads pages through the agent's reader** (the rest of the audit of 2026-11-22 was published in 1.4.2): its own WebFetch runs on the editor's machine and read
   any address, the machine and its local network included (measured: it connected to 127.0.0.1 and to the PC's LAN
   address). On the steps that use the web, Claude Code now gets the agent's page reader as a local MCP tool

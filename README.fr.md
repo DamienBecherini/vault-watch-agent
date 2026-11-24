@@ -88,6 +88,11 @@ vault-watch collect         # facultatif : ce que disent les flux listés par le
 vault-watch serve           # http://127.0.0.1:4430/ : À traiter, relecture, publication, réglages
 ```
 
+`pipx` installe la commande `vault-watch` pour votre compte, dans un environnement à part, quel que soit le dossier
+d'où vous le lancez ; si la commande n'est pas trouvée ensuite, `pipx ensurepath` puis un nouveau terminal. Les
+commandes agissent sur le guide du dossier courant (ou celui de `--guide`). Testé sous Windows et Linux ; macOS
+devrait fonctionner, sans être testé.
+
 `init` devine la langue, les copies traduites, le dépôt GitHub du remote `origin` (un dépôt Gitea, c'est trois
 lignes à ajouter) et les scripts du guide ; chaque clé du manifeste, et ce que débloque chaque partie facultative,
 sont dans [Brancher son guide](docs/fr/connect-your-guide.md). Un guide d'exemple dans [`examples/`](examples/)
@@ -97,11 +102,12 @@ Ce qu'il faut :
 
 | Pour | Quoi |
 | :-- | :-- |
-| tout guide | Python 3.11+, git |
+| tout guide | Python 3.11+, git, [pipx](https://pipx.pypa.io) (`python -m pip install --user pipx`) |
 | le modèle | un moteur : Claude Code connecté avec un abonnement Claude, une clé d'API Claude, ou un serveur compatible OpenAI ([réglages](#le-modèle)) |
 | un guide sur GitHub | la CLI GitHub `gh`, connectée (`gh auth login`) |
 | un guide sur Gitea | un jeton Gitea, donné par référence ([Brancher son guide](docs/fr/connect-your-guide.md), [Sécurité](docs/fr/security.md)) |
 | les contrôles du guide | ce qu'ils lancent (Node.js pour un `npm test`, par exemple) |
+| les notifications du bureau (facultatif) | rien sous Windows et macOS ; `notify-send` sous Linux (`libnotify-bin` sur Debian et Ubuntu) |
 
 ## Déroulé d'une passe
 
@@ -184,7 +190,7 @@ moteur peut s'ajouter sous forme de paquet ([Écrire un moteur](docs/fr/write-an
 ```bash
 vault-watch serve                     # http://127.0.0.1:4430/
 vault-watch serve --idle-exit 3600    # s'arrête après 1 h sans visite ni analyse en cours
-vault-watch serve --notify fr         # notification Windows quand une passe vous attend, se termine ou échoue
+vault-watch serve --notify fr         # notification du bureau quand une passe vous attend, se termine ou échoue
 ```
 
 Un écran par étape d'une passe : une passe en cours (chaque étape terminée envoyée à la page), la relecture (un

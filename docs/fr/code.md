@@ -112,7 +112,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `costs.py` | 87 | Totaux de `metrics/usage.jsonl` par mois, année, passe ou étape ; les appels passés sur un abonnement à part |
 | `steps.py` | 88 | Chaque étape qui appelle le modèle : son rôle, son effort, ce qu'elle demande à un moteur |
 | `store.py` | 53 | La base des passes gardée légère : seul le dernier point de contrôle de chaque passe reste, l'espace est rendu au disque |
-| `notify.py` | 47 | Notifications Windows de `serve --notify` |
+| `notify.py` | 110 | Notifications du bureau de `serve --notify` : Windows, macOS, Linux |
 
 La page est du JavaScript sans outillage dans [`static/`](../../src/vault_watch_agent/static/), chargé tel quel :
 `app.js` (le routeur, les textes dans les deux langues, chaque écran), `settings.js` (la fenêtre des Réglages),

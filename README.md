@@ -87,6 +87,10 @@ vault-watch collect         # optional: what the feeds the manifest lists say, w
 vault-watch serve           # http://127.0.0.1:4430/: To handle, review, publish, settings
 ```
 
+`pipx` installs the command `vault-watch` for your account, in an environment of its own, whatever the folder you
+run it from; if the command is not found afterwards, `pipx ensurepath` and a new terminal. The commands work on the
+guide of the current folder (or the one `--guide` names). Tested on Windows and Linux; macOS should work, untested.
+
 `init` guesses the language, the mirrors, the GitHub repository of the `origin` remote (a Gitea one is three lines to add) and the guide's own scripts; every
 key of the manifest, and what each optional part unlocks, is in [Connect your guide](docs/connect-your-guide.md).
 A sample guide in [`examples/`](examples/) shows the fewest parts.
@@ -95,11 +99,12 @@ What you need:
 
 | For | What |
 | :-- | :-- |
-| every guide | Python 3.11+, git |
+| every guide | Python 3.11+, git, [pipx](https://pipx.pypa.io) (`python -m pip install --user pipx`) |
 | the model | one engine: Claude Code signed in with a Claude subscription, a Claude API key, or an OpenAI-compatible server ([settings](#the-model)) |
 | a guide on GitHub | the GitHub CLI `gh`, signed in (`gh auth login`) |
 | a guide on Gitea | a Gitea token, given by reference ([Connect your guide](docs/connect-your-guide.md), [Security](docs/security.md)) |
 | the guide's checks | whatever they run (Node.js for an `npm test`, for instance) |
+| desktop notifications (optional) | nothing on Windows and macOS; `notify-send` on Linux (`libnotify-bin` on Debian and Ubuntu) |
 
 ## How a run goes
 
@@ -178,7 +183,7 @@ added as a package ([Write an engine](docs/write-an-engine.md)).
 ```bash
 vault-watch serve                     # http://127.0.0.1:4430/
 vault-watch serve --idle-exit 3600    # stops after 1 h without a visit or a running analysis
-vault-watch serve --notify en         # Windows notification when a run waits for you, ends or fails
+vault-watch serve --notify en         # desktop notification when a run waits for you, ends or fails
 ```
 
 One screen per step of a run: a run in progress (each finished step streamed to the page), the review (one block per

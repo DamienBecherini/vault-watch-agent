@@ -583,7 +583,7 @@ def main(argv: list[str] | None = None) -> None:
     w.add_argument("--port", type=int, default=4430)
     w.add_argument("--idle-exit", type=int, default=0, metavar="SECONDS",
                    help="stop after this long without a request or a running analysis (0: never)")
-    w.add_argument("--notify", choices=["fr", "en"], help="desktop notification (Windows) when a run waits for you, ends or fails")
+    w.add_argument("--notify", choices=["fr", "en"], help="desktop notification (Windows, macOS, Linux) when a run waits for you, ends or fails")
     args = p.parse_args(argv)
 
     if args.cmd in ("init", "doctor"):

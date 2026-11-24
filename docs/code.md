@@ -112,7 +112,7 @@ Only the main links are drawn; the table below gives each module's role. Two rul
 | `costs.py` | 87 | Totals of `metrics/usage.jsonl` by month, year, run or step; the calls made on a subscription apart |
 | `steps.py` | 88 | Each step that calls the model: its role, its effort, what it needs from an engine |
 | `store.py` | 53 | The runs database kept light: only the last checkpoint of each run stays, the space is given back to the disk |
-| `notify.py` | 47 | Windows toast notifications for `serve --notify` |
+| `notify.py` | 110 | Desktop notifications for `serve --notify`: Windows, macOS, Linux |
 
 The page is plain JavaScript in [`static/`](../src/vault_watch_agent/static/), loaded as it is: `app.js` (the
 router, the texts in both languages, every screen), `settings.js` (the Settings window), `feedback.js` (« Give my
