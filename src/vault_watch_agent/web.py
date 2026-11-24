@@ -54,7 +54,7 @@ AGENT_REPO = "https://github.com/DamienBecherini/vault-watch-agent"
 FEEDBACK_EMAIL = "vault-watch@damien.becherini.fr"
 # Steps shown while a run goes; a fix run starts at "number".
 STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "report", "review",
-         "apply", "retouch", "mirror", "translation", "audits", "links", "publish"]
+         "apply", "retouch", "proofread", "mirror", "translation", "audits", "links", "publish"]
 # What a running job is doing, in the health response.
 # The effort each step of a role asks for in the code (graph.py, crosscheck.py, fix.py, verify.py), for the Settings
 # page: what "lower" and "higher" make of them. To keep in step with the code when an effort changes there.
@@ -62,7 +62,8 @@ STEPS = ["collect", "triage", "locate", "propose", "number", "crosscheck", "repo
 STEP_EFFORTS = {role: [(s.id, s.effort) for s in steps.of_role(role)] for role in ("reasoning", "translator")}
 ACTIVITIES = {"run": "analysing", "review": "applying the review", "publish": "publishing", "fix": "fixing", "resume": "resuming",
               "sources": "checking the sources", "mirror": "syncing the languages", "retouch": "after the retouches",
-              "translation": "after the review of the translation"}
+              "translation": "after the review of the translation", "proofread": "proofreading the edits",
+              "proofread-review": "after the review of the proofreading"}
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -151,6 +152,7 @@ class TranslationReview(BaseModel):
 
 class Retouched(BaseModel):
     keep: bool = True  # False: what was retouched is dropped, the run goes on as it was
+    proofread: list[str] = []  # with keep: the retouches proofread first (proofread.CHECKS), then the mirrors
 
 
 class Retouch(BaseModel):
@@ -161,9 +163,11 @@ class Publish(BaseModel):
     go: bool = False
     # Instead of publishing: check again what was corrected on the page ("recheck"), or translate again ("retranslate":
     # `pages`, from the French corrected since the mirrors, or started over from the base when `fresh`)
-    action: Literal["", "recheck", "retranslate"] = ""
+    # or have what was corrected proofread first ("proofread": `checks`), then translated and checked
+    action: Literal["", "recheck", "retranslate", "proofread"] = ""
     pages: list[str] = []
     fresh: bool = False
+    checks: list[str] = []
 
 
 class Report(BaseModel):
@@ -327,6 +331,7 @@ def create_app(settings: Settings) -> FastAPI:
                "publish": ("Publication à valider", "Corrections appliquées et contrôlées : la PR attend ton feu vert."),
                "retouch": ("Retouches possibles", "Corrections appliquées sur la branche : relis et retouche, ou passe."),
                "translation": ("Traduction à relire", "Le français et sa traduction, côte à côte : valide ou retouche."),
+               "proofread": ("Relecture de tes modifications", "{n} correction(s) proposée(s) sur ce que tu as écrit : à toi de trancher."),
                "pr": ("Pull request ouverte", "À relire et fusionner sur {forge}."),
                "nothing-applied": ("Passe close", "Aucune correction appliquée."),
                "error": ("Passe interrompue", "Erreur : {error}"),
@@ -335,6 +340,7 @@ def create_app(settings: Settings) -> FastAPI:
                "publish": ("Publish pending", "Corrections applied and checked: the PR waits for your go-ahead."),
                "retouch": ("Retouches possible", "Corrections applied on the branch: read and retouch, or skip."),
                "translation": ("Translation to review", "The source and its translation, side by side: approve or retouch."),
+               "proofread": ("Your edits proofread", "{n} fix(es) proposed on what you wrote: your call."),
                "pr": ("Pull request opened", "To review and merge on {forge}."),
                "nothing-applied": ("Run closed", "No correction applied."),
                "error": ("Run stopped", "Error: {error}"),
@@ -351,6 +357,8 @@ def create_app(settings: Settings) -> FastAPI:
             s = summary(job.thread)
             key = ("error" if job.error else "pr" if s["pr_url"] else s["status"])
             n, page = s["corrections"], f"#/run/{job.thread}"
+            if key == "proofread":
+                n = len(viewer.get_state(config(job.thread)).values.get("proofread_fixes") or [])
         if key not in MESSAGES["en"]:
             return
         texts = {lang: {"title": f"vault-watch · {job.thread} · {m[key][0]}", "body": m[key][1].format(n=n, error=job.error[:150], forge=forge.get().name)}
@@ -797,6 +805,9 @@ def create_app(settings: Settings) -> FastAPI:
             "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
             "mirrored": v.get("mirrored", []), "mirror_problems": v.get("mirror_problems", []),
             "retouched": v.get("retouched", []),
+            # the editor's edits proofread: the fixes (accepted or not, once decided), the doubts, each proofreading
+            "proofread_fixes": v.get("proofread_fixes", []), "proofread_notes": v.get("proofread_notes", []),
+            "proofread_log": v.get("proofread_log", []),
             # what changed in each source page beside what the translator made of it (graph.mirror)
             "mirror_pairs": v.get("mirror_pairs", []), "translation_retouched": v.get("translation_retouched", []),
             "link_problems": v.get("link_problems", []), "audit_ok": v.get("audit_ok"),
@@ -909,10 +920,14 @@ def create_app(settings: Settings) -> FastAPI:
     def publish(thread: str, body: Publish):
         """Publish (`go`), or not; or, instead, check again what was corrected on the page, or translate again first."""
         if body.action:
-            paused_at_retouch(thread, ("publish",))
+            v = paused_at_retouch(thread, ("publish",))
             if body.action == "retranslate" and not body.pages:
                 raise HTTPException(400, "no page to translate again")
-            asked = {"action": body.action, "pages": body.pages, "fresh": body.fresh}
+            if body.action == "proofread":
+                checks_asked(body.checks, needed=True)
+                if not mirrors.changed_pages(Path(v["worktree"]), "HEAD"):
+                    raise HTTPException(400, "nothing corrected in a page of the guide's language: nothing to proofread")
+            asked = {"action": body.action, "pages": body.pages, "fresh": body.fresh, "checks": body.checks}
             start(thread, body.action, "watch", lambda g, job: follow(g, job, Command(resume=asked)))
             return {"thread": thread}
         start(thread, "publish", "watch", lambda g, job: follow(g, job, Command(resume=body.go)))
@@ -1477,13 +1492,46 @@ def create_app(settings: Settings) -> FastAPI:
         given back with what was set aside, then the run resumes (the worktree's retouches are committed by the
         graph). A failure leaves the run paused, the folder as it is, and says why."""
         v = paused_at_retouch(thread)
+        checks = checks_asked(body.proofread)
         try:
             retouch.give_back(settings.vault, settings.home, thread, Path(v["worktree"]), keep=body.keep)
         except retouch.FolderError as e:
             raise folder_error(e) from e
-        answer = "done" if body.keep else "skip"
+        answer = ({"action": "done", "proofread": checks} if checks else "done") if body.keep else "skip"
         start(thread, "retouch", "watch", lambda g, job: follow(g, job, Command(resume=answer)))
         return {"thread": thread}
+
+    def checks_asked(given: list[str], needed: bool = False) -> list[str]:
+        """The proofreading checks asked, in their order; 400 for one that does not exist, or for none when needed."""
+        if set(given) - set(proofread.CHECKS) or (needed and not given):
+            raise HTTPException(400, f"checks: some of {', '.join(proofread.CHECKS)}")
+        return [c for c in proofread.CHECKS if c in given]
+
+    @app.get("/api/runs/{thread}/proofread/estimate")
+    def proofread_estimate(thread: str, steps: str = ""):
+        """What proofreading the editor's edits would cost, at the retouches (what was retouched since the corrections
+        were applied, in the folder lent or in the run's copy) or at the publish pause (what was corrected there, not
+        committed yet): the source pages concerned, and each check's estimate."""
+        v = paused_at_retouch(thread, ("retouch", "publish"))
+        wt = Path(v["worktree"])
+        at_retouch = viewer_pause(thread) == "retouch"
+        tree = retouch.where(settings.vault, settings.home, thread, wt) if at_retouch else wt
+        since = (v.get("applied_tip") or "HEAD") if at_retouch else "HEAD"
+        changes = [(p, mirrors.edits_of(tree, p, since)) for p in mirrors.changed_pages(tree, since)]
+        return {"pages": [p for p, _ in changes], "usd": edits_usd(tree, changes, steps)}
+
+    @app.post("/api/runs/{thread}/proofread")
+    def proofread_done(thread: str, body: Accept):
+        """The fixes of the editor's edits decided: those accepted (with the editor's own text for some) are applied
+        on the run's branch, then the run goes on."""
+        paused_at_retouch(thread, ("proofread",))
+        value = {"accepted": body.ids, "edits": body.edits}
+        start(thread, "proofread-review", "watch", lambda g, job: follow(g, job, Command(resume=value)))
+        return {"thread": thread}
+
+    def viewer_pause(thread: str) -> str:
+        pending = [i.value for t in viewer.get_state(config(thread)).tasks for i in t.interrupts]
+        return pending[0].get("step", "") if pending else ""
 
     @app.post("/api/runs/{thread}/translation")
     def translation_done(thread: str, body: TranslationReview):
@@ -1521,17 +1569,7 @@ def create_app(settings: Settings) -> FastAPI:
         cfg = user_settings.load(cfg_home)
         cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
         model, table = llm.step_model(cfg, "mirror"), price_table()
-
-        def check_usd(page: str, changed: list[tuple[str, str]]) -> dict:
-            """What each check costs for this page: spelling (the translation model, the passages), facts (the
-            reasoning model, the passages, the page and about ten pages of the web)."""
-            moved = sum(len(n.encode("utf-8")) for _, n in changed)
-            size = (settings.vault / page).stat().st_size if (settings.vault / page).is_file() else 0
-            b = verify.BYTES_PER_TOKEN
-            return {"spelling": round(verify._usd(llm.step_model(cfg, "proofread"), tokens_in=int(moved / b) + 900,
-                                                  tokens_out=int(moved / b * 0.3) + 200, table=table), 4),
-                    "facts": round(verify._usd(llm.step_model(cfg, "factcheck"), tokens_in=int((size + moved) / b) + 25_000,
-                                               tokens_out=2_000, table=table), 4)}
+        check_usd = lambda page, changed: page_check_usd(cfg, table, settings.vault, page, changed)  # noqa: E731
 
         def usd(page: str, changed: list[tuple[str, str]]) -> float:
             moved = sum(len(o.encode("utf-8")) + len(n.encode("utf-8")) for o, n in changed)
@@ -1557,10 +1595,32 @@ def create_app(settings: Settings) -> FastAPI:
                 for p, n in found["hand"].items()]
         return {"languages": [{"code": c, "name": guide_mod.language_name(c), "folder": f} for c, f in found["languages"].items()],
                 "ahead": ahead, "hand": hand, "elsewhere": found["elsewhere"], "model": model, "base": found["base"],
-                # the consistency reads the whole guide once (its cache written), whatever the pages
-                "consistency_usd": round(verify._usd(llm.step_model(cfg, "crosscheck"), tokens_out=3_000,
-                                                     cache_write=verify._tokens(vault.pages(settings.vault)), table=table), 2),
-                "check": latest_check()}
+                "consistency_usd": consistency_usd(cfg, table, settings.vault), "check": latest_check()}
+
+    def page_check_usd(cfg: dict, table, tree: Path, page: str, changed: list[tuple[str, str]]) -> dict:
+        """What the spelling (the translation model, the passages) and the facts (the reasoning model, the passages,
+        the page and about ten pages of the web) cost for the passages changed in one page."""
+        moved = sum(len(n.encode("utf-8")) for _, n in changed)
+        size = (tree / page).stat().st_size if (tree / page).is_file() else 0
+        b = verify.BYTES_PER_TOKEN
+        return {"spelling": round(verify._usd(llm.step_model(cfg, "proofread"), tokens_in=int(moved / b) + 900,
+                                              tokens_out=int(moved / b * 0.3) + 200, table=table), 4),
+                "facts": round(verify._usd(llm.step_model(cfg, "factcheck"), tokens_in=int((size + moved) / b) + 25_000,
+                                           tokens_out=2_000, table=table), 4)}
+
+    def consistency_usd(cfg: dict, table, tree: Path) -> float:
+        """The consistency reads the whole guide once (its cache written), whatever the pages."""
+        return round(verify._usd(llm.step_model(cfg, "crosscheck"), tokens_out=3_000,
+                                 cache_write=verify._tokens(vault.pages(tree)), table=table), 2)
+
+    def edits_usd(tree: Path, changes: list[tuple[str, list[tuple[str, str]]]], steps: str = "") -> dict:
+        """What each check would cost on these edits of the editor ([(page, [(old, new)])]), in `tree`."""
+        cfg = user_settings.load(cfg_home)
+        cfg["steps"] = user_settings.over(cfg["steps"], own_steps(steps))
+        table = price_table()
+        per_page = [page_check_usd(cfg, table, tree, p, changed) for p, changed in changes]
+        return {"spelling": round(sum(x["spelling"] for x in per_page), 4), "facts": round(sum(x["facts"] for x in per_page), 4),
+                "consistency": consistency_usd(cfg, table, tree)}
 
     @app.get("/api/mirrors")
     def mirrors_view(steps: str = ""):

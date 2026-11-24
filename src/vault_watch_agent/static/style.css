@@ -658,4 +658,8 @@ details.pub-page[open] > summary { border-bottom: 1px solid var(--border); }
 .hl-nav[hidden] { display: none; }
 .pub-warn { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border: 1px solid var(--attention); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
 .pub-warn[hidden] { display: none; }
+/* the proofreading offered after a correction of the source: its three checks on one line, then its button */
+.pub-proof { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; width: 100%; }
+.pub-proof .option { grid-template-columns: 22px auto; align-items: center; }
+#proof-card .option { margin: 6px 0; }
 @media (max-width: 700px) { .pub-row { grid-template-columns: 24px minmax(0, 1fr); } .pub-row > div { grid-column: 2; } }

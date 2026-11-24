@@ -115,12 +115,20 @@ class WatchState(TypedDict, total=False):
     retouch_offered: bool  # the run stops after apply for the editor's retouches (runs from 1.4.0 on)
     applied_tip: str  # the commit of the corrections, before the retouches
     retouched: list[str]  # the files the editor retouched at the pause
+    # The editor's own edits proofread (proofread.py), when asked at the retouch or the publish pause
+    proofread_checks: list[str]  # asked: some of spelling, facts, consistency; emptied once they ran
+    proofread_since: str  # the commit after which the source pages hold the editor's edits
+    proofread_from: str  # "retouch" or "publish": where the run goes on after the fixes are decided
+    proofread_fixes: list[dict]  # what the checks propose on those edits (proofread.run), to accept or not
+    proofread_notes: list[str]  # their doubts without a fix
+    proofread_log: list[dict]  # each proofreading: {checks, fixes, applied}, for the page and the pull request
     mirror_pairs: list[dict]  # per mirror page: {page, mirror, source: [[old, new]], target: [[current, proposed, (the translator's)]], problem}
     translation_retouched: list[str]  # the mirror pages whose translation the editor retouched
     mirrored: list[str]  # EN pages updated
     mirror_tip: str  # the commit after the mirrors followed the pages: what is corrected at the publish pause comes after
     mirror_only: dict[str, str]  # translate again these source pages only, each from a commit (asked at the publish pause)
-    recheck: str  # asked at the publish pause: "mirror" (translate again, then check), "audits" (check again); else ""
+    recheck: str  # asked at the publish pause: "mirror" (translate again, then check), "audits" (check again),
+    # "proofread" (the editor's corrections proofread, then translated and checked); else ""
     publish_edits: list[str]  # the files the editor corrected at the publish pause
     mirror_problems: list[str]
     link_problems: list[str] | None  # external sources of the changed pages that do not answer; None: not checked

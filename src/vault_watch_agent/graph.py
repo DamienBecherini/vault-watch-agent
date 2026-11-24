@@ -1,11 +1,13 @@
 """The graph: watch → triage → locate → propose (one branch per group) → cross-check
-→ report → human review → apply on a branch → the editor's retouches → mirrors →
-vault audits → link checks → human go-ahead → pull request.
+→ report → human review → apply on a branch → the editor's retouches → their
+proofreading, if asked → mirrors → vault audits → link checks → human go-ahead →
+pull request.
 
-Three interrupts keep a human in the loop: nothing touches the vault before the
-review (where a proposal can be retouched), the pages of the branch can be
-retouched before the mirrors follow them, and nothing leaves the machine before
-the last go-ahead.
+Interrupts keep a human in the loop: nothing touches the vault before the review
+(where a proposal can be retouched), the pages of the branch can be retouched
+before the mirrors follow them, what the editor wrote can be proofread and its
+fixes chosen, a « Sync the languages » run shows its translation, and nothing
+leaves the machine before the last go-ahead.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, quotes, reading, retouch, steps, vault, verify
+from . import compact, crosscheck, forge, inputs, mirrors, news, proofread, prompts, quotes, reading, retouch, steps, vault, verify
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState
@@ -322,7 +324,8 @@ def build(deps: Deps, checkpointer=None):
             "step": "retouch", "branch": state["branch"], "worktree": str(wt),
             "pages": mirrors.changed_pages(wt, base),
             "question": "Retouch the pages of the branch before the mirrors follow them? 'skip', or 'done' once the "
-                        "files of the worktree are retouched.",
+                        "files of the worktree are retouched; {'action': 'done', 'proofread': ['spelling', 'facts', "
+                        "'consistency']} has the retouches proofread first.",
         })
         done = answer in ("done", True) or (isinstance(answer, dict) and answer.get("action") == "done")
         if done:
@@ -335,7 +338,69 @@ def build(deps: Deps, checkpointer=None):
             if tip and git("rev-parse", "HEAD", cwd=wt).strip() != tip:
                 git("reset", "-q", "--hard", tip, cwd=wt)
         tip = state.get("applied_tip", "")
-        return {"retouched": [n for n in git("diff", "--name-only", tip, "HEAD", cwd=wt).splitlines() if n] if tip else []}
+        out = {"retouched": [n for n in git("diff", "--name-only", tip, "HEAD", cwd=wt).splitlines() if n] if tip else []}
+        asked = [c for c in proofread.CHECKS if isinstance(answer, dict) and c in (answer.get("proofread") or [])]
+        if done and asked:  # the editor's retouches proofread before the mirrors follow them
+            out |= {"proofread_checks": asked, "proofread_since": tip or base, "proofread_from": "retouch"}
+        return out
+
+    # -- proofread: what the editor changed by hand, checked when asked (proofread.py); the pause comes next ------
+    def proofread_node(state: WatchState) -> dict:
+        """The checks the editor asked for (spelling, facts on the web, consistency with the whole guide), on the
+        passages of the source pages they changed by hand since `proofread_since`: their retouches, or what they
+        corrected at the publish pause. The model is called here, the editor answers in `proofread_review`: a node
+        that resumes runs again from its start, and these calls are made once."""
+        checks = state.get("proofread_checks") or []
+        if not checks:  # not asked: nothing called; what an earlier proofreading found is not shown again
+            return {"proofread_fixes": [], "proofread_notes": []} if state.get("proofread_fixes") or state.get("proofread_notes") else {}
+        wt, since = Path(state["worktree"]), state["proofread_since"]
+        changes = [(page, mirrors.edits_of(wt, page, since)) for page in mirrors.changed_pages(wt, since)]
+        found = proofread.run(wt, changes, set(checks), deps.translator or deps.llm, deps.llm)
+        log = [*(state.get("proofread_log") or []), {"checks": checks, "fixes": len(found["fixes"]), "applied": 0,
+                                                      "from": state.get("proofread_from", "retouch")}]
+        return {"proofread_checks": [], "proofread_fixes": found["fixes"], "proofread_notes": found["notes"],
+                "usage": found["usage"], "proofread_log": log}
+
+    # -- proofread review (interrupt): the editor accepts, retouches or leaves each fix of their edits -----------
+    def proofread_review(state: WatchState) -> dict:
+        """The pause on what the proofreading found, when it found something: the fixes accepted are applied on the
+        branch (each quote found once, as any edit) and committed as the editor's. Then the run goes on: to the
+        mirrors after the retouches; from the publish pause, to the mirrors when a source page changed since they
+        last followed (those pages only), else straight to the checks."""
+        fixes, notes, out = state.get("proofread_fixes") or [], state.get("proofread_notes") or [], {}
+        wt = Path(state["worktree"]) if state.get("worktree") else None
+        if wt and (fixes or notes):
+            answer = interrupt({
+                "step": "proofread",
+                "fixes": [{k: f[k] for k in ("id", "kind", "page", "current", "proposed", "reason", "source_url", "check")}
+                          for f in fixes],  # whole: the command line shows them as they are
+                "notes": notes,
+                "question": "Which fixes of your edits to apply? 'all' (those found once in the page, an overlapping one "
+                            "left), 'none', or ids like F1,F3. Or {'accepted': [...], 'edits': {'F2': 'your text'}}.",
+            })
+            edits = {}
+            if isinstance(answer, dict):
+                edits, answer = answer.get("edits") or {}, answer.get("accepted")
+            if answer == "all":
+                ids = [f["id"] for f in fixes if f["check"] == "ok" and not f.get("overlaps")]
+            elif answer == "none" or not answer:
+                ids = []
+            else:  # a list of ids, or one string "F1,F3" (the command line)
+                ids = [i.strip() for i in (answer.split(",") if isinstance(answer, str) else answer) if i.strip()]
+            done = proofread.accept(wt, fixes, ids, edits, deps.today)
+            if done["applied"]:
+                git("add", *sorted({f["page"] for f in fixes if f["id"] in done["applied"]}), cwd=wt)
+                git("commit", "-q", "-m", "Proofread fixes accepted", cwd=wt)
+            log = [dict(x) for x in state.get("proofread_log") or []]
+            if log:
+                log[-1]["applied"] = len(done["applied"])
+            out = {"proofread_log": log, "proofread_fixes": [{**f, "applied": f["id"] in done["applied"],
+                                                              "failed": done["failed"].get(f["id"], "")} for f in fixes]}
+        if wt and state.get("proofread_from") == "publish":
+            tip = state.get("mirror_tip") or git("merge-base", deps.base, "HEAD", cwd=wt).strip()
+            pages = mirrors.changed_pages(wt, tip)
+            out |= {"recheck": "mirror", "mirror_only": {p: tip for p in pages}} if pages else {"recheck": "audits"}
+        return out
 
     # -- mirror (the pages of each mirror of the manifest follow the edits of the source) ---------------
     def mirror(state: WatchState) -> dict:
@@ -461,12 +526,17 @@ def build(deps: Deps, checkpointer=None):
     def correct_again(state: WatchState, wt: Path, asked: dict) -> dict:
         """Asked at the publish pause, once the page has corrected files of the branch (source or mirror pages): what
         was corrected is committed as the editor's, then the run checks again, or translates again first: the French
-        corrected since the mirrors (`fresh` false), or a page whose translation starts over from the base (`fresh`)."""
+        corrected since the mirrors (`fresh` false), or a page whose translation starts over from the base (`fresh`);
+        or has what was corrected proofread first (`proofread`, its `checks`), then translated and checked."""
+        before = git("rev-parse", "HEAD", cwd=wt).strip()
         edited = retouch.changed(wt)
         if edited:
             git("add", "-A", cwd=wt)
             git("commit", "-q", "-m", "Corrected at the publish review", cwd=wt)
         out = {"recheck": "audits", "publish_edits": sorted(set(state.get("publish_edits") or []) | set(edited))}
+        if asked["action"] == "proofread":
+            return out | {"recheck": "proofread", "proofread_from": "publish", "proofread_since": before,
+                          "proofread_checks": [c for c in proofread.CHECKS if c in (asked.get("checks") or [])]}
         if asked["action"] != "retranslate":
             return out
         base = git("merge-base", deps.base, "HEAD", cwd=wt).strip()
@@ -500,7 +570,7 @@ def build(deps: Deps, checkpointer=None):
             }
         )
         wt = Path(state["worktree"])
-        if isinstance(go, dict) and go.get("action") in ("recheck", "retranslate"):
+        if isinstance(go, dict) and go.get("action") in ("recheck", "retranslate", "proofread"):
             return correct_again(state, wt, go)
         if go is not True or not deps.repo:
             return {}
@@ -513,9 +583,9 @@ def build(deps: Deps, checkpointer=None):
     g = StateGraph(WatchState)
     for name, fn in [("collect", collect), ("triage", triage), ("locate", locate), ("propose", propose),
                      ("number", number), ("crosscheck", crosscheck_node), ("report", report),
-                     ("review", review), ("apply", apply), ("retouch", retouch_node), ("mirror", mirror), ("translation", translation),
-        ("audits", audits),
-                     ("links", links), ("publish", publish)]:
+                     ("review", review), ("apply", apply), ("retouch", retouch_node), ("proofread", proofread_node),
+                     ("proofread_review", proofread_review), ("mirror", mirror), ("translation", translation),
+                     ("audits", audits), ("links", links), ("publish", publish)]:
         g.add_node(name, fn)
     g.add_edge(START, "collect")
     g.add_edge("collect", "triage")
@@ -527,12 +597,16 @@ def build(deps: Deps, checkpointer=None):
     g.add_edge("report", "review")
     g.add_conditional_edges("review", lambda s: "apply" if s.get("accepted") else END, ["apply", END])
     g.add_edge("apply", "retouch")
-    g.add_edge("retouch", "mirror")
+    g.add_edge("retouch", "proofread")
+    g.add_edge("proofread", "proofread_review")
+    # after the retouches, the mirrors; from the publish pause, the mirrors or the checks (proofread_review says)
+    g.add_conditional_edges("proofread_review", lambda s: "audits" if s.get("recheck") == "audits" else "mirror",
+                            ["mirror", "audits"])
     g.add_edge("mirror", "translation")
     g.add_edge("translation", "audits")
     g.add_edge("audits", "links")
     g.add_edge("links", "publish")
-    g.add_conditional_edges("publish", lambda s: s.get("recheck") or END, ["mirror", "audits", END])
+    g.add_conditional_edges("publish", lambda s: s.get("recheck") or END, ["mirror", "audits", "proofread", END])
     return g.compile(checkpointer=checkpointer)
 
 
@@ -892,8 +966,12 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
 def _checks_lines(state: WatchState) -> str:
     """The guide's audits, the mirrors and the external sources, as every pull request says them."""
     retouched, translated = state.get("retouched") or [], state.get("translation_retouched") or []
+    proofread_lines = "".join(
+        f"The editor's edits proofread ({', '.join(x['checks'])}): {x['fixes']} fix(es) proposed, {x['applied']} accepted.\n\n"
+        for x in state.get("proofread_log") or [])
     return (
         (f"Retouched by the editor before the mirrors: {', '.join(f'`{p}`' for p in retouched)}.\n\n" if retouched else "")
+        + proofread_lines
         + (f"Translation retouched by the editor: {', '.join(f'`{p}`' for p in translated)}.\n\n" if translated else "")
         + (f"Corrected by the editor before publishing: {', '.join(f'`{p}`' for p in state['publish_edits'])}.\n\n"
            if state.get("publish_edits") else "")

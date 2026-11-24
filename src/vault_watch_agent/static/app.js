@@ -284,7 +284,7 @@ const TEXTS = {
     loading: "Chargement…",
     serverDown: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passes en pause n'ont rien perdu.",
     statuses: {
-      new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", translation: "Traduction à relire", publish: "Publication à valider",
+      new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", proofread: "Tes modifications relues", translation: "Traduction à relire", publish: "Publication à valider",
       published: "PR créée", "nothing-applied": "Rien appliqué", "not-published": "Non publié", stopped: "Interrompu",
       closed: "Traitée hors agent", merged: "✓ Terminée · PR fusionnée", "pr-open": "PR à fusionner",
       "pr-closed": "PR fermée sans fusion",
@@ -293,13 +293,13 @@ const TEXTS = {
       collect: "Récupération de la veille", triage: "Tri des éléments", locate: "Recherche des pages concernées",
       propose: "Propositions de corrections", number: "Numérotation et contrôle des citations",
       crosscheck: "Relecture avec tout le guide et le web", report: "Rapport", review: "Ta relecture",
-      apply: "Application sur une branche", retouch: "Tes retouches", mirror: "Traduction anglaise", translation: "Ta relecture de la traduction", audits: "Contrôles du guide (npm test)",
+      apply: "Application sur une branche", retouch: "Tes retouches", proofread: "Relecture de tes modifications (si demandée)", mirror: "Traduction anglaise", translation: "Ta relecture de la traduction", audits: "Contrôles du guide (npm test)",
       links: "Vérification des liens", publish: "Push et pull request",
     },
     watches: "Veille automatique",
     watchesIntro: () => `Tous les 15 jours (et plus tôt pour une alerte de sécurité), ${forgeName()} ouvre un ticket avec ce qui a bougé dans les <a href="#/sources">sources suivies</a>. Une passe le traite : elle vérifie chaque élément, corrige ou ajoute, puis tu relis avant la pull request.`,
     analyse: c => `Analyser · ${c}`, merge: () => `Fusionner sur ${forgeName()}`,
-    buttons: { review: "Relire", retouch: "Retoucher", translation: "Relire la traduction", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
+    buttons: { review: "Relire", retouch: "Retoucher", proofread: "Trier les corrections", translation: "Relire la traduction", publish: "Valider la publication", running: "Suivre", stopped: "Reprendre" },
     details: "Détails",
     issue: open => `issue ${open ? "ouverte" : "fermée"}`, watchFile: n => n == null ? "fichier de veille" : `fichier de veille, ${n} élément(s) retenu(s)`,
     count: (n, a) => `${n} correction(s), ${a} appliquée(s)`,
@@ -381,7 +381,11 @@ const TEXTS = {
       correctHelp: "Corrige la page et sa traduction. « Enregistrer et recontrôler » commite sur la branche de la passe, puis les contrôles du guide et des liens repassent : aucun modèle n'est appelé. La passe revient ensuite ici.",
       saveCheck: "Enregistrer et recontrôler",
       sourceOnly: "Tu as corrigé le français, pas sa traduction : elle ne le suit plus (les contrôles du guide échoueraient).",
-      againMine: "Retraduire mes corrections", checkOnly: "Contrôler sans retraduire",
+      againMine: "Retraduire mes corrections", checkOnly: "Contrôler sans retraduire", recheckOnly: "Recontrôler sans faire relire",
+      proofread: c => `Faire relire, puis traduire et recontrôler${c ? ` · ${c}` : ""}`,
+      proofAsk: "Faire relire ce que tu viens de corriger :",
+      proofTitle: "Relecture de tes modifications",
+      proofLine: (kinds, n, a) => `${kinds} : ${n} correction${n > 1 ? "s" : ""} proposée${n > 1 ? "s" : ""}, ${a} appliquée${a > 1 ? "s" : ""}`,
       confirmAgain: (t, cost) => `Retraduire « ${t} » depuis le début ?${cost ? ` (${cost})` : ""}\n\nLa traduction actuelle de ses passages modifiés est remplacée, y compris ce que tu y as corrigé.`,
     },
     pairs: {
@@ -392,6 +396,13 @@ const TEXTS = {
       retouched: "retouchée", problem: "Le traducteur a signalé",
       ok: n => n ? `Valider avec ${n} retouche${n > 1 ? "s" : ""}` : "Valider la traduction",
       runTitle: "Synchronisation des langues",
+    },
+    proofPause: {
+      intro: atPublish => atPublish
+        ? "Ce que tu as corrigé à la publication a été relu. Coche les corrections à appliquer, retouche-les au besoin : elles sont commitées à ton nom, puis la traduction suit ce qui a changé en français et les contrôles du guide repassent."
+        : "Tes retouches ont été relues, avant que la traduction les suive. Coche les corrections à appliquer, retouche-les au besoin : elles sont commitées à ton nom, puis la passe continue (traduction, contrôles, publication).",
+      what: kinds => `Relu : ${kinds}. Seulement ce que tu as écrit, pas les corrections de la passe, déjà relues.`,
+      apply: n => n ? `Appliquer ${n} correction${n > 1 ? "s" : ""} et continuer` : "Ne rien appliquer et continuer",
     },
     retouchPause: {
       intro: (n, branch) => `Les ${n} corrections acceptées sont appliquées sur la branche de la passe${branch ? ` (<code>${branch}</code>)` : ""} : une copie à part du guide, ton dossier et main n'ont pas bougé. Rien n'est encore traduit ni publié. C'est le moment de relire les pages telles qu'elles seront publiées, et d'y corriger ce qui ne va pas : tes retouches seront commitées à ton nom, la traduction anglaise les suivra, et les contrôles du guide passeront dessus. Rien à changer ? Clique « Passer ».`,
@@ -419,7 +430,11 @@ const TEXTS = {
       revert: "Annuler mes modifications", close: "Fermer la page", reverted: "Modifications annulées : la page est comme à son dernier enregistrement.",
       unsaved: "Modifications non enregistrées", undoHelp: "Ctrl+Z et Ctrl+Y annulent et rétablissent ta frappe ; « Annuler mes modifications » revient à la dernière version enregistrée.",
       confirmLeave: "Cette page a des modifications non enregistrées. Les abandonner ?",
-      skip: "Passer", done: "J'ai fini",
+      skip: "Passer", done: "J'ai fini", doneProof: c => `J'ai fini, faire relire · ${c}`,
+      proofTitle: "Faire relire tes retouches (facultatif)",
+      proofIntro: "Avant que la traduction les suive, sur ce que tu as changé à la main seulement (pas les corrections de la passe, déjà relues). Rien ne change sans toi : la passe s'arrête sur ce qui est trouvé, et tu choisis.",
+      proofNone: "Rien de retouché pour l'instant : enregistre d'abord une modification (dans Obsidian, ton dossier prêté, puis « Actualiser »).",
+      proofPages: pages => `Sur : ${pages}`, proofRefresh: "Actualiser",
       confirmSkip: "Passer cette étape et abandonner ce qui a été retouché ?",
       banner: (t, lent, n) => lent ? `Ton dossier du guide est prêté à la passe ${t}.` : `${n} fichier(s) de ton dossier mis de côté pour la passe ${t} ne sont pas encore remis.`,
       putBack: "Les remettre", see: "Voir la passe",
@@ -708,7 +723,7 @@ const TEXTS = {
     loading: "Loading…",
     serverDown: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
     statuses: {
-      new: "To analyse", running: "Running", review: "Review pending", retouch: "Retouches possible", translation: "Translation to review", publish: "Publish pending",
+      new: "To analyse", running: "Running", review: "Review pending", retouch: "Retouches possible", proofread: "Your edits proofread", translation: "Translation to review", publish: "Publish pending",
       published: "PR opened", "nothing-applied": "Nothing applied", "not-published": "Not published", stopped: "Stopped",
       closed: "Handled without the agent", merged: "✓ Done · PR merged", "pr-open": "PR to merge",
       "pr-closed": "PR closed unmerged",
@@ -717,13 +732,13 @@ const TEXTS = {
       collect: "Download the watch", triage: "Triage the items", locate: "Find the pages concerned",
       propose: "Propose corrections", number: "Number them, check the quotes",
       crosscheck: "Cross-check with the whole guide and the web", report: "Report", review: "Your review",
-      apply: "Apply on a branch", retouch: "Your retouches", mirror: "English translation", translation: "Your review of the translation", audits: "Guide audits (npm test)",
+      apply: "Apply on a branch", retouch: "Your retouches", proofread: "Proofreading of your edits (if asked)", mirror: "English translation", translation: "Your review of the translation", audits: "Guide audits (npm test)",
       links: "Link checks", publish: "Push and pull request",
     },
     watches: "Automatic watch",
     watchesIntro: () => `Every two weeks (and sooner for a security advisory), ${forgeName()} opens an issue with what moved in the <a href="#/sources">sources followed</a>. A run handles it: it checks each item, corrects or adds, then you review before the pull request.`,
     analyse: c => `Analyse · ${c}`, merge: () => `Merge on ${forgeName()}`,
-    buttons: { review: "Review", retouch: "Retouch", translation: "Review the translation", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
+    buttons: { review: "Review", retouch: "Retouch", proofread: "Sort the fixes", translation: "Review the translation", publish: "Approve publishing", running: "Follow", stopped: "Resume" },
     details: "Details",
     issue: open => `issue ${open ? "open" : "closed"}`, watchFile: n => n == null ? "watch file" : `watch file, ${n} item(s) kept`,
     count: (n, a) => `${n} correction(s), ${a} applied`,
@@ -803,7 +818,11 @@ const TEXTS = {
       correctHelp: "Correct the page and its translation. « Save and check again » commits on the run's branch, then the guide's checks and the links run again: no model is called. The run then comes back here.",
       saveCheck: "Save and check again",
       sourceOnly: "You corrected the source, not its translation: it no longer follows it (the guide's checks would fail).",
-      againMine: "Translate my corrections", checkOnly: "Check without translating",
+      againMine: "Translate my corrections", checkOnly: "Check without translating", recheckOnly: "Check again without proofreading",
+      proofread: c => `Proofread, then translate and check again${c ? ` · ${c}` : ""}`,
+      proofAsk: "Have what you just corrected proofread:",
+      proofTitle: "Your edits proofread",
+      proofLine: (kinds, n, a) => `${kinds}: ${n} fix${n > 1 ? "es" : ""} proposed, ${a} applied`,
       confirmAgain: (t, cost) => `Translate « ${t} » again from the start?${cost ? ` (${cost})` : ""}\n\nThe current translation of its changed passages is replaced, including what you corrected in it.`,
     },
     pairs: {
@@ -814,6 +833,13 @@ const TEXTS = {
       retouched: "retouched", problem: "The translator said",
       ok: n => n ? `Approve with ${n} retouch${n > 1 ? "es" : ""}` : "Approve the translation",
       runTitle: "Sync of the languages",
+    },
+    proofPause: {
+      intro: atPublish => atPublish
+        ? "What you corrected at the publish step was proofread. Tick the fixes to apply, retouch them if needed: they are committed as yours, then the translation follows what changed in the source and the guide's checks run again."
+        : "Your retouches were proofread, before the translation follows them. Tick the fixes to apply, retouch them if needed: they are committed as yours, then the run goes on (translation, checks, publishing).",
+      what: kinds => `Proofread: ${kinds}. Only what you wrote, not the corrections of the run, already reviewed.`,
+      apply: n => n ? `Apply ${n} fix${n > 1 ? "es" : ""} and go on` : "Apply nothing and go on",
     },
     retouchPause: {
       intro: (n, branch) => `The ${n} corrections accepted are applied on the run's branch${branch ? ` (<code>${branch}</code>)` : ""}: a copy of the guide of its own, your folder and main have not moved. Nothing is translated or published yet. This is the time to read the pages as they will be published and fix what is wrong: your retouches will be committed as yours, the English translation will follow them, and the guide's checks will run on them. Nothing to change? Click « Skip ».`,
@@ -841,7 +867,11 @@ const TEXTS = {
       revert: "Cancel my changes", close: "Close the page", reverted: "Changes cancelled: the page is as it was last saved.",
       unsaved: "Unsaved changes", undoHelp: "Ctrl+Z and Ctrl+Y undo and redo your typing; « Cancel my changes » goes back to the version last saved.",
       confirmLeave: "This page has unsaved changes. Drop them?",
-      skip: "Skip", done: "I am done",
+      skip: "Skip", done: "I am done", doneProof: c => `I am done, proofread · ${c}`,
+      proofTitle: "Have your retouches proofread (optional)",
+      proofIntro: "Before the translation follows them, on what you changed by hand only (not the corrections of the run, already reviewed). Nothing changes without you: the run stops on what is found, and you choose.",
+      proofNone: "Nothing retouched yet: save a change first (in Obsidian, your folder lent, then « Refresh »).",
+      proofPages: pages => `On: ${pages}`, proofRefresh: "Refresh",
       confirmSkip: "Skip this step and drop what was retouched?",
       banner: (t, lent, n) => lent ? `Your guide's folder is lent to the run ${t}.` : `${n} file(s) of your folder set aside for the run ${t} are not put back yet.`,
       putBack: "Put them back", see: "See the run",
@@ -920,7 +950,7 @@ let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").start
 let T = TEXTS[lang];
 
 const CLASSES = {
-  running: "attention", review: "attention", retouch: "attention", translation: "attention", publish: "attention", "pr-open": "attention",
+  running: "attention", review: "attention", retouch: "attention", proofread: "attention", translation: "attention", publish: "attention", "pr-open": "attention",
   published: "ok", merged: "ok", stopped: "error",
 };
 // Nothing left to do: the card is dimmed
@@ -1229,11 +1259,11 @@ addEventListener("hashchange", route);
 
 // --- The menu « Watch »: to handle, the automatic watch, every run ------------------------------------
 // A run that waits for something: done by the agent (running), or by the editor (the others)
-const WAITING = ["running", "review", "retouch", "translation", "publish", "stopped", "pr-open"];
+const WAITING = ["running", "review", "retouch", "proofread", "translation", "publish", "stopped", "pr-open"];
 const crumb = () => `<div class="crumb">${T.nav.menu}</div>`;
 // What the button of a run says and where it leads: its page, or the pull request to merge
 const runButton = (thread, r) => r.status === "pr-open" && r.pr_url ? extLink(r.pr_url, `<button class="primary">${T.merge()}</button>`)
-  : `<a href="#/run/${encodeURIComponent(thread)}"><button${["review", "retouch", "translation", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
+  : `<a href="#/run/${encodeURIComponent(thread)}"><button${["review", "retouch", "proofread", "translation", "publish", "stopped"].includes(r.status) ? ' class="primary"' : ""}>${
       T.buttons[r.status] || T.details}</button></a>`;
 
 // A watch (an issue of the forge, or a file of collected items) and the run that handles it
@@ -1567,12 +1597,13 @@ async function viewRun(thread) {
   if (r.status === "publish") return viewPublish(r, title);
   if (r.status === "retouch") return viewRetouch(r, title);
   if (r.status === "translation") return viewTranslation(r, title);
+  if (r.status === "proofread") return viewProofread(r, title);
   viewEnd(r, title);
 }
 
 function viewRunning(r, title) {
   const doneSteps = new Set(r.job.events.map(e => e.node));
-  const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", retouch: "retouch", mirror: "mirror", translation: "translation", publish: "publish", recheck: "audits", retranslate: "mirror", resume: null }[r.job.action];
+  const first = r.job.action === "fix" ? "propose" : { run: "collect", review: "apply", retouch: "retouch", mirror: "mirror", translation: "translation", publish: "publish", recheck: "audits", retranslate: "mirror", proofread: "proofread", "proofread-review": "mirror", resume: null }[r.job.action];
   const steps = r.steps.slice(first ? r.steps.indexOf(first) : 0);
   const cost = r.job.events.reduce((m, e) => e.cost ?? m, 0);
   let unbilled = r.job.events.reduce((m, e) => e.unbilled ?? m, 0);
@@ -1966,9 +1997,18 @@ async function viewRetouch(r, title) {
         <p class="muted small">${R.undoHelp}</p>
         <p class="tick-row"><button type="button" id="page-save" disabled>${R.save}</button>
           <button type="button" id="page-revert">${R.close}</button> <span class="small" id="page-said"></span></p></div></div>
+    <h2>${R.proofTitle}</h2>
+    <div class="card" id="proof-card"><p class="muted small">${R.proofIntro}</p>${proofChecks(true)}
+      <p class="muted small" id="proof-pages"></p></div>
     <p class="error-text" id="done-error"></p>
     <div class="bar"><button id="skip">${R.skip}</button><button class="primary" id="done">${R.done}</button></div>`;
   let open = "";
+  const proof = await bindProof($("#proof-card"), at, p => {
+    $("#done").textContent = p.asked.length ? R.doneProof(p.cost) : R.done;
+    $("#proof-pages").innerHTML = p.pages.length ? R.proofPages(p.pages.map(x => `<code>${esc(x)}</code>`).join(" · "))
+      : `${R.proofNone} <button type="button" class="small-button" id="proof-refresh">${R.proofRefresh}</button>`;
+    if ($("#proof-refresh")) $("#proof-refresh").onclick = () => proof.refresh();
+  });
   if ($("#take-back")) $("#take-back").onclick = async () => {
     $("#take-back").disabled = true;
     try { await api(`${at}/folder/back`, {}); route(); }
@@ -2036,6 +2076,7 @@ async function viewRetouch(r, title) {
       const outside = lent ? [] : (wrote.changed || []).filter(p => /\.mdx?$/.test(p));
       $("#page-said").innerHTML = `${R.saved}${outside.length ? ` <span class="muted">${R.savedHere(outside.map(p => `<code>${esc(p)}</code>`).join(" · "))}</span>` : ""}`;
       said();
+      proof.refresh();  // what the proofreading would read, and cost, now
     } catch (e) { $("#page-said").textContent = e.message; }
   };
   // Back to the text as last saved: typed over (not set), so that Ctrl+Z can still bring the changes back
@@ -2056,7 +2097,7 @@ async function viewRetouch(r, title) {
   };
   const finish = async keep => {
     page.querySelectorAll(".bar button").forEach(b => b.disabled = true);
-    try { await api(`${at}/retouched`, { keep }); route(); }
+    try { await api(`${at}/retouched`, { keep, proofread: keep ? proof.asked() : [] }); route(); }
     catch (e) { $("#done-error").textContent = e.message; page.querySelectorAll(".bar button").forEach(b => b.disabled = false); }
   };
   $("#done").onclick = () => (!dirty() || confirm(R.confirmLeave)) && finish(true);
@@ -2174,6 +2215,8 @@ async function viewPublish(r, title) {
       : links.length ? row("!", "warn-i", P.linksToCheck(links.length), `<ul class="pub-links">${links.join("")}</ul>`)
       : row("✓", "ok-i", P.links, T.linksOk),
     weight ? row("ⓘ", "info-i", P.weightTitle, weight) : "",
+    (r.proofread_log || []).length ? row("ⓘ", "info-i", P.proofTitle, r.proofread_log.map(x =>
+      P.proofLine(x.checks.map(k => T.languages.check.kinds[k]).join(", "), x.fixes, x.applied)).join("<br>")) : "",
   ].join("");
   // A page changed: one line folded (its title, its path, its passages, its buttons), open: source beside mirror
   const est = x => (r.retranslate_usd || {})[x.page];
@@ -2282,14 +2325,23 @@ async function viewPublish(r, title) {
       catch (err) { $("#pub-error").textContent = err.message; return; }
       areas.forEach((t, k) => { saved[k] = t.value; });
       said();
-      // The French corrected, its translation not: say it (the guide's checks would fail), offer to translate it
-      if (c[0] && !c.slice(1).some(Boolean) && x.mirrors.length) {
-        const w = box.querySelector(".pub-warn");
+      // The source corrected: its proofreading offered (then the translation follows); its translation not
+      // corrected: say it (the guide's checks would fail), offer to translate it
+      if (c[0]) {
+        const w = box.querySelector(".pub-warn"), alone = !c.slice(1).some(Boolean) && x.mirrors.length;
         w.hidden = false;
-        w.innerHTML = `<span>⚠️ ${P.sourceOnly}</span>
-          <button type="button" data-translate-mine>↻ ${P.againMine} ${costHtml("mirror", "")}</button>
-          <button type="button" data-check-only>${P.checkOnly}</button>`;
-        w.querySelector("[data-translate-mine]").onclick = () => again({ action: "retranslate", pages: [x.page], fresh: false });
+        w.innerHTML = `${alone ? `<span>⚠️ ${P.sourceOnly}</span>` : ""}
+          <div class="pub-proof"><span class="small">${P.proofAsk}</span>${proofChecks(false)}
+            <button type="button" data-proofread disabled>${P.proofread("")}</button></div>
+          ${alone ? `<button type="button" data-translate-mine>↻ ${P.againMine} ${costHtml("mirror", "")}</button>` : ""}
+          <button type="button" data-check-only>${alone ? P.checkOnly : P.recheckOnly}</button>`;
+        const proof = await bindProof(w.querySelector(".pub-proof"), at, p => {
+          const go = w.querySelector("[data-proofread]");
+          go.disabled = !p.asked.length;
+          go.textContent = P.proofread(p.cost);
+        });
+        w.querySelector("[data-proofread]").onclick = () => again({ action: "proofread", checks: proof.asked() });
+        if (alone) w.querySelector("[data-translate-mine]").onclick = () => again({ action: "retranslate", pages: [x.page], fresh: false });
         w.querySelector("[data-check-only]").onclick = () => again({ action: "recheck" });
         return;
       }
@@ -3163,13 +3215,20 @@ function checkLabel(d, boxes) {
 function checkFound(c) {
   const C = T.languages.check;
   if (c.running || !c.done) return `<h2>${C.title}</h2><p class="muted">${C.running}</p>`;
-  const byPage = {};
-  c.fixes.forEach(f => (byPage[f.page] ||= []).push(f));
   return `<h2>${C.title}</h2>
     ${c.error ? `<p class="error-text small">${C.error}${T.colon}${esc(c.error)}</p>` : ""}
     <p class="muted small">${C.found(c.fixes.length, costTag(c.cost, c.unbilled_usd || 0, false))}</p>
-    ${Object.entries(byPage).map(([p, fixes]) => `<div class="pair-page"><div class="header"><code>${esc(p)}</code></div>
-      ${fixes.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
+    ${fixesHtml(c.fixes, c.notes)}
+    <p><button class="primary" id="check-apply"></button> <span class="error-text small" id="check-error"></span></p>`;
+}
+
+// The fixes of a proofreading, page by page: each ticked (unless its text is gone, or it overlaps an earlier one),
+// its diff, its text editable; then the doubts without a fix
+function fixesHtml(fixes, notes) {
+  const C = T.languages.check, byPage = {};
+  fixes.forEach(f => (byPage[f.page] ||= []).push(f));
+  return `${Object.entries(byPage).map(([p, list]) => `<div class="pair-page"><div class="header"><code>${esc(p)}</code></div>
+      ${list.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
         return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${!ok ? " disabled" : over ? "" : " checked"}>
           <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${esc(f.reason)}${
             f.source_url ? ` · ${extLink(f.source_url, C.source)}` : ""}${
@@ -3178,8 +3237,75 @@ function checkFound(c) {
           <div class="diff before">${before}</div><div class="diff after">${after || `<span class="muted">—</span>`}</div>
           ${ok ? `<textarea data-fix-text="${esc(f.id)}" spellcheck="true">${esc(f.proposed)}</textarea>` : ""}</div></label>`; }).join("")}
     </div>`).join("")}
-    ${c.notes.length ? `<p class="small"><b>${C.notes}</b></p><ul class="small">${c.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
-    <p><button class="primary" id="check-apply"></button> <span class="error-text small" id="check-error"></span></p>`;
+    ${notes.length ? `<p class="small"><b>${C.notes}</b></p><ul class="small">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}`;
+}
+
+// What the editor ticked of the fixes drawn by fixesHtml, with their own texts: {ids(), edits()}
+function bindFixes(fixes, onChange) {
+  const ids = () => [...page.querySelectorAll("[data-fix]:checked")].map(b => b.dataset.fix);
+  page.querySelectorAll("[data-fix]").forEach(b => { b.onchange = onChange; });
+  page.querySelectorAll("[data-fix-text]").forEach(t => {
+    const f = fixes.find(x => x.id === t.dataset.fixText);
+    const fit = () => { t.style.height = "auto"; t.style.height = `${t.scrollHeight + 4}px`; };
+    fit();
+    t.oninput = () => { t.previousElementSibling.innerHTML = wordDiff(f.current, t.value)[1]; fit(); };
+  });
+  const edits = () => Object.fromEntries(ids().map(id => [id, page.querySelector(`[data-fix-text="${CSS.escape(id)}"]`)?.value])
+    .filter(([id, text]) => text != null && text !== fixes.find(x => x.id === id).proposed));
+  return { ids, edits };
+}
+
+// --- The editor's own edits proofread inside a run (graph.proofread): offered at the retouches and the publish step
+function proofChecks(withWhat) {
+  const C = T.languages.check;
+  return Object.keys(C.kinds).map(k => `<label class="option"><input type="checkbox" data-proof="${k}">
+    <div><b>${C.kinds[k]}</b> <span class="badge attention" data-proof-usd="${k}"></span>${
+      withWhat ? `<p class="muted small">${C.what[k]}</p>` : ""}</div></label>`).join("");
+}
+
+// The checks' estimates for what the editor changed (GET …/proofread/estimate), asked again on `refresh`; `onChange`
+// gets what is ticked, its cost as shown (billed, or what a subscription takes) and the pages it would read
+async function bindProof(root, at, onChange) {
+  let est = { pages: [], usd: {} };
+  const boxes = () => [...root.querySelectorAll("[data-proof]")];
+  const asked = () => boxes().filter(b => b.checked).map(b => b.dataset.proof);
+  const cost = () => {
+    let usd = 0, paid = false, free = "";
+    asked().forEach(k => {
+      const shown = `≈ ${dollars(est.usd[k] || 0)}`, label = costOf(CHECK_STEP[k], shown);
+      if (label === shown) { usd += est.usd[k] || 0; paid = true; } else free = label;
+    });
+    return asked().length ? (paid ? `≈ ${dollars(usd)}` : free) : "";
+  };
+  const draw = () => {
+    root.querySelectorAll("[data-proof-usd]").forEach(b => { b.innerHTML = costHtml(CHECK_STEP[b.dataset.proofUsd], `≈ ${dollars(est.usd[b.dataset.proofUsd] || 0)}`); });
+    boxes().forEach(b => { b.disabled = !est.pages.length; if (b.disabled) b.checked = false; });
+    onChange({ asked: asked(), cost: cost(), pages: est.pages });
+  };
+  const refresh = async () => { est = await api(`${at}/proofread/estimate`).catch(() => est); draw(); };
+  boxes().forEach(b => { b.onchange = draw; });
+  await refresh();
+  return { asked, refresh };
+}
+
+// The pause on what the proofreading found: the fixes to apply, retouched or not, then the run goes on
+function viewProofread(r, title) {
+  const C = T.languages.check, Q = T.proofPause, fixes = r.proofread_fixes || [], notes = r.proofread_notes || [];
+  const last = (r.proofread_log || []).slice(-1)[0] || { checks: [] };
+  page.innerHTML = `${title}
+    <div class="card"><p>${Q.intro(last.from === "publish")}</p>
+      <p class="muted small">${Q.what(last.checks.map(k => C.kinds[k]).join(", "))}</p></div>
+    ${fixesHtml(fixes, notes)}
+    <p class="error-text" id="proof-error"></p>
+    <div class="bar"><button class="primary" id="proof-go"></button></div>`;
+  const label = () => { $("#proof-go").textContent = Q.apply(pick.ids().length); };
+  const pick = bindFixes(fixes, label);
+  label();
+  $("#proof-go").onclick = async () => {
+    $("#proof-go").disabled = true;
+    try { await api(`/api/runs/${encodeURIComponent(r.thread)}/proofread`, { ids: pick.ids(), edits: pick.edits() }); route(); }
+    catch (e) { $("#proof-error").textContent = e.message; $("#proof-go").disabled = false; }
+  };
 }
 
 function bindCheck(d, boxes) {
@@ -3191,23 +3317,13 @@ function bindCheck(d, boxes) {
     return;
   }
   if (c) {
-    const fixes = () => [...page.querySelectorAll("[data-fix]:checked")].map(b => b.dataset.fix);
-    const label = () => { $("#check-apply").textContent = C.apply(fixes().length); };
-    page.querySelectorAll("[data-fix]").forEach(b => { b.onchange = label; });
-    page.querySelectorAll("[data-fix-text]").forEach(t => {
-      const f = c.fixes.find(x => x.id === t.dataset.fixText);
-      const fit = () => { t.style.height = "auto"; t.style.height = `${t.scrollHeight + 4}px`; };
-      fit();
-      t.oninput = () => { t.previousElementSibling.innerHTML = wordDiff(f.current, t.value)[1]; fit(); };
-    });
+    const label = () => { $("#check-apply").textContent = C.apply(pick.ids().length); };
+    const pick = bindFixes(c.fixes, label);
     label();
     $("#check-apply").onclick = async () => {
       $("#check-apply").disabled = true;
-      const ids = fixes(), edits = {};
-      ids.forEach(id => { const t = page.querySelector(`[data-fix-text="${CSS.escape(id)}"]`), f = c.fixes.find(x => x.id === id);
-        if (t && t.value !== f.proposed) edits[id] = t.value; });
       try {
-        const done = await api(`/api/mirrors/check/${encodeURIComponent(c.id)}/accept`, { ids, edits });
+        const done = await api(`/api/mirrors/check/${encodeURIComponent(c.id)}/accept`, { ids: pick.ids(), edits: pick.edits() });
         await viewLanguages();
         const failed = Object.keys(done.failed);
         if (failed.length) $("#proofread")?.insertAdjacentHTML("beforebegin", `<p class="banner">${C.failed} ${esc(failed.join(", "))}</p>`);

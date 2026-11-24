@@ -97,8 +97,15 @@ def served(setup, tmp_path):  # noqa: F811
         mine.write_text(watch.read_text(encoding="utf-8"), encoding="utf-8")
         thread = c.post("/api/analyses", json={"watch_json": str(mine)}, headers=ACT).json()["thread"]
         wait(thread)
-        if stop in ("retouch", "publish"):
+        if stop in ("retouch", "publish", "proofread"):
             c.post(f"/api/runs/{thread}/review", json={"accept": ["C1"]}, headers=ACT)
+            wait(thread)
+        if stop == "proofread":  # a typo retouched by hand, then proofread: the pause on its fix
+            page = "03-stack/engines.md"
+            text = c.get(f"/api/runs/{thread}/page", params={"path": page}).json()["text"]
+            c.post(f"/api/runs/{thread}/page", json={"path": page, "text": text.replace("pour démarrer", "pour comencer")},
+                   headers=ACT)
+            c.post(f"/api/runs/{thread}/retouched", json={"keep": True, "proofread": ["spelling"]}, headers=ACT)
             wait(thread)
         if stop == "publish":
             c.post(f"/api/runs/{thread}/retouched", json={"keep": True}, headers=ACT)
@@ -113,9 +120,10 @@ def served(setup, tmp_path):  # noqa: F811
             time.sleep(0.05)
         raise AssertionError(f"{thread} still running")
 
-    runs = {stop: start(stop) for stop in ("publish", "retouch", "review")}  # publish first: alone on the guide
+    runs = {stop: start(stop) for stop in ("publish", "proofread", "retouch", "review")}  # publish first: alone on the guide
     statuses = {stop: c.get(f"/api/runs/{t}").json() for stop, t in runs.items()}
-    assert {s: r["status"] for s, r in statuses.items()} == {"review": "review", "retouch": "retouch", "publish": "publish"}, \
+    assert {s: r["status"] for s, r in statuses.items()} == {"review": "review", "retouch": "retouch", "proofread": "proofread",
+                                                             "publish": "publish"}, \
         {s: (r["status"], r["error"]) for s, r in statuses.items()}
     # A check of what is new, with one lead to sort
     verifs = deps.home / "verifications"
@@ -220,5 +228,24 @@ def test_every_screen_is_drawn_without_a_javascript_error(served, chrome):
         problems += [f"note: {e}" for e in tab.errors]
         if "6 to 8 tokens/s" not in shown:
             problems.append(f"note: not shown again after a reload: {shown!r}")
+        # At the publish step, the source corrected: its proofreading offered, with an estimate, then ready to ask
+        tab.call("Page.navigate", url=f"{base}/#/run/{runs['publish']}")
+        tab.settle(1.5)
+        tab.js("document.querySelector('[data-correct]').click()")
+        tab.settle(1.0)
+        tab.js("""(() => {
+            const t = document.querySelector('[data-text-of="0"]');
+            t.value = t.value.replace('Ollama reste', 'Ollama reste encore');
+            t.dispatchEvent(new Event('input'));
+            document.querySelector('[data-save]').click();
+        })()""")
+        tab.settle(1.5)
+        tab.js("document.querySelector('.pub-proof [data-proof=\"spelling\"]').click()")
+        tab.settle(0.3)
+        ready = tab.js("!document.querySelector('[data-proofread]').disabled && "
+                       "document.querySelector('[data-proofread]').textContent") or ""
+        problems += [f"publish proofread: {e}" for e in tab.errors]
+        if not ready or any(b in ready for b in BAD_TEXT):
+            problems.append(f"publish proofread: not offered: {ready!r}")
     httpx.get(f"http://127.0.0.1:{chrome}/json/close/{target['id']}")
     assert not problems, "\n".join(problems)

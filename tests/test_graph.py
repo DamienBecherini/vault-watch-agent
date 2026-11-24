@@ -13,7 +13,7 @@ import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from vault_watch_agent import vault
+from vault_watch_agent import proofread, vault
 from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck, Noticed
 from vault_watch_agent.graph import Deps, build, pr_body
 from vault_watch_agent.quotes import Quote
@@ -103,6 +103,10 @@ class FakeLLM:
                 corrections=[correction("Ollama remains the easiest way to start.",
                                         "Ollama is still the simplest way to get started.", page="en/03-stack/engines.md")],
             ), usage
+        if schema is proofread.Fixes:  # the editor's own edits proofread: a typo of theirs, when there is one
+            fixes = [proofread.Fix(page="03-stack/engines.md", current="pour comencer", proposed="pour commencer",
+                                   reason="typo")] if "pour comencer" in prompt else []
+            return proofread.Fixes(fixes=fixes), usage
         if schema is TriageResult:
             assert "vault_contract" in system  # the vault's own brief is loaded at run time
             return TriageResult(decisions=[

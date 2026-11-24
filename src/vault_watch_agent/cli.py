@@ -32,7 +32,7 @@ from pathlib import Path
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
-from . import vault
+from . import proofread, vault
 from .prices import Prices
 from .graph import Deps, build, describe
 
@@ -499,13 +499,15 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("resume")
     s.add_argument("thread")
     answer = s.add_mutually_exclusive_group(required=True)
-    answer.add_argument("--accept", help="all, none, or ids like C1,C3")
+    answer.add_argument("--accept", help="all, none, or ids like C1,C3; at the pause of a proofreading, its fixes (F1,F2)")
     answer.add_argument("--publish", choices=["yes", "no"])
     answer.add_argument("--retouch", choices=["done", "skip"], help="a run paused to retouch the pages of its branch: "
                         "done once the files of its worktree are retouched (committed as yours), or skip")
     answer.add_argument("--retry", action="store_true", help="a run stopped by an error: run again from its last finished step")
     s.add_argument("--edit", action="append", metavar="ID=FILE", help="with --accept: the text of a correction retouched "
                    "by you, read from a file (repeat for several); it replaces the proposal and goes through the free checks again")
+    s.add_argument("--proofread", metavar="CHECKS", help="with --retouch done: have your retouches proofread before the "
+                   "mirrors, spelling,facts,consistency (some of them); the run then stops on what they found")
     st = sub.add_parser("status")
     st.add_argument("thread")
     x = sub.add_parser("crosscheck", help="re-read the paused run's corrections against the whole guide")
@@ -737,6 +739,11 @@ def main(argv: list[str] | None = None) -> None:
                         value = {"accepted": value, "edits": edits}
                 elif args.retouch:
                     value = args.retouch
+                    checks = [c.strip() for c in (args.proofread or "").split(",") if c.strip()]
+                    if set(checks) - set(proofread.CHECKS):
+                        sys.exit(f"vault-watch: --proofread takes some of {','.join(proofread.CHECKS)}")
+                    if checks and args.retouch == "done":  # the retouches proofread before the mirrors follow them
+                        value = {"action": "done", "proofread": checks}
                 else:
                     value = args.publish == "yes"
                 graph.invoke(Command(resume=value), config)
