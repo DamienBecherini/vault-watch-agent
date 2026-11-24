@@ -40,12 +40,18 @@ request, on your yes. One page, « To handle », shows what waits for you.
 **In use** on a guide of about 400 k tokens: more than twenty pull requests merged after review, and a past watch
 replayed found the 11 corrections the editor had made, none wrong ([the reference guide](#the-reference-guide)).
 
-**The idea.** Three pieces, each in its own repository. You write a technical guide in
-[Obsidian](https://obsidian.md), as plain Markdown notes in a git repository. An engine,
+![The review screen: one block per item of the watch (here a vLLM release), its related corrections ticked together by one box, each card with its severity, its page, the cross-check's verdict, a word-level diff, its source and « Retouch »](docs/images/review.png)
+
+*The review screen on a test watch (`watch.json`): a vLLM release that changes a sentence and its footnote, ticked together.*
+
+## The idea
+
+Three pieces, each in its own repository. You write a technical guide in [Obsidian](https://obsidian.md), as plain
+Markdown notes in a git repository. An engine,
 [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine), publishes the vault on the
-web as an [Astro Starlight](https://starlight.astro.build) site (wiki links, Mermaid diagrams, both languages, a
-« Give my opinion » window), rebuilt by the guide's CI at each merge. And this agent takes the upkeep off your hands:
-a guide on a fast-moving field goes stale faster than one person can follow it.
+web as an [Astro Starlight](https://starlight.astro.build) site (wiki links, Mermaid diagrams, both languages),
+rebuilt by the guide's CI at each merge. And this agent keeps it true: a guide on a fast-moving field goes stale
+faster than one person can follow it.
 
 ```mermaid
 flowchart LR
@@ -58,21 +64,16 @@ flowchart LR
   class you person
 ```
 
-**Your guide.** Any Markdown guide in a git repository, described by a small manifest (`vault-watch.toml`): where the
-pages are, in which language, which folders mirror them, where its watch comes from, which of its own checks to run.
-Hosted on GitHub, on a Gitea server, or kept local. The agent edits the Markdown and stops at the pull request: if
-the guide is published as a site, its own chain rebuilds it after the merge, whatever that chain is.
+## Your guide, your model, your decision
 
-**Your model.** Claude through Claude Code on a Claude subscription (nothing billed per call) or through the API;
-or any OpenAI-compatible server, local or hosted. The project measures and commits to Claude Opus 5.5 and Sonnet
-5.5 only: see [Choose a model](docs/choose-a-model.md).
-
-**Your decision.** The model never writes a file. Nothing is applied before your review, nothing is pushed before
-your go-ahead, and the pull request is merged by you.
-
-![The review screen: one block per item of the watch (here a vLLM release), its related corrections ticked together by one box, each card with its severity, its page, the cross-check's verdict, a word-level diff, its source and « Retouch »](docs/images/review.png)
-
-*The review screen on a test watch (`watch.json`): a vLLM release that changes a sentence and its footnote, ticked together.*
+- **Your guide**: any Markdown guide in a git repository, on GitHub, on Gitea or kept local, described by a small
+  manifest (`vault-watch.toml`): its pages, its languages, its watch, its own checks. The agent stops at the pull
+  request; the guide's own chain rebuilds its site after the merge.
+- **Your model**: Claude through Claude Code on a subscription (nothing billed per call) or through the API; or any
+  OpenAI-compatible server, local or hosted. Measured on Claude Opus 5.5 and Sonnet 5.5 only
+  ([Choose a model](docs/choose-a-model.md)).
+- **Your decision**: the model never writes a file. Nothing is applied before your review, nothing is pushed before
+  your go-ahead, and you merge the pull request.
 
 ## Quick start
 

@@ -41,12 +41,18 @@ pull request, sur votre oui. Une page, « À traiter », montre ce qui vous atte
 veille passée, rejouée, a retrouvé les 11 corrections faites par l'éditeur, aucune fausse
 ([le guide de référence](#le-guide-de-référence)).
 
-**L'idée de départ.** Trois pièces, chacune dans son dépôt. Vous écrivez un guide technique dans
-[Obsidian](https://obsidian.md), en simples notes Markdown dans un dépôt git. Un moteur,
+![L'écran de relecture : un bloc par élément de la veille (ici une version de vLLM), ses corrections liées cochées ensemble par une seule case, chaque carte avec sa gravité, sa page, le verdict de la relecture croisée, un diff mot à mot, sa source et « Retoucher »](docs/images/review.fr.png)
+
+*L'écran de relecture sur une veille de test (`watch.json`) : une version de vLLM qui change une phrase et sa note, cochées ensemble.*
+
+## L'idée de départ
+
+Trois pièces, chacune dans son dépôt. Vous écrivez un guide technique dans [Obsidian](https://obsidian.md), en
+simples notes Markdown dans un dépôt git. Un moteur,
 [starlight-obsidian-engine](https://github.com/DamienBecherini/starlight-obsidian-engine), publie le coffre sur le web
-en site [Astro Starlight](https://starlight.astro.build) (liens wiki, diagrammes Mermaid, les deux langues, une
-fenêtre « Donner mon avis »), reconstruit par la CI du guide à chaque fusion. Et cet agent vous décharge de
-l'entretien : un guide sur un domaine qui bouge vite vieillit plus vite qu'une personne seule ne peut le suivre.
+en site [Astro Starlight](https://starlight.astro.build) (liens wiki, diagrammes Mermaid, les deux langues),
+reconstruit par la CI du guide à chaque fusion. Et cet agent le garde juste : un guide sur un domaine qui bouge vite
+vieillit plus vite qu'une personne seule ne peut le suivre.
 
 ```mermaid
 flowchart LR
@@ -59,22 +65,16 @@ flowchart LR
   class you person
 ```
 
-**Votre guide.** N'importe quel guide Markdown dans un dépôt git, décrit par un petit manifeste
-(`vault-watch.toml`) : où sont les pages, dans quelle langue, quels dossiers en sont la copie traduite, d'où vient
-sa veille, quels contrôles du guide lancer. Hébergé sur GitHub, sur un serveur Gitea, ou gardé en local. L'agent modifie le Markdown et s'arrête à la pull
-request : si le guide est publié en site, c'est sa propre chaîne qui le reconstruit après la fusion, quelle qu'elle
-soit.
+## Votre guide, votre modèle, votre décision
 
-**Votre modèle.** Claude par Claude Code sur un abonnement Claude (rien de facturé à l'appel) ou par l'API ; ou tout
-serveur compatible OpenAI, local ou hébergé. Le projet ne mesure et ne garantit que Claude Opus 5.5 et Sonnet 5.5 :
-voir [Choisir un modèle](docs/fr/choose-a-model.md).
-
-**Votre décision.** Le modèle n'écrit jamais un fichier. Rien n'est appliqué avant votre relecture, rien n'est poussé
-avant votre feu vert, et c'est vous qui fusionnez la pull request.
-
-![L'écran de relecture : un bloc par élément de la veille (ici une version de vLLM), ses corrections liées cochées ensemble par une seule case, chaque carte avec sa gravité, sa page, le verdict de la relecture croisée, un diff mot à mot, sa source et « Retoucher »](docs/images/review.fr.png)
-
-*L'écran de relecture sur une veille de test (`watch.json`) : une version de vLLM qui change une phrase et sa note, cochées ensemble.*
+- **Votre guide** : n'importe quel guide Markdown dans un dépôt git, sur GitHub, sur Gitea ou gardé en local, décrit
+  par un petit manifeste (`vault-watch.toml`) : ses pages, ses langues, sa veille, ses propres contrôles. L'agent
+  s'arrête à la pull request ; c'est la chaîne du guide qui reconstruit son site après la fusion.
+- **Votre modèle** : Claude par Claude Code sur un abonnement (rien de facturé à l'appel) ou par l'API ; ou tout
+  serveur compatible OpenAI, local ou hébergé. Mesuré sur Claude Opus 5.5 et Sonnet 5.5 seulement
+  ([Choisir un modèle](docs/fr/choose-a-model.md)).
+- **Votre décision** : le modèle n'écrit jamais un fichier. Rien n'est appliqué avant votre relecture, rien n'est
+  poussé avant votre feu vert, et c'est vous qui fusionnez la pull request.
 
 ## Démarrage rapide
 
