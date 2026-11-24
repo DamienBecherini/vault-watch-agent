@@ -104,47 +104,32 @@ What you need:
 | a guide on GitHub | the GitHub CLI `gh`, signed in (`gh auth login`) |
 | a guide on Gitea | a Gitea token, given by reference ([Connect your guide](docs/connect-your-guide.md), [Security](docs/security.md)) |
 | the guide's checks | whatever they run (Node.js for an `npm test`, for instance) |
-| desktop notifications (optional) | nothing on Windows and macOS; `notify-send` on Linux (`libnotify-bin` on Debian and Ubuntu) |
+| desktop notifications (optional) | nothing on Windows and macOS; `notify-send` on Linux (`libnotify-bin` on Debian and Ubuntu). Tested on Windows only: on macOS or Linux, tell us how it went with « Give my opinion » in the interface |
 
 ## How a run goes
 
 ```mermaid
-flowchart TD
-  collect --> triage --> locate
-  locate -->|"Send: one branch per group"| propose --> number
-  locate -->|nothing to check| number
-  number --> crosscheck --> report --> review{{"⏸ human review"}}
-  review -->|accepted| apply --> retouch{{"⏸ your retouches (optional)"}} --> mirror --> translation{{"⏸ translation (Languages)"}} --> audits --> links --> publish{{"⏸ push + PR?"}}
-  review -->|none| stop((end))
-  publish --> stop
+flowchart LR
+  field["The field<br/>releases, advisories, feeds"] -->|a watch| cross
+  leads["Your leads<br/>from a check of the guide<br/>or « Report or suggest »"] -->|"fix, additions,<br/>compaction"| cross
+  edits["Your own edits<br/>in Obsidian"] -->|"« Languages »"| translate
+  cross["Cross-check<br/>with the whole guide"] --> review{{"⏸ Your review"}}
+  review --> retouch{{"⏸ Your retouches<br/>(optional)"}}
+  retouch --> translate["Translation<br/>into the other languages"]
+  translate --> checks["The guide's checks<br/>and its links"]
+  checks --> pr{{"⏸ Pull request<br/>on your yes"}}
+  pr -.->|"correct, translate<br/>or check again"| translate
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,translation,publish human
+  class review,retouch,pr human
 ```
 
-| Step | What it does |
-| :-- | :-- |
-| `collect` | Reads the watch the manifest names: a `watch.json` file, a forge issue and the artifact of its workflow run, or the agent's own collection from the guide's feeds ([watch format](docs/watch-format.md)) |
-| `triage` | The model sorts the items: correction, addition candidate, or nothing for the guide (the guide's brief says what matters) |
-| `locate` | Finds the pages concerned and groups the items that touch the same pages or the same tool |
-| `propose` | One parallel branch per group: corrections that quote the current text, give the new text and a source |
-| `number` | Numbers the corrections (C1, C2…), checks each quote, flags overlapping edits |
-| `crosscheck` | Re-reads every correction with the whole guide in context (prompt caching, or chapter by chapter when it does not fit the model's window) and the web: keep, revise or reject, plus consistency edits on other pages. Then a sweep: the values the corrections remove that still appear elsewhere |
-| `report` | Writes the report you review |
-| `review` | ⏸ Pause: you accept all, none, or a list |
-| `apply` | Applies the accepted corrections on a git worktree of a new branch and bumps the pages' date field |
-| `retouch` | ⏸ Optional pause: you read and retouch the pages of the branch, in your Obsidian (the guide's folder is lent to the run, what it held set aside and put back after) or in the page, or you skip; your retouches are committed as yours ([A run, step by step](docs/run.md#the-pause-to-retouch-the-pages)) |
-| `mirror` | Translates into the guide's mirrors (an English copy under `en/`, for instance) what changed in each source page on the branch, passage by passage: the corrections, and any edit by hand |
-| `translation` | ⏸ Pause of a « Languages » run only: each passage of the source beside its translation, which you can retouch |
-| `audits` | Runs the guide's own checks, if the manifest declares them |
-| `links` | Checks the external links of the changed pages |
-| `publish` | ⏸ Pause: the pages and their translation can still be corrected or translated again, then checked again; on a yes, pushes the branch and opens the pull request (a local guide keeps the branch) |
-
-What decides at each step, an example with its cost, the screens where you decide (the review, the retouches, the
-publish step) and how your folder gets the pull request once merged: [A run, step by step](docs/run.md).
-
-The other runs share this review and this pull request: a fix run on reported errors, the leads of a check of the
-guide ([Check the guide](docs/check.md)), a compaction ([Compaction](docs/compact.md)), an addition run
-([What is new](docs/news.md)) and a sync of the languages ([Sync the languages](docs/run.md#sync-the-languages)).
+Every run takes this path; only where it starts differs. A watch starts from the field: the agent sorts its items,
+finds the pages concerned and drafts the corrections. A fix, addition or compaction run starts from the leads you
+kept (a check of the guide only gives leads), its proposals already drafted. A « Languages » run starts from your
+edits, checked first if you want (spelling, facts, consistency), and stops beside each translation. Each step, what
+decides there and the screens where you decide: [A run, step by step](docs/run.md); the other runs:
+[Check the guide](docs/check.md), [Compaction](docs/compact.md), [What is new](docs/news.md),
+[Sync the languages](docs/run.md#sync-the-languages).
 
 ## Principles
 
@@ -287,6 +272,26 @@ per token, they are what you would pay. What makes the price, how the estimates 
 
 ## What this repository shows
 
+```mermaid
+flowchart TD
+  start((START)) --> collect --> triage --> locate
+  locate -->|"Send: one branch per group"| propose --> number
+  locate -->|nothing to check| number
+  own(["fix, additions, compaction<br/>update_state(as_node=propose)"]) -.-> number
+  lang(["Languages<br/>update_state(as_node=apply)"]) -.-> retouch
+  number --> crosscheck --> report --> review{{"⏸ review"}}
+  review -->|accepted| apply --> retouch{{"⏸ retouch"}} --> mirror --> translation{{"⏸ translation"}} --> audits --> links --> publish{{"⏸ publish"}}
+  review -->|none| stop((END))
+  publish -->|"yes / no"| stop
+  publish -->|recheck| audits
+  publish -->|retranslate| mirror
+  classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class review,retouch,translation,publish human
+```
+
+*The graph of [`graph.py`](src/vault_watch_agent/graph.py): a watch enters at `collect`, a run with its own proposals
+as if `propose` had run, a « Languages » run after `apply` (it skips the retouch pause and stops at `translation`).*
+
 | LangGraph feature | Where | What for |
 | :-- | :-- | :-- |
 | `StateGraph` over a `TypedDict` state | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | One node per step; the state holds plain JSON so a paused run can be stored |
@@ -294,7 +299,7 @@ per token, they are what you would pay. What makes the price, how the estimates 
 | `Send` fan-out from a conditional edge | `fan_out` in `graph.py` | One `propose` branch per group of items, run in parallel |
 | `interrupt()` and `Command(resume=…)` | `review`, `retouch`, `translation` and `publish` nodes | The human pauses; your answer is the value `interrupt()` returns |
 | `SqliteSaver` checkpointer, one thread per run | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` and `resume` are separate processes, days apart; the web page and the command line share the runs |
-| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | A fix run makes its own proposals, then enters the graph as if `propose` had run |
+| `update_state(…, as_node=…)` | [`fix.py`](src/vault_watch_agent/fix.py), [`mirrors.py`](src/vault_watch_agent/mirrors.py) | A fix, addition or compaction run makes its own proposals, then enters the graph as if `propose` had run; a « Languages » run enters after `apply` |
 | `stream(stream_mode="updates")` | `web.py` | Each finished step is pushed to the page (server-sent events) |
 
 Every model call answers into a Pydantic model (structured output). More than 350 tests (pytest) run the whole graph against

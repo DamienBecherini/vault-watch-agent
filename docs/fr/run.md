@@ -2,8 +2,8 @@
 
 # Une veille, étape par étape
 
-Le [README](../../README.fr.md#déroulé-dune-passe) donne les étapes d'une passe en un tableau. Cette page suit un
-élément d'une veille à travers elles : ce que lit chaque étape, ce qui y décide, et ce qui peut arrêter une
+Le [README](../../README.fr.md#déroulé-dune-passe) montre une passe comme trois entrées et un seul chemin. Cette
+page suit un élément d'une veille à travers chaque étape : ce que lit chaque étape, ce qui y décide, et ce qui peut arrêter une
 modification avant que vous la voyiez. Puis les écrans où vous décidez : la relecture, la pause pour retoucher les
 pages, et la publication ; et, une fois la pull request fusionnée, comment votre dossier du guide la reçoit.
 
@@ -63,8 +63,9 @@ des extraits du guide, la relecture croisée voit toutes les pages.
 | `apply` | Les corrections cochées | Le code, sur un worktree git d'une nouvelle branche (`chore/watch-<date>-<issue>` pour une veille venue d'une issue, `chore/watch-<date>` d'un fichier) : les modifications, le champ de date de chaque page, le script des versions minimales du guide si le manifeste en nomme un | |
 | `retouch` | ⏸ Vous, si vous le voulez | Vous retouchez les pages de la branche, dans Obsidian ou dans la page, ou vous passez | |
 | `mirror` | Chaque page miroir, avec ce qui a changé dans sa page source sur la branche, passage par passage (un paragraphe, une ligne de tableau, une ligne de liste) : les corrections, et toute modification à la main | Le modèle de traduction : les mêmes changements dans la langue du miroir, chaque citation contrôlée | Une citation introuvable dans la page miroir : la modification est sautée et listée |
+| `translation` | ⏸ Vous, sur une passe « Langues » seulement | Vous validez chaque passage de la traduction, à côté de sa source, ou vous le retouchez | |
 | `audits`, `links` | La branche | Les scripts du guide : ses contrôles, et les sources des pages modifiées (les nouvelles d'abord) | Rien n'est arrêté : ce qui échoue est montré avant la publication |
-| `publish` | ⏸ Vous | Vous dites oui ou non | |
+| `publish` | ⏸ Vous | Vous dites oui ou non ; ou vous corrigez une page, la faites retraduire ou recontrôler, et la passe revient aux miroirs ou aux contrôles | |
 
 Les pistes d'ajout d'une veille ne sont pas rédigées : la relecture les liste avec leur raison, et le contrôle
 « Nouveautés » les lit plus tard, avec ce que d'autres veilles ont mis de côté ([Nouveautés](news.md)).
@@ -205,7 +206,9 @@ limite d'abonnement atteinte) reprend à la dernière étape terminée, depuis l
 Une passe de correction, une correction des traductions, une passe de compactage et une passe d'ajouts n'ont pas
 de veille : ils entrent dans le graphe aux propositions, avec des pistes au lieu d'éléments, et suivent le même
 chemin à partir de `number` ([Vérifier le guide](check.md)). Une correction des traductions saute la relecture
-croisée ; une passe de compactage a la sienne, sans le web.
+croisée ; une passe de compactage a la sienne, sans le web. Une passe « Langues » entre plus loin encore, après
+`apply`, vos modifications déjà sur sa branche : elle ne s'arrête pas pour les retouches, mais à côté de chaque
+traduction ([Synchroniser les langues](#synchroniser-les-langues)).
 
 ## Synchroniser les langues
 

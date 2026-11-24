@@ -107,49 +107,33 @@ Ce qu'il faut :
 | un guide sur GitHub | la CLI GitHub `gh`, connectée (`gh auth login`) |
 | un guide sur Gitea | un jeton Gitea, donné par référence ([Brancher son guide](docs/fr/connect-your-guide.md), [Sécurité](docs/fr/security.md)) |
 | les contrôles du guide | ce qu'ils lancent (Node.js pour un `npm test`, par exemple) |
-| les notifications du bureau (facultatif) | rien sous Windows et macOS ; `notify-send` sous Linux (`libnotify-bin` sur Debian et Ubuntu) |
+| les notifications du bureau (facultatif) | rien sous Windows et macOS ; `notify-send` sous Linux (`libnotify-bin` sur Debian et Ubuntu). Testées sous Windows seulement : sous macOS ou Linux, dites-nous ce qu'il en est par « Donner mon avis » dans l'interface |
 
 ## Déroulé d'une passe
 
 ```mermaid
-flowchart TD
-  collect --> triage --> locate
-  locate -->|"Send : une branche par groupe"| propose --> number
-  locate -->|rien à vérifier| number
-  number --> crosscheck --> report --> review{{"⏸ relecture humaine"}}
-  review -->|acceptées| apply --> retouch{{"⏸ vos retouches (facultatif)"}} --> mirror --> translation{{"⏸ traduction (Langues)"}} --> audits --> links --> publish{{"⏸ push + PR ?"}}
-  review -->|aucune| stop((fin))
-  publish --> stop
+flowchart LR
+  field["Le domaine<br/>versions, avis de sécurité, flux"] -->|une veille| cross
+  leads["Vos pistes<br/>d'une vérification du guide<br/>ou de « Signaler ou proposer »"] -->|"correction, ajouts,<br/>compactage"| cross
+  edits["Vos propres modifications<br/>dans Obsidian"] -->|"« Langues »"| translate
+  cross["Relecture croisée<br/>avec tout le guide"] --> review{{"⏸ Votre relecture"}}
+  review --> retouch{{"⏸ Vos retouches<br/>(facultatif)"}}
+  retouch --> translate["Traduction<br/>dans les autres langues"]
+  translate --> checks["Les contrôles du guide<br/>et ses liens"]
+  checks --> pr{{"⏸ Pull request<br/>sur votre oui"}}
+  pr -.->|"corriger, retraduire<br/>ou recontrôler"| translate
   classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
-  class review,retouch,translation,publish human
+  class review,retouch,pr human
 ```
 
-| Étape | Ce qu'elle fait |
-| :-- | :-- |
-| `collect` | Lit la veille que nomme le manifeste : un fichier `watch.json`, une issue de la forge et l'artefact de son run de workflow, ou la collecte de l'agent lui-même depuis les flux du guide ([format de la veille](docs/fr/watch-format.md)) |
-| `triage` | Le modèle trie les éléments : correction, candidat à un ajout, ou rien pour le guide (la consigne éditoriale du guide dit ce qui compte) |
-| `locate` | Trouve les pages concernées et regroupe les éléments qui touchent les mêmes pages ou le même outil |
-| `propose` | Une branche parallèle par groupe : des corrections qui citent le texte actuel, donnent le nouveau texte et une source |
-| `number` | Numérote les corrections (C1, C2…), vérifie chaque citation, signale les modifications qui se chevauchent |
-| `crosscheck` | Relit chaque correction avec tout le guide en contexte (cache de prompt, ou chapitre par chapitre quand il ne tient pas dans la fenêtre du modèle) et le web : garder, réviser ou rejeter, plus des retouches de cohérence sur d'autres pages. Puis un balayage : les valeurs que les corrections retirent et qui restent ailleurs |
-| `report` | Écrit le rapport que vous relisez |
-| `review` | ⏸ Pause : vous acceptez tout, rien, ou une liste |
-| `apply` | Applique les corrections acceptées dans un worktree git sur une nouvelle branche et met à jour le champ de date des pages |
-| `retouch` | ⏸ Pause facultative : vous relisez et retouchez les pages de la branche, dans votre Obsidian (le dossier du guide est prêté à la passe, ce qu'il contenait mis de côté puis remis) ou dans la page, ou vous passez ; vos retouches sont commitées à votre nom ([Une veille étape par étape](docs/fr/run.md#la-pause-pour-retoucher-les-pages)) |
-| `mirror` | Traduit dans les copies du guide (une copie anglaise sous `en/`, par exemple) ce qui a changé dans chaque page source sur la branche, passage par passage : les corrections, et toute modification à la main |
-| `translation` | ⏸ Pause d'une passe « Langues » seulement : chaque passage de la source à côté de sa traduction, que vous pouvez retoucher |
-| `audits` | Lance les contrôles du guide, si le manifeste en déclare |
-| `links` | Vérifie les liens externes des pages modifiées |
-| `publish` | ⏸ Pause : les pages et leur traduction peuvent encore être corrigées ou retraduites, puis recontrôlées ; sur un oui, pousse la branche et ouvre la pull request (un guide local garde la branche) |
-
-Ce qui décide à chaque étape, un exemple avec son coût, les écrans où vous décidez (la relecture, les retouches, la
-publication) et comment votre dossier reçoit la pull request une fois fusionnée :
-[Une veille étape par étape](docs/fr/run.md).
-
-Les autres passes suivent la même relecture et la même pull request : une passe de correction sur des erreurs
-signalées, les pistes d'une vérification du guide ([Vérifier le guide](docs/fr/check.md)), un compactage
-([Compactage](docs/fr/compact.md)), une passe d'ajouts ([Nouveautés](docs/fr/news.md)) et une synchronisation des
-langues ([Synchroniser les langues](docs/fr/run.md#synchroniser-les-langues)).
+Toutes les passes suivent ce chemin ; seul leur point de départ change. Une veille part du domaine : l'agent trie ses
+éléments, trouve les pages concernées et rédige les corrections. Une passe de correction, d'ajouts ou de compactage
+part des pistes que vous avez gardées (une vérification du guide ne fait que donner des pistes), ses propositions
+déjà rédigées. Une passe « Langues » part de vos modifications, relues d'abord si vous le voulez (orthographe,
+faits, cohérence), et s'arrête à côté de chaque traduction. Chaque étape, ce qui y décide et les écrans où vous
+décidez : [Une veille étape par étape](docs/fr/run.md) ; les autres passes :
+[Vérifier le guide](docs/fr/check.md), [Compactage](docs/fr/compact.md), [Nouveautés](docs/fr/news.md),
+[Synchroniser les langues](docs/fr/run.md#synchroniser-les-langues).
 
 ## Principes
 
@@ -299,6 +283,27 @@ token, c'est ce que vous paieriez. Ce qui fait le prix, comment sont faites les 
 
 ## Ce que montre ce dépôt
 
+```mermaid
+flowchart TD
+  start((START)) --> collect --> triage --> locate
+  locate -->|"Send : une branche par groupe"| propose --> number
+  locate -->|rien à vérifier| number
+  own(["correction, ajouts, compactage<br/>update_state(as_node=propose)"]) -.-> number
+  lang(["Langues<br/>update_state(as_node=apply)"]) -.-> retouch
+  number --> crosscheck --> report --> review{{"⏸ review"}}
+  review -->|acceptées| apply --> retouch{{"⏸ retouch"}} --> mirror --> translation{{"⏸ translation"}} --> audits --> links --> publish{{"⏸ publish"}}
+  review -->|aucune| stop((END))
+  publish -->|"oui / non"| stop
+  publish -->|recheck| audits
+  publish -->|retranslate| mirror
+  classDef human fill:#fff4d6,stroke:#a65f00,color:#3d2a00
+  class review,retouch,translation,publish human
+```
+
+*Le graphe de [`graph.py`](src/vault_watch_agent/graph.py) : une veille entre à `collect`, une passe qui a ses propres
+propositions comme si `propose` avait tourné, une passe « Langues » après `apply` (elle saute la pause des retouches
+et s'arrête à `translation`).*
+
 | Fonction de LangGraph | Où | Pour quoi |
 | :-- | :-- | :-- |
 | `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'une passe en pause puisse être stockée |
@@ -306,7 +311,7 @@ token, c'est ce que vous paieriez. Ce qui fait le prix, comment sont faites les 
 | `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, en parallèle |
 | `interrupt()` et `Command(resume=…)` | nœuds `review`, `retouch`, `translation` et `publish` | Les pauses humaines ; votre réponse est la valeur que renvoie `interrupt()` |
 | Checkpointer `SqliteSaver`, un fil par passe | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passes |
-| `update_state(…, as_node="propose")` | [`fix.py`](src/vault_watch_agent/fix.py) | Une passe de correction fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné |
+| `update_state(…, as_node=…)` | [`fix.py`](src/vault_watch_agent/fix.py), [`mirrors.py`](src/vault_watch_agent/mirrors.py) | Une passe de correction, d'ajouts ou de compactage fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné ; une passe « Langues » entre après `apply` |
 | `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
 
 Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 350 tests (pytest) font tourner tout le

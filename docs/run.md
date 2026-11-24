@@ -2,8 +2,8 @@
 
 # A run, step by step
 
-The [README](../README.md#how-a-run-goes) gives the steps of a run in one table. This page follows one item of a
-watch through them: what each step reads, what decides there, and what can stop an edit before you see it. Then
+The [README](../README.md#how-a-run-goes) shows a run as three entries and one path. This page follows one item of
+a watch through every step: what each step reads, what decides there, and what can stop an edit before you see it. Then
 the screens where you decide: the review, the pause to retouch the pages, and the publish step; and, once the pull
 request is merged, how your guide's folder gets it.
 
@@ -63,8 +63,9 @@ cross-check sees every page.
 | `apply` | The ticked corrections | The code, on a git worktree of a new branch (`chore/watch-<date>-<issue>` for a watch from an issue, `chore/watch-<date>` from a file): the edits, the date field of each page, the guide's script of version floors if the manifest names one | |
 | `retouch` | ⏸ You, if you want | You retouch the pages of the branch, in Obsidian or in the page, or skip | |
 | `mirror` | Each mirror page, with what changed in its source page on the branch, passage by passage (a paragraph, a table row, a list line): the corrections, and any edit by hand | The translator model: the same changes in the mirror's language, each quote checked | A quote not found in the mirror page: the edit is skipped and listed |
+| `translation` | ⏸ You, on a « Languages » run only | You approve each passage of the translation, beside its source, or retouch it | |
 | `audits`, `links` | The branch | The guide's scripts: its audits, and the sources of the changed pages (new ones first) | Nothing is stopped: what fails is shown before you publish |
-| `publish` | ⏸ You | You say yes or no | |
+| `publish` | ⏸ You | You say yes or no; or you correct a page, translate it again or check it again, and the run goes back to the mirrors or to the checks | |
 
 The addition candidates of a watch are not drafted: the review lists them with the reason, and the check « What
 is new » reads them later, with what other watches set aside ([What is new](news.md)).
@@ -193,7 +194,9 @@ billed engine by itself ([How the code fits together](code.md#how-a-run-pauses-a
 
 A fix run, a translation fix, a compaction run and an addition run have no watch: they enter the graph at the
 proposals, with leads instead of items, and take the same path from `number` on ([Check the guide](check.md)). A
-translation fix skips the cross-check; a compaction run has its own, without the web.
+translation fix skips the cross-check; a compaction run has its own, without the web. A « Languages » run enters
+later still, after `apply`, your edits already on its branch: it does not stop for retouches, but beside each
+translation ([Sync the languages](#sync-the-languages)).
 
 ## Sync the languages
 
