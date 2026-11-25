@@ -216,7 +216,7 @@ def _domain(pages: list[str], repos: dict[str, dict], feed_list: list[dict]) -> 
             shared = len(where & set(repos.get(f["repo"].lower(), {}).get("pages", [])))
             if shared:
                 count[f["domain"]] = count.get(f["domain"], 0) + shared
-    return max(count, key=count.get) if count else feed_list[0]["domain"]
+    return max(count, key=lambda domain: count[domain]) if count else feed_list[0]["domain"]
 
 
 def check(guide: Guide, home: Path, runs: list[dict[str, str]], collector: collect.Collector | None = None,
@@ -252,7 +252,7 @@ def edit(text: str, proposals: list[dict]) -> str:
     # line; a feed added or changed has no line yet (None) and is written at the end.
     if layout:
         feeds_left = iter(config["feeds"])
-        entries = [(dict(next(feeds_left)), line) if line else (None, "") for line in layout[1]]
+        entries: list[tuple[dict | None, str | None]] = [(dict(next(feeds_left)), line) if line else (None, "") for line in layout[1]]
     else:
         entries = [(dict(f), None) for f in config["feeds"]]
     position = lambda fid: next((n for n, (f, _) in enumerate(entries) if f and f.get("id") == fid), None)  # noqa: E731
@@ -306,7 +306,7 @@ def _one_per_line(text: str, feeds: list[dict]) -> tuple[str, list[str], str, st
             return None
     except ValueError:
         return None
-    indent = re.match(r"[ \t]*", written[0]).group(0) if written else "    "
+    indent = written[0][:len(written[0]) - len(written[0].lstrip(" \t"))] if written else "    "
     return text[:m.end()], block, indent, rest[end.start():]
 
 

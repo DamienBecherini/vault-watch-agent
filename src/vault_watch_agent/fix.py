@@ -144,7 +144,8 @@ def pages_of(finding: str, vault_dir: Path) -> tuple[list[str], str | None]:
         if path.startswith(folder):
             return [path[len(folder):], path], code
     code = next(iter(sorted(guide.mirrors)), None)
-    return ([path, guide.mirror_of(path, code)] if code else [path]), code
+    mirror = guide.mirror_of(path, code) if code else None
+    return ([path, mirror] if mirror else [path]), code
 
 
 def propose_translation(vault_dir: Path, findings: list[str], llm: LLM,

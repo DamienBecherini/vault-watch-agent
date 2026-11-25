@@ -146,7 +146,7 @@ def accept(folder: Path, fixes: list[dict], ids: list[str], edits: dict[str, str
     for f in fixes:
         if f["id"] not in ids:
             continue
-        proposed = edits.get(f["id"], f["proposed"])
+        proposed = edits[f["id"]] if f["id"] in edits else f["proposed"]
         if vault.check(folder, f["page"], f["current"]) != "ok":
             failed[f["id"]] = "its text is no longer found once in the page (changed since the check?)"
             continue

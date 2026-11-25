@@ -159,7 +159,7 @@ def summary(rep: dict) -> str:
     parts = []
     if grew:
         named = ", ".join(f"{r['page']} {kb(r['bytes'])} ({gained(r)})" for r in grew[:3])
-        parts.append(f"{len(grew)} page(s) grew much in {g['days']} days: {named}" + (" …" if len(grew) > 3 else ""))
+        parts.append(f"{len(grew)} page(s) grew much in {g['days'] if g else '?'} days: {named}" + (" …" if len(grew) > 3 else ""))
     if over:
         named = ", ".join(f"{r['page']} {kb(r['bytes'])} for {r['budget']} KB" for r in over[:3])
         parts.append(f"{len(over)} page(s) over their budget: {named}" + (" …" if len(over) > 3 else ""))

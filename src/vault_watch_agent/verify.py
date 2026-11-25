@@ -14,11 +14,11 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -365,7 +365,13 @@ def _line(f: Finding) -> str:
     return f"[{f.severity}] {', '.join(f.pages)}: {f.problem}"
 
 
-def _findings(vault_dir: Path, result: Findings, line: Callable = _line) -> dict:
+class _HasFindings(Protocol):
+    """A model's answer with a list of findings: Findings, compact.Trims, news.Leads."""
+    @property
+    def findings(self) -> Sequence[Any]: ...
+
+
+def _findings(vault_dir: Path, result: _HasFindings, line: Callable = _line) -> dict:
     """The findings as lines (what the human keeps, dismisses or sends to a fix run), and per line the passages
     found in the pages."""
     return {"findings": [line(f) for f in result.findings],

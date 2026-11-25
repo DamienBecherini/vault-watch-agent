@@ -64,10 +64,12 @@ def command(start: str, url: str) -> tuple[list[str], str | None]:
 def spawn(argv: list[str], folder: str | None) -> None:
     """Starts the program on its own: no window, no console, detached from this server, without its secrets."""
     env = {k: v for k, v in os.environ.items() if not k.upper().endswith(SECRET_ENV)}
-    flags = {"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW} \
-        if os.name == "nt" else {"start_new_session": True}
-    subprocess.Popen(argv, cwd=folder, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                     stderr=subprocess.DEVNULL, close_fds=True, **flags)
+    null = subprocess.DEVNULL
+    if os.name == "nt":
+        subprocess.Popen(argv, cwd=folder, env=env, close_fds=True, stdin=null, stdout=null, stderr=null,
+                         creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
+    else:
+        subprocess.Popen(argv, cwd=folder, env=env, close_fds=True, stdin=null, stdout=null, stderr=null, start_new_session=True)
 
 
 def clock(seconds: float) -> str:
@@ -89,7 +91,7 @@ def text_of(result: dict) -> str:
     chapters = sorted(result.get("chapters") or [], key=lambda c: c.get("start", 0))
     if chapters:
         out.append("Chapters:\n" + "\n".join(f"[{clock(c.get('start', 0))}] {c.get('title', '')}" for c in chapters))
-    words, mark, paragraph, next_chapter = [], None, [], 0
+    words, mark, paragraph, next_chapter = [], 0.0, [], 0
     for line in result.get("lines") or []:
         start, said = line.get("start", 0), (line.get("text") or "").strip()
         if not said:

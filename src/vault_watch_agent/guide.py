@@ -409,7 +409,7 @@ def _globs(table: dict, key: str, default: tuple) -> tuple[str, ...]:
     return tuple(value)
 
 
-def _file(root: Path, table: str, key: str, value) -> Path:
+def _file(root: Path, table: str, key: str, value) -> PurePosixPath:
     if not isinstance(value, str) or not value:
         raise GuideError(f"[{table}] {key}: a path in the guide")
     path = (root / value).resolve()

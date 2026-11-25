@@ -63,7 +63,7 @@ def public(url: str) -> None:
     except socket.gaierror as e:
         raise WebError(f"{parts.hostname}: unknown host") from e
     for info in infos:
-        if not is_public(info[4][0]):
+        if not is_public(str(info[4][0])):
             raise WebError(f"{parts.hostname}: a private or local address is not read")
 
 

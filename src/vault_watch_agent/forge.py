@@ -21,7 +21,7 @@ import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import quote, urlsplit
 
 from . import inputs
@@ -129,7 +129,7 @@ class Gitea:
         return headers
 
     def _call(self, method: str, path: str, *, json_body: dict | None = None, params: dict | None = None,
-              raw: bool = False):
+              raw: bool = False) -> Any:
         url = f"{self.url}/api/v1{path}"
         try:
             r = self._http().request(method, url, headers=self._headers(), json=json_body, params=params)
