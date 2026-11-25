@@ -67,6 +67,25 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
   20 minutes is 3,000 to 4,000 words: the whole text goes to the model, not the 4,000 characters of a watch's
   notes. The same path could take the leads of a watch that are only a title or a video (a button on the item).
 
+### Order decided with the user (2026-11-25)
+
+The registry first (D3), in the guide's repository, then the enrichment (D1); grouping (D2) and judgement with the
+whole guide (D4) after. Candidates come from four places: the addition candidates of a watch, the leads of a check
+(« What is new », « Links ») set aside or dismissed, the discovery feeds of the collection, and by hand.
+
+- **D3.1 The registry.** `candidates.py`: the file the manifest names (`[watch] candidates`, a JSON file of the
+  guide, `.agents/vault-maintenance/candidates.json` for the IA guide); each candidate has a name, a kind (model,
+  tool, hardware, other), a state (`lead`, `watching`, `confirmed`, `proposed`, `added`, `dismissed`), a reason, a
+  re-check date, its sources (address, date seen, where it came from) and its history. The collection drops the
+  addresses of the candidates it tracks (as `seen` does), and lists those whose re-check date has passed. Without the
+  key, nothing changes.
+- **D3.2 The screen « Candidates ».** The list by state; watch, dismiss (a reason and a date), propose (an addition
+  run), add by hand. The changes go on a branch of the agent; « Publish the registry » opens the pull request.
+- **D3.3 Where they come from.** A watch's addition candidates, a check's leads set aside or dismissed, the discovery
+  feeds: each becomes or feeds a candidate, matched by address and by name.
+- **D1 The enrichment, no model.** Hugging Face (size, licence, context, GGUF, downloads) and GitHub (licence,
+  releases, contributors), read when a candidate is added or re-checked.
+
 ## Phase E — keep the vault and the sources in shape
 
 - [x] **E1. Size per page** (2026-11-20, `sizes.py`, M6): a page is flagged when it grew much against itself in
