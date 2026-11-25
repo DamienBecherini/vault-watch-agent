@@ -66,7 +66,7 @@ def _windows(title: str, body: str, url: str) -> bool:
     xml = base64.b64encode(toast_xml(title, body, url).encode("utf-8")).decode()  # no quoting issue in the script
     script = SCRIPT.replace("{xml}", xml).replace("{app}", APP_ID)
     done = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
-                          capture_output=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
+                          capture_output=True, timeout=20, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))  # Windows only
     return done.returncode == 0
 
 

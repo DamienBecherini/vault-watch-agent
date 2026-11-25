@@ -26,6 +26,9 @@ CI runs four of them; run them before a pull request (Windows: `.venv/Scripts/py
 npx -y -p typescript@5.9 tsc -p jsconfig.json --noEmit            # the page's scripts, checked by TypeScript
 ```
 
+CI checks the types on Linux: on another system, add `--pythonplatform Linux` to the pyright line to see what it
+sees (and install the extra `pdf`, whose `pypdf` it reads).
+
 The page is ES modules served as they are, with no build step: each starts with `// @ts-check`, and its shared
 types are in `types/page.d.ts`.
 

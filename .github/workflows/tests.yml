@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: python -m pip install -e ".[dev]"
+      - run: python -m pip install -e ".[dev,pdf]"  # pdf: pypdf, imported by links.py
       - run: python -m ruff check src tests
       - run: python -m pyright
 
