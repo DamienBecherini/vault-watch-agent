@@ -19,7 +19,6 @@ page, each given the app's context (routes/context.py) that they share.
 
 from __future__ import annotations
 
-import hashlib
 import html
 import json
 import re
@@ -59,10 +58,11 @@ def index(languages: dict | None = None) -> HTMLResponse:
     browser that kept an older copy (served before Cache-Control: no-cache) cannot mix it with the new page.
     `languages`: the guide's (its source language, and the folder of each mirror by language), in a <meta> the page
     reads (util.js)."""
-    files = sorted(p for p in STATIC.iterdir() if p.is_file())
-    version = hashlib.sha1("".join(f"{p.name}{p.stat().st_mtime_ns}{p.stat().st_size}" for p in files).encode()).hexdigest()[:10]
+    version = security.page_version()
     text = (STATIC / "index.html").read_text(encoding="utf-8")
     text = re.sub(r'((?:src|href)="/static/[^"?]+)"', rf'\1?v={version}"', text)
+    # The version the page was served with: compared with the one each answer of the API says (api.js checkPage)
+    text = text.replace("<head>", f'<head>\n  <meta name="vault-watch-page" content="{version}">', 1)
     if languages:
         meta = f'<meta name="vault-watch-guide" content="{html.escape(json.dumps(languages), quote=True)}">'
         text = text.replace("<head>", f"<head>\n  {meta}", 1)

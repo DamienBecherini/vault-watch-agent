@@ -291,6 +291,11 @@ def test_the_page_names_its_files_with_a_version(client):
     assert 'src="/static/app.js?v=' in page and 'href="/static/style.css?v=' in page and 'href="/static/icon.svg?v=' in page
     version = page.split("app.js?v=")[1].split('"')[0]
     assert c.get(f"/static/app.js?v={version}").status_code == 200
+    # The version the page was served with, and the one each answer of the API says: a page opened before the server
+    # was updated sees they differ and asks to be reloaded (api.js checkPage)
+    assert f'<meta name="vault-watch-page" content="{version}">' in page
+    assert c.get("/api/info").headers["X-Vault-Watch-Page"] == version
+    assert c.get("/api/notices").headers["X-Vault-Watch-Page"] == version and "X-Vault-Watch-Page" not in c.get("/").headers
     # The guide's languages, for the lang of its passages (util.js langOf): never French and English assumed
     assert ('<meta name="vault-watch-guide" content="{&quot;source&quot;: &quot;fr&quot;, '
             '&quot;mirrors&quot;: {&quot;en&quot;: &quot;en/&quot;}}">') in page

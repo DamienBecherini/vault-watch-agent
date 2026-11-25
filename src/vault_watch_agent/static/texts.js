@@ -226,6 +226,8 @@ const TEXTS = {
       confirmParallel: names => `Une passe est déjà en cours : ${names}.\n\nEn lancer une autre en même temps ? Chacune travaille sur sa propre branche, mais le dépôt du guide n'accepte qu'une pull request à la fois : tu publieras la seconde après la fusion de la première.`,
     },
     loading: "Chargement…",
+    pageStale: "Le serveur a été mis à jour depuis que cette page est ouverte : recharge-la pour voir tout ce qu'il montre (un texte en cours de saisie se perd, enregistre-le d'abord).",
+    reload: "Recharger la page",
     serverDown: "Le serveur ne répond pas : il s'est peut-être arrêté après un temps sans activité (`serve --idle-exit`). Relance-le, puis recharge la page. Les passes en pause n'ont rien perdu.",
     statuses: {
       new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", proofread: "Tes modifications relues", translation: "Traduction à relire", publish: "Publication à valider",
@@ -670,6 +672,8 @@ const TEXTS = {
       confirmParallel: names => `A run is already in progress: ${names}.\n\nStart another one at the same time? Each works on its own branch, but publish their pull requests one after the other if the guide's repository takes one at a time.`,
     },
     loading: "Loading…",
+    pageStale: "The server was updated since this page was opened: reload it to see all it shows (text being typed is lost, save it first).",
+    reload: "Reload the page",
     serverDown: "The server does not answer: it may have stopped after being idle (`serve --idle-exit`). Start it again, then reload the page. Paused runs lost nothing.",
     statuses: {
       new: "To analyse", running: "Running", review: "Review pending", retouch: "Retouches possible", proofread: "Your edits proofread", translation: "Translation to review", publish: "Publish pending",

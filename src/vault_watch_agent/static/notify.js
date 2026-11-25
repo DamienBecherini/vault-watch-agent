@@ -9,6 +9,7 @@
    the page back, on the run or the check concerned. The server sends the texts in both languages (routes/notices.py MESSAGES:
    the same as the desktop notifications of `serve --notify`). */
 
+import { checkPage } from "./api.js";
 import { esc } from "./util.js";
 import { addTexts, lang, T } from "./texts.js";
 
@@ -73,7 +74,7 @@ export function watchNotices() {
   if (!notify.active()) { notify.last = null; return; }
   const ask = async () => {
     let d;
-    try { d = await fetch(notify.last == null ? "/api/notices" : `/api/notices?since=${notify.last}`).then(r => r.json()); } catch { return; }   // server stopped: later
+    try { d = await fetch(notify.last == null ? "/api/notices" : `/api/notices?since=${notify.last}`).then(r => { checkPage(r); return r.json(); }); } catch { return; }   // server stopped: later
     if (typeof d?.last !== "number") return;
     if (d.last < (notify.last ?? 0)) { notify.last = d.last; return; }   // the server started again: its count too
     notify.last = d.last;
