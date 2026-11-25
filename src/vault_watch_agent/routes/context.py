@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -339,6 +340,12 @@ class AppContext:
 
     def threads(self) -> list[str]:
         return list(self.stamped())
+
+    @staticmethod
+    def run_name(kind: str) -> str:
+        """A run's name from its kind and the time it starts, local: `add-2026-11-25-2130`. The time tells apart
+        two runs of the same day; free_thread still adds -2 to a second one in the same minute."""
+        return f"{kind}-{datetime.now():%Y-%m-%d-%H%M}"
 
     def free_thread(self, base: str) -> str:
         """`base`, or `base-2`, `base-3`… the first name no run of this guide has (a run just started has no

@@ -216,7 +216,7 @@ def router(ctx: AppContext) -> APIRouter:
     def mirrors_start(body: MirrorSync):
         plan = mirror_plan(ctx)
         ahead = offered(plan, body.pages, body.hand, "sync")
-        thread = ctx.free_thread(f"mirror-{date.today().isoformat()}")
+        thread = ctx.free_thread(ctx.run_name("mirror"))
         branch = f"i18n/{thread}"
         ctx.keep_steps(thread, body.steps)
 

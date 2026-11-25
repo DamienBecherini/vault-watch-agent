@@ -8,7 +8,6 @@ import asyncio
 import json
 import re
 import time
-from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -245,7 +244,7 @@ def router(ctx: AppContext) -> APIRouter:
         findings = [line.strip() for line in body.text.splitlines() if line.strip()]
         if not findings:
             raise HTTPException(400, "no error reported")
-        thread = ctx.free_thread(f"{body.mode if body.mode in ('compact', 'add') else 'fix'}-{date.today().isoformat()}")
+        thread = ctx.free_thread(ctx.run_name(body.mode if body.mode in ("compact", "add") else "fix"))
         # Findings of a check keep the passages found when it ran; a line typed by hand has none
         excerpts, origin, notes = from_check(ctx, body.verification, findings) if body.verification else ({}, "", {})
 

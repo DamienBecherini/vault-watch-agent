@@ -670,13 +670,13 @@ def main(argv: list[str] | None = None) -> None:
             return
         graph = build(deps, saver)
         if args.cmd == "mirror":
-            from datetime import date
+            from datetime import date, datetime
 
             from . import mirrors
 
             found, wanted = args.mirror_plan, args.mirror_pages
-            thread = next(t for t in (f"mirror-{date.today().isoformat()}",
-                                      *(f"mirror-{date.today().isoformat()}-{n}" for n in range(2, 100)))
+            base = f"mirror-{datetime.now():%Y-%m-%d-%H%M}"  # as the page names them (AppContext.run_name)
+            thread = next(t for t in (base, *(f"{base}-{n}" for n in range(2, 100)))
                           if not graph.get_state(run_config(t, jobs=False)).values)
             for model in (deps.llm, deps.translator):
                 if model:

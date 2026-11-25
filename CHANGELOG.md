@@ -3,6 +3,13 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **The runs named with their time** (asked by the user, 2026-11-25: two addition runs of the same day were
+  `add-2026-11-25` and `add-2026-11-25-2`): a fix, addition, compaction or « Languages » run started from the page or
+  with `vault-watch mirror` is now `<kind>-YYYY-MM-DD-HHMM`, local time (`add-2026-11-25-2130`), like the checks;
+  a second one in the same minute still gets `-2`. The runs already made keep their names.
+
 ## 1.6.1 (2026-11-25)
 
 The CI green again: its job `lint` checks the types as Linux sees them. Nothing changes in what the agent does.

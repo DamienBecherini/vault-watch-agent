@@ -1,6 +1,7 @@
 """Look for what is new: the leads (one call that reads the guide and what past watches set aside, nothing verified),
 then the additions as a run of the graph (each lead checked on the web, a few per call)."""
 
+import re
 import subprocess
 import threading
 import time
@@ -262,7 +263,7 @@ def test_the_leads_of_the_check_go_to_an_addition_run(setup, tmp_path):
         time.sleep(0.05)
     assert v["checks"] == ["news"] and v["results"]["news"]["mode"] == "add" and v["results"]["news"]["findings"] == LEADS
     thread = c.post("/api/fix", json={"text": "\n".join(LEADS), "verification": vid, "mode": "add"}, headers=act).json()["thread"]
-    assert thread.startswith("add-")
+    assert re.fullmatch(r"add-\d{4}-\d{2}-\d{2}-\d{4}", thread)  # its time tells it from the other runs of the day
     for _ in range(200):
         run = c.get(f"/api/runs/{thread}").json()
         if run["status"] != "running":
