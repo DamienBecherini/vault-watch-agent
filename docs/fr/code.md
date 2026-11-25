@@ -106,7 +106,8 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 | `graph_text.py` | 304 | Ce qu'une passe écrit pour les humains : le rapport, les lignes de consommation et de poids, le titre et la description de la pull request |
 | `graph_common.py` | 51 | Ce que les étapes partagent : `Deps`, git dans un worktree, l'ordre des propositions, la branche d'une passe |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
-| `collect.py` | 702 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
+| `collect.py` | 727 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
+| `candidates.py` | 157 | Le registre de la découverte (ROADMAP D3) : les candidats suivis dans le temps, leurs sources, états, raisons et dates de revérification, dans le fichier que nomme le manifeste (`[watch] candidates`) ; la collecte écarte ce qu'il suit et liste ce qui est dû |
 | `llm.py` | 442 | Le contrat que tient chaque moteur : les protocoles `LLM` et `Engine`, `ModelError`, les efforts, `Capabilities`, le journal des coûts (`_Journal`), `EngineKind` et `engines()` (protocole 1) ; `engine()` et `create`, le moteur d'un rôle (`Routed` quand des étapes sont réglées à part) ; si Claude Code est installé et connecté |
 | `engines/api.py` | 190 | `Claude`, l'API Claude par le SDK officiel, facturée au token : sortie structurée, cache de prompt, recherche et lecture web côté serveur, limites de sortie lues dans l'API Models |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code sur un abonnement Claude, `claude -p` une fois par appel ; le lecteur de pages de l'agent offert comme son `web_fetch` |
@@ -179,7 +180,7 @@ n'a pas changé), si bien qu'une mise à jour ne laisse jamais un ancien module 
 | `index.html` | 42 | La page : l'en-tête, `boot.js`, le style, `app.js` comme module |
 | `boot.js` | 107 | Avant le premier affichage (un script classique) : clair ou sombre, la palette, la taille du texte |
 | `app.js` | 33 | Le module d'entrée : l'en-tête, les notifications, le premier écran |
-| `util.js` | 91 | Les aides de chaque écran : le DOM, le HTML échappé, les liens hors de la page et vers Obsidian, une bulle d'aide |
+| `util.js` | 106 | Les aides de chaque écran : le DOM, le HTML échappé, les liens hors de la page et vers Obsidian, une bulle d'aide |
 | `api.js` | 22 | Les appels à l'API du serveur, et ce que le serveur dit de lui-même (`/api/info`) |
 | `texts.js` | 907 | Les textes de l'interface en français et en anglais (`T`) |
 | `explain.js` | 39 | Les lignes qu'un modèle ou un contrôle a écrites en anglais, montrées dans la langue de l'interface |

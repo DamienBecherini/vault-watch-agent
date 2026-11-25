@@ -29,6 +29,7 @@ source = "feeds"                    # « Automatic watch » lists the collected 
 feeds = "watch/feeds.json"          # the feeds to read (any source can name it: `vault-watch collect` works anyway)
 floors = "watch/floors.json"        # optional: the lowest versions the guide recommends
 seen = "watch/seen.md"              # optional: items already triaged, dropped when they come back
+candidates = "watch/candidates.json" # optional: the registry of discovery (created by the agent when first saved)
 ```
 
 `floors` defaults to the file of `[checks] version_floors` when the guide has one.
@@ -116,7 +117,8 @@ Each item is kept or dropped by rule, with a reason. Only the kept items reach t
   published for the floor's own release line is. A High or Critical advisory that the floor does not cover is
   **urgent**, and the run handles it first.
 - **Models.** Quantized variants, adapters (LoRA), and fine-tunes by another publisher (in discovery) are dropped.
-- **Already seen.** An item whose address is in the `seen` file is dropped.
+- **Already seen.** An item whose address is in the `seen` file is dropped, and so is one the registry of candidates
+  tracks (below).
 
 The floors file:
 
@@ -126,6 +128,15 @@ The floors file:
 
 The seen file can be in any format: each `http(s)://` address it contains counts. A table of the items you already
 triaged works.
+
+## The registry of candidates
+
+`candidates` names a JSON file of the guide where the agent follows what it found and the guide does not cover yet:
+a model, a tool, a piece of hardware, with its sources, a state (`lead`, `watching`, `confirmed`, `proposed`,
+`added`, `dismissed`), a reason, a date to look again and its history. The collection drops the addresses it
+tracks, so a candidate set aside does not come back every week, and lists in the watch and its issue the candidates
+whose date to look again has come (« Candidates to look at again », the watch's `recheck`). The file does not have
+to exist: it is created when the agent first saves it, and nothing changes without the key.
 
 ## Which sources earn their place
 

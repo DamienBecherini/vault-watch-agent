@@ -106,7 +106,8 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `graph_text.py` | 304 | What a run writes for people: the report, the usage and weight lines, the pull request's title and description |
 | `graph_common.py` | 51 | What the nodes share: `Deps`, git in a worktree, the order of the proposals, the branch of a run |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
-| `collect.py` | 702 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
+| `collect.py` | 727 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
+| `candidates.py` | 157 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
 | `llm.py` | 442 | The contract every engine keeps: the `LLM` and `Engine` protocols, `ModelError`, the efforts, `Capabilities`, the cost journal (`_Journal`), `EngineKind` and `engines()` (protocol 1); `engine()` and `create`, the engine of a role (`Routed` when steps are set apart); whether Claude Code is installed and signed in |
 | `engines/api.py` | 190 | `Claude`, the Claude API through the official SDK, billed per token: structured output, prompt caching, the server-side web search and fetch, the output limits read from the Models API |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code on a Claude subscription, `claude -p` once per call; the agent's page reader offered as its `web_fetch` |
@@ -179,7 +180,7 @@ changed), so an update never leaves an old module beside a new one.
 | `index.html` | 42 | The page: the header, `boot.js`, the style, `app.js` as a module |
 | `boot.js` | 107 | Before the first paint (a classic script): light or dark, the palette, the size of the text |
 | `app.js` | 33 | The entry module: the header, the notices, the first screen |
-| `util.js` | 91 | The helpers of every screen: the DOM, HTML escaped, links out of the page and into Obsidian, a help bubble |
+| `util.js` | 106 | The helpers of every screen: the DOM, HTML escaped, links out of the page and into Obsidian, a help bubble |
 | `api.js` | 22 | The calls of the server's API, and what the server says of itself (`/api/info`) |
 | `texts.js` | 907 | The texts of the interface in French and in English (`T`) |
 | `explain.js` | 39 | The lines a model or a check wrote in English, shown in the language of the interface |

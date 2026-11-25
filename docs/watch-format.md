@@ -34,6 +34,7 @@ news. A collector gathers it (the agent's own `vault-watch collect`, or anything
 | `since`, `until` | `until` | The window, as dates (`YYYY-MM-DD`). `until` is the date of the run's report and of its branch. |
 | `items` | yes | The items, kept or dropped (below). |
 | `errors` | no | What the collector could not read (a feed down, a rate limit), one string each, or `{"feed": ..., "error": ...}` as both collectors write them; shown, never fatal. |
+| `recheck` | no | The candidates of the registry of discovery whose date to look again has come (`{id, name, kind, state, reason, recheck, first_seen, url}`), written by `vault-watch collect` when the manifest names `[watch] candidates` ([Collecting a watch](collect.md#the-registry-of-candidates)). |
 | `pages` | no | What each watched page said at this watch (`{feed id: {url, snapshot, changed, before}}`), for the next collection to compare with; written by `vault-watch collect` for the feeds of type `page`. The agent's runs do not read it. |
 
 Other keys (counts, the collector's version) are allowed and ignored.

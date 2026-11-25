@@ -5,6 +5,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **The registry of discovery** (ROADMAP D3.1, decided with the user on 2026-11-25): `candidates.py` follows over time
+  what the agent found and the guide does not cover yet, in a JSON file of the guide the manifest names
+  (`[watch] candidates`, created when first saved): each candidate has a name, a kind (model, tool, hardware, other),
+  a state (`lead`, `watching`, `confirmed`, `proposed`, `added`, `dismissed`: a reason needed), a date to look again
+  (for `watching` and `dismissed`, after today), its sources (address, date, where it came from) and its history;
+  names and addresses are matched in one form. The collection drops the addresses it tracks (« already seen ») and
+  lists the candidates due in the watch (`recheck`) and its issue (« Candidates to look at again »). The screen
+  « Candidates » and what feeds the registry come next (D3.2, D3.3).
+
 - **The editor's journeys clicked in a real browser** (asked by the user, 2026-11-22 and 2026-11-25):
   `tests/test_e2e.py`, five journeys Playwright clicks in Chrome on the throwaway guide and the fake model: review
   and apply (a group ticked by its own box, nothing ticked: nothing to apply), skip the retouches and decline to

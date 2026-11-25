@@ -30,6 +30,7 @@ source = "feeds"                    # « Veille automatique » liste les veilles
 feeds = "watch/feeds.json"          # les flux à lire (toute source peut le nommer : `vault-watch collect` marche quand même)
 floors = "watch/floors.json"        # facultatif : les versions minimales que le guide recommande
 seen = "watch/seen.md"              # facultatif : les éléments déjà triés, écartés s'ils reviennent
+candidates = "watch/candidates.json" # facultatif : le registre de la découverte (créé par l'agent au premier enregistrement)
 ```
 
 Sans `floors`, l'agent prend le fichier de `[checks] version_floors` quand le guide en a un.
@@ -123,7 +124,8 @@ Les règles :
   **urgent**, et la passe le traite en premier.
 - **Modèles.** Les variantes quantifiées, les adaptateurs (LoRA) et les affinages d'un autre éditeur (en
   découverte) sont écartés.
-- **Déjà vus.** Un élément dont l'adresse figure dans le fichier `seen` est écarté.
+- **Déjà vus.** Un élément dont l'adresse figure dans le fichier `seen` est écarté, comme celui que suit le registre
+  des candidats (ci-dessous).
 
 Le fichier des planchers :
 
@@ -133,6 +135,16 @@ Le fichier des planchers :
 
 Le fichier des éléments déjà vus peut avoir n'importe quel format : chaque adresse `http(s)://` qu'il contient
 compte. Un tableau des éléments déjà triés convient.
+
+## Le registre des candidats
+
+`candidates` désigne un fichier JSON du guide où l'agent suit ce qu'il a trouvé et que le guide ne couvre pas encore :
+un modèle, un outil, un matériel, avec ses sources, un état (`lead` piste, `watching` en observation, `confirmed`
+confirmé, `proposed` proposé, `added` ajouté, `dismissed` écarté), une raison, une date de revérification et son
+historique. La collecte écarte les adresses qu'il suit, pour qu'un candidat mis de côté ne revienne pas chaque
+semaine, et liste dans la veille et son issue les candidats dont la date de revérification est arrivée
+(« Candidates to look at again », le `recheck` de la veille). Le fichier n'a pas besoin d'exister : l'agent le crée au
+premier enregistrement, et rien ne change sans la clé.
 
 ## Quelles sources méritent leur place
 

@@ -354,6 +354,7 @@ src/vault_watch_agent/
   steps.py       each step that calls the model: its role, its effort, what it needs
   forge.py       GitHub (gh) and Gitea (API): issues, artifacts, pull requests
   watches.py     where the watches come from; collect.py the agent's own collection; inputs.py the watch format
+  candidates.py  the registry of discovery: candidates followed over time, their states and dates to look again
   sources.py     what each source of the watch brought; sourcecheck.py the sources themselves, checked
   crosscheck.py  whole-guide cross-check; fix.py fix runs; verify.py checks of the guide; evaluate.py replays
   sizes.py       what each page weighs and gained; compact.py compaction: what weighs, the trims

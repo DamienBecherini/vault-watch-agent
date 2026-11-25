@@ -47,6 +47,7 @@ class Watch:
     seen: str = ""          # collect: a file whose URLs are dropped (items the editor already triaged)
     floors: str = ""        # collect: version floors ({"floors": {feed id: version}}); default [checks] version_floors
     changes_page: str = ""  # a page where a watch adds dated lines; shown to every proposal step
+    candidates: str = ""    # the registry of discovery (candidates.py), a JSON file of the guide; created when first saved
 
 
 @dataclass(frozen=True)
@@ -149,7 +150,7 @@ _KEYS = {
     "": {"schema", "guide", "content", "watch", "rules", "checks", "budget", "chapter"},
     "guide": {"name", "description", "repository", "forge", "forge_url", "forge_token", "site", "base_branch"},
     "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
-    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page"},
+    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
     "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
@@ -203,7 +204,9 @@ def parse(data: dict, root: Path) -> Guide:
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
                   path=_text(w, "watch", "path"),
                   **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors", "changes_page")
-                     if k in w})
+                     if k in w},
+                  **({"candidates": _file(root, "watch", "candidates", w["candidates"], exists=False).as_posix()}
+                     if "candidates" in w else {}))
     if source == "file" and not watch.path:
         raise GuideError('[watch] source = "file" needs path (the watch.json to read)')
     if source == "feeds" and not watch.feeds:
@@ -409,13 +412,15 @@ def _globs(table: dict, key: str, default: tuple) -> tuple[str, ...]:
     return tuple(value)
 
 
-def _file(root: Path, table: str, key: str, value) -> PurePosixPath:
+def _file(root: Path, table: str, key: str, value, exists: bool = True) -> PurePosixPath:
+    """A path of the manifest: inside the guide, and an existing file unless `exists` is False (a file the agent
+    creates, such as the registry of candidates)."""
     if not isinstance(value, str) or not value:
         raise GuideError(f"[{table}] {key}: a path in the guide")
     path = (root / value).resolve()
     if root.resolve() not in path.parents:
         raise GuideError(f"[{table}] {key} = {value!r}: must stay inside the guide")
-    if not path.is_file():
+    if exists and not path.is_file():
         raise GuideError(f"[{table}] {key} = {value!r}: no such file in the guide")
     return PurePosixPath(value)
 

@@ -42,7 +42,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlsplit
 from urllib.request import Request, urlopen
 
-from . import __version__
+from . import __version__, candidates
 
 NOTES_MAX = 4000
 TIMEOUT = 20
@@ -309,6 +309,7 @@ class Collector:
     domains: dict[str, str] = field(default_factory=dict)  # domain -> title of its section, in order
     floors: dict[str, str] = field(default_factory=dict)   # advisory feed id -> lowest version the guide recommends
     seen: set[str] = field(default_factory=set)            # URLs already triaged by the editor
+    due: list[dict] = field(default_factory=list)          # the candidates of the registry to look at again (candidates.py)
     token: str = ""
     previous: dict[str, dict] = field(default_factory=dict)  # the watched pages as the last watch left them
     pages: dict[str, dict] = field(default_factory=dict)     # as this collection leaves them (the watch's `pages`)
@@ -341,8 +342,16 @@ class Collector:
         if not w.feeds:
             raise CollectError('the manifest has no [watch] feeds (the feeds.json to read, see docs/collect.md)')
         floors = w.floors or (guide.version_floors.file if guide.version_floors else "")
-        return cls.from_files(guide.root / w.feeds, guide.root / floors if floors else None,
-                              guide.root / w.seen if w.seen else None, **kw)
+        collector = cls.from_files(guide.root / w.feeds, guide.root / floors if floors else None,
+                                   guide.root / w.seen if w.seen else None, **kw)
+        if w.candidates:  # the registry of discovery: what it tracks is seen, what is due is listed
+            try:
+                registry = candidates.Registry.load(guide.root / w.candidates)
+            except candidates.RegistryError as e:
+                raise CollectError(f"[watch] candidates: {e}") from e
+            collector.seen |= registry.urls()
+            collector.due = registry.due(collector._now().strftime("%Y-%m-%d"))
+        return collector
 
     # -- reading ------------------------------------------------------------------------------------------------
 
@@ -452,7 +461,7 @@ class Collector:
         """(keep | drop, reason, urgent)."""
         if not self.triage_on:
             return "keep", "", False
-        if str(item.get("url")).rstrip("/") in self.seen:
+        if str(item.get("url")).rstrip("/") in self.seen or candidates.canonical(str(item.get("url"))) in self.seen:
             return "drop", "already seen", False
         rescued = bool(RESCUE.search(f"{item.get('title')} {item.get('notes') or ''}"))
         kind = feed["type"]
@@ -589,7 +598,8 @@ class Collector:
         return {"schema": 1, "collector": f"vault-watch-agent {__version__}", "since": since,
                 "until": now.strftime("%Y-%m-%d"), "kept": len(kept), "core": len([i for i in kept if not lead(i)]),
                 "urgent": len([i for i in kept if i["urgent"]]), "feeds": len(feeds), "items": items, "errors": errors,
-                **({"pages": {k: self.pages[k] for k in sorted(self.pages)}} if self.pages else {})}
+                **({"pages": {k: self.pages[k] for k in sorted(self.pages)}} if self.pages else {}),
+                **({"recheck": [_due(c) for c in self.due]} if self.due else {})}
 
     def domain_order(self, feeds: list[dict]) -> list[str]:
         """The sections of the report: the feeds file's `domains` in order, then the others as the feeds list them,
@@ -649,6 +659,13 @@ def _cell(text: str) -> str:
     return cut(str(text).replace("|", "\\|"), 160)
 
 
+def _due(c: dict) -> dict:
+    """A candidate to look at again, as the watch keeps it: its name, its last address, why and since when."""
+    sources = c.get("sources") or [{}]
+    return {"id": c["id"], "name": c["name"], "kind": c.get("kind", "other"), "state": c["state"], "reason": c.get("reason", ""),
+            "recheck": c["recheck"], "first_seen": c.get("first_seen", ""), "url": sources[-1].get("url", "")}
+
+
 def markdown(watch: dict, collector: Collector, only: set[str] | None = None) -> str:
     feeds = collector.selected(only)
     items, errors = watch["items"], watch["errors"]
@@ -684,6 +701,14 @@ def markdown(watch: dict, collector: Collector, only: set[str] | None = None) ->
         md += ["| Date | Source | Item | Tier | Pre-triage |", "| :-- | :-- | :-- | :-- | :-- |"]
         md += [f"| {(r.get('date') or '')[:10]} | {r['feed']} | [{_cell(r['title'])}]({r['url']}) | {r.get('tier', '')} | {r['reason']} |"
                for r in listed]
+        md.append("")
+    due = watch.get("recheck") or []
+    if due:
+        md.append(f"## Candidates to look at again ({len(due)})\n")
+        md.append("_From the registry of discovery: their date to look again has come._\n")
+        md += ["| Since | Candidate | State | Why | Look again |", "| :-- | :-- | :-- | :-- | :-- |"]
+        named = {c["id"]: f"[{_cell(c['name'])}]({c['url']})" if c["url"] else _cell(c["name"]) for c in due}
+        md += [f"| {c['first_seen']} | {named[c['id']]} | {c['state']} | {_cell(c['reason'])} | {c['recheck']} |" for c in due]
         md.append("")
     if dropped:
         md.append(f"## Dropped by pre-triage ({len(dropped)})\n")
