@@ -202,5 +202,5 @@ def initial_state(label: str, items: list[dict], proposal: dict | list[dict], us
         "evidence": {},
         "proposals": proposals,
         "usage": usages,
-        "retouch_offered": True,  # the pause to retouch the pages before the mirrors (graph.retouch_node)
+        "retouch_offered": True,  # the pause to retouch the pages before the mirrors (graph_review.retouch_node)
     }
