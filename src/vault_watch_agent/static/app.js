@@ -487,7 +487,8 @@ const TEXTS = {
       clear: "Effacer", cleared: "Brouillon effacé.", restore: "Rétablir" },
     perStep: { title: "Moteur et modèles de cette passe", change: "changer pour cette fois", once: "pour cette fois seulement", apply: "Appliquer",
       applyOnce: "Appliquer pour cette fois", changeShort: "changer", chipBilled: "à l'usage (API)", chipSubscription: "abonnement", chipLocal: "local, gratuit", chipProvider: "autre fournisseur",
-      cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur", model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
+      cancel: "annuler", edit: "modifier", reset: "revenir aux Réglages", engine: "Moteur",
+      engineNames: { "claude-code": "Claude Code (abonnement)", api: "API (clé, facturée au token)", openai: "Serveur compatible OpenAI" }, model: "Modèle", effortLabel: "Effort", modelOfRole: "modèle habituel de ce moteur",
       restUnbilled: "le reste non facturé",
       effort: e => ({ low: "effort faible", medium: "effort moyen", high: "effort élevé", xhigh: "effort très élevé", max: "effort maximal" })[e] || e,
       names: { fix: "Corrections", "fix-translation": "Corrections de traduction", compact: "Allègements", add: "Ajouts", crosscheck: "Relecture croisée", mirror: "Miroirs", links: "Lecture des liens" },
@@ -924,7 +925,8 @@ const TEXTS = {
       clear: "Clear", cleared: "Draft cleared.", restore: "Restore" },
     perStep: { title: "Engine and models of this run", change: "change for this time", once: "for this time only", apply: "Apply",
       applyOnce: "Apply for this time", changeShort: "change", chipBilled: "pay per use (API)", chipSubscription: "subscription", chipLocal: "local, free", chipProvider: "another provider",
-      cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine", model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
+      cancel: "cancel", edit: "change", reset: "back to the Settings", engine: "Engine",
+      engineNames: { "claude-code": "Claude Code (subscription)", api: "API (key, billed per token)", openai: "OpenAI-compatible server" }, model: "Model", effortLabel: "Effort", modelOfRole: "this engine's usual model",
       restUnbilled: "the rest not billed",
       effort: e => ({ low: "low effort", medium: "medium effort", high: "high effort", xhigh: "very high effort", max: "maximum effort" })[e] || e,
       names: { fix: "Corrections", "fix-translation": "Translation fixes", compact: "Trims", add: "Additions", crosscheck: "Cross-check", mirror: "Mirrors", links: "Reading the links" },
@@ -1016,7 +1018,7 @@ function stepLine(step, name = "") {
     ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.perStep.edit : T.perStep.change}">${OWN[step] ? T.perStep.edit : T.perStep.change}</button>`}
     ${OWN[step] && !STEPS.forced ? `<button type="button" class="small-button" data-step-reset="${step}">${T.perStep.reset}</button>` : ""}
     <span class="step-fields" data-step-fields="${step}" hidden>
-      <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
+      <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(T.perStep.engineNames[e.name] || e.label)}</option>`).join("")}</select>
       <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.perStep.modelOfRole)}" aria-label="${T.perStep.model}" spellcheck="false">
       <datalist id="models-${step}"></datalist>
       <select data-f="effort" aria-label="${T.perStep.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.perStep.effort(e)}</option>`).join("")}</select>
@@ -1036,7 +1038,7 @@ function stepCard(step, n, name, what = "") {
     <div class="chips"><span class="chip">${esc(engineName(s))}</span><span class="chip">${esc(s.model ? modelName(s.model) : "?")}</span><span class="chip">${T.perStep.effort(s.effort)}</span><span class="chip ${pay[0]}">${pay[1]}</span></div>
     ${OWN[step] ? `<div class="step-once">${T.perStep.once}${STEPS.forced ? "" : ` · <button type="button" class="link-button" data-step-reset="${step}">${T.perStep.reset}</button>`}</div>` : ""}
     <span class="step-fields" data-step-fields="${step}" hidden>
-      <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
+      <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(T.perStep.engineNames[e.name] || e.label)}</option>`).join("")}</select>
       <input type="text" data-f="model" list="models-${step}" value="${esc(s.model)}" placeholder="${esc(T.perStep.modelOfRole)}" aria-label="${T.perStep.model}" spellcheck="false">
       <datalist id="models-${step}"></datalist>
       <select data-f="effort" aria-label="${T.perStep.effortLabel}">${STEPS.efforts.map(e => `<option value="${e}"${e === s.effort ? " selected" : ""}>${T.perStep.effort(e)}</option>`).join("")}</select>
