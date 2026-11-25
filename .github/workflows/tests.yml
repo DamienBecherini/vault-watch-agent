@@ -27,12 +27,13 @@ jobs:
       - run: python -m pytest -q
 
   lint:
-    # The rules of pyproject.toml ([tool.ruff]), once: they do not depend on the system
+    # The rules and the types of pyproject.toml ([tool.ruff], [tool.pyright]), once: they do not depend on the system
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: python -m pip install "ruff>=0.14"
+      - run: python -m pip install -e ".[dev]"
       - run: python -m ruff check src tests
+      - run: python -m pyright

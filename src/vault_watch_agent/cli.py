@@ -28,13 +28,24 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
 from . import proofread, vault
 from .graph import Deps, build, describe
+from .llm import LLM
 from .prices import Prices
+from .state import WatchState
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import RunnableConfig
+
+
+def run_config(thread: str, jobs: bool = True) -> RunnableConfig:
+    """A run's configuration for the graph: its checkpoints, and at most four of its jobs at once (`jobs`)."""
+    return run_config(thread) if jobs else run_config(thread, jobs=False)
 
 
 def default_home() -> Path:
@@ -107,6 +118,8 @@ def prices_command(args) -> None:
     if args.action == "show":
         for model in table.known():
             p = table.of(model)
+            if not p:
+                continue
             print(f"{model:28} {p.input:>8g} {p.output:>8g} {p.cache_read:>8g} {p.cache_write:>8g}   {p.label}")
         print("USD per million tokens: input, output, cache read, cache write.")
         return
@@ -193,9 +206,10 @@ def run_eval(args, deps: Deps, saver, judge) -> None:
         run(["git", "worktree", "add", "--detach", str(wt), args.at], cwd=VAULT)
     thread = f"eval-{args.issue}-{args.variant}{args.tag}"
     for model in (deps.llm, deps.translator, judge):
-        model.run = thread
+        if model:
+            model.run = thread
     graph = build(dataclasses.replace(deps, vault=wt, crosscheck=args.variant == "full"), saver)
-    config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
+    config = run_config(thread)
     if not graph.get_state(config).values:
         graph.invoke({"issue": args.issue, "source": f"issue #{args.issue} (replay at {args.at[:10]})",
                       "branch_name": f"eval/issue{args.issue}-{args.variant}"}, config)
@@ -408,8 +422,8 @@ def make_deps(thread: str, kind: str) -> Deps:
     from . import config
     from .llm import create
 
-    if kind == "view":
-        return Deps(vault=VAULT, home=HOME, llm=None)
+    if kind == "view":  # reads checkpoints, never calls a model
+        return Deps(vault=VAULT, home=HOME, llm=cast(LLM, None))
     if kind != "explain":  # a pause explained in the page's language reads no page: the folder is left as it is
         vault.sync(VAULT)
     settings = config.load(CONFIG_HOME)  # read for each run: a change in the Settings page applies to the next one
@@ -481,7 +495,8 @@ def mirror_command(args) -> bool:
 
 
 def main(argv: list[str] | None = None) -> None:
-    sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stdout, "reconfigure"):  # a console or a pipe; a stream replaced by a test may not have it
+        sys.stdout.reconfigure(encoding="utf-8")  # pyright: ignore[reportAttributeAccessIssue]  (TextIO does not declare it)
     p = argparse.ArgumentParser(prog="vault-watch")
     p.add_argument("--guide", metavar="FOLDER", help="the guide's folder (default: VAULT_PATH, or the current folder "
                    "when it has a vault-watch.toml)")
@@ -633,17 +648,20 @@ def main(argv: list[str] | None = None) -> None:
         deps = Deps(
             vault=VAULT,
             home=HOME,
-            llm=create("reasoning", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings)) if live else None,
+            # `status` reads checkpoints only: no client, so no API key needed
+            llm=cast(LLM, create("reasoning", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings)) if live else None),
             translator=create("translator", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings)) if live else None,
         )
-        thread = getattr(args, "thread", None) or (
-            (f"issue-{args.issue}" if args.issue else args.watch_json.stem) if args.cmd == "run" else None
+        thread: str = getattr(args, "thread", None) or (
+            (f"issue-{args.issue}" if args.issue else args.watch_json.stem) if args.cmd == "run" else ""
         )
         for model in (deps.llm, deps.translator):
             if model:
                 model.run, model.kind = thread, {"crosscheck": "crosscheck", "fix": "fix", "eval": "eval"}.get(args.cmd, "watch")
         if args.cmd == "eval":
             from . import evaluate, llm
+
+            assert settings is not None  # eval is a live command: its settings are read
 
             judge = create("reasoning", JOURNAL, settings, Prices.of_home(CONFIG_HOME, settings),
                            name=evaluate.judge_engine(args.judge, llm.engine(settings["engine"])))
@@ -659,7 +677,7 @@ def main(argv: list[str] | None = None) -> None:
             found, wanted = args.mirror_plan, args.mirror_pages
             thread = next(t for t in (f"mirror-{date.today().isoformat()}",
                                       *(f"mirror-{date.today().isoformat()}-{n}" for n in range(2, 100)))
-                          if not graph.get_state({"configurable": {"thread_id": t}}).values)
+                          if not graph.get_state(run_config(t, jobs=False)).values)
             for model in (deps.llm, deps.translator):
                 if model:
                     model.run, model.kind = thread, "mirror"
@@ -667,7 +685,7 @@ def main(argv: list[str] | None = None) -> None:
             hand = [p for p in wanted if p in found["hand"]]
             since = {p: found["since"][p] for p in wanted if p in found["since"]}
             worktree = mirrors.prepare(VAULT, HOME, found["base"], branch, hand)
-            config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
+            config = run_config(thread)
             graph.update_state(config, mirrors.initial_state(thread, branch, worktree, since, hand, date.today().isoformat()),
                                as_node="apply")
             graph.invoke(None, config)
@@ -684,11 +702,11 @@ def main(argv: list[str] | None = None) -> None:
                 runs = args.from_threads.split(",")
                 findings = []
                 for r in runs:
-                    values = graph.get_state({"configurable": {"thread_id": r}}).values
+                    values = graph.get_state(run_config(r, jobs=False)).values
                     findings += values.get("findings", [])
                     excerpts.update(values.get("finding_excerpts", {}))
                 label = "cross-checks of " + ", ".join(runs)
-            config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
+            config = run_config(thread)
             if args.translation:
                 items, proposal, usage = fix.propose_translation(VAULT, findings, deps.translator or deps.llm, excerpts)
             elif args.compact:
@@ -711,11 +729,11 @@ def main(argv: list[str] | None = None) -> None:
             show(graph, config)
             return
         if args.cmd == "run":
-            config = {"configurable": {"thread_id": thread}, "max_concurrency": 4}
-            start = {"issue": args.issue, "source": f"issue #{args.issue}" if args.issue else str(args.watch_json)}
+            config = run_config(thread)
+            start: WatchState = {"issue": args.issue, "source": f"issue #{args.issue}" if args.issue else str(args.watch_json)}
             graph.invoke(start, config)
         else:
-            config = {"configurable": {"thread_id": args.thread}, "max_concurrency": 4}
+            config = run_config(args.thread)
             if args.cmd == "crosscheck":
                 from . import crosscheck
 
