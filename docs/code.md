@@ -57,7 +57,7 @@ flowchart TB
   news --> compact
   graphpy --> compact
   steps ====> base
-  state ~~~ llm --> config ~~~ vault ~~~ inputs ~~~ costs ~~~ notify
+  llm --> config
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
   class llm model
 ```
