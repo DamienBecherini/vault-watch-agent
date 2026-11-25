@@ -3,7 +3,12 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.6.0 (2026-11-25)
+
+The code split by area and checked by ruff, pyright and TypeScript, with nothing changed in what it does; dl-sub-dub
+started by the agent when a video is to be read, its own protections and limits said; any guide taken for itself:
+a folder without a manifest is no longer read as the IA on-prem guide, and the page no longer assumes a French guide
+with an English mirror. 385 tests, the 11 screens drawn in a real browser without an error.
 
 - **dl-sub-dub started when a video is to be read** (asked by the user, 2026-11-25: the agent waited for it to be
   started by hand): the command of `videos.start`, set by hand in `settings.json` only (the page can no longer change
