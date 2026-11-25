@@ -160,6 +160,7 @@ true, the version is tagged, and `main` receives it (work happens on the `dev` b
 | M5. Stable | 1.0.0 | Rely on the manifest and the engine protocol not changing under them |
 | M6. Compaction | 1.2.0 | Keep a guide from growing heavy: redundancies, piled-up history and long sections found and trimmed, reviewed like corrections |
 | What is new | 1.3.0 | What no source of the watch announces: leads from the guide or from the web, each checked on the web and written where it belongs; the chapters of a guide; the readers' feedback |
+| Code quality | 1.6.0 | Find their way in the code: one router per area of the page, one module per part of the run and per engine, the page in ES modules; ruff, pyright and TypeScript in CI ([docs/code.md](docs/code.md)) |
 
 ### Decisions to take first
 
@@ -548,12 +549,13 @@ second guide, just generated, has nothing piled up yet.
 Someone with opencode, Codex or another CLI on a subscription from another provider than Anthropic cannot use the
 agent today, unless the provider also gives a key and an OpenAI-compatible address (the `openai` engine then works,
 with SearXNG for the web). Decided with the user: look for testers first (a real session per CLI is needed, on their
-subscription), nothing before the code-quality pass (1.6.0), which reworks `llm.py`.
+subscription). The code-quality pass it waited for is done (1.6.0): an engine is one module of `engines/` with
+its `KIND`, on the contract of `llm.py` ([docs/write-an-engine.md](docs/write-an-engine.md)).
 
 - T7.1: a page « Another subscription than Claude » (EN + FR): a key and an address → the `openai` engine, what to
   fill in; a subscription that works only inside a CLI → the `command` engine.
 - T7.2: « subscription » billing for any engine (`billing: subscription` for `openai` and the plug-ins): today only
-  `claude-code` is one (`billing_of` in `llm.py`, `costs.py`, `graph.py`), so such calls show as billed « without a
+  `claude-code` is one (`billing_of` in `llm.py`, read by the command line and the routes), so such calls show as billed « without a
   price ». The journal and the page say « not billed », or « not measured » when the usage is unknown.
 - T7.3: the `command` engine: a program and its arguments (a list, never a shell line) with `{model}`, `{effort}`,
   `{schema_file}`, `{mcp_config}`, `{workdir}`, `{out_file}`; the request always on stdin; the JSON answer read,

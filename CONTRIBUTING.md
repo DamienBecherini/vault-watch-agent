@@ -13,6 +13,22 @@ python -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
+How the code is laid out, module by module: [docs/code.md](docs/code.md).
+
+## Checks
+
+CI runs four of them; run them before a pull request (Windows: `.venv/Scripts/python`):
+
+```bash
+.venv/bin/python -m pytest -q                                     # the tests
+.venv/bin/python -m ruff check src tests                          # style and common mistakes
+.venv/bin/python -m pyright --pythonpath .venv/bin/python   # types (src/, basic mode)
+npx -y -p typescript@5.9 tsc -p jsconfig.json --noEmit            # the page's scripts, checked by TypeScript
+```
+
+The page is ES modules served as they are, with no build step: each starts with `// @ts-check`, and its shared
+types are in `types/page.d.ts`.
+
 ## Tests
 
 - No test calls a model or the network: the graph runs with a fake model (`FakeLLM` in `tests/test_graph.py`,

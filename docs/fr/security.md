@@ -16,8 +16,8 @@ L'agent ne stocke jamais de clé. Chaque champ qui en demande une prend une réf
 | `sops:fichier#NOM` | un champ d'un fichier chiffré avec [sops](https://github.com/getsops/sops), déchiffré au moment où un appel en a besoin |
 | `file:chemin` | un fichier qui ne contient que la valeur |
 
-C'est le cas de la clé d'API des réglages (`key`), de la clé du serveur compatible OpenAI et du jeton d'une forge
-Gitea (`[guide] forge_token`). Une valeur en clair est refusée à l'enregistrement des réglages, puis à leur
+C'est le cas de la clé d'API des réglages (`key`), de la clé du serveur compatible OpenAI, du jeton d'une forge
+Gitea (`[guide] forge_token`) et du jeton de dl-sub-dub (`videos.token`). Une valeur en clair est refusée à l'enregistrement des réglages, puis à leur
 lecture. La valeur est lue au moment d'un appel et n'est jamais écrite dans le journal, les rapports ni les
 messages. GitHub passe par `gh`, connecté par vous (`gh auth login`) : l'agent ne voit jamais son jeton.
 
@@ -70,7 +70,9 @@ limite ce qu'un tel texte peut obtenir :
   soit l'auteur : un modèle, un flux, une page ;
 - les réponses du modèle ne deviennent jamais des commandes : les seuls programmes que l'agent lance sont git,
   `gh`, les contrôles du guide et, quand vos réglages s'en servent, `claude` et `sops`, avec des arguments
-  construits par le code.
+  construits par le code, et dl-sub-dub par `videos.start` : une commande que vous écrivez à la main dans
+  `settings.json` (la page ne peut pas la régler), lancée sans shell et sans les clés de l'agent dans son
+  environnement.
 
 ## Ce qui sort de la machine
 
@@ -83,6 +85,7 @@ pour :
 | La recherche web et la lecture de pages, aux étapes qui vérifient des sources | Les outils web du moteur, ou votre SearXNG et les pages elles-mêmes |
 | La collecte d'une veille et le contrôle de ses sources | GitHub, Hugging Face, les flux et les pages de `feeds.json` |
 | Les liens des pages, quand ils sont vérifiés | Les sites vers lesquels le guide renvoie |
+| Le lien d'une vidéo, quand une piste ou un contrôle lit son texte | Votre dl-sub-dub, sur cette machine seulement (`videos.url` est refusé sinon), qui va chercher la vidéo sur son site |
 | Les issues, les artefacts, la branche et la pull request | La forge du guide : GitHub par `gh`, ou votre Gitea |
 | La liste publique des prix, quand vous la demandez dans les Réglages | Un fichier du dépôt LiteLLM, sur GitHub |
 

@@ -359,7 +359,7 @@ src/vault_watch_agent/
   sizes.py       what each page weighs and gained; compact.py compaction: what weighs, the trims
   news.py        what a reader would look for and not find: the leads, the additions checked on the web
   links.py       links read whole (a page, a README, a PDF); videos.py the text of a video, through dl-sub-dub
-  prompts.py     system prompts, from the guide's brief and translation policy
+  prompts.py     system prompts, from the guide's brief and translation policy; explain.py the pauses' explanations, translated
   config.py      the user's settings; prices.py, costs.py what the calls cost
   store.py       the runs database kept light; notify.py desktop notifications
   onboard.py     init and doctor; cli.py the command line; web.py the server, routes/ its routes by area

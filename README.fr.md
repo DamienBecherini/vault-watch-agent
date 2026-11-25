@@ -374,7 +374,8 @@ src/vault_watch_agent/
   sizes.py       ce que pèse chaque page et ce qu'elle a pris ; compact.py compactage : ce qui pèse, les allègements
   news.py        ce qu'un lecteur chercherait et ne trouve pas : les pistes, les ajouts vérifiés sur le web
   links.py       des liens lus en entier (une page, un README, un PDF) ; videos.py le texte d'une vidéo, par dl-sub-dub
-  prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
+  prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide ;
+                 explain.py les explications des pauses, traduites dans la langue de la page
   config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
   store.py       la base des passes gardée légère ; notify.py les notifications du bureau
   onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, routes/ ses routes par domaine

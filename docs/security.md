@@ -16,8 +16,8 @@ The agent never stores a key. Every field that needs one takes a reference to wh
 | `sops:file#NAME` | a field of a file encrypted with [sops](https://github.com/getsops/sops), decrypted when a call needs it |
 | `file:path` | a file that holds the value alone |
 
-This holds for the API key of the settings (`key`), the OpenAI-compatible server's key, and the token of a Gitea
-forge (`[guide] forge_token`). A value in plain text is refused when the settings are saved and again when they
+This holds for the API key of the settings (`key`), the OpenAI-compatible server's key, the token of a Gitea
+forge (`[guide] forge_token`) and the token of dl-sub-dub (`videos.token`). A value in plain text is refused when the settings are saved and again when they
 are read. The value is read at the moment of a call and is never written to the journal, the reports or the
 messages. GitHub goes through `gh`, signed in by you (`gh auth login`): the agent never sees its token.
 
@@ -68,7 +68,9 @@ text can achieve:
 - a link the page shows is a link only when it is an http(s) address (never `javascript:`), whoever wrote it: a
   model, a feed, a page;
 - the model's answers never become commands: the only programs the agent runs are git, `gh`, the guide's own
-  checks and, when your settings use them, `claude` and `sops`, with arguments built by the code.
+  checks and, when your settings use them, `claude` and `sops`, with arguments built by the code, and dl-sub-dub
+  through `videos.start`: a command you write by hand in `settings.json` (the page cannot set it), run without a
+  shell and without the agent's keys in its environment.
 
 ## What leaves the machine
 
@@ -80,6 +82,7 @@ There is no telemetry: the agent sends nothing about you or your guide to its au
 | Web search and page reading, on the steps that check sources | The engine's own web tools, or your SearXNG and the pages themselves |
 | The collection of a watch and the check of its sources | GitHub, Hugging Face, the feeds and the pages of `feeds.json` |
 | The links of the pages, when they are checked | The sites the guide links to |
+| A video's link, when a lead or a check reads its text | Your dl-sub-dub, on this machine only (`videos.url` is refused otherwise), which fetches the video from its site |
 | Issues, artifacts, the branch and the pull request | The guide's forge: GitHub through `gh`, or your Gitea |
 | The public price list, when you ask for it in the Settings | A file of the LiteLLM repository, on GitHub |
 
