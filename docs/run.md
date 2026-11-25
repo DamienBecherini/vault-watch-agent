@@ -160,6 +160,19 @@ without a fix are listed under them. « Apply n fixes and go on » commits those
 accepted »), then the translation follows, your retouches and the fixes included. Nothing found: no pause. The
 pull request says what was proofread and how many fixes were accepted.
 
+![« Your edits proofread »: a figure added by hand with no source, found by the consistency check and removed by
+the fix, ticked, its word-level diff and the text that will be applied, editable; under it, the doubts without a
+fix](images/proofread.png)
+
+In a page shown in another language than English (French, for instance), the explanations of every pause are shown
+in that language: why a correction is proposed, the cross-check's verdict, the warning of the free checks, the
+reason of a fix, a doubt, what the translator or the links check said, the title of the run. The checks write them
+in English, which the report and the pull request quote; the page asks for them translated when it shows the pause:
+one call of the translation model, at low effort, for the lines not translated yet, kept in the run's working folder
+(`explained/<language>.json`), so a pause shown again costs nothing more. The English stays on hover. The step is
+`explain` (« explanations of the pauses ») in the Settings, which can set it apart like any other; on the API it
+costs a cent or two, and it is in the cost journal under the run. A model that fails leaves the lines in English.
+
 At the publish step, once a source page is corrected (« Correct », then « Save »), the same three checks are
 offered beside « Check again »: « Proofread, then translate and check again » proofreads what you just corrected,
 stops on its fixes, then translates the source pages changed since the mirrors last followed and runs the guide's

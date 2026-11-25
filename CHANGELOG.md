@@ -5,6 +5,20 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **The explanations of the pauses in the page's language** (asked by the user after the first real run proofread
+  on 2026-11-25: the reasons and the doubts were in English in the French page): why a correction is proposed, the
+  cross-check's verdict, the warning of the free checks, the reason of a fix and the doubts of a proofreading (of a
+  run or of the page « Languages »), what the translator and the links check said, the run's title. The checks keep
+  writing them in English (the report and the pull request quote them); the page asks `/api/explain` when it shows
+  them in another language: one call of the translation model at low effort (the step `explain`, set apart like
+  any other) for the lines not translated yet, kept in `explained/<language>.json` of the run's working folder; the
+  English on hover; a model that fails leaves the English (`explain.py`, `tests/test_explain.py`). A screenshot of
+  « Your edits proofread » in [A run](docs/run.md#have-your-edits-proofread), in both languages.
+- The boxes where a text is changed before it is applied (a fix of a proofreading, a translation at its pause, a
+  retouched correction) stand out: framed in the accent colour, « ✏️ This text will be applied: you can change it
+  here » above them (the box read as a third diff). The pull request says where each proofreading was asked (at the
+  retouches, before publishing). The engines and models of « Engine and models of this run » said in the page's
+  language (« Claude Code · Opus 5.5 · high effort · subscription »).
 - The page in French no longer names the author's own launcher when the server is gone: « the server does not
   answer, it may have stopped after being idle (`serve --idle-exit`); start it again », as in English.
 - **What you write during a run, proofread when you ask** (proposed by the user: only the translation and the

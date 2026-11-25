@@ -412,7 +412,8 @@ def make_deps(thread: str, kind: str) -> Deps:
 
     if kind == "view":
         return Deps(vault=VAULT, home=HOME, llm=None)
-    vault.sync(VAULT)
+    if kind != "explain":  # a pause explained in the page's language reads no page: the folder is left as it is
+        vault.sync(VAULT)
     settings = config.load(CONFIG_HOME)  # read for each run: a change in the Settings page applies to the next one
     # What this run set for its own steps (an engine, a model, an effort chosen when it was started), over the settings
     settings["steps"] = config.over(settings["steps"], config.run_steps(HOME, thread))

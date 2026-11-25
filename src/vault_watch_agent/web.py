@@ -41,7 +41,7 @@ from pydantic import BaseModel
 from . import __version__
 from . import config as user_settings  # `config` is a helper of create_app
 from . import chapters as chapters_mod
-from . import compact, costs, fix, forge, inputs, links, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify, videos
+from . import compact, costs, explain, fix, forge, inputs, links, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify, videos
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line
@@ -130,6 +130,12 @@ class Analyse(BaseModel):
     watch_json: str | None = None
     watch: str | None = None  # the id of a watch of the guide's source (a file of the guide)
     steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
+
+
+class Explain(BaseModel):
+    texts: list[str]  # the English lines a pause shows: the models' explanations, the checks' findings
+    lang: str  # the language of the page
+    thread: str = ""  # the run (or check) they belong to: its line in the cost journal
 
 
 class Review(BaseModel):
@@ -1685,6 +1691,22 @@ def create_app(settings: Settings) -> FastAPI:
 
         start(cid, "proofread", "proofread", work)
         return {"id": cid}
+
+    @app.post("/api/explain")
+    def explain_lines(body: Explain):
+        """The explanations of a pause in the page's language (explain.py): {lines: {english: translated}}. One call
+        of the translator's model for the lines not translated yet; none in English. A model that fails leaves the
+        lines in English (`error`): the pause works the same."""
+        lang = body.lang.lower() if re.fullmatch(r"[a-zA-Z]{2}", body.lang or "") else ""
+        if lang in ("", "en") or not body.texts:
+            return {"lines": {}}
+        label = body.thread if re.fullmatch(r"[\w.-]{1,80}", body.thread or "") else "explain"
+        try:
+            deps = settings.make_deps(label, "explain")
+            found, _ = explain.lines([t[:2000] for t in body.texts[:200]], lang, deps.translator or deps.llm, settings.home)
+        except (user_settings.ConfigError, llm.ModelError) as e:
+            return {"lines": {}, "error": f"{type(e).__name__}: {e}"[:300]}
+        return {"lines": found}
 
     @app.get("/api/mirrors/check/{cid}")
     def mirrors_check_view(cid: str):

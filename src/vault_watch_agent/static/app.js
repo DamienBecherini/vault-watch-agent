@@ -953,6 +953,39 @@ const savedLang = () => { try { return localStorage.getItem("vault-watch-lang");
 let lang = TEXTS[savedLang()] ? savedLang() : (navigator.language || "en").startsWith("fr") ? "fr" : "en";
 let T = TEXTS[lang];
 
+// A line a model or a check wrote in English (why a correction, a verdict, a doubt, what a check found): in another
+// language, shown translated once the server has it (/api/explain, explain.py), the English on hover. Lines already
+// translated are drawn translated at once, so that a screen drawn again does not flicker.
+const EXPLAINED = {}, ASKED = new Set();  // {lang: {english: translated}}; the lines asked, per language
+function en(text) {
+  if (!text) return "";
+  const done = lang !== "en" && EXPLAINED[lang]?.[text];
+  return done ? `<span data-en="${esc(text)}" data-done title="${esc(text)}">${esc(done)}</span>`
+    : `<span data-en="${esc(text)}"${lang === "en" ? " data-done" : ""}>${esc(text)}</span>`;
+}
+const shownRun = () => decodeURIComponent((location.hash.match(/^#\/(?:run|check)\/([^?]+)/) || [])[1] || "");
+async function explainPage() {
+  if (lang === "en") return;
+  const asked = lang, memo = EXPLAINED[asked] ||= {};
+  const put = () => page.querySelectorAll("[data-en]:not([data-done])").forEach(x => {
+    if (memo[x.dataset.en]) { x.textContent = memo[x.dataset.en]; x.title = x.dataset.en; x.dataset.done = ""; }
+  });
+  put();
+  const missing = [...new Set([...page.querySelectorAll("[data-en]:not([data-done])")].map(x => x.dataset.en))]
+    .filter(t => !ASKED.has(`${asked}\n${t}`));
+  if (!missing.length) return;
+  missing.forEach(t => ASKED.add(`${asked}\n${t}`));
+  const r = await api("/api/explain", { texts: missing, lang: asked, thread: shownRun() }).catch(() => ({ lines: {} }));
+  const got = Object.keys(r.lines || {}).filter(t => missing.includes(t));
+  Object.assign(memo, r.lines || {});
+  if (got.length && got.length < missing.length) missing.filter(t => !got.includes(t)).forEach(t => ASKED.delete(`${asked}\n${t}`));  // more than one ask holds: the rest next
+  if (lang === asked) put();
+  if (got.length && got.length < missing.length) explainPage();
+}
+let explainTimer = null;
+new MutationObserver(() => { clearTimeout(explainTimer); explainTimer = setTimeout(explainPage, 200); })
+  .observe(page, { childList: true, subtree: true });
+
 const CLASSES = {
   running: "attention", review: "attention", retouch: "attention", proofread: "attention", translation: "attention", publish: "attention", "pr-open": "attention",
   published: "ok", merged: "ok", stopped: "error",
@@ -1600,7 +1633,7 @@ const usageHtml = r => {
 async function viewRun(thread) {
   const r = await api(`/api/runs/${encodeURIComponent(thread)}`);
   const name = r.mode === "mirror" ? T.pairs.runTitle : r.source || thread;
-  const title = `<h1>${esc(name)} ${badge(r.status)}</h1>
+  const title = `<h1>${r.mode !== "mirror" && r.source ? en(name) : esc(name)} ${badge(r.status)}</h1>
     <p class="subtitle">${r.as_of && !r.mode ? `${T.watchUpTo(r.as_of)} · ` : ""}${usageHtml(r)}</p>`;
   if (r.status === "running") return viewRunning(r, title);
   if (r.status === "review") return viewReview(r, title);
@@ -1815,9 +1848,9 @@ function correctionCard(c, r) {
     <div>
       <div class="header"><b>${c.id}</b><span class="badge ${c.severity}">${c.severity}</span><code>${esc(c.page)}</code>
         ${valid ? "" : `<span class="badge error">${esc(c.check)}</span>`}</div>
-      <p>${esc(c.rationale)}</p>
-      ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${esc(c.review)}</p>` : ""}
-      ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${esc(c.warning)}</p>` : ""}
+      <p>${en(c.rationale)}</p>
+      ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${en(c.review)}</p>` : ""}
+      ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${en(c.warning)}</p>` : ""}
       ${c.lost?.length ? `<p class="small">⚠️ ${T.lostValues}${T.colon}${esc(c.lost.join(", "))}</p>` : ""}
       <div data-diff="${c.id}">${changeView(c.current, text)}</div>
       ${c.retouchable ? `<div class="retouch" data-retouch="${c.id}" ${mine === undefined ? "hidden" : ""}>
@@ -2138,7 +2171,7 @@ function pairsBlock(r, editable) {
   return `${r.mirror_pairs.filter(x => x.target.length || x.problem).map(x => {
     const rows = Math.max(x.source.length, x.target.length);
     return `<div class="card pair-page"><div class="header"><code>${esc(x.page)}</code> → <code>${esc(x.mirror)}</code></div>
-      ${x.problem ? `<p class="small attention-text">${P.problem}${T.colon}${esc(x.problem)}</p>` : ""}
+      ${x.problem ? `<p class="small attention-text">${P.problem}${T.colon}${en(x.problem)}</p>` : ""}
       ${Array.from({ length: rows }, (_, i) => {
         const src = x.source[i], tgt = x.target[i], key = `${x.mirror}#${i}`;
         const [sb, sa] = src ? wordDiff(src[0], src[1]) : ["", ""];
@@ -2206,7 +2239,7 @@ async function viewPublish(r, title) {
   const row = (icon, cls, name, what) => `<div class="pub-row"><span class="pub-i ${cls}">${icon}</span><b>${name}</b><div>${what}</div></div>`;
   const links = p.link_problems.map(x => {
     const m = x.match(/^(NEW )?(.*?): (https?:\/\/\S+) \((.*)\)$/);
-    if (!m) return `<li>${esc(x)}</li>`;
+    if (!m) return `<li>${en(x)}</li>`;
     const [, isNew, label, url, cited] = m;
     const why = label.startsWith("blocked") ? P.linkBlocked : P.linkDead(label);
     return `<li>${extLink(url, esc(shortUrl(url)))} <span class="badge neutral">${isNew ? P.linkNew : P.linkOld}</span><br>
@@ -2220,7 +2253,7 @@ async function viewPublish(r, title) {
       : row("✗", "bad-i", P.audits, `<span class="error-text">${T.auditsRed}</span><details><summary class="small">${P.log}</summary><pre>${esc(r.audit_log)}</pre></details>`),
     r.mode === "mirror" || r.mirrored.length || p.mirror_problems.length
       ? row(p.mirror_problems.length ? "!" : "✓", p.mirror_problems.length ? "warn-i" : "ok-i", P.translation,
-        `${P.mirrored(r.mirrored.length)}${p.mirror_problems.length ? `<ul>${p.mirror_problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`) : "",
+        `${P.mirrored(r.mirrored.length)}${p.mirror_problems.length ? `<ul>${p.mirror_problems.map(x => `<li>${en(x)}</li>`).join("")}</ul>` : ""}`) : "",
     !linksChecked ? row("–", "info-i", P.links, T.linksNotChecked)
       : links.length ? row("!", "warn-i", P.linksToCheck(links.length), `<ul class="pub-links">${links.join("")}</ul>`)
       : row("✓", "ok-i", P.links, T.linksOk),
@@ -3240,14 +3273,14 @@ function fixesHtml(fixes, notes) {
   return `${Object.entries(byPage).map(([p, list]) => `<div class="pair-page"><div class="header"><code>${esc(p)}</code></div>
       ${list.map(f => { const [before, after] = wordDiff(f.current, f.proposed), ok = f.check === "ok", over = (f.overlaps || []).length;
         return `<label class="option fix"><input type="checkbox" data-fix="${esc(f.id)}"${!ok ? " disabled" : over ? "" : " checked"}>
-          <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${esc(f.reason)}${
+          <div><p class="small"><span class="badge">${C.kinds[f.kind]}</span> ${en(f.reason)}${
             f.source_url ? ` · ${extLink(f.source_url, C.source)}` : ""}${
             ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}${
             over ? ` · <span class="attention-text">${C.overlaps(f.overlaps.join(", "))}</span>` : ""}</p>
           <div class="diff before">${before}</div><div class="diff after" data-fix-after="${esc(f.id)}">${after || `<span class="muted">—</span>`}</div>
           ${ok ? `<span class="edit-label">${T.editable}</span><textarea class="editable" data-fix-text="${esc(f.id)}" spellcheck="true">${esc(f.proposed)}</textarea>` : ""}</div></label>`; }).join("")}
     </div>`).join("")}
-    ${notes.length ? `<p class="small"><b>${C.notes}</b></p><ul class="small">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}`;
+    ${notes.length ? `<p class="small"><b>${C.notes}</b></p><ul class="small">${notes.map(n => `<li>${en(n)}</li>`).join("")}</ul>` : ""}`;
 }
 
 // What the editor ticked of the fixes drawn by fixesHtml, with their own texts: {ids(), edits()}

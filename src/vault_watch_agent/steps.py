@@ -44,6 +44,7 @@ STEPS: dict[str, Step] = {s.id: s for s in (
     Step("translation", "translator", "medium"),
     Step("fix-translation", "translator", "medium"),
     Step("judge", "reasoning", "high", shown=False),
+    Step("explain", "translator", "low"),  # the explanations of a pause, in the page's language (explain.py)
 )}
 
 
@@ -54,7 +55,7 @@ def effort(step: str) -> str:
 # The first word of a call's `node` (its label in the journal) -> its step. « verify <check> » names its check.
 NODES = {"triage": "triage", "propose": "proposals", "crosscheck": "crosscheck", "sweep": "crosscheck", "fix": "fix",
          "compact": "compact", "add": "add", "mirror": "mirror", "judge": "judge", "chapters": "chapters",
-         "proofread": "proofread"}
+         "proofread": "proofread", "explain": "explain"}
 
 
 def of_node(node: str) -> str:

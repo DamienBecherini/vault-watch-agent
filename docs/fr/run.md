@@ -167,6 +167,21 @@ les commite à votre nom (« Proofread fixes accepted »), puis la traduction su
 comprises. Rien trouvé : pas de pause. La pull request dit ce qui a été relu et combien de corrections ont été
 acceptées.
 
+![« Tes modifications relues » : un chiffre ajouté à la main sans source, trouvé par la vérification de cohérence et
+retiré par la correction, cochée, son diff mot à mot et le texte qui sera appliqué, modifiable ; dessous, les doutes
+sans correction](../images/proofread.fr.png)
+
+Dans une page affichée dans une autre langue que l'anglais (le français, par exemple), les explications de chaque
+pause sont dans cette langue : pourquoi une correction est proposée, le verdict de la relecture croisée,
+l'avertissement des contrôles gratuits, la raison d'une correction, un doute, ce que le traducteur ou le contrôle
+des liens a signalé, le titre de la passe. Les vérifications les écrivent en anglais, que le rapport et la pull
+request citent ; la page les demande traduites quand elle montre la pause : un appel du modèle de traduction, à
+l'effort bas, pour les lignes pas encore traduites, gardées dans le dossier de travail des passes
+(`explained/<langue>.json`), si bien qu'une pause affichée de nouveau ne coûte plus rien. L'anglais reste au survol.
+L'étape s'appelle `explain` (« explications des pauses ») dans les Réglages, qui peuvent la régler à part comme les
+autres ; sur l'API, elle coûte un centime ou deux, et elle est dans le journal des coûts sous la passe. Un modèle en
+échec laisse les lignes en anglais.
+
 À la publication, une fois une page source corrigée (« Corriger », puis « Enregistrer »), les mêmes trois
 vérifications sont proposées à côté de « Recontrôler » : « Faire relire, puis traduire et recontrôler » relit ce que
 vous venez de corriger, s'arrête sur ses corrections, puis traduit les pages sources changées depuis le dernier

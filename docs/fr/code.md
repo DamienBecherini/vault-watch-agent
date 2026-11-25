@@ -113,6 +113,7 @@ Seuls les liens principaux sont dessinés ; le tableau ci-dessous donne le rôle
 | `steps.py` | 88 | Chaque étape qui appelle le modèle : son rôle, son effort, ce qu'elle demande à un moteur |
 | `store.py` | 53 | La base des passes gardée légère : seul le dernier point de contrôle de chaque passe reste, l'espace est rendu au disque |
 | `notify.py` | 110 | Notifications du bureau de `serve --notify` : Windows, macOS, Linux |
+| `explain.py` | 94 | Les explications d'une pause dans la langue de la page (`/api/explain`) : un appel du modèle de traduction pour les lignes pas encore traduites, chaque ligne gardée |
 
 La page est du JavaScript sans outillage dans [`static/`](../../src/vault_watch_agent/static/), chargé tel quel :
 `app.js` (le routeur, les textes dans les deux langues, chaque écran), `settings.js` (la fenêtre des Réglages),
