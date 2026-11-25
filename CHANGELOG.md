@@ -9,6 +9,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   `add-2026-11-25` and `add-2026-11-25-2`): a fix, addition, compaction or « Languages » run started from the page or
   with `vault-watch mirror` is now `<kind>-YYYY-MM-DD-HHMM`, local time (`add-2026-11-25-2130`), like the checks;
   a second one in the same minute still gets `-2`. The runs already made keep their names.
+- **Fixed: a footnote could stay with no sentence citing it** (found by the user, 2026-11-25: `[^22]` and `[^23]` of
+  the IA guide's security page, left by the compaction of 2026-11-20). `compact.with_orphan_notes` removes a note
+  with the trim that orphans it, but sees one group at a time: two trims of two groups that each removed one citation
+  left the note. Now the apply step, after all the accepted corrections of a page, whatever the run (fix, watch,
+  addition, compaction), removes the definition of each note whose last citation they removed (with its indented
+  lines; a note already uncited before the run is left as it was), and the pull request names them
+  (`vault.drop_orphan_notes`). « Before publishing » gets a line « Footnotes »: in the changed pages and their
+  mirrors, a note no sentence cites, one cited and never defined, one defined twice (code aside), to fix with
+  « Correct »; the pull request says them too (`graph_publish.footnote_problems`).
 
 ## 1.6.1 (2026-11-25)
 

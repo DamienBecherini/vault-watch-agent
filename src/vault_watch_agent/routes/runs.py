@@ -117,6 +117,7 @@ def run_page(ctx: AppContext, thread: str) -> dict:
         "usage": usage_line(v.get("usage", [])),
         "accepted": v.get("accepted", []), "applied": v.get("applied", []), "branch": v.get("branch", ""),
         "mirrored": v.get("mirrored", []), "mirror_problems": v.get("mirror_problems", []),
+        "notes_removed": v.get("notes_removed", []),  # definitions removed with their last citation (apply)
         "retouched": v.get("retouched", []),
         # the editor's edits proofread: the fixes (accepted or not, once decided), the doubts, each proofreading
         "proofread_fixes": v.get("proofread_fixes", []), "proofread_notes": v.get("proofread_notes", []),

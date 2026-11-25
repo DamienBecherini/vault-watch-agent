@@ -164,6 +164,39 @@ MAX_LEFTOVERS = 80  # lines handed to the model and listed in the report
 CHANGES_PAGE_CHARS = 6000  # of the manifest's changes_page, added to every proposal step's excerpts
 
 
+# -- footnotes: a note cited by no sentence, cited without a definition, defined twice ---------------------------
+_NOTE_DEF = re.compile(r"^\[\^([^\]]+)\]:", re.M)
+_CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)  # a regular expression in code is no footnote
+
+
+def _note_parts(text: str) -> tuple[set[str], list[str]]:
+    """(the notes the text cites, the notes it defines, in order, a note defined twice listed twice)."""
+    text = _CODE.sub("", text.replace("\r\n", "\n"))
+    defined = _NOTE_DEF.findall(text)
+    return set(_FOOTNOTE_MARK.findall(_NOTE_DEF.sub("", text))), defined
+
+
+def footnote_problems(text: str) -> dict[str, list[str]]:
+    """{never_cited, undefined, twice}: the notes of a page that a reader would find broken, each list sorted."""
+    cited, defined = _note_parts(text)
+    return {"never_cited": sorted(set(defined) - cited), "undefined": sorted(cited - set(defined)),
+            "twice": sorted({n for n in defined if defined.count(n) > 1})}
+
+
+def drop_orphan_notes(before: str, after: str) -> tuple[str, list[str]]:
+    """`after` without the definitions of the notes that `before` cited and `after` no longer does (the last sentence
+    citing them was removed), and those notes. A note already uncited in `before` is left as it was: not this
+    edit's doing. A definition goes with its continuation lines (indented) and the blank line after it."""
+    cited_before, _ = _note_parts(before)
+    cited_after, defined_after = _note_parts(after)
+    orphans = sorted((cited_before - cited_after) & set(defined_after))
+    crlf = "\r\n" in after
+    text = after.replace("\r\n", "\n")
+    for note in orphans:
+        text = re.sub(rf"^\[\^{re.escape(note)}\]:.*(?:\n(?:    |\t).*)*\n?(?:\n(?=\S))?", "", text, count=1, flags=re.M)
+    return (text.replace("\n", "\r\n") if crlf else text), orphans
+
+
 def _versions(text: str) -> set[str]:
     """Versions reduced to major.minor: "0.33.0", "v0.33.0rc3" and "0.33" are one value."""
     return {f"{m[1]}.{m[2]}" for m in _VERSION.finditer(text)}

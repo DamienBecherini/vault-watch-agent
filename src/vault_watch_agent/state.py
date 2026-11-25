@@ -132,6 +132,8 @@ class WatchState(TypedDict, total=False):
     publish_edits: list[str]  # the files the editor corrected at the publish pause
     mirror_problems: list[str]
     link_problems: list[str] | None  # external sources of the changed pages that do not answer; None: not checked
+    footnote_problems: list[str]  # notes never cited, cited without a definition or defined twice, in the changed pages
+    notes_removed: list[str]  # « page [^n] »: definitions removed at apply, the corrections having removed their last citation
     audit_ok: bool
     audit_log: str
     pr_url: str

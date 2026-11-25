@@ -225,6 +225,9 @@ def _checks_lines(state: WatchState) -> str:
         parts.append(f"Corrected by the editor before publishing: {', '.join(f'`{p}`' for p in edited)}.\n\n")
     audits = {True: "passed", None: "not checked (the guide declares no audits)"}.get(state.get("audit_ok"), "FAILED, see the log below")
     parts.append(f"Guide audits: {audits}.\n\n")
+    if state.get("notes_removed"):
+        parts.append(f"Footnotes removed with their last citation: {', '.join(f'`{n}`' for n in state['notes_removed'])}.\n\n")
+    parts += [f"⚠️ Footnotes: {p}\n\n" for p in state.get("footnote_problems") or []]
     parts.append(f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n")
     parts += [f"- ⚠️ {p}\n" for p in state.get("mirror_problems", [])]
     parts.append("\nExternal sources of the changed pages (the guide's source audit): ")

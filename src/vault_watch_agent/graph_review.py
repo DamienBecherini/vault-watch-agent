@@ -87,9 +87,18 @@ def apply(deps: Deps, state: WatchState) -> dict:
     chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
     pages = sorted({c["page"] for c in chosen})
     before = {p: compact.weight(worktree, [p]) for p in pages}
+    texts = {p: vault.read(worktree / p) for p in pages if (worktree / p).is_file()}
     for c in news.ordered(chosen):
         if not vault.date_bump_only(c["current"], c["proposed"], vault.guide_of(worktree).modified_field):  # apply bumps it
             vault.apply(worktree, c["page"], c["current"], c["proposed"], deps.today)
+    # A note whose last citing sentence the accepted corrections removed goes with it, whichever groups they were
+    # in (compact.with_orphan_notes sees one group at a time: two trims of two groups left [^22] and [^23], 20/11)
+    notes_removed = []
+    for p, text in texts.items():
+        kept, orphans = vault.drop_orphan_notes(text, vault.read(worktree / p))
+        if orphans:
+            vault.write(worktree / p, kept)
+            notes_removed += [f"{p} [^{n}]" for n in orphans]
     # What the edits weigh, shown for every run; `pages`: the change of each page, the largest first
     after = {p: compact.weight(worktree, [p]) for p in pages}
     weight = {"before": sum(before.values()), "after": sum(after.values()),
@@ -105,7 +114,7 @@ def apply(deps: Deps, state: WatchState) -> dict:
     summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
     git("commit", "-F", "-", cwd=worktree, text=f"{pr_title(state)}\n\n{summary}\n")  # the message on stdin: it can be long
     return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen], "weight": weight,
-            "applied_tip": git("rev-parse", "HEAD", cwd=worktree).strip()}
+            "notes_removed": notes_removed, "applied_tip": git("rev-parse", "HEAD", cwd=worktree).strip()}
 
 
 # -- retouch (interrupt, H3): the editor retouches the pages of the branch before the mirrors, or skips ---------

@@ -203,8 +203,10 @@ que sur cette machine. De haut en bas :
   contrôle rouge, c'est une pull request rouge) ; la traduction (combien de pages traduites ont été mises à jour, et
   les problèmes signalés par le traducteur) ; les liens à vérifier vous-même, chacun avec les pages qui le citent,
   s'il a été ajouté par cette passe ou était déjà dans le guide, et pourquoi (le site ne répond pas, ou bloque les
-  robots : ouvrez-le dans votre navigateur) ; le poids des pages, avant et après. Chaque page nommée là est un lien
-  qui descend jusqu'à elle.
+  robots : ouvrez-le dans votre navigateur) ; les notes de bas de page des pages modifiées (une note qu'aucune
+  phrase n'appelle, une note appelée et jamais définie, une note définie deux fois : corrigez-la avec « Corriger » ;
+  les notes que la passe a retirées avec leur dernier appel y sont nommées) ; le poids des pages, avant et après.
+  Chaque page nommée là est un lien qui descend jusqu'à elle.
 - **« Les pages modifiées, et leur traduction »** : une ligne par page (son titre, son chemin, son nombre de
   passages, « Corriger », « Retraduire » avec son estimation) ; dépliée, chaque passage de la source à côté de sa
   traduction, un ajout montré comme tel.

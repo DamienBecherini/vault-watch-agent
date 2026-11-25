@@ -14,7 +14,7 @@ import { route } from "./router.js";
 import { bindProof, proofChecks } from "./proofread.js";
 
 export async function viewPublish(r, title) {
-  const P = T.pub, p = { mirror_problems: [], link_problems: [], ...r.pause }, at = `/api/runs/${encodeURIComponent(r.thread)}`;
+  const P = T.pub, p = { mirror_problems: [], link_problems: [], footnote_problems: [], ...r.pause }, at = `/api/runs/${encodeURIComponent(r.thread)}`;
   const linksChecked = p.link_problems !== null;   // null: the guide declares no source audit
   if (!linksChecked) p.link_problems = [];
   const diff = await api(`${at}/diff`).catch(() => "");
@@ -52,6 +52,9 @@ export async function viewPublish(r, title) {
     !linksChecked ? row("–", "info-i", P.links, T.linksNotChecked)
       : links.length ? row("!", "warn-i", P.linksToCheck(links.length), `<ul class="pub-links">${links.join("")}</ul>`)
       : row("✓", "ok-i", P.links, T.linksOk),
+    // The footnotes of the changed pages: broken ones to fix with « Correct », the ones removed with their last citation
+    p.footnote_problems.length ? row("!", "warn-i", P.notesTitle, `<ul>${p.footnote_problems.map(x => `<li>${en(x)}</li>`).join("")}</ul>`)
+      : row("✓", "ok-i", P.notesTitle, (r.notes_removed || []).length ? P.notesRemoved(r.notes_removed.map(esc).join(", ")) : P.notesOk),
     weight ? row("ⓘ", "info-i", P.weightTitle, weight) : "",
     (r.proofread_log || []).length ? row("ⓘ", "info-i", P.proofTitle, r.proofread_log.map(x =>
       P.proofLine(x.checks.map(k => T.languages.check.kinds[k]).join(", "), x.fixes, x.applied)).join("<br>")) : "",

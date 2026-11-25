@@ -192,8 +192,10 @@ machine. From top to bottom:
 - **« Before publishing »**, one check a line: the guide's audits (OK, or the failure with its log: a red audit
   means a red pull request); the translation (how many translated pages were updated, and the translator's
   problems); the links to check yourself, each with the pages that cite it, whether the run added it or it was
-  already in the guide, and why (the site does not answer, or blocks robots: open it in your browser); the weight of
-  the pages, before and after. Each page named there is a link down to it.
+  already in the guide, and why (the site does not answer, or blocks robots: open it in your browser); the
+  footnotes of the changed pages (a note no sentence cites, one cited and never defined, one defined twice: fix it with
+  « Correct »; the notes the run removed with their last citation are named there); the weight of the pages, before
+  and after. Each page named there is a link down to it.
 - **« The pages changed, and their translation »**: one line per page (its title, its path, its number of
   passages, « Correct », « Translate again » with its estimate); unfolded, each passage of the source beside its
   translation, an addition shown as such.

@@ -138,13 +138,30 @@ def translation(deps: Deps, state: WatchState) -> dict:
 
 # -- audits (the guide's own checks, [checks] audits, no model) ---------------
 def audits(deps: Deps, state: WatchState) -> dict:
+    notes = {"footnote_problems": footnote_problems(deps, Path(state["worktree"]))}
     try:
         log = inputs.check("audits", Path(state["worktree"]))
     except RuntimeError as e:
-        return {"audit_ok": False, "audit_log": str(e)[-3000:], "recheck": ""}
+        return {"audit_ok": False, "audit_log": str(e)[-3000:], "recheck": "", **notes}
     if log is None:  # None: not checked (the publish screen says so)
-        return {"audit_ok": None, "audit_log": "not checked: the guide declares no [checks] audits", "recheck": ""}
-    return {"audit_ok": True, "audit_log": log[-3000:], "recheck": ""}
+        return {"audit_ok": None, "audit_log": "not checked: the guide declares no [checks] audits", "recheck": "", **notes}
+    return {"audit_ok": True, "audit_log": log[-3000:], "recheck": "", **notes}
+
+
+def footnote_problems(deps: Deps, wt: Path) -> list[str]:
+    """The footnotes a reader would find broken in the pages of the branch, sources and mirrors (vault.footnote_problems):
+    « page: never cited [^22], [^23] ». The guide's own checks may not look at them; said before the pull request."""
+    out = []
+    for page in git("diff", "--name-only", f"{deps.base}...HEAD", cwd=wt).split():
+        if not page.endswith(".md") or not (wt / page).is_file():
+            continue
+        found = vault.footnote_problems(vault.read(wt / page))
+        said = [f"{what} " + ", ".join(f"[^{n}]" for n in found[key])
+                for key, what in (("never_cited", "never cited"), ("undefined", "cited, never defined"), ("twice", "defined twice"))
+                if found[key]]
+        if said:
+            out.append(f"{page}: {'; '.join(said)}")
+    return out
 
 
 # -- links: the external sources of the changed pages still answer (vault script, no model) --
@@ -195,6 +212,7 @@ def publish(deps: Deps, state: WatchState) -> dict:
             "audit_ok": state["audit_ok"],
             "mirror_problems": state.get("mirror_problems", []),
             "link_problems": state.get("link_problems", []),
+            "footnote_problems": state.get("footnote_problems", []),
             "diffstat": diffstat,
             "local": not deps.repo,  # no repository: the branch stays on this machine
             "question": "Push the branch and open the pull request? yes / no" if deps.repo else
