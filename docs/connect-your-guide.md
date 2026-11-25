@@ -9,7 +9,8 @@ optional part unlocks, and how to check that everything is ready.
 
 What a guide needs, at least: Markdown pages in a git repository (the guide is the root of its repository), and a
 name and a language in its manifest. Everything else is optional; a missing part switches a step off, it never
-makes a run fail.
+makes a run fail. A folder without a manifest is refused, with what to do: `vault-watch init` (the IA on-prem guide,
+which the agent was written for, is the one exception).
 
 ## In three commands
 

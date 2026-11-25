@@ -9,7 +9,13 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   started by hand): the command of `videos.start`, set by hand in `settings.json` only (the page can no longer change
   it, since the agent runs it), without a shell, its port the one of `videos.url` when it names none, in its own
   folder, without the agent's keys and tokens, detached; it stops by itself after its own time without activity. The
-  tab « Links to read whole » says it is stopped and will be started (`videos.py`).
+  tab « Links to read whole » says it is stopped and will be started (`videos.py`). When the program of
+  `videos.start` is not there (dl-sub-dub not installed), the tab says so, with where to get it.
+- **Fixed: a folder without `vault-watch.toml` was taken for the IA on-prem guide**, the guide the agent was written
+  for: its repository, its site and its Node scripts, on anyone's machine. Only that guide is now read without a
+  manifest (by its watch brief and its audits script); any other folder is refused with what to do (`vault-watch
+  init`, then `doctor`), and `doctor` run from a folder of a guide says where its root is (asked by the user,
+  2026-11-25: nothing of the author's machine assumed elsewhere).
 
 ## 1.5.0 (2026-11-25)
 

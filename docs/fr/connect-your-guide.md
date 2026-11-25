@@ -9,7 +9,8 @@ ce que chaque partie facultative débloque, et comment vérifier que tout est pr
 
 Le minimum pour un guide : des pages Markdown dans un dépôt git (le guide est la racine de son dépôt), et un nom et
 une langue dans son manifeste. Tout le reste est facultatif : une partie absente désactive une étape, elle ne fait
-jamais échouer une passe.
+jamais échouer une passe. Un dossier sans manifeste est refusé, avec ce qu'il faut faire : `vault-watch init` (le
+guide IA on-prem, pour lequel l'agent a été écrit, est la seule exception).
 
 ## En trois commandes
 

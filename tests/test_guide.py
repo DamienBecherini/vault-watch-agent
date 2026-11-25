@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from vault_watch_agent import vault
+from test_graph import ia_layout
 from vault_watch_agent.guide import GuideError, legacy, load, matches, parse
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -96,7 +97,7 @@ def test_the_ia_on_prem_manifest(tmp_path):
     assert g.brief == tmp_path / ".agents/skills/vault-watch/brief.md" and g.max_context_tokens is None
     assert "{out}" in g.claims_due and g.version_floors.file.endswith("version-floors.json")
     assert g.watch.feeds == ".agents/vault-maintenance/feeds.json"  # vault-watch collect reads its watch-feeds.mjs feeds
-    assert legacy(tmp_path).pages() == g.pages()  # the manifest says what the agent assumed
+    assert legacy(ia_layout(tmp_path)).pages() == g.pages()  # the manifest says what the agent assumed
 
 
 @pytest.mark.skipif(not (IA_ON_PREM / "00-index.md").is_file(), reason="the IA on-prem guide is not checked out here")
@@ -199,11 +200,11 @@ def test_a_guide_without_rules_gets_the_agent_defaults(tmp_path):
 
 
 def test_each_guide_has_its_working_folder_and_the_old_runs_stay_where_they_are(tmp_path):
-    from vault_watch_agent.guide import working_folder
+    from vault_watch_agent.guide import LEGACY_REPOSITORY, working_folder
     home = tmp_path / "home"
     home.mkdir()
     (home / "checkpoints.sqlite").write_text("", encoding="utf-8")  # runs made before manifests
-    old = legacy(tmp_path / "ia-on-prem-vault")
+    old = legacy(ia_layout(tmp_path / "ia-on-prem-vault"))
     assert working_folder(home, old) == home  # claimed once, recorded in guide.json
     assert working_folder(home, old) == home and (home / "guide.json").is_file()
     sample = parse(minimal(guide={"repository": "someone/notes-guide"}), tmp_path / "notes")
@@ -215,7 +216,7 @@ def test_each_guide_has_its_working_folder_and_the_old_runs_stay_where_they_are(
     fresh = tmp_path / "fresh"
     fresh.mkdir()
     (fresh / "checkpoints.sqlite").write_text("", encoding="utf-8")
-    manifest = parse(minimal(guide={"repository": legacy(tmp_path).repository}), tmp_path / "ia-on-prem-vault")
+    manifest = parse(minimal(guide={"repository": LEGACY_REPOSITORY}), tmp_path / "ia-on-prem-vault")
     assert working_folder(fresh, manifest) == fresh and (fresh / "guide.json").is_file()
 
 
@@ -315,3 +316,14 @@ def test_the_steps_that_write_a_correction_are_told_to_replace_not_pile_up(tmp_p
                                                encoding="utf-8")
     for text in (prompts.propose(tmp_path), prompts.fill(fix.SYSTEM, tmp_path)):
         assert "Replace, do not pile up" in text and "the history stays in Git" in text
+
+
+def test_a_folder_without_manifest_is_not_taken_for_the_ia_on_prem_guide(tmp_path):
+    """Before 1.6.0, any folder without vault-watch.toml was read as the author's guide (his repository, his site,
+    his scripts): now only that guide, by its marks; another one is told to run `vault-watch init`."""
+    (tmp_path / "notes.md").write_text("# Notes\n", encoding="utf-8")
+    with pytest.raises(GuideError, match="vault-watch init"):
+        legacy(tmp_path)
+    with pytest.raises(GuideError, match="not set up as a guide yet"):
+        vault.guide_of(tmp_path)
+    assert legacy(ia_layout(tmp_path)).repository == "DamienBecherini/ia-on-prem-vault"

@@ -58,6 +58,17 @@ def correction(current, proposed, severity="Major", group="", page="03-stack/eng
                       severity=severity, rationale="floor moved", group=group)
 
 
+def ia_layout(root: Path) -> Path:
+    """A bare folder read as the IA on-prem guide without its manifest: its marks (guide.LEGACY_MARKS) laid out."""
+    from vault_watch_agent.guide import LEGACY_MARKS
+
+    for mark in LEGACY_MARKS:
+        (root / mark).parent.mkdir(parents=True, exist_ok=True)
+        if not (root / mark).exists():
+            (root / mark).write_text("", encoding="utf-8")
+    return root
+
+
 class FakeLLM:
     def __init__(self):
         self.calls = []
@@ -243,6 +254,7 @@ def test_review_none_ends_without_branch(setup):
 
 
 def test_check_and_apply_keep_crlf(tmp_path):
+    ia_layout(tmp_path)  # read as the IA on-prem guide, without its manifest
     page = tmp_path / "p.md"
     page.write_bytes(PAGE.replace("\n", "\r\n").encode("utf-8"))
     assert vault.check(tmp_path, "p.md", "Ollama reste") == "ok"
@@ -439,6 +451,7 @@ def test_the_sweep_turns_remaining_values_into_corrections(setup):
 
 
 def test_leftovers_find_variants_and_skip_replaced_text_and_footnotes(tmp_path):
+    ia_layout(tmp_path)  # read as the IA on-prem guide, without its manifest
     page = """---
 title: x
 verified_by: "Relecteur 0.31"
@@ -466,12 +479,14 @@ Ancien texte en 0.31.0 avec CUDA 12.9 et -cu129 et --old-flag.
 
 
 def test_a_value_the_replacement_keeps_is_not_a_leftover(tmp_path):
+    ia_layout(tmp_path)  # read as the IA on-prem guide, without its manifest
     (tmp_path / "p.md").write_text("Texte A en 0.31.\n\nAilleurs 0.31.\n", encoding="utf-8")
     c = {"id": "C1", "page": "p.md", "check": "ok", "current": "Texte A en 0.31.", "proposed": "Texte B, avant la 0.31.0."}
     assert vault.leftovers(tmp_path, [c]) == []
 
 
 def test_unsourced_versions_read_the_footnotes_as_they_will_be(tmp_path):
+    ia_layout(tmp_path)  # read as the IA on-prem guide, without its manifest
     page = """Déployez la 0.31[^1].
 
 Le plancher est 0.31 selon la note[^2].

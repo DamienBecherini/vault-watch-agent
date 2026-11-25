@@ -11,7 +11,7 @@ from vault_watch_agent import config, links, verify, videos
 from vault_watch_agent.web import Settings, create_app
 from fastapi.testclient import TestClient
 
-from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+from test_graph import ia_layout, setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
 RESULT = {
     "url": "https://www.youtube.com/watch?v=AbCdEfGhIjK", "site": "youtube", "video_id": "AbCdEfGhIjK",
@@ -115,6 +115,7 @@ def test_the_settings_name_dl_sub_dub_by_reference(tmp_path):
 
 
 def test_the_links_check_reads_a_video_with_the_reader_of_the_settings(tmp_path, monkeypatch):
+    ia_layout(tmp_path)
     work = tmp_path / "verif"
     work.mkdir()
     (work / "options.json").write_text(json.dumps({"links": ["https://youtu.be/AbCdEfGhIjK"],
@@ -157,7 +158,8 @@ def sleeper(fake, tmp_path, start="D:/dl-sub-dub/.venv/Scripts/python -m subtitl
                          now=lambda: next(ticks))
 
 
-def test_dl_sub_dub_asleep_is_started_when_a_video_is_read(tmp_path):
+def test_dl_sub_dub_asleep_is_started_when_a_video_is_read(tmp_path, monkeypatch):
+    monkeypatch.setattr(videos.shutil, "which", lambda program: program)  # dl-sub-dub installed here
     fake = Asleep()
     reader = sleeper(fake, tmp_path)
     assert reader.status() == {"ready": True, "why": "", "asleep": True}  # the page: it will be started when needed
@@ -206,3 +208,10 @@ def test_the_page_cannot_change_the_command_that_starts_dl_sub_dub(setup, tmp_pa
                headers={"X-Vault-Watch": "1"})
     assert r.status_code == 200
     assert config.load(tmp_path)["videos"]["start"] == "D:/dl/python -m subtitles.web"
+
+
+def test_a_start_command_whose_program_is_missing_is_said(tmp_path):
+    """dl-sub-dub not installed where `videos.start` says: the page says so, and what to do, before a check starts."""
+    state = sleeper(Asleep(), tmp_path, start="D:/nowhere/dl-sub-dub/.venv/Scripts/python -m subtitles.web").status()
+    assert state["ready"] is False and "the program of videos.start is not found" in state["why"]
+    assert "install dl-sub-dub" in state["why"]

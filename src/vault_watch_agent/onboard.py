@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import config, llm
-from .guide import LANGUAGES, MANIFEST, GuideError, Guide, legacy, load, matches
+from .guide import LANGUAGES, MANIFEST, GuideError, Guide, is_legacy, legacy, load, matches, no_manifest
 
 # Folders and files that are tooling, not pages, when the guide has them.
 TOOLING = ("node_modules/**", "build/**", "dist/**", "public/**", "scripts/**", "docs/**", "assets/**")
@@ -214,6 +214,13 @@ def diagnose(root: Path, home: Path, gh_check: bool = True) -> list[Line]:
     """What is ready for a run on the guide in `root`, with the settings in `home`. A `fail` line stops a run."""
     out: list[Line] = []
     if not (root / MANIFEST).is_file():
+        if not is_legacy(root):
+            top = _git(root, "rev-parse", "--show-toplevel")
+            if top and Path(top).resolve() != root.resolve():  # run from a folder of the guide: where its root is
+                return [Line("fail", "manifest", f"no {MANIFEST} here"),
+                        Line("fail", "git", f"the guide is a folder of the repository {top}: it must be the root of "
+                                            f"its own (run vault-watch from {top})")]
+            return [Line("fail", "manifest", no_manifest(root))]
         out.append(Line("warn", "manifest", f"no {MANIFEST}: the guide is read as the IA on-prem guide "
                                             "(`vault-watch init` writes one)"))
         guide = legacy(root)

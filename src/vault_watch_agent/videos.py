@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import os
 import shlex
+import shutil
 import subprocess
 import threading
 import time
@@ -171,6 +172,12 @@ class Videos:
         if health is None:
             if not self.start:
                 return {"ready": False, "why": f"dl-sub-dub does not answer at {self.url}: start it with {GENERIC_START}"}
+            program = command(self.start, self.url)[0][0]
+            if not (shutil.which(program) or Path(program).is_file()):
+                return {"ready": False, "why": f"dl-sub-dub does not answer at {self.url}, and the program of "
+                                               f"videos.start is not found ({program}): install dl-sub-dub "
+                                               f"(https://github.com/DamienBecherini/dl-sub-dub), or correct "
+                                               f"videos.start in settings.json"}
             return {**self._token_state(), "asleep": True}
         if health.get("transcript_contract") != CONTRACT:
             return {"ready": False, "why": f"dl-sub-dub at {self.url} has no route « text of a video » of contract "

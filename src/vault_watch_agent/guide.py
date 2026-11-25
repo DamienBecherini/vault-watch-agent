@@ -274,11 +274,32 @@ def chapters_of(given) -> tuple[Chapter, ...]:
     return tuple(out)
 
 
+LEGACY_REPOSITORY = "DamienBecherini/ia-on-prem-vault"
+# What tells the IA on-prem guide without its manifest: its watch brief and its audits script
+LEGACY_MARKS = (".agents/skills/vault-watch/brief.md", "scripts/run-audits.mjs")
+
+
+def no_manifest(root: Path) -> str:
+    """What is said of a folder that has no manifest and is not the IA on-prem guide."""
+    return (f"no {MANIFEST} in {root}: this folder is not set up as a guide yet. Run `vault-watch init` there: it "
+            f"writes one from what it finds (the pages, their language, the mirrors, the repository), to read over; "
+            f"then `vault-watch doctor`. The format: docs/connect-your-guide.md")
+
+
+def is_legacy(root: Path) -> bool:
+    """Whether a folder without manifest is the IA on-prem guide (the layout the agent was written for)."""
+    return all((root / mark).is_file() for mark in LEGACY_MARKS)
+
+
 def legacy(root: Path) -> Guide:
-    """The IA on-prem guide as the agent assumed it before manifests: kept for a guide without one, until M1 ends."""
+    """The IA on-prem guide as the agent assumed it before manifests: kept for that guide without one. Any other
+    folder without a manifest is refused (GuideError, with what to do): it would be taken for that guide, its
+    repository, its site and its scripts."""
+    if not is_legacy(root):
+        raise GuideError(no_manifest(root))
     rel = lambda p: (root / p) if (root / p).is_file() else None  # noqa: E731
     return Guide(
-        root=root, name="Zero to Hero: On-Premise AI", language="fr", repository="DamienBecherini/ia-on-prem-vault",
+        root=root, name="Zero to Hero: On-Premise AI", language="fr", repository=LEGACY_REPOSITORY,
         description="running AI on-premise for SMEs (hardware sizing, inference engines, models, agents, security)",
         site="https://ia-on-prem.damien.becherini.fr/", base_branch="main",
         exclude=("en/**", "assets/**", "docs/**", "scripts/**", "_private/**", "_templates/**", "build/**",
@@ -336,7 +357,7 @@ def working_folder(home: Path, guide: Guide) -> Path:
         if json.loads(marker.read_text(encoding="utf-8")).get("root") == root:
             return home
     elif (home / "checkpoints.sqlite").is_file() and (
-            not guide.from_manifest or guide.repository == legacy(guide.root).repository):
+            not guide.from_manifest or guide.repository == LEGACY_REPOSITORY):
         marker.write_text(json.dumps({"root": root}), encoding="utf-8")
         return home
     name = guide.repository.replace("/", "-") or guide.root.resolve().name
