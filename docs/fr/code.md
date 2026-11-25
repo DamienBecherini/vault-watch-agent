@@ -37,7 +37,8 @@ flowchart TB
     reading["reading.py<br/><i>tout le guide, ou par chapitre</i>"]
     chapters["chapters.py<br/><i>les chapitres</i>"]
   end
-  subgraph base["Fondations, utilisées par tous"]
+  subgraph base["Fondations communes"]
+    direction TB
     state["state.py<br/><i>état + schémas de sortie</i>"]
     llm["llm.py + engines/<br/><i>les moteurs</i>"]
     config["config.py<br/><i>réglages de l'utilisateur</i>"]
@@ -54,8 +55,8 @@ flowchart TB
   verify --> quotes & compact & news
   news --> compact
   graphpy --> compact
-  steps ==> state & llm & vault & inputs & costs & notify
-  llm --> config
+  steps ====> base
+  state ~~~ llm --> config ~~~ vault ~~~ inputs ~~~ costs ~~~ notify
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
   class llm model
 ```

@@ -39,6 +39,7 @@ flowchart TB
     chapters["chapters.py<br/><i>the chapters</i>"]
   end
   subgraph base["Foundations, used by all"]
+    direction TB
     state["state.py<br/><i>state + output schemas</i>"]
     llm["llm.py + engines/<br/><i>the engines</i>"]
     config["config.py<br/><i>user settings</i>"]
@@ -55,8 +56,8 @@ flowchart TB
   verify --> quotes & compact & news
   news --> compact
   graphpy --> compact
-  steps ==> state & llm & vault & inputs & costs & notify
-  llm --> config
+  steps ====> base
+  state ~~~ llm --> config ~~~ vault ~~~ inputs ~~~ costs ~~~ notify
   classDef model fill:#e2f1f6,stroke:#0a7ea4,color:#0b3a4a
   class llm model
 ```
