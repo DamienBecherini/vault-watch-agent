@@ -3,7 +3,9 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.6.1 (2026-11-25)
+
+The CI green again: its job `lint` checks the types as Linux sees them. Nothing changes in what the agent does.
 
 - **Fixed: the CI's job `lint` failed on Linux** (1.6.0's tests passed everywhere): pyright did not find `pypdf`,
   optional and not installed there (the job now installs the extra `pdf`), and found `subprocess.CREATE_NO_WINDOW`
