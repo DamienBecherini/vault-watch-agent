@@ -35,7 +35,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   lines; a note already uncited before the run is left as it was), and the pull request names them
   (`vault.drop_orphan_notes`). « Before publishing » gets a line « Footnotes »: in the changed pages and their
   mirrors, a note no sentence cites, one cited and never defined, one defined twice (code aside), to fix with
-  « Correct »; the pull request says them too (`graph_publish.footnote_problems`).
+  « Correct »; the pull request says them too (`graph_publish.footnote_problems`). A note cited before a colon
+  (« approximate rule[^1]: ») is a citation: only `[^n]:` at the start of a line defines one (`vault.note_calls`;
+  before, such a note was said never cited, and the apply step could have removed its definition).
+- **A page opened before the server was updated says so** (found at the publish pause of 2026-11-25: a tab opened
+  earlier lacked the line « Footnotes »): each answer of the API carries the version of the page
+  (`X-Vault-Watch-Page`), the page compares it with the one it was served with and offers to reload.
+- **Each test suite ends with a report** (asked by the user, 2026-11-25, to spot a test that fails once in a while):
+  `.pytest-report.md`, not versioned (what failed with the first line of its error, the slowest tests, « failed
+  before, passed now »), and the history of the last 50 suites (`.pytest-history.jsonl`); `tests/report.py`.
 
 ## 1.6.1 (2026-11-25)
 

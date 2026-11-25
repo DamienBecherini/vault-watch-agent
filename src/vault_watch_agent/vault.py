@@ -159,7 +159,8 @@ _VERSION = re.compile(r"(?<![\w.])v?(\d+)\.(\d+)(?:\.\d+)*(?:\.x|rc\d+)?(?!\w)")
 _PRODUCT_MAJOR = re.compile(r"\b([A-Z][A-Za-z]+) ([1-9]\d*)(?:\.\d+)+")  # "CUDA 12.9" also stands for "CUDA 12"
 _IDENTIFIER = re.compile(r"(?<![\w.-])-?([a-z]+\d+[a-z\d]*)(?![\w.])")  # cu129, -cu129
 _FLAG = re.compile(r"--[a-z][a-z-]+")
-_FOOTNOTE_MARK = re.compile(r"\[\^([^\]]+)\](?!:)")
+# A citation of a note: anywhere but at the start of a line followed by « : », which defines it (« rule[^1]: » cites)
+_FOOTNOTE_MARK = re.compile(r"(?<=.)\[\^([^\]]+)\]|^\[\^([^\]]+)\](?!:)", re.M)
 MAX_LEFTOVERS = 80  # lines handed to the model and listed in the report
 CHANGES_PAGE_CHARS = 6000  # of the manifest's changes_page, added to every proposal step's excerpts
 
@@ -169,11 +170,16 @@ _NOTE_DEF = re.compile(r"^\[\^([^\]]+)\]:", re.M)
 _CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)  # a regular expression in code is no footnote
 
 
+def note_calls(text: str) -> set[str]:
+    """The notes `text` cites (a definition « [^n]: » at the start of a line is not a citation)."""
+    return {a or b for a, b in _FOOTNOTE_MARK.findall(text)}
+
+
 def _note_parts(text: str) -> tuple[set[str], list[str]]:
     """(the notes the text cites, the notes it defines, in order, a note defined twice listed twice)."""
     text = _CODE.sub("", text.replace("\r\n", "\n"))
     defined = _NOTE_DEF.findall(text)
-    return set(_FOOTNOTE_MARK.findall(_NOTE_DEF.sub("", text))), defined
+    return note_calls(text), defined
 
 
 def footnote_problems(text: str) -> dict[str, list[str]]:
@@ -273,7 +279,7 @@ def unsourced_versions(vault: Path, corrections: list[dict]) -> dict[str, str]:
             start = before.find(current)
             end = before.find("\n", start + len(current))
             passage = before[before.rfind("\n", 0, start) + 1: end if end >= 0 else len(before)]
-            marks = sorted(set(_FOOTNOTE_MARK.findall(passage)) | set(_FOOTNOTE_MARK.findall(c["proposed"])))
+            marks = sorted(note_calls(passage) | note_calls(c["proposed"]))
             if not marks:
                 continue
             cited: set[str] = set()

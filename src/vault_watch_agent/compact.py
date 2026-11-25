@@ -298,7 +298,7 @@ NOTE_DEF = re.compile(r"^\[\^([^\]]+)\]:", re.M)
 
 def _notes(text: str) -> tuple[set[str], set[str]]:
     """(the notes cited in the text, the notes defined in it)."""
-    return set(vault._FOOTNOTE_MARK.findall(text)), set(NOTE_DEF.findall(text))
+    return vault.note_calls(text), set(NOTE_DEF.findall(text))
 
 
 def _by_group(vault_dir: Path, corrections: list[dict]) -> dict[tuple[str, str], list[dict]]:

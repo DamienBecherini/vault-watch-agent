@@ -39,6 +39,9 @@ def test_the_broken_notes_of_a_page_are_found_code_aside():
     assert vault.footnote_problems(PAGE) == {"never_cited": ["3"], "undefined": [], "twice": []}
     broken = PAGE + "\nVoir aussi[^4].\n\n[^2]: doublon.\n"
     assert vault.footnote_problems(broken) == {"never_cited": ["3"], "undefined": ["4"], "twice": ["2"]}
+    # Cited before a colon (« approximate rule[^3]: », en/choose-your-model.md): a citation, not a definition
+    assert vault.footnote_problems(PAGE + "\nIn Q4_K_M, approximate rule[^3]:\n")["never_cited"] == []
+    assert vault.note_calls("rule[^3]: x\n[^4]: a definition citing[^5]") == {"3", "5"}
 
 
 def test_a_note_goes_with_its_last_citation_only():
@@ -56,6 +59,9 @@ def test_a_note_goes_with_its_last_citation_only():
 
 [^3]: Une note que rien n'appelait déjà.
 """)
+    # A note cited only before a colon is still cited: its definition stays
+    colon = both + "\nApproximate rule[^1]:\n"
+    assert vault.drop_orphan_notes(PAGE, colon) == (colon, [])
     crlf, gone = vault.drop_orphan_notes(PAGE.replace("\n", "\r\n"), both.replace("\n", "\r\n"))
     assert gone == ["1"] and crlf == kept.replace("\n", "\r\n")
 
