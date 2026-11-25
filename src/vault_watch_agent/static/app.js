@@ -282,7 +282,7 @@ const TEXTS = {
       confirmParallel: names => `Une passe est déjà en cours : ${names}.\n\nEn lancer une autre en même temps ? Chacune travaille sur sa propre branche, mais le dépôt du guide n'accepte qu'une pull request à la fois : tu publieras la seconde après la fusion de la première.`,
     },
     loading: "Chargement…",
-    serverDown: "Le serveur ne répond pas : il s'arrête après 1 h d'inactivité. Relance-le (Nouvel onglet, module « Veille du guide IA »), puis recharge la page. Les passes en pause n'ont rien perdu.",
+    serverDown: "Le serveur ne répond pas : il s'est peut-être arrêté après un temps sans activité (`serve --idle-exit`). Relance-le, puis recharge la page. Les passes en pause n'ont rien perdu.",
     statuses: {
       new: "À analyser", running: "En cours", review: "Relecture à faire", retouch: "Retouches possibles", proofread: "Tes modifications relues", translation: "Traduction à relire", publish: "Publication à valider",
       published: "PR créée", "nothing-applied": "Rien appliqué", "not-published": "Non publié", stopped: "Interrompu",

@@ -5,6 +5,8 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- The page in French no longer names the author's own launcher when the server is gone: « the server does not
+  answer, it may have stopped after being idle (`serve --idle-exit`); start it again », as in English.
 - **What you write during a run, proofread when you ask** (proposed by the user: only the translation and the
   guide's checks ran again on an edit by hand, never a check of its facts): at the retouch pause, « I am done » can
   ask for the three checks of the page « Languages » (spelling, facts on the web, consistency with the whole guide)
