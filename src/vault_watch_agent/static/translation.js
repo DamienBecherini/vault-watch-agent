@@ -7,6 +7,7 @@ import { api } from "./api.js";
 import { T } from "./texts.js";
 import { en } from "./explain.js";
 import { wordDiff } from "./diff.js";
+import { alignPairs } from "./pairs.js";
 import { route } from "./router.js";
 
 // --- The source beside its translation (graph.mirror keeps the pairs); editable at the pause of a sync ---------
@@ -15,11 +16,10 @@ const TRANSLATED = {};  // the translations retouched, by run and "<mirror page>
 function pairsBlock(r, editable) {
   const P = T.pairs, mine = TRANSLATED[r.thread] ||= {};
   return `${r.mirror_pairs.filter(x => x.target.length || x.problem).map(x => {
-    const rows = Math.max(x.source.length, x.target.length);
     return `<div class="card pair-page"><div class="header"><code>${esc(x.page)}</code> → <code>${esc(x.mirror)}</code></div>
       ${x.problem ? `<p class="small attention-text">${P.problem}${T.colon}${en(x.problem)}</p>` : ""}
-      ${Array.from({ length: rows }, (_, i) => {
-        const src = x.source[i], tgt = x.target[i], key = `${x.mirror}#${i}`;
+      ${alignPairs(x.source, x.target).map(({ source: src, target: tgt, t }) => {
+        const key = `${x.mirror}#${t}`;  // the edit's own rank in the mirror's list: what the server retouches
         const [sb, sa] = src ? wordDiff(src[0], src[1]) : ["", ""];
         const text = mine[key] ?? tgt?.[1];
         const [tb, ta] = tgt ? wordDiff(tgt[0], text) : ["", ""];

@@ -9,6 +9,7 @@ import { en } from "./explain.js";
 import { costHtml, costOf } from "./steps.js";
 import { changeView } from "./diff.js";
 import { addedPart, highlightEditor, hlNav } from "./editor.js";
+import { alignPairs } from "./pairs.js";
 import { route } from "./router.js";
 import { bindProof, proofChecks } from "./proofread.js";
 
@@ -67,8 +68,7 @@ export async function viewPublish(r, title) {
         <button type="button" class="small-button" data-again="${i}" title="${esc(`${P.again}${price(x) ? ` · ${costOf("mirror", price(x))}` : ""}`)}">↻ ${P.againShort}${
           price(x) ? ` ${costOf("mirror", price(x)) === T.subscription ? `<s class="worth">${price(x)}</s>` : esc(costOf("mirror", price(x)))}` : ""}</button></span></summary>
       <div class="pub-editor" data-editor="${i}" hidden></div>
-      <div class="pub-pairs">${x.mirrors.map(m => Array.from({ length: Math.max(m.source.length, m.target.length) }, (_, k) => {
-        const src = m.source[k], tgt = m.target[k];
+      <div class="pub-pairs">${x.mirrors.map(m => alignPairs(m.source, m.target).map(({ source: src, target: tgt }) => {
         return `<div class="pair"><div><p class="muted small">${T.pairs.source}</p>${src ? changeView(src[0], src[1]) : `<p class="muted small">—</p>`}</div>
           <div><p class="muted small">${T.pairs.target} · <code>${esc(m.mirror)}</code></p>${tgt ? changeView(tgt[0], tgt[1]) : `<p class="muted small">${T.pairs.none}</p>`}</div></div>`;
       }).join("")).join("")}</div></details>`;
