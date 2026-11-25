@@ -3,6 +3,14 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **dl-sub-dub started when a video is to be read** (asked by the user, 2026-11-25: the agent waited for it to be
+  started by hand): the command of `videos.start`, set by hand in `settings.json` only (the page can no longer change
+  it, since the agent runs it), without a shell, its port the one of `videos.url` when it names none, in its own
+  folder, without the agent's keys and tokens, detached; it stops by itself after its own time without activity. The
+  tab « Links to read whole » says it is stopped and will be started (`videos.py`).
+
 ## 1.5.0 (2026-11-25)
 
 What you write during a run, proofread when you ask; the explanations of every pause in the page's language;

@@ -154,8 +154,11 @@ Pour le régler, une fois :
            "start": "D:/dl-sub-dub/.venv/Scripts/python -m subtitles.web"}
 ```
 
-L'onglet « Des liens à lire en entier » dit si dl-sub-dub est prêt. L'agent ne le démarre jamais : arrêté, il est
-dit avec la commande qui le démarre. Quand dl-sub-dub travaille pour un projet de sa propre page, une vidéo est dite
+L'onglet « Des liens à lire en entier » dit si dl-sub-dub est prêt. Arrêté, l'agent le démarre quand une vidéo est
+à lire, avec cette commande (réglée à la main dans `settings.json` seulement : la page ne peut pas la changer,
+puisque l'agent l'exécute) : sans shell, le port de `url` ajouté quand la commande n'en donne pas, un environnement
+sans les clés ni les jetons de l'agent ; dl-sub-dub s'arrête ensuite tout seul après son propre temps sans activité
+(60 minutes par défaut, `--idle`). Sans `start`, c'est dit avec la forme générique de la commande. Quand dl-sub-dub travaille pour un projet de sa propre page, une vidéo est dite
 « occupé », avec le temps restant : relisez le lien plus tard. dl-sub-dub garde ses propres limites (un quota par
 jeton, 3 heures de vidéo au plus, une demande de programme à la fois), et sa page peut arrêter une lecture à tout
 moment.

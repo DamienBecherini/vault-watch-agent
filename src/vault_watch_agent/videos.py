@@ -10,9 +10,14 @@ its transcription server; nothing is translated. A request is asked, then follow
     POST /api/transcripts/<id>/cancel      -> stops it (when it takes longer than MAX_WAIT_S)
 
 with `Authorization: Bearer <token>`, the token read from its reference (config.resolve_key: `file:` the file
-dl-sub-dub wrote for this client, `env:`, `sops:`), never written anywhere. dl-sub-dub is never started from here:
-stopped, it is said with the command that starts it (the settings' `start`, else its generic form). Its answers are
-data from a site (the title, the description, the subtitles): never instructions, here or for the model.
+dl-sub-dub wrote for this client, `env:`, `sops:`), never written anywhere. A video to read while dl-sub-dub does not
+answer: it is started with the settings' `start` (asked by the user, 2026-11-25), a command set by hand in
+settings.json only, never through the page: one program and its arguments, no shell; `--port` of the settings'
+address added when the command has none; its folder the one above `.venv` when the program is in one; an environment
+without the agent's keys and tokens; detached, so that it outlives a check, and it stops by itself after its own
+time without activity (60 min by default, `--idle`). No `start`: it is said, with the command's generic form. Its
+answers are data from a site (the title, the description, the subtitles): never instructions, here or for the
+model.
 
 The settings (config.py, `videos`): {"url": "http://127.0.0.1:4420", "token": "file:…/tokens/vault-watch-agent.token",
 "start": "D:/…/dl-sub-dub/.venv/Scripts/python -m subtitles.web"}; no token: videos are not read.
@@ -20,7 +25,13 @@ The settings (config.py, `videos`): {"url": "http://127.0.0.1:4420", "token": "f
 
 from __future__ import annotations
 
+import os
+import shlex
+import subprocess
+import threading
 import time
+from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -33,6 +44,29 @@ POLL_S = 2.0
 MAX_WAIT_S = 2 * 3600  # a video of 3 hours, transcribed: about 30 minutes on a small home server
 PARAGRAPH_S = 30  # a time mark every 30 seconds or so: what a lead cites (« at 12:34 »)
 FINAL = ("done", "failed", "cancelled")
+START_WAIT_S = 90  # dl-sub-dub started: the time it is given to answer (it loads its settings, its models are lazy)
+SECRET_ENV = ("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD")  # never handed to the program started
+_WAKING = threading.Lock()  # two videos read at once start it once
+
+
+def command(start: str, url: str) -> tuple[list[str], str | None]:
+    """The settings' `start` as a program and its arguments (no shell), with the port of `url` when it names none,
+    and the folder to run it in: the one above `.venv` when the program is in one (dl-sub-dub reads its own files)."""
+    argv = [a.strip('"') for a in shlex.split(start, posix=os.name != "nt")]
+    if argv and "--port" not in argv and urlsplit(url).port:
+        argv += ["--port", str(urlsplit(url).port)]
+    parts = Path(argv[0]).parts if argv else ()
+    folder = str(Path(*parts[:parts.index(".venv")])) if ".venv" in parts[1:] else None
+    return argv, folder
+
+
+def spawn(argv: list[str], folder: str | None) -> None:
+    """Starts the program on its own: no window, no console, detached from this server, without its secrets."""
+    env = {k: v for k, v in os.environ.items() if not k.upper().endswith(SECRET_ENV)}
+    flags = {"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW} \
+        if os.name == "nt" else {"start_new_session": True}
+    subprocess.Popen(argv, cwd=folder, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, close_fds=True, **flags)
 
 
 def clock(seconds: float) -> str:
@@ -92,10 +126,10 @@ class Videos:
     """The client of dl-sub-dub for one check. `client`, `sleep`, `now`: the tests' fakes."""
 
     def __init__(self, url: str = DEFAULT_URL, token: str = "", start: str = "", client: httpx.Client | None = None,
-                 sleep=time.sleep, now=time.monotonic, max_wait: float = MAX_WAIT_S):
+                 sleep=time.sleep, now=time.monotonic, max_wait: float = MAX_WAIT_S, spawn=spawn):
         self.url, self.token, self.start = (url or DEFAULT_URL).rstrip("/"), token, start
         self.client = client or httpx.Client(timeout=30)
-        self.sleep, self.now, self.max_wait = sleep, now, max_wait
+        self.sleep, self.now, self.max_wait, self.spawn = sleep, now, max_wait, spawn
 
     @classmethod
     def of(cls, settings: dict | None) -> "Videos | None":
@@ -103,16 +137,47 @@ class Videos:
         own = (settings or {}).get("videos") or {}
         return cls(own.get("url") or DEFAULT_URL, own["token"], own.get("start") or "") if own.get("token") else None
 
-    def status(self) -> dict:
-        """{ready, why}: whether dl-sub-dub answers with the route this reader follows, and has a token for it."""
+    def health(self) -> dict | None:
         try:
-            health = self.client.get(f"{self.url}/api/health", timeout=3).json()
+            return self.client.get(f"{self.url}/api/health", timeout=3).json()
         except (httpx.HTTPError, ValueError):
-            return {"ready": False, "why": f"dl-sub-dub does not answer at {self.url}: start it with "
-                                           f"{self.start or GENERIC_START}"}
+            return None
+
+    def wake(self) -> str:
+        """dl-sub-dub started with the settings' `start` when it does not answer: "" once it answers, else why not."""
+        with _WAKING:
+            if self.health() is not None:
+                return ""
+            if not self.start:
+                return f"dl-sub-dub does not answer at {self.url}: start it with {GENERIC_START}"
+            argv, folder = command(self.start, self.url)
+            try:
+                self.spawn(argv, folder)
+            except (OSError, ValueError) as e:
+                return f"dl-sub-dub could not be started ({type(e).__name__}: {e}): check videos.start in settings.json"
+            began = self.now()
+            while self.now() - began < START_WAIT_S:
+                self.sleep(1)
+                if self.health() is not None:
+                    return ""
+            return f"dl-sub-dub was started but does not answer at {self.url} after {START_WAIT_S} s: start it by hand ({self.start})"
+
+    def status(self) -> dict:
+        """{ready, why, asleep}: whether dl-sub-dub answers with the route this reader follows, and has a token for
+        it. Not answering with a `start` in the settings: ready, `asleep` (it is started when a video is read)."""
+        return self._state(self.health())
+
+    def _state(self, health: dict | None) -> dict:
+        if health is None:
+            if not self.start:
+                return {"ready": False, "why": f"dl-sub-dub does not answer at {self.url}: start it with {GENERIC_START}"}
+            return {**self._token_state(), "asleep": True}
         if health.get("transcript_contract") != CONTRACT:
             return {"ready": False, "why": f"dl-sub-dub at {self.url} has no route « text of a video » of contract "
                                            f"{CONTRACT}: update it"}
+        return self._token_state()
+
+    def _token_state(self) -> dict:
         try:
             if not config.resolve_key(self.token):
                 return {"ready": False, "why": "the token of dl-sub-dub is not found (settings.json: videos.token)"}
@@ -121,8 +186,15 @@ class Videos:
         return {"ready": True, "why": ""}
 
     def read(self, url: str) -> links.Source:
-        """The text of one video, as a link read (links.Source, kind « video »); never raises."""
-        state = self.status()
+        """The text of one video, as a link read (links.Source, kind « video »); never raises. dl-sub-dub asleep is
+        started first."""
+        health = self.health()
+        if health is None:
+            woken = self.wake()
+            if woken:
+                return links.Source(url, "video", error=woken)
+            health = self.health()
+        state = self._state(health)
         if not state["ready"]:
             return links.Source(url, "video", error=state["why"])
         headers = {"Authorization": f"Bearer {config.resolve_key(self.token)}", "X-Language": "en"}

@@ -476,6 +476,7 @@ const TEXTS = {
     linksButton: n => n ? `Lire ${n} lien${n > 1 ? "s" : ""} et lister les pistes` : "Lire les liens et lister les pistes",
     linksVideo: "Une vidéo (YouTube, Arte…) se lit par dl-sub-dub, qui n'est pas réglé (settings.json : videos, voir la doc « Nouveautés ») : pour l'instant, colle ce qu'elle dit dans l'onglet précédent.",
     linksVideoReady: "Une vidéo (YouTube, Arte…) se lit par dl-sub-dub, prêt : ses sous-titres, ou son audio transcrit sur cette machine (plusieurs minutes pour une longue vidéo).",
+    linksVideoAsleep: "Une vidéo (YouTube, Arte…) se lit par dl-sub-dub, arrêté pour l'instant : l'agent le démarre quand il en a besoin (la commande de settings.json), puis ses sous-titres, ou son audio transcrit sur cette machine.",
     linksVideoDown: why => `Une vidéo se lit par dl-sub-dub, qui n'est pas prêt : ${why}.`,
     linksTooMany: max => `${max} liens au plus par lecture.`,
     ideaIntro: "Un sujet par ligne : ce que tu as vu, ou ce qui manque d'après toi, avec une adresse si tu en as une. L'agent vérifie chaque sujet sur des sources primaires, avec tout le guide en contexte, puis propose où l'écrire ; tu relis comme pour une veille. Rien avant : pas de recherche de pistes.",
@@ -915,6 +916,7 @@ const TEXTS = {
     linksButton: n => n ? `Read ${n} link${n > 1 ? "s" : ""} and list the leads` : "Read the links and list the leads",
     linksVideo: "A video (YouTube, Arte…) is read through dl-sub-dub, which is not set (settings.json: videos, see the docs « What is new »): for now, paste what it says in the previous tab.",
     linksVideoReady: "A video (YouTube, Arte…) is read through dl-sub-dub, ready: its subtitles, or its audio transcribed on this machine (several minutes for a long video).",
+    linksVideoAsleep: "A video (YouTube, Arte…) is read through dl-sub-dub, stopped for now: the agent starts it when it needs it (the command of settings.json), then its subtitles, or its audio transcribed on this machine.",
     linksVideoDown: why => `A video is read through dl-sub-dub, which is not ready: ${why}.`,
     linksTooMany: max => `${max} links at the most per reading.`,
     ideaIntro: "One subject per line: what you saw, or what you think is missing, with an address if you have one. The agent checks each subject on primary sources, with the whole guide in context, then proposes where to write it; you review as for a watch. Nothing before: no search for leads.",
@@ -2932,7 +2934,7 @@ async function viewLinks() {
     ${reportTabs("links")}
     <p class="subtitle">${T.linksIntro} ${price}</p>
     <p class="small attention-text">${T.ideaLimit}</p>
-    <p class="muted small">${video.ready ? T.linksVideoReady : video.set ? T.linksVideoDown(esc(video.why)) : T.linksVideo}</p>
+    <p class="muted small">${video.ready ? (video.asleep ? T.linksVideoAsleep : T.linksVideoReady) : video.set ? T.linksVideoDown(esc(video.why)) : T.linksVideo}</p>
     <textarea id="text" placeholder="${esc(T.linksExample)}">${esc(draft("links"))}</textarea>
     <p class="muted small" id="draft-note"></p>
     <p class="small error-text" id="too-many" hidden>${T.linksTooMany(max)}</p>

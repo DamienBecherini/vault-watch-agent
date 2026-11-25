@@ -149,8 +149,11 @@ To set it up, once:
            "start": "D:/dl-sub-dub/.venv/Scripts/python -m subtitles.web"}
 ```
 
-The tab « Links to read whole » says whether dl-sub-dub is ready. The agent never starts it: stopped, it is said
-with the command that starts it. When dl-sub-dub works for a project of its own page, a video is said « busy », with
+The tab « Links to read whole » says whether dl-sub-dub is ready. Stopped, it is started by the agent when a video is
+to be read, with that command (set by hand in `settings.json` only: the page cannot change it, since the agent runs
+it): no shell, the port of `url` added when the command names none, an environment without the agent's keys and
+tokens; dl-sub-dub then stops by itself after its own time without activity (60 minutes by default, `--idle`).
+Without `start`, it is said with the command's generic form. When dl-sub-dub works for a project of its own page, a video is said « busy », with
 the time left: read the link again later. dl-sub-dub keeps its own limits (a quota per token, 3 hours of video at
 the most, one request of a program at a time), and its page can stop a reading at any time.
 

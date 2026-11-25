@@ -716,6 +716,8 @@ def create_app(settings: Settings) -> FastAPI:
             for kept in ("prices", "steps", "engines", "videos"):  # a page that does not show them does not erase them
                 if given[kept] is None:
                     given[kept] = user_settings.load(cfg_home)[kept]
+            # dl-sub-dub's `start` is a command the agent runs (videos.py): set by hand in settings.json, never here
+            given["videos"] = {**given["videos"], "start": user_settings.load(cfg_home)["videos"]["start"]}
             return settings_view(user_settings.save(cfg_home, given))
         except (user_settings.ConfigError, llm.ModelError) as e:
             raise HTTPException(400, str(e)) from e

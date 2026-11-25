@@ -2,11 +2,16 @@
 dl-sub-dub that answers as the contract says."""
 
 import json
+from pathlib import Path
 
 import httpx
 import pytest
 
 from vault_watch_agent import config, links, verify, videos
+from vault_watch_agent.web import Settings, create_app
+from fastapi.testclient import TestClient
+
+from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
 RESULT = {
     "url": "https://www.youtube.com/watch?v=AbCdEfGhIjK", "site": "youtube", "video_id": "AbCdEfGhIjK",
@@ -125,3 +130,79 @@ def test_the_links_check_reads_a_video_with_the_reader_of_the_settings(tmp_path,
     assert given == {"videos": {"url": "http://127.0.0.1:4420", "token": "env:T"}}
     assert result["links"] == [{"url": "https://youtu.be/AbCdEfGhIjK", "kind": "video", "title": "Talk", "chars": 0,
                                 "cut": False, "error": "dl-sub-dub: no (x)"}]
+
+
+class Asleep(DlSubDub):
+    """A dl-sub-dub that answers only once it was started (`spawn`), or never (`wakes=False`)."""
+
+    def __init__(self, wakes=True, **kw):
+        super().__init__(**kw)
+        self.wakes, self.started = wakes, []
+
+    def spawn(self, argv, folder):
+        self.started.append((argv, folder))
+
+    def __call__(self, r):
+        if not (self.started and self.wakes):
+            raise httpx.ConnectError("refused")
+        return super().__call__(r)
+
+
+def sleeper(fake, tmp_path, start="D:/dl-sub-dub/.venv/Scripts/python -m subtitles.web"):
+    token = tmp_path / "vault-watch-agent.token"
+    token.write_text(fake.token + "\n", encoding="utf-8")
+    ticks = iter(range(0, 10_000, 10))
+    return videos.Videos("http://127.0.0.1:4420", f"file:{token}", start, spawn=fake.spawn,
+                         client=httpx.Client(transport=httpx.MockTransport(fake)), sleep=lambda s: None,
+                         now=lambda: next(ticks))
+
+
+def test_dl_sub_dub_asleep_is_started_when_a_video_is_read(tmp_path):
+    fake = Asleep()
+    reader = sleeper(fake, tmp_path)
+    assert reader.status() == {"ready": True, "why": "", "asleep": True}  # the page: it will be started when needed
+    assert fake.started == []  # asking whether it can read starts nothing
+    got = reader.read("https://youtu.be/AbCdEfGhIjK")
+    assert got.error == "" and got.title == "Alpha 4 on a 24 GB card"
+    # Started once, without a shell, its port the settings' one, in its own folder (the one above .venv)
+    assert fake.started == [(["D:/dl-sub-dub/.venv/Scripts/python", "-m", "subtitles.web", "--port", "4420"],
+                             str(Path("D:/dl-sub-dub")))]
+    reader.read("https://youtu.be/AbCdEfGhIjK")
+    assert len(fake.started) == 1  # it answers now: not started again
+
+
+def test_what_is_said_when_dl_sub_dub_cannot_be_started(tmp_path):
+    url = "https://youtu.be/AbCdEfGhIjK"
+    never = Asleep(wakes=False)
+    assert sleeper(never, tmp_path).read(url).error == (
+        "dl-sub-dub was started but does not answer at http://127.0.0.1:4420 after 90 s: start it by hand "
+        "(D:/dl-sub-dub/.venv/Scripts/python -m subtitles.web)")
+
+    def refused(argv, folder):
+        raise FileNotFoundError(2, "No such file", argv[0])
+    broken = sleeper(Asleep(), tmp_path)
+    broken.spawn = refused
+    assert broken.read(url).error.startswith("dl-sub-dub could not be started (FileNotFoundError")
+    nothing = sleeper(Asleep(), tmp_path, start="")
+    assert nothing.read(url).error.startswith("dl-sub-dub does not answer at http://127.0.0.1:4420: start it with <dl-sub-dub's")
+    assert nothing.status()["ready"] is False
+
+
+def test_the_start_command_is_split_without_a_shell():
+    argv, folder = videos.command('"C:/Program Files/dl/.venv/Scripts/python.exe" -m subtitles.web --port 4500 --idle 30',
+                                  "http://127.0.0.1:4420")
+    assert argv == ["C:/Program Files/dl/.venv/Scripts/python.exe", "-m", "subtitles.web", "--port", "4500", "--idle", "30"]
+    assert folder == str(Path("C:/Program Files/dl"))  # the port it names is kept
+    assert videos.command("subtitles-web", "http://127.0.0.1:4421") == (["subtitles-web", "--port", "4421"], None)
+    assert videos.command("python -m x; rm -rf /", "http://127.0.0.1:4420")[0][:4] == ["python", "-m", "x;", "rm"]  # no shell: words
+
+
+def test_the_page_cannot_change_the_command_that_starts_dl_sub_dub(setup, tmp_path):  # noqa: F811
+    deps, _, _ = setup
+    config.save(tmp_path, {"videos": {"url": "http://127.0.0.1:4420", "token": "env:T", "start": "D:/dl/python -m subtitles.web"}})
+    c = TestClient(create_app(Settings(vault=deps.vault, home=deps.home, journal=tmp_path / "usage.jsonl",
+                                       make_deps=lambda thread, kind: deps, list_issues=lambda: [], config_home=tmp_path)))
+    r = c.post("/api/settings", json={"videos": {"url": "http://127.0.0.1:4420", "token": "env:T", "start": "calc.exe"}},
+               headers={"X-Vault-Watch": "1"})
+    assert r.status_code == 200
+    assert config.load(tmp_path)["videos"]["start"] == "D:/dl/python -m subtitles.web"
