@@ -96,6 +96,8 @@ guide without that script has nothing to analyse.
 ## Phase 3. Models through a port (large)
 
 `llm.py` already has the shape: one `parse(system, prompt, schema, effort, node, context, web)` and two classes.
+(Since 1.6.0, `llm.py` keeps only that contract and the choice of an engine; each engine has its own module:
+`engines/api.py`, `engines/claude_code.py`, `openai_compat.py`.)
 What is missing is saying what an engine can do, and adapting the steps to it.
 
 - **Capabilities declared by each engine**: context window, structured output (native or by instruction),

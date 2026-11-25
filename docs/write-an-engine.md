@@ -13,6 +13,11 @@ An engine is what calls a model for the agent. The agent ships three:
 To reach another model, you can write an engine in a package of your own. The agent finds it when it is installed,
 and its Settings then offer it like the others.
 
+The three built-in engines keep the same contract. `api` and `claude-code` each have a module in
+[`src/vault_watch_agent/engines/`](../src/vault_watch_agent/engines/), `openai` is
+[`openai_compat.py`](../src/vault_watch_agent/openai_compat.py); each module declares its `KIND`, which
+`llm.engines()` lists. An engine shipped with the agent is one more module in `engines/` with its `KIND`.
+
 ## What the graph asks of an engine
 
 One method, `parse`, called once per step. It returns the model's answer as an object of the step's schema, and the
@@ -44,6 +49,9 @@ The protocol is `llm.Engine`, and the contract below checks it. `parse` must:
   - the model refused, or its answer was cut;
   - the server cannot be reached.
 
+`Engine` also names `prices` (the user's price table) and `for_step(step)` (the client that runs a step). Both
+come with `_Journal`: an engine that subclasses it needs nothing more for them.
+
 `capabilities()` says what the steps can rely on. It returns an `llm.Capabilities`:
 
 | Field | Values |
@@ -51,7 +59,9 @@ The protocol is `llm.Engine`, and the contract below checks it. `parse` must:
 | `context` | The tokens a call can read. A guide bigger than this, less a reserve, is cross-checked chapter by chapter. |
 | `structured` | `native` (the server enforces the schema) or `instruction` (the schema is in the prompt). |
 | `web` | `native` (the provider's own tools), `tools` (the agent's search and page reading), `fetch` (pages only) or `none`. The steps that check on the web say what they lack. |
+| `web_reading` | `page` (the model reads the fetched page itself) or `summary` (a smaller model reports on it). |
 | `efforts` | The effort levels the engine sends; `()` when it sends none. |
+| `caching` | `True` when a context shared by several calls is read from a cache, at a lower price. |
 | `billing` | `token`, `subscription` or `none` (a local model). The page shows the cost of an action accordingly. |
 | `exact_count` | `True` when `count_tokens(text)` counts exactly; else the agent estimates. |
 

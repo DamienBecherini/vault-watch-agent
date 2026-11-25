@@ -16,6 +16,30 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   manifest (by its watch brief and its audits script); any other folder is refused with what to do (`vault-watch
   init`, then `doctor`), and `doctor` run from a folder of a guide says where its root is (asked by the user,
   2026-11-25: nothing of the author's machine assumed elsewhere).
+- **The code split by area and checked by ruff, pyright and TypeScript (1.6.0 quality pass); what it does is
+  unchanged.** `web.py` (1,886 lines) is now 83: `create_app` builds the app from one router per area of the page, in
+  the new package `routes/` (`context.py` holds what they share, `AppContext`; `security.py` the local-only middleware
+  and the headers of every answer). `graph.py` (1,058 lines) is now 94: `build` binds nodes written as functions
+  `node(deps, state)` with `functools.partial`, in `graph_proposals.py`, `graph_review.py` and `graph_publish.py`, with
+  `graph_corrections.py`, `graph_text.py` and `graph_common.py` beside them; no node is a closure of `build` any more.
+  `llm.py` (679 lines) is now 442 and keeps the contract: the `LLM` and `Engine` protocols (which now name `web`,
+  `for_step`, `run`, `kind` and `prices`), `ModelError`, `Capabilities`, `_Journal`, `EngineKind`, `create`; each
+  engine has its own module with its `KIND`: `engines/api.py`, `engines/claude_code.py`, and `openai_compat.py` where
+  it was. The old names are still imported from `web`, `graph` and `llm`. The page's `app.js` (3,420 lines) is split
+  into ES modules by area (31 scripts in all), each with `// @ts-check`; `index.html` loads `app.js` as a module, which
+  imports the others, and `boot.js` stays a classic script before the first paint. Nothing is built: the files are
+  served as they are, with `Cache-Control: no-cache`. ruff (its rules in `[tool.ruff]`, lines of 160) and pyright
+  (basic, `[tool.pyright]`) are clean on all of `src`; CI runs them in a job `lint`, and TypeScript on the page
+  (`jsconfig.json`, `types/page.d.ts`) in a job `page`; `pip install -e ".[dev]"` brings ruff and pyright. Checked:
+  the same 61 routes before and after, their answers compared; the compiled graph identical; the 384 tests passing.
+  [How the code fits together](docs/code.md) maps the new modules, with the commands to run the checks locally.
+- **Fixed: a passage of the source without a translation shifted every row after it**, at the translation pause of
+  a « Sync the languages » run and on the publish screen. The passages that changed in a source page and the
+  translator's edits of its mirror were paired by their rank: after a passage the translator left alone (the mirror
+  already said it, or its edit could not be placed), each row showed a source beside the translation of another
+  passage. `static/pairs.js` (`alignPairs`) now puts each edit beside the passage it translates, judged by what a
+  translation keeps (numbers, links, code, names); a passage without one says « Nothing translated for this passage »
+  (`tests/test_pairs.py`, run with node). `tests/test_rules.py` now runs `rules.js` as the ES module it is.
 
 ## 1.5.0 (2026-11-25)
 

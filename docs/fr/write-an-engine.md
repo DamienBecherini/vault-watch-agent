@@ -13,6 +13,11 @@ Un moteur, c'est ce qui appelle un modèle pour l'agent. L'agent en fournit troi
 Pour atteindre un autre modèle, vous pouvez écrire un moteur dans un paquet à vous. L'agent le trouve dès qu'il est
 installé, et ses Réglages le proposent alors comme les autres.
 
+Les trois moteurs fournis tiennent le même contrat. `api` et `claude-code` ont chacun un module dans
+[`src/vault_watch_agent/engines/`](../../src/vault_watch_agent/engines/), `openai` est
+[`openai_compat.py`](../../src/vault_watch_agent/openai_compat.py) ; chaque module déclare son `KIND`, que
+`llm.engines()` liste. Un moteur fourni avec l'agent, c'est un module de plus dans `engines/` avec son `KIND`.
+
 ## Ce que le graphe demande à un moteur
 
 Une méthode, `parse`, appelée une fois par étape. Elle rend la réponse du modèle sous la forme d'un objet du schéma
@@ -44,6 +49,9 @@ Le protocole est `llm.Engine`, et le contrat ci-dessous le vérifie. `parse` doi
   - le modèle a refusé, ou sa réponse a été coupée ;
   - le serveur est injoignable.
 
+`Engine` nomme aussi `prices` (la table des prix de l'utilisateur) et `for_step(step)` (le client qui fait tourner
+une étape). Les deux viennent avec `_Journal` : un moteur qui en hérite n'a rien de plus à écrire pour eux.
+
 `capabilities()` dit sur quoi les étapes peuvent compter. Elle rend un `llm.Capabilities` :
 
 | Champ | Valeurs |
@@ -51,7 +59,9 @@ Le protocole est `llm.Engine`, et le contrat ci-dessous le vérifie. `parse` doi
 | `context` | Les tokens qu'un appel peut lire. Un guide plus grand, moins une réserve, est relu chapitre par chapitre. |
 | `structured` | `native` (le serveur impose le schéma) ou `instruction` (le schéma est dans les consignes). |
 | `web` | `native` (les outils du fournisseur), `tools` (la recherche et la lecture de pages de l'agent), `fetch` (des pages seulement) ou `none`. Les étapes qui vérifient sur le web disent ce qui leur manque. |
+| `web_reading` | `page` (le modèle lit lui-même la page récupérée) ou `summary` (un modèle plus petit en rend compte). |
 | `efforts` | Les niveaux d'effort que le moteur envoie ; `()` quand il n'en envoie aucun. |
+| `caching` | `True` quand un contexte partagé par plusieurs appels est lu dans un cache, à un prix moindre. |
 | `billing` | `token`, `subscription` ou `none` (un modèle local). La page affiche le coût d'une action en conséquence. |
 | `exact_count` | `True` quand `count_tokens(texte)` compte exactement ; sinon l'agent estime. |
 

@@ -304,11 +304,11 @@ as if `propose` had run, a « Languages » run after `apply` (it skips the retou
 | :-- | :-- | :-- |
 | `StateGraph` over a `TypedDict` state | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | One node per step; the state holds plain JSON so a paused run can be stored |
 | Reducers (`Annotated[list, operator.add]`) | `state.py` | Parallel branches append their proposals and their usage without overwriting each other |
-| `Send` fan-out from a conditional edge | `fan_out` in `graph.py` | One `propose` branch per group of items, run in parallel |
+| `Send` fan-out from a conditional edge | `fan_out` in [`graph_proposals.py`](src/vault_watch_agent/graph_proposals.py) | One `propose` branch per group of items, run in parallel |
 | `interrupt()` and `Command(resume=…)` | `review`, `retouch`, `proofread_review`, `translation` and `publish` nodes | The five human pauses; your answer is the value `interrupt()` returns. A node that resumes runs again from its start, so the model calls a pause shows sit in the node before it (`report`, `proofread`) |
-| `SqliteSaver` checkpointer, one thread per run | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` and `resume` are separate processes, days apart; the web page and the command line share the runs |
+| `SqliteSaver` checkpointer, one thread per run | [`cli.py`](src/vault_watch_agent/cli.py), [`routes/context.py`](src/vault_watch_agent/routes/context.py) | `run` and `resume` are separate processes, days apart; the web page and the command line share the runs |
 | `update_state(…, as_node=…)` | [`fix.py`](src/vault_watch_agent/fix.py), [`mirrors.py`](src/vault_watch_agent/mirrors.py) | A fix, addition or compaction run makes its own proposals, then enters the graph as if `propose` had run; a « Languages » run enters after `apply` |
-| `stream(stream_mode="updates")` | `web.py` | Each finished step is pushed to the page (server-sent events) |
+| `stream(stream_mode="updates")` | `routes/context.py` | Each finished step is pushed to the page (server-sent events) |
 
 Every model call answers into a Pydantic model (structured output). More than 350 tests (pytest) run the whole graph against
 a fake model and a throwaway git repository; an engine contract checks any engine. How the modules fit together:
@@ -342,14 +342,14 @@ a fake model and a throwaway git repository; an engine contract checks any engin
 
 ```
 src/vault_watch_agent/
-  graph.py       the graph: nodes, edges, the human pauses, report and pull request text
+  graph.py       the graph: its nodes and edges; graph_*.py the nodes by part of the run, the report and pull request text
   state.py       graph state and the structured outputs the model must answer with (Pydantic)
   guide.py       the guide as its manifest describes it (vault-watch.toml)
   vault.py       pages: search, exact-quote check, apply an edit, the whole guide for the cross-check
   quotes.py      the passage a finding is about; retouch.py the pause to retouch, your folder lent to Obsidian
   mirrors.py     what changed in a page, passage by passage; proofread.py your edits proofread (before a sync, in a run)
   chapters.py    the chapters of a guide; reading.py the guide read whole, or chapter by chapter
-  llm.py         the engines (Claude API, Claude Code, plug-ins); openai_compat.py the OpenAI-compatible one
+  llm.py         the engines' contract (plug-ins too); engines/ the Claude API and Claude Code; openai_compat.py the OpenAI-compatible one
   webtools.py    web search and page reading for the engines without a web of their own, and for Claude Code (mcp_fetch.py)
   steps.py       each step that calls the model: its role, its effort, what it needs
   forge.py       GitHub (gh) and Gitea (API): issues, artifacts, pull requests
@@ -362,7 +362,8 @@ src/vault_watch_agent/
   prompts.py     system prompts, from the guide's brief and translation policy
   config.py      the user's settings; prices.py, costs.py what the calls cost
   store.py       the runs database kept light; notify.py desktop notifications
-  onboard.py     init and doctor; cli.py the command line; web.py the server, static/ its page (no build step)
+  onboard.py     init and doctor; cli.py the command line; web.py the server, routes/ its routes by area
+  static/        the page: ES modules served as they are (no build step), checked by TypeScript (jsconfig.json, types/)
 tests/           fake model, throwaway git repository, engine contract
 examples/        a sample guide and its manifest
 metrics/         the reference guide's cost journal and evaluation results

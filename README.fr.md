@@ -316,11 +316,11 @@ laissent passer la passe.*
 | :-- | :-- | :-- |
 | `StateGraph` sur un état `TypedDict` | [`graph.py`](src/vault_watch_agent/graph.py), [`state.py`](src/vault_watch_agent/state.py) | Un nœud par étape ; l'état ne contient que du JSON, pour qu'une passe en pause puisse être stockée |
 | Réducteurs (`Annotated[list, operator.add]`) | `state.py` | Les branches parallèles ajoutent leurs propositions et leur usage sans s'écraser |
-| `Send` depuis une arête conditionnelle | `fan_out` dans `graph.py` | Une branche `propose` par groupe d'éléments, en parallèle |
+| `Send` depuis une arête conditionnelle | `fan_out` dans [`graph_proposals.py`](src/vault_watch_agent/graph_proposals.py) | Une branche `propose` par groupe d'éléments, en parallèle |
 | `interrupt()` et `Command(resume=…)` | nœuds `review`, `retouch`, `proofread_review`, `translation` et `publish` | Les cinq pauses humaines ; votre réponse est la valeur que renvoie `interrupt()`. Un nœud qui reprend repart de son début : les appels au modèle qu'une pause montre sont dans le nœud d'avant (`report`, `proofread`) |
-| Checkpointer `SqliteSaver`, un fil par passe | [`cli.py`](src/vault_watch_agent/cli.py), [`web.py`](src/vault_watch_agent/web.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passes |
+| Checkpointer `SqliteSaver`, un fil par passe | [`cli.py`](src/vault_watch_agent/cli.py), [`routes/context.py`](src/vault_watch_agent/routes/context.py) | `run` et `resume` sont des processus distincts, à des jours d'écart ; la page web et la ligne de commande partagent les passes |
 | `update_state(…, as_node=…)` | [`fix.py`](src/vault_watch_agent/fix.py), [`mirrors.py`](src/vault_watch_agent/mirrors.py) | Une passe de correction, d'ajouts ou de compactage fait ses propres propositions, puis entre dans le graphe comme si `propose` avait tourné ; une passe « Langues » entre après `apply` |
-| `stream(stream_mode="updates")` | `web.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
+| `stream(stream_mode="updates")` | `routes/context.py` | Chaque étape terminée est envoyée à la page (server-sent events) |
 
 Chaque appel au modèle répond dans un modèle Pydantic (sortie structurée). Plus de 350 tests (pytest) font tourner tout le
 graphe avec un faux modèle et un dépôt git jetable ; un contrat de moteur vérifie n'importe quel moteur. Comment les
@@ -357,14 +357,14 @@ modules s'emboîtent : [docs/fr/code.md](docs/fr/code.md).
 
 ```
 src/vault_watch_agent/
-  graph.py       le graphe : nœuds, arêtes, les pauses humaines, texte du rapport et de la pull request
+  graph.py       le graphe : ses nœuds et ses arêtes ; graph_*.py les nœuds par partie de la passe, le texte du rapport et de la pull request
   state.py       état du graphe et sorties structurées imposées au modèle (Pydantic)
   guide.py       le guide tel que son manifeste le décrit (vault-watch.toml)
   vault.py       les pages : recherche, contrôle de citation exacte, application d'une modification, tout le guide
   quotes.py      le passage dont parle un constat ; retouch.py la pause pour retoucher, votre dossier prêté à Obsidian
   mirrors.py     ce qui a changé dans une page, passage par passage ; proofread.py vos modifications relues (avant une synchro, dans une passe)
   chapters.py    les chapitres d'un guide ; reading.py le guide lu en entier, ou chapitre par chapitre
-  llm.py         les moteurs (API Claude, Claude Code, extensions) ; openai_compat.py celui compatible OpenAI
+  llm.py         le contrat des moteurs (extensions comprises) ; engines/ l'API Claude et Claude Code ; openai_compat.py celui compatible OpenAI
   webtools.py    recherche web et lecture de pages pour les moteurs qui n'ont pas de web à eux, et pour Claude Code (mcp_fetch.py)
   steps.py       chaque étape qui appelle le modèle : son rôle, son effort, ce dont elle a besoin
   forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
@@ -377,7 +377,8 @@ src/vault_watch_agent/
   prompts.py     consignes au modèle, tirées de la consigne éditoriale et de la politique de traduction du guide
   config.py      les réglages de l'utilisateur ; prices.py, costs.py ce que coûtent les appels
   store.py       la base des passes gardée légère ; notify.py les notifications du bureau
-  onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, static/ sa page (sans build)
+  onboard.py     init et doctor ; cli.py la ligne de commande ; web.py le serveur, routes/ ses routes par domaine
+  static/        la page : des modules ES servis tels quels (sans build), vérifiés par TypeScript (jsconfig.json, types/)
 tests/           faux modèle, dépôt git jetable, contrat de moteur
 examples/        un guide d'exemple et son manifeste
 metrics/         journal des coûts et résultats d'évaluation du guide de référence
