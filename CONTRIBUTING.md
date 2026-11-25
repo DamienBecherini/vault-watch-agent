@@ -32,6 +32,11 @@ installed on the machine (or `$VW_CHROME`), on the throwaway guide and the fake 
 extra `e2e` (`pip install -e ".[dev,e2e]"`, no browser download) and take about 15 seconds; without Chrome they are
 skipped. Run them when you touch the page.
 
+Each suite ends with a short report and writes `.pytest-report.md` (not versioned): what failed with the first
+line of its error, the slowest tests, and « failed before, passed now », the tests that failed in one of the last
+suites run with the same markers (kept in `.pytest-history.jsonl`). A test that fails once in a while shows itself
+there even when the run after passes ([`tests/report.py`](tests/report.py)).
+
 CI checks the types on Linux: on another system, add `--pythonplatform Linux` to the pyright line to see what it
 sees (and install the extra `pdf`, whose `pypdf` it reads).
 

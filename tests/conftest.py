@@ -7,6 +7,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+# The report of the suite, .pytest-report.md, and its history (report.py): hooks of pytest, imported to be found here
+from report import pytest_runtest_logreport, pytest_sessionstart, pytest_terminal_summary  # noqa: F401
+
 SAMPLE = Path(__file__).resolve().parent.parent / "examples" / "sample-guide"
 
 _get = TestClient.get
