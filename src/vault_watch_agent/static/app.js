@@ -332,6 +332,7 @@ const TEXTS = {
     pagesToWrite: n => n ? `${n} piste(s) demanderaient une page à elles. À toi de décider de les écrire :` : "Aucune de ses pistes n'en demandait une.",
     retouch: "Retoucher", retouchBack: "Revenir à la proposition", retouched: "retouchée",
     retouchHelp: "Ton texte remplace la proposition. Les contrôles gratuits le revérifient ; aucun modèle n'est rappelé. La proposition reste dans le rapport.",
+    editable: "✏️ Ce texte sera appliqué : tu peux le modifier ici",
     retouchProblem: check => `ne s'appliquera pas : ${check}`, retouchChecking: "vérification…",
     reviewHelp: "Coche ce qui doit être appliqué. Les corrections liées (une phrase et sa note, par exemple) forment un groupe : elles se cochent ensemble. Un groupe dont un membre ne peut pas s'appliquer est écarté en entier.",
     group: g => `Groupe ${g}`, groupLeftOut: " · écarté : un membre ne s'applique pas",
@@ -770,6 +771,7 @@ const TEXTS = {
     pagesToWrite: n => n ? `${n} lead(s) would need a page of their own. Writing them is your decision:` : "None of its leads asked for one.",
     retouch: "Retouch", retouchBack: "Back to the proposal", retouched: "retouched",
     retouchHelp: "Your text replaces the proposal. The free checks run again on it; no model is called again. The proposal stays in the report.",
+    editable: "✏️ This text will be applied: you can change it here",
     retouchProblem: check => `will not apply: ${check}`, retouchChecking: "checking…",
     reviewHelp: "Tick what should be applied. Related corrections (a sentence and its footnote, for instance) form a group and are ticked together. A group with a member that cannot apply is left out whole.",
     group: g => `Group ${g}`, groupLeftOut: " · left out: a member does not apply",
@@ -1181,6 +1183,8 @@ document.addEventListener("click", e => {
     if (menu.open && !(narrow && menu.id === "watch-menu") && (!menu.contains(e.target) || e.target.closest("a"))) menu.open = false;
   });
   if (e.target.closest("#header-menu a")) foldHeader();   // a page chosen in the folded menu: it closes
+  const named = e.target.closest(".edit-label");   // the line above an editable box: into the box, nothing ticked
+  if (named?.nextElementSibling?.matches("textarea")) { e.preventDefault(); named.nextElementSibling.focus(); }
 });
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
@@ -1818,7 +1822,7 @@ function correctionCard(c, r) {
       <div data-diff="${c.id}">${changeView(c.current, text)}</div>
       ${c.retouchable ? `<div class="retouch" data-retouch="${c.id}" ${mine === undefined ? "hidden" : ""}>
         <p class="muted small">${T.retouchHelp}</p>
-        <textarea data-text="${c.id}" lang="fr" spellcheck="true">${esc(text)}</textarea>
+        <textarea class="editable" data-text="${c.id}" lang="fr" spellcheck="true">${esc(text)}</textarea>
         <p class="small"><span data-retouch-state="${c.id}"></span>
           <button type="button" class="small-button" data-retouch-back="${c.id}">${T.retouchBack}</button></p></div>` : ""}
       <div class="muted small">${sources ? `${T.from} ${sources} · ` : ""}${c.source_url ? `${extLink(c.source_url, "source")}` : ""}
@@ -2144,7 +2148,7 @@ function pairsBlock(r, editable) {
           <div><p class="muted small">${P.source}</p>${src ? `<div class="diff before" lang="fr">${sb}</div><div class="diff after" lang="fr">${sa || `<span class="muted">${P.removed}</span>`}</div>` : `<p class="muted small">—</p>`}</div>
           <div><p class="muted small">${P.target}${tgt?.[2] ? ` · <span class="badge ok">${P.retouched}</span>` : ""}</p>${tgt ? `<div class="diff before" lang="en">${tb}</div>
             <div class="diff after" lang="en" data-pair-after="${esc(key)}">${ta || `<span class="muted">${P.removed}</span>`}</div>
-            ${editable && tgt[1].trim() ? `<textarea data-pair="${esc(key)}" lang="en" spellcheck="true">${esc(text)}</textarea>` : ""}` : `<p class="muted small">${P.none}</p>`}</div>
+            ${editable && tgt[1].trim() ? `<span class="edit-label">${T.editable}</span><textarea class="editable" data-pair="${esc(key)}" lang="en" spellcheck="true">${esc(text)}</textarea>` : ""}` : `<p class="muted small">${P.none}</p>`}</div>
         </div>`;
       }).join("")}</div>`;
   }).join("")}`;
@@ -3240,8 +3244,8 @@ function fixesHtml(fixes, notes) {
             f.source_url ? ` · ${extLink(f.source_url, C.source)}` : ""}${
             ok ? "" : ` · <span class="attention-text">${C.notFound}</span>`}${
             over ? ` · <span class="attention-text">${C.overlaps(f.overlaps.join(", "))}</span>` : ""}</p>
-          <div class="diff before">${before}</div><div class="diff after">${after || `<span class="muted">—</span>`}</div>
-          ${ok ? `<textarea data-fix-text="${esc(f.id)}" spellcheck="true">${esc(f.proposed)}</textarea>` : ""}</div></label>`; }).join("")}
+          <div class="diff before">${before}</div><div class="diff after" data-fix-after="${esc(f.id)}">${after || `<span class="muted">—</span>`}</div>
+          ${ok ? `<span class="edit-label">${T.editable}</span><textarea class="editable" data-fix-text="${esc(f.id)}" spellcheck="true">${esc(f.proposed)}</textarea>` : ""}</div></label>`; }).join("")}
     </div>`).join("")}
     ${notes.length ? `<p class="small"><b>${C.notes}</b></p><ul class="small">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}`;
 }
@@ -3254,7 +3258,7 @@ function bindFixes(fixes, onChange) {
     const f = fixes.find(x => x.id === t.dataset.fixText);
     const fit = () => { t.style.height = "auto"; t.style.height = `${t.scrollHeight + 4}px`; };
     fit();
-    t.oninput = () => { t.previousElementSibling.innerHTML = wordDiff(f.current, t.value)[1]; fit(); };
+    t.oninput = () => { page.querySelector(`[data-fix-after="${CSS.escape(f.id)}"]`).innerHTML = wordDiff(f.current, t.value)[1]; fit(); };
   });
   const edits = () => Object.fromEntries(ids().map(id => [id, page.querySelector(`[data-fix-text="${CSS.escape(id)}"]`)?.value])
     .filter(([id, text]) => text != null && text !== fixes.find(x => x.id === id).proposed));
