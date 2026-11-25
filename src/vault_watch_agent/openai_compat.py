@@ -22,7 +22,7 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from . import config
-from .llm import Capabilities, ModelError, _Journal, shift_effort
+from .llm import Capabilities, EngineKind, ModelError, _Journal, shift_effort
 from .webtools import Budget, WebTools
 
 T = TypeVar("T", bound=BaseModel)
@@ -321,3 +321,16 @@ def list_models(options: dict, http: httpx.Client | None = None) -> list[dict]:
              "priced": options["billing"] == "local"}
             for m in found if isinstance(m, dict) and m.get("id")]
 
+
+def _options(settings: dict) -> dict:
+    return (settings.get("engines") or {}).get(NAME) or {}
+
+
+def _make(role: str, journal: Path | None, settings: dict) -> OpenAICompatible:
+    options = _options(settings)
+    return OpenAICompatible((options.get("models") or {}).get(role, ""), options, journal)
+
+
+KIND = EngineKind(NAME, "OpenAI-compatible server", _make, models=lambda settings: list_models(_options(settings)),
+                  check=check_options, model_of=lambda settings, role: _options(settings).get("models", {}).get(role, ""),
+                  options=OPTIONS)
