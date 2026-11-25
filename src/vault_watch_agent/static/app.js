@@ -1,7 +1,7 @@
 // @ts-check
 /* vault-watch: the page's entry module (index.html loads it with type="module"). One screen per pause of the graph:
    the server holds every state (checkpoints), this page only shows it and sends the human's answers. Interface in
-   French or English (toggle in the header, remembered); the guide's own text stays in French.
+   French or English (toggle in the header, remembered); the guide's own text stays in its languages.
    Each module imports what it uses from the others:
    - util.js: the helpers of every screen ($, esc, links, a help bubble, the room for a bar, a screen followed)
    - api.js: the calls of the server's API, and what the server says of itself (/api/info)

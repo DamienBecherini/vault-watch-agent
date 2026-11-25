@@ -37,8 +37,8 @@ def test_every_call_of_the_code_belongs_to_a_step():
     assert {node: steps.of_node(node) for node in cases} == cases
     # The first word of every node written in the code is known (f-strings and defaults included)
     found = set()
-    for path in SRC.glob("*.py"):
-        if path.name in ("llm.py", "openai_compat.py", "steps.py"):
+    for path in SRC.rglob("*.py"):  # routes/ included since 1.6.0
+        if path.name in ("llm.py", "openai_compat.py", "steps.py") or path.parent.name == "engines":
             continue  # docstring examples, the engines themselves
         found |= {m.split()[0] for m in re.findall(r'(?<![a-z_])node(?:: str)? ?= ?f?"([a-z][^"{]*)', path.read_text(encoding="utf-8"))}
     assert found and found <= set(steps.NODES) | {"verify"}, found - set(steps.NODES)

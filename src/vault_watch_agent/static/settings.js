@@ -68,11 +68,11 @@ const SETTINGS_TEXTS = {
     stepsApartHelp: "Une étape peut tourner sur un autre moteur ou un autre modèle que son rôle, ou à un effort fixé : par exemple le compactage sur le modèle le plus fort, ou la recherche de nouveautés par l'abonnement Claude Code, les veilles inchangées. Chaque écran qui lance une passe montre ces réglages et permet de les changer pour cette passe seulement. Un effort choisi ici s'applique tel quel, sans le décalage du rôle.",
     asRole: "comme le rôle", asRest: "comme le reste", stepEngine: "Moteur", stepModel: "Modèle", stepEffort: "Effort", stepServerHint: "comme le rôle (ou l'identifiant d'un modèle du serveur)",
     stepNames: { triage: "tri", proposals: "propositions", crosscheck: "relecture croisée", fix: "correction des erreurs signalées", coherence: "cohérence du guide", compaction: "ce qui alourdit le guide", compact: "allègements proposés", news: "pistes de nouveautés", explore: "exploration du web par chapitre", add: "ajouts vérifiés sur le web", links: "lecture des liens donnés", chapters: "découpage en chapitres",
-      claims: "affirmations datées", checks: "vérifications", deadlinks: "liens morts", mirror: "miroir", proofread: "orthographe avant la synchro", factcheck: "faits avant la synchro", translation: "contrôle des traductions", "fix-translation": "correction des traductions", explain: "explications des pauses en français" },
+      claims: "affirmations datées", checks: "vérifications", deadlinks: "liens morts", mirror: "miroir", proofread: "orthographe avant la synchro", factcheck: "faits avant la synchro", translation: "contrôle des traductions", "fix-translation": "correction des traductions", explain: "explications des pauses dans la langue de la page" },
     levels: { low: "bas", medium: "moyen", high: "élevé", xhigh: "très élevé", max: "maximal" },
     roles: { reasoning: "Raisonnement", translator: "Traduction" },
     roleHelp: { reasoning: "Tri de la veille, propositions, relecture croisée, vérifications du guide.",
-      translator: "Miroir anglais et contrôle des traductions." },
+      translator: "Miroirs et contrôle des traductions." },
     byDefault: "par défaut",
     prices: {
       help: "Le prix de chaque modèle, en dollars par million de tokens, et d'où il vient. Il sert au journal des coûts et aux estimations ; sur l'abonnement, rien n'est facturé.",
@@ -164,7 +164,7 @@ const SETTINGS_TEXTS = {
     levels: { low: "low", medium: "medium", high: "high", xhigh: "extra high", max: "max" },
     roles: { reasoning: "Reasoning", translator: "Translation" },
     roleHelp: { reasoning: "Triage of the watch, proposals, cross-check, checks of the guide.",
-      translator: "English mirror and translation checks." },
+      translator: "Mirrors and translation checks." },
     byDefault: "default",
     prices: {
       help: "The price of each model, in dollars per million tokens, and where it comes from. The cost journal and the estimates use it; on the subscription, nothing is billed.",

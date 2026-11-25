@@ -21,6 +21,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   manifest (by its watch brief and its audits script); any other folder is refused with what to do (`vault-watch
   init`, then `doctor`), and `doctor` run from a folder of a guide says where its root is (asked by the user,
   2026-11-25: nothing of the author's machine assumed elsewhere).
+- **Fixed: the page took every guide for a French one with an English mirror.** The passages, the diffs and the
+  boxes to edit were marked `lang="fr"` or `lang="en"` (a path under `en/` was English, anything else French): the
+  browser's spellcheck, hyphenation and screen readers then used the wrong language on another guide. The server now
+  puts the guide's languages in the page (`<meta name="vault-watch-guide">`: its source language, each mirror's
+  folder) and `util.js` (`langOf`) gives each passage the language of its page. The texts that said « French » and
+  « English » for the source and its translation (« English translation », « English pages updated », « you
+  corrected the French ») now say « source » and « translation ». Found by the test that looks for the IA on-prem
+  guide's strings in the code, which read only the top-level modules: it now reads `routes/`, `engines/` and the
+  page too, as does the test that every model call names its step.
 - **The code split by area and checked by ruff, pyright and TypeScript (1.6.0 quality pass); what it does is
   unchanged.** `web.py` (1,886 lines) is now 83: `create_app` builds the app from one router per area of the page, in
   the new package `routes/` (`context.py` holds what they share, `AppContext`; `security.py` the local-only middleware

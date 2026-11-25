@@ -173,7 +173,7 @@ def test_the_prompts_and_translation_follow_the_manifest(tmp_path):
 def test_no_string_of_the_ia_on_prem_guide_left_in_the_code():
     """What is specific to one guide is in its manifest (or guide.legacy, for a guide without one)."""
     src = Path(__file__).resolve().parent.parent / "src" / "vault_watch_agent"
-    for path in src.glob("*.py"):
+    for path in [*src.rglob("*.py"), *(src / "static").glob("*.js")]:  # routes/, engines/ and the page included
         if path.name == "guide.py":  # its legacy() describes the IA on-prem guide, for a guide without a manifest
             continue
         if path.name == "cli.py":  # until T1.5 (--guide): its default guide folder is ../ia-on-prem-vault

@@ -1,5 +1,5 @@
 """Every screen of the page drawn in a real browser, in French and in English, without a JavaScript error and
-without « undefined », « NaN » or « [object Object] » shown: a smoke test of static/app.js, on the throwaway guide
+without « undefined », « NaN » or « [object Object] » shown: a smoke test of the page (static/), on the throwaway guide
 of the tests and their fake model (nothing is billed, nothing real is touched).
 
 The page is served by uvicorn on a free port; a headless Chrome is driven over the DevTools protocol. Chrome is

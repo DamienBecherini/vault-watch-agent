@@ -6,7 +6,7 @@
    then says how to allow it in the browser). When on, the page asks the server every 15 s what stopped
    (GET /api/notices: a run waiting for the review or the go-ahead to publish, a pull request opened, a run or a check
    ended or stopped by an error) and notifies it while the page is not in sight. A click on the notification brings
-   the page back, on the run or the check concerned. The server sends the texts in both languages (web.py MESSAGES:
+   the page back, on the run or the check concerned. The server sends the texts in both languages (routes/notices.py MESSAGES:
    the same as the desktop notifications of `serve --notify`). */
 
 import { esc } from "./util.js";

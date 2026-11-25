@@ -2,7 +2,7 @@
 /* vault-watch: the pause before publishing: what was checked, the pages changed beside their translation (corrected
    or translated again from here), then the push and the pull request. */
 
-import { $, dollars, esc, extLink, page, shortUrl } from "./util.js";
+import { $, dollars, esc, extLink, langOf, page, shortUrl } from "./util.js";
 import { api } from "./api.js";
 import { kb, signedKb, T } from "./texts.js";
 import { en } from "./explain.js";
@@ -69,8 +69,8 @@ export async function viewPublish(r, title) {
           price(x) ? ` ${costOf("mirror", price(x)) === T.subscription ? `<s class="worth">${price(x)}</s>` : esc(costOf("mirror", price(x)))}` : ""}</button></span></summary>
       <div class="pub-editor" data-editor="${i}" hidden></div>
       <div class="pub-pairs">${x.mirrors.map(m => alignPairs(m.source, m.target).map(({ source: src, target: tgt }) => {
-        return `<div class="pair"><div><p class="muted small">${T.pairs.source}</p>${src ? changeView(src[0], src[1]) : `<p class="muted small">—</p>`}</div>
-          <div><p class="muted small">${T.pairs.target} · <code>${esc(m.mirror)}</code></p>${tgt ? changeView(tgt[0], tgt[1]) : `<p class="muted small">${T.pairs.none}</p>`}</div></div>`;
+        return `<div class="pair"><div><p class="muted small">${T.pairs.source}</p>${src ? changeView(src[0], src[1], langOf(x.page)) : `<p class="muted small">—</p>`}</div>
+          <div><p class="muted small">${T.pairs.target} · <code>${esc(m.mirror)}</code></p>${tgt ? changeView(tgt[0], tgt[1], langOf(m.mirror)) : `<p class="muted small">${T.pairs.none}</p>`}</div></div>`;
       }).join("")).join("")}</div></details>`;
   };
   page.innerHTML = `${title}
@@ -119,7 +119,7 @@ export async function viewPublish(r, title) {
     const x = pages[Number(b.dataset.again)];
     if (confirm(P.confirmAgain(titleOf(x.page), est(x) != null ? costOf("mirror", `≈ ${dollars(est(x))}`) : ""))) again({ action: "retranslate", pages: [x.page], fresh: true });
   });
-  // « Correct »: the source page and its mirror side by side; saved, then checked again (or the French translated again)
+  // « Correct »: the source page and its mirror side by side; saved, then checked again (or the source translated again)
   page.querySelectorAll("[data-correct]").forEach(b => b.onclick = async e => {
     e.preventDefault(); e.stopPropagation();
     const i = Number(b.dataset.correct), x = pages[i], box = page.querySelector(`[data-editor="${i}"]`), d = $(`#pub-${i}`);
@@ -133,7 +133,7 @@ export async function viewPublish(r, title) {
     box.hidden = false;
     box.innerHTML = `<p class="muted small">${P.correctHelp}</p>
       <div class="pair">${paths.map((path, k) => `<div><p class="muted small hl-head">${k ? T.pairs.target : T.pairs.source} · <code>${esc(path)}</code> ${hlNav()}</p>
-        <textarea data-text-of="${k}" spellcheck="true" lang="${k ? "en" : "fr"}">${esc(texts[k])}</textarea></div>`).join("")}</div>
+        <textarea data-text-of="${k}" spellcheck="true" lang="${langOf(path)}">${esc(texts[k])}</textarea></div>`).join("")}</div>
       <p class="muted small">${T.retouchPause.undoHelp}</p>
       <div class="pub-warn" hidden></div>
       <p class="tick-row"><button type="button" data-save>${P.saveCheck}</button> <button type="button" data-close>${T.retouchPause.close}</button></p>`;

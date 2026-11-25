@@ -1,7 +1,9 @@
 """The web interface drives the same graph: start a run, review, then decline to publish, all through the API."""
 
 import json
+import re
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -289,6 +291,11 @@ def test_the_page_names_its_files_with_a_version(client):
     assert 'src="/static/app.js?v=' in page and 'href="/static/style.css?v=' in page and 'href="/static/icon.svg?v=' in page
     version = page.split("app.js?v=")[1].split('"')[0]
     assert c.get(f"/static/app.js?v={version}").status_code == 200
+    # The guide's languages, for the lang of its passages (util.js langOf): never French and English assumed
+    assert ('<meta name="vault-watch-guide" content="{&quot;source&quot;: &quot;fr&quot;, '
+            '&quot;mirrors&quot;: {&quot;en&quot;: &quot;en/&quot;}}">') in page
+    static = Path(__file__).resolve().parent.parent / "src" / "vault_watch_agent" / "static"
+    assert not re.search(r'lang="(fr|en)"|startsWith\("en/"\)', "".join(p.read_text(encoding="utf-8") for p in static.glob("*.js")))
 
 
 def test_settings_carry_the_effort_of_each_role_and_its_steps(client, monkeypatch):

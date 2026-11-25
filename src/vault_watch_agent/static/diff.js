@@ -2,7 +2,7 @@
 /* vault-watch: what changed, as the screens of a run show it: word by word, or what is added after the text kept;
    and the passages of the guide a finding is about. */
 
-import { esc } from "./util.js";
+import { esc, langOf, sourceLang } from "./util.js";
 import { T } from "./texts.js";
 
 // Word-level diff: words removed from `a` wrapped in <del>, words added to `b` in <ins>.
@@ -28,20 +28,20 @@ export function excerpts(list) {
   return `<div class="excerpts">${list.map(e => e.match === "missing"
     ? `<div class="excerpt muted small"><code>${esc(e.page)}</code> · ${T.excerptMissing}</div>`
     : `<div class="excerpt"><div class="muted small">${T.excerptNow} · <code>${esc(e.page)}:${e.line}</code>${e.match === "approx" ? ` · ${T.excerptApprox}` : ""}</div>
-        <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(row).join("")}</div></div>`).join("")}</div>`;
+        <div class="lines" lang="${langOf(e.page)}">${e.lines.map(row).join("")}</div></div>`).join("")}</div>`;
 }
 
 // A change, as the review shows it: what is added after the text kept, when it only adds (a sentence after a
-// paragraph, a footnote after another); else the text before and after, word by word
-export const changeView = (current, text) => {
+// paragraph, a footnote after another); else the text before and after, word by word. `lang`: the page's language
+export const changeView = (current, text, lang = sourceLang()) => {
   if (current && text.length > current.length && text.startsWith(current)) {
     const added = text.slice(current.length).replace(/^\n+/, "");
     const notes = added.split("\n").filter(l => l.trim()).every(l => /^\[\^[^\]]+\]:/.test(l));
     const tail = current.length > 110 ? `…${current.slice(-100).trimStart()}` : current;
     return `<p class="anchor muted small">${T.addedAfter} « ${esc(tail)} »</p>
-      <div class="diff after${notes ? " notes" : ""}" lang="fr">${notes ? `<span class="muted">${T.notesAdded}</span>` : ""}${esc(added)}</div>`;
+      <div class="diff after${notes ? " notes" : ""}" lang="${lang}">${notes ? `<span class="muted">${T.notesAdded}</span>` : ""}${esc(added)}</div>`;
   }
   const [before, after] = wordDiff(current, text);
-  return `<div class="diff before" lang="fr">${before}</div>
-    <div class="diff after" lang="fr">${after || `<span class="muted">${T.removedWhole}</span>`}</div>`;
+  return `<div class="diff before" lang="${lang}">${before}</div>
+    <div class="diff after" lang="${lang}">${after || `<span class="muted">${T.removedWhole}</span>`}</div>`;
 };

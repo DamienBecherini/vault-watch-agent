@@ -1,7 +1,7 @@
 // @ts-check
 /* vault-watch: the review of a run's corrections: ticked by group under their lead, retouched before they apply. */
 
-import { $, esc, extLink, page, shortUrl } from "./util.js";
+import { $, esc, extLink, langOf, page, shortUrl } from "./util.js";
 import { api } from "./api.js";
 import { T } from "./texts.js";
 import { en } from "./explain.js";
@@ -27,10 +27,10 @@ function correctionCard(c, r) {
       ${c.review ? `<p class="muted small">${T.crossCheck}${T.colon}${en(c.review)}</p>` : ""}
       ${c.warning ? `<p class="small">⚠️ ${T.sourceMissing}${T.colon}${en(c.warning)}</p>` : ""}
       ${c.lost?.length ? `<p class="small">⚠️ ${T.lostValues}${T.colon}${esc(c.lost.join(", "))}</p>` : ""}
-      <div data-diff="${c.id}">${changeView(c.current, text)}</div>
+      <div data-diff="${c.id}">${changeView(c.current, text, langOf(c.page))}</div>
       ${c.retouchable ? `<div class="retouch" data-retouch="${c.id}" ${mine === undefined ? "hidden" : ""}>
         <p class="muted small">${T.retouchHelp}</p>
-        <textarea class="editable" data-text="${c.id}" lang="fr" spellcheck="true">${esc(text)}</textarea>
+        <textarea class="editable" data-text="${c.id}" lang="${langOf(c.page)}" spellcheck="true">${esc(text)}</textarea>
         <p class="small"><span data-retouch-state="${c.id}"></span>
           <button type="button" class="small-button" data-retouch-back="${c.id}">${T.retouchBack}</button></p></div>` : ""}
       <div class="muted small">${sources ? `${T.from} ${sources} · ` : ""}${c.source_url ? `${extLink(c.source_url, "source")}` : ""}
@@ -140,7 +140,7 @@ function bindRetouches(r, boxes) {
   const mine = RETOUCH[r.thread] ||= {};
   const proposal = id => r.corrections.find(c => c.id === id);
   const timers = {};
-  const show = (id, text) => { page.querySelector(`[data-diff="${id}"]`).innerHTML = changeView(proposal(id).current, text); };
+  const show = (id, text) => { page.querySelector(`[data-diff="${id}"]`).innerHTML = changeView(proposal(id).current, text, langOf(proposal(id).page)); };
   const ask = id => {
     clearTimeout(timers[id]);
     const state = page.querySelector(`[data-retouch-state="${id}"]`);

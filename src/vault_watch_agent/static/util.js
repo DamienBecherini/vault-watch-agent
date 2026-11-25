@@ -3,6 +3,21 @@
    Obsidian, the parts of a lead, a help bubble, the room kept for the bar at the bottom of a screen, and the timer that
    draws a screen again while something runs on it. */
 
+// The guide's languages, put in the page by the server (web.index): its source, and the folder of each mirror. The
+// lang of a passage (spellcheck, hyphenation, screen readers) follows the page it comes from; "" when unknown.
+const GUIDE = (() => {
+  try { return JSON.parse(document.querySelector('meta[name="vault-watch-guide"]')?.getAttribute("content") || "{}"); }
+  catch { return {}; }
+})();
+/** @returns {string} the guide's source language ("fr") */
+export const sourceLang = () => GUIDE.source || "";
+/** @param {string} path a page of the guide @returns {string} its language: a mirror's when it is in its folder */
+export function langOf(path) {
+  for (const [code, folder] of Object.entries(GUIDE.mirrors || {}))
+    if (folder && String(path || "").startsWith(String(folder))) return code;
+  return sourceLang();
+}
+
 export const $ = s => document.querySelector(s);
 export const page = $("#page");
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);

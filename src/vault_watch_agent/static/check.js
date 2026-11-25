@@ -2,7 +2,7 @@
 /* vault-watch: the page of one check: its results and its leads, ticked, dug deeper, with a note, then sent to the
    runs that check them (rules.js says what may be ticked). */
 
-import { $, dollars, esc, extLink, followLater, keepRoomForBar, leadParts, linked, obsidian, origin, page, shortUrl, stopFollowing, tip } from "./util.js";
+import { $, dollars, esc, extLink, followLater, keepRoomForBar, leadParts, linked, obsidian, origin, langOf, page, shortUrl, stopFollowing, tip } from "./util.js";
 import { api } from "./api.js";
 import { kb, lang, signedKb, T } from "./texts.js";
 import { billedStep, bindSteps, costHtml, costOf, costTag, loadSteps, MODE_STEP, ownFor, stepCard, STEPS, stepsQuery } from "./steps.js";
@@ -156,7 +156,7 @@ export async function viewCheck(id) {
     const guideBox = passages?.length ? passages.map(e => e.match === "missing"
       ? `<p class="muted small"><code>${esc(e.page)}</code> · ${T.excerptMissing}</p>`
       : `<div class="excerpt-head muted small">${V.line(e.line)}${e.match === "approx" ? ` · ${T.excerptApprox}` : ""} · <a href="${esc(obsidian(v.vault_name, e.page, e.heading))}">${V.openObsidian} ↗</a></div>
-        <div class="lines" lang="${e.page.startsWith("en/") ? "en" : "fr"}">${e.lines.map(l => `<div${l.hit ? ' class="target"' : ""}><span class="n">${l.n}</span><span>${
+        <div class="lines" lang="${langOf(e.page)}">${e.lines.map(l => `<div${l.hit ? ' class="target"' : ""}><span class="n">${l.n}</span><span>${
           l.parts ? `${esc(l.parts[0])}<mark>${esc(l.parts[1])}</mark>${esc(l.parts[2])}` : esc(l.text)}</span></div>`).join("")}</div>`).join("") : "";
     const extra = (() => {  // what digging adds to the cost of the run, when it is billed
       const o = options.find(x => x.id === card) || {}, narrow = ADD_CONTEXT === "pages" && o.run_usd_deep_pages;

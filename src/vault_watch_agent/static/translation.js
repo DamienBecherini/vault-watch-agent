@@ -2,7 +2,7 @@
 /* vault-watch: the source beside its translation: at the pause of a « Sync the languages » run, the translation
    editable. The rows pair each passage of the source with its own translation (pairs.js). */
 
-import { $, esc, page } from "./util.js";
+import { $, esc, langOf, page } from "./util.js";
 import { api } from "./api.js";
 import { T } from "./texts.js";
 import { en } from "./explain.js";
@@ -24,10 +24,10 @@ function pairsBlock(r, editable) {
         const text = mine[key] ?? tgt?.[1];
         const [tb, ta] = tgt ? wordDiff(tgt[0], text) : ["", ""];
         return `<div class="pair">
-          <div><p class="muted small">${P.source}</p>${src ? `<div class="diff before" lang="fr">${sb}</div><div class="diff after" lang="fr">${sa || `<span class="muted">${P.removed}</span>`}</div>` : `<p class="muted small">—</p>`}</div>
-          <div><p class="muted small">${P.target}${tgt?.[2] ? ` · <span class="badge ok">${P.retouched}</span>` : ""}</p>${tgt ? `<div class="diff before" lang="en">${tb}</div>
-            <div class="diff after" lang="en" data-pair-after="${esc(key)}">${ta || `<span class="muted">${P.removed}</span>`}</div>
-            ${editable && tgt[1].trim() ? `<span class="edit-label">${T.editable}</span><textarea class="editable" data-pair="${esc(key)}" lang="en" spellcheck="true">${esc(text)}</textarea>` : ""}` : `<p class="muted small">${P.none}</p>`}</div>
+          <div><p class="muted small">${P.source}</p>${src ? `<div class="diff before" lang="${langOf(x.page)}">${sb}</div><div class="diff after" lang="${langOf(x.page)}">${sa || `<span class="muted">${P.removed}</span>`}</div>` : `<p class="muted small">—</p>`}</div>
+          <div><p class="muted small">${P.target}${tgt?.[2] ? ` · <span class="badge ok">${P.retouched}</span>` : ""}</p>${tgt ? `<div class="diff before" lang="${langOf(x.mirror)}">${tb}</div>
+            <div class="diff after" lang="${langOf(x.mirror)}" data-pair-after="${esc(key)}">${ta || `<span class="muted">${P.removed}</span>`}</div>
+            ${editable && tgt[1].trim() ? `<span class="edit-label">${T.editable}</span><textarea class="editable" data-pair="${esc(key)}" lang="${langOf(x.mirror)}" spellcheck="true">${esc(text)}</textarea>` : ""}` : `<p class="muted small">${P.none}</p>`}</div>
         </div>`;
       }).join("")}</div>`;
   }).join("")}`;

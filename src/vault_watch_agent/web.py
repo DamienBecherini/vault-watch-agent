@@ -20,6 +20,8 @@ page, each given the app's context (routes/context.py) that they share.
 from __future__ import annotations
 
 import hashlib
+import html
+import json
 import re
 import time
 from collections.abc import Callable
@@ -52,13 +54,18 @@ __all__ = ["ACTIVITIES", "AGENT_REPO", "FEEDBACK_EMAIL", "NOTE_CHARS", "STATIC",
            "Verification", "create_app", "gh_pr_state", "list_issues", "read_json", "write_json"]
 
 
-def index() -> HTMLResponse:
+def index(languages: dict | None = None) -> HTMLResponse:
     """The page, its scripts, style and icon named with a version (?v=…) that changes with any of them: a
-    browser that kept an older copy (served before Cache-Control: no-cache) cannot mix it with the new page."""
+    browser that kept an older copy (served before Cache-Control: no-cache) cannot mix it with the new page.
+    `languages`: the guide's (its source language, and the folder of each mirror by language), in a <meta> the page
+    reads (util.js)."""
     files = sorted(p for p in STATIC.iterdir() if p.is_file())
     version = hashlib.sha1("".join(f"{p.name}{p.stat().st_mtime_ns}{p.stat().st_size}" for p in files).encode()).hexdigest()[:10]
     text = (STATIC / "index.html").read_text(encoding="utf-8")
     text = re.sub(r'((?:src|href)="/static/[^"?]+)"', rf'\1?v={version}"', text)
+    if languages:
+        meta = f'<meta name="vault-watch-guide" content="{html.escape(json.dumps(languages), quote=True)}">'
+        text = text.replace("<head>", f"<head>\n  {meta}", 1)
     return HTMLResponse(text)
 
 
@@ -74,7 +81,8 @@ def create_app(settings: Settings) -> FastAPI:
     for area in (notices, service, settings_routes, todo, runs, pauses, sources, checks, languages, chapters):
         app.include_router(area.router(ctx))
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
-    app.add_api_route("/", index, methods=["GET"])
+    guide_languages = {"source": ctx.guide.language, "mirrors": dict(ctx.guide.mirrors)}
+    app.add_api_route("/", lambda: index(guide_languages), methods=["GET"])
     return app
 
 
