@@ -11,7 +11,7 @@
 <body>
   <header>
     <a class="brand" href="#/"><img src="/static/icon.svg" alt="" width="22" height="22">vault-watch</a>
-    <details class="menu" id="guide-menu">   <!-- the guide this server works on: its site, its repository, its chapters (app.js header) -->
+    <details class="menu" id="guide-menu">   <!-- the guide this server works on: its site, its repository, its chapters (header.js) -->
       <summary><span class="guide-name" id="guide-name"></span></summary>
       <div class="menu-items" id="guide-links"></div>
     </details>
@@ -20,7 +20,7 @@
     </button>
     <div class="header-menu" id="header-menu">
     <nav>
-      <details class="menu nav-menu" id="watch-menu">   <!-- the watch: what waits, the watches, the checks, the sources, the runs (app.js header) -->
+      <details class="menu nav-menu" id="watch-menu">   <!-- the watch: what waits, the watches, the checks, the sources, the runs (header.js) -->
         <summary><span id="watch-menu-name">Veille</span><span class="count" id="todo-count" hidden></span></summary>
         <div class="menu-items" id="watch-items"></div>
       </details>
@@ -31,17 +31,12 @@
     <div class="menu-more" id="menu-more"></div>   <!-- a narrow window: the links of the guide's menu and the agent's code -->
     <div class="header-end">   <!-- at the right -->
       <span id="feedback-slot"></span>   <!-- « Give my opinion » (feedback.js) -->
-      <div class="tools" id="tools"></div>   <!-- size, mode, palettes, bell, language, Settings: app.js header() -->
+      <div class="tools" id="tools"></div>   <!-- size, mode, palettes, bell, language, Settings: header.js -->
     </div>
     </div>
   </header>
   <main id="page" aria-live="polite"></main>
-  <footer id="footer"></footer>   <!-- the version, the agent's code, « Give my opinion » (app.js header) -->
-  <script src="/static/themes.js"></script>
-  <script src="/static/notify.js"></script>
-  <script src="/static/settings.js"></script>
-  <script src="/static/feedback.js"></script>
-  <script src="/static/rules.js"></script>
-  <script src="/static/app.js"></script>
+  <footer id="footer"></footer>   <!-- the version, the agent's code, « Give my opinion » (header.js) -->
+  <script type="module" src="/static/app.js"></script>   <!-- the page: app.js imports the other modules -->
 </body>
 </html>

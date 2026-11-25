@@ -1,6 +1,6 @@
-/* vault-watch: notifications of the browser, a bell in the header, off by default. Loaded before app.js, which owns
-   the texts (T.notify) and the helpers used here (esc, lang). Taken from dl-sub-dub (subtitles/web/static/v2/notify.js),
-   written without Preact.
+// @ts-check
+/* vault-watch: notifications of the browser, a bell in the header, off by default; its texts are T.notify. Taken from
+   dl-sub-dub (subtitles/web/static/v2/notify.js), written without Preact.
 
    The browser asks its permission only on a click on the bell (never by itself, never again once refused: the bell
    then says how to allow it in the browser). When on, the page asks the server every 15 s what stopped
@@ -8,6 +8,9 @@
    ended or stopped by an error) and notifies it while the page is not in sight. A click on the notification brings
    the page back, on the run or the check concerned. The server sends the texts in both languages (web.py MESSAGES:
    the same as the desktop notifications of `serve --notify`). */
+
+import { esc } from "./util.js";
+import { addTexts, lang, T } from "./texts.js";
 
 const NOTIFY_TEXTS = {
   fr: {
@@ -23,6 +26,7 @@ const NOTIFY_TEXTS = {
     refused: "The browser did not allow notifications: the bell stays off. Nothing will be asked again.",
   },
 };
+addTexts("notify", NOTIFY_TEXTS);
 
 const notify = {
   supported: () => typeof window.Notification === "function",
@@ -35,7 +39,7 @@ const notify = {
   timer: null,
 };
 
-function notifyButton() {
+export function notifyButton() {
   if (!notify.supported()) return "";
   const N = T.notify, on = notify.active(), title = notify.permission() === "denied" ? N.blocked : on ? N.on : N.off;
   return `<button type="button" class="icon notify${on ? " on" : ""}" data-tool="notify" title="${esc(title)}" aria-label="${esc(title)}" aria-pressed="${on}">
@@ -44,7 +48,7 @@ function notifyButton() {
 }
 
 /* `redraw`: draws the header again. */
-function bindNotifyButton(root, redraw) {
+export function bindNotifyButton(root, redraw) {
   const b = root.querySelector('[data-tool="notify"]');
   if (!b) return;
   const say = text => { notify.said = text; setTimeout(() => { notify.said = ""; redraw(); }, 8000); };
@@ -63,7 +67,7 @@ function bindNotifyButton(root, redraw) {
 }
 
 /* Asks the server what stopped, while the bell is on; a notice is shown only while the page is not in sight. */
-function watchNotices() {
+export function watchNotices() {
   clearInterval(notify.timer);
   notify.timer = null;
   if (!notify.active()) { notify.last = null; return; }
