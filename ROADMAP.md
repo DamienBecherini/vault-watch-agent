@@ -679,6 +679,14 @@ and put back untouched, and its pull request passes the guide's checks.
 
 Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
 
+- [ ] **An advisory the guide answers with a workaround comes back in every urgent watch** (noticed on the guide's
+  watch #110, 2026-11-25; to do, said the user). The guide keeps LiteLLM's 1.106 line acceptable with two
+  workarounds (`enforce_fallback_model_access`, two endpoints blocked at the reverse proxy), so
+  `version-floors.json` keeps its lowest floor, 1.106.12; but three advisories of 2026-11-23 are fixed only from
+  1.108.0, so the collector does not see them as covered and raises them again. Either the guide drops the line
+  (floor 1.108.13), or the collector learns that an advisory is handled: a list of advisory ids answered by the
+  guide (with the page that says the workaround) in `version-floors.json` or beside it, read by `collect.py` as
+  covered, and shown by « Check the sources » so that it is not forgotten when the line is dropped.
 - [ ] **End-to-end tests of the page** (asked by the user, 2026-11-22, for later): Playwright with pytest, a real
   browser on a throwaway server: the page loads, ticking and digging deeper, the bar's options open. Beside the
   unit tests of `static/rules.js` (run with node), they would catch a script broken as a whole (a name declared
