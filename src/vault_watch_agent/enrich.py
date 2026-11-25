@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from datetime import datetime
 from urllib.parse import urlsplit
 
 from . import collect
@@ -89,10 +90,12 @@ def read(place: tuple[str, str], get: Callable | None, token: str | None) -> dic
     return github(place[1], get, collect.github_token() if token is None else token)
 
 
-def enrich(candidate: dict, *, today: str, get: Callable | None = None, token: str | None = None) -> list[str]:
+def enrich(candidate: dict, *, today: str, get: Callable | None = None, token: str | None = None,
+           at: str = "") -> list[str]:
     """The facts of each address of `candidate` that Hugging Face or GitHub can tell about, read again (`facts`, in
-    the order of its sources; what could not be read keeps its facts of before). Returns what failed, as « address:
-    why »."""
+    the order of its sources; what could not be read keeps its facts of before), each with when it was read (`read`:
+    `today` and the time, or `at`). Returns what failed, as « address: why »."""
+    stamp = at or f"{today} {datetime.now():%H:%M}"
     known = {f["url"]: f for f in candidate.get("facts", [])}
     facts, errors = [], []
     for s in candidate.get("sources", []):
@@ -100,7 +103,7 @@ def enrich(candidate: dict, *, today: str, get: Callable | None = None, token: s
         if not place or any(f["url"] == url for f in facts):
             continue
         try:
-            facts.append({"url": url, "read": today, **read(place, get, token)})
+            facts.append({"url": url, "read": stamp, **read(place, get, token)})
         except (RuntimeError, ValueError, AttributeError) as e:
             errors.append(f"{url}: {e}")
             if url in known:

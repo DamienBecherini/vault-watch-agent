@@ -97,7 +97,7 @@ def site(setup, tmp_path, monkeypatch):  # noqa: F811
         context.add_init_script("try { localStorage.setItem('vault-watch-lang', 'fr'); } catch (e) {}")
         page = context.new_page()
         page.set_default_timeout(20_000)
-        page.on("pageerror", lambda e: errors.append(f"uncaught: {e}"))
+        page.on("pageerror", lambda e: errors.append(f"uncaught: {e} {(e.stack or '').splitlines()[1:3]}"))  # where
         page.on("console", lambda m: errors.append(f"console.error: {m.text}") if m.type == "error" else None)
         page.on("dialog", lambda d: d.accept())  # « Are you sure? »: yes
         yield Site(f"http://127.0.0.1:{port}", TestClient(app), watch, page, deps.vault)
@@ -190,8 +190,14 @@ def test_a_candidate_added_dismissed_with_its_reason_then_proposed(site):
     p.fill("#c-url", "https://example.org/larkdb-3")
     p.select_option("#c-kind", "tool")
     p.click("#c-add")
-    p.wait_for_selector("[data-card='larkdb-3']")
+    p.wait_for_selector("[data-card='larkdb-3'] [data-flash]:has-text('Ajouté')")  # said on its card
     assert "Larkdb 3" in p.inner_text("#draft")  # a change to publish
+    # The same address under another name: said on its card, brought into view, no new card
+    p.fill("#c-name", "Larkdb three")
+    p.fill("#c-url", "https://example.org/larkdb-3")
+    p.click("#c-add")
+    p.wait_for_selector("[data-card='larkdb-3'] [data-flash]:has-text('Déjà suivi')")  # not « Added. » of before
+    assert p.locator("[data-card]").count() == 1
     # Dismissed: refused without a reason, kept with one and a date to look again
     p.click("[data-card='larkdb-3'] [data-act='dismissed']")
     p.click("[data-card='larkdb-3'] [data-f='ok']")

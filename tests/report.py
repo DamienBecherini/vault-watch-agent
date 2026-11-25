@@ -34,11 +34,13 @@ def pytest_runtest_logreport(report):
 
 
 def _why(rep) -> str:
-    """The first line of what made a test fail: the message of its crash, else the last line of its report."""
+    """The first line of what made a test fail: the message of its crash, else the last line of its report; and where
+    it was raised (file:line), so that an assertion that fails once in a while can be found again."""
     crash = getattr(getattr(rep, "longrepr", None), "reprcrash", None)
     text = getattr(crash, "message", "") or (str(rep.longrepr).strip().splitlines() or [""])[-1]
     line = text.strip().splitlines()[0] if text.strip() else ""
-    return line[:240]
+    where = f" (at {Path(crash.path).name}:{crash.lineno})" if getattr(crash, "path", "") and getattr(crash, "lineno", 0) else ""
+    return line[:240] + where
 
 
 def _read_history(path: Path) -> list[dict]:

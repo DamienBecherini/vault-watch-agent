@@ -29,7 +29,7 @@ const CANDIDATES_TEXTS = {
       licence: "licence", params: n => `${n} de paramètres`, context: n => `contexte ${n}`, gguf: "GGUF disponible",
       downloads: n => `${n} téléchargements`, likes: n => `${n} likes`, gated: "accès sur demande", updated: d => `mis à jour le ${d}`,
       stars: n => `${n} étoiles`, release: (t, d) => `version ${t}${d ? ` du ${d}` : ""}`, contributors: n => `${n} contributeurs`,
-      pushed: d => `dernier commit le ${d}`, archived: "archivé", read: d => `lu le ${d}`,
+      pushed: d => `dernier commit le ${d}`, archived: "archivé", read: d => { const [day, time] = String(d).split(" "); return time ? `lu le ${day} à ${time}` : `lu le ${day}`; },
     },
     readAgain: "Relire",
     readAgainTip: "Relit sur Hugging Face et GitHub ce que dit chaque adresse du candidat (licence, taille, versions…), sans modèle ni coût.",
@@ -38,7 +38,10 @@ const CANDIDATES_TEXTS = {
     addHelp: "Un nom déjà suivi, ou une adresse déjà connue, ajoute seulement la source au candidat existant.",
     name: "Nom", url: "Adresse (facultative)", kind: "Type", note: "Pourquoi (facultatif)",
     addButton: "Ajouter",
-    known: name => `Déjà suivi : la source est ajoutée à « ${name} ».`,
+    known: name => `Déjà suivi : cette adresse est ajoutée aux sources de « ${name} », pas de nouvelle carte.`,
+    knownSame: name => `Déjà suivi : « ${name} » a déjà cette adresse, rien n'a changé.`,
+    addedNew: "Ajouté.",
+    reread: t => `Relu à ${t}.`,
     watch: "Mettre en observation", dismiss: "Écarter", confirm: "Confirmer", lead: "Remettre en piste", added: "Marquer ajouté",
     propose: "Proposer un ajout",
     tips: {
@@ -87,7 +90,7 @@ const CANDIDATES_TEXTS = {
       licence: "licence", params: n => `${n} parameters`, context: n => `context ${n}`, gguf: "GGUF available",
       downloads: n => `${n} downloads`, likes: n => `${n} likes`, gated: "access on request", updated: d => `updated on ${d}`,
       stars: n => `${n} stars`, release: (t, d) => `release ${t}${d ? ` of ${d}` : ""}`, contributors: n => `${n} contributors`,
-      pushed: d => `last commit on ${d}`, archived: "archived", read: d => `read on ${d}`,
+      pushed: d => `last commit on ${d}`, archived: "archived", read: d => { const [day, time] = String(d).split(" "); return time ? `read on ${day} at ${time}` : `read on ${day}`; },
     },
     readAgain: "Read again",
     readAgainTip: "Reads again on Hugging Face and GitHub what each address of the candidate says (licence, size, releases…), no model, no cost.",
@@ -96,7 +99,10 @@ const CANDIDATES_TEXTS = {
     addHelp: "A name already followed, or an address already known, only adds the source to the existing candidate.",
     name: "Name", url: "Address (optional)", kind: "Kind", note: "Why (optional)",
     addButton: "Add",
-    known: name => `Already followed: the source is added to « ${name} ».`,
+    known: name => `Already followed: this address is added to the sources of « ${name} », no new card.`,
+    knownSame: name => `Already followed: « ${name} » has this address already, nothing changed.`,
+    addedNew: "Added.",
+    reread: t => `Read again at ${t}.`,
     watch: "Watch", dismiss: "Dismiss", confirm: "Confirm", lead: "Back to lead", added: "Mark added",
     propose: "Propose an addition",
     tips: {
@@ -145,7 +151,8 @@ const factLine = (f, C) => {
 };
 
 let FILTER = "";  // the state shown, "" for all
-let SAID = "";    // said once after an action (a source added to a known candidate, a publication)
+let SAID = "";    // said once at the top after an action on the registry (a publication)
+let FLASH = null; // said once on the card an action concerns, brought into view: {id, text, error}
 
 // The line of a candidate in the draft of « Propose an addition »: its name, kind, sources and what was said of it
 const leadLine = (c, C) => `${c.name} (${C.kinds[c.kind] || c.kind})${(c.sources || []).length ? ` : ${c.sources.map(s => s.url).filter(Boolean).join(" ")}` : ""}${c.reason ? ` (${c.reason})` : ""}`;
@@ -211,6 +218,16 @@ export async function viewCandidates() {
       <label class="small">${C.note}<input type="text" id="c-note" maxlength="300"></label>
     </div><p><button type="button" id="c-add">${C.addButton}</button> <span class="error-text small" id="add-error"></span></p></div>`;
   SAID = "";
+  // The card an action concerns: its message on it, in view (the list may be long, the form is below it)
+  if (FLASH) {
+    const card = page.querySelector(`[data-card="${CSS.escape(FLASH.id)}"]`);
+    if (card) {
+      card.classList.add("flash");
+      card.insertAdjacentHTML("afterbegin", `<p class="${FLASH.error ? "error-text" : "attention-text"} small" data-flash>${FLASH.text}</p>`);
+      card.scrollIntoView({ block: "center" });
+    }
+    FLASH = null;
+  }
 
   page.querySelectorAll("[data-filter]").forEach(a => a.addEventListener("click", e => {
     e.preventDefault();
@@ -227,9 +244,10 @@ export async function viewCandidates() {
     /** @type {HTMLButtonElement} */ (b).disabled = true;
     try {
       const r = await api(`/api/candidates/${encodeURIComponent(id)}/enrich`, {});
-      if (r.errors?.length) SAID = C.readFailed(esc(r.errors.join(" ; ")));
+      const time = new Date().toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
+      FLASH = { id, text: r.errors?.length ? C.readFailed(esc(r.errors.join(" ; "))) : C.reread(time), error: !!r.errors?.length };
       viewCandidates();
-    } catch (e) { SAID = esc(e.message); viewCandidates(); }
+    } catch (e) { FLASH = { id, text: esc(e.message), error: true }; viewCandidates(); }
   }));
   const move = async (id, body, error) => {
     try { await api(`/api/candidates/${encodeURIComponent(id)}`, body); viewCandidates(); }
@@ -256,14 +274,19 @@ export async function viewCandidates() {
     };
   }));
   $("#c-add").onclick = async () => {
-    const name = /** @type {HTMLInputElement} */ ($("#c-name")).value.trim();
+    // The fields as they are now: the page may be drawn again while the server answers
+    const [nameF, urlF, kindF, noteF, errorF] = ["#c-name", "#c-url", "#c-kind", "#c-note", "#add-error"].map(s => /** @type {HTMLInputElement} */ ($(s)));
+    const name = nameF.value.trim();
     if (!name) return;
     try {
-      const r = await api("/api/candidates", { name, url: $("#c-url").value.trim(), kind: $("#c-kind").value, note: $("#c-note").value.trim() });
-      if (!r.new) SAID = C.known(esc(byId(r.id)?.name || r.candidates.find(c => c.id === r.id)?.name || name));
-      if (r.errors?.length) SAID = `${SAID ? `${SAID} ` : ""}${C.readFailed(esc(r.errors.join(" ; ")))}`;
+      const r = await api("/api/candidates", { name, url: urlF.value.trim(), kind: kindF.value, note: noteF.value.trim() });
+      const known = esc(r.candidates.find(c => c.id === r.id)?.name || name);
+      const said = r.new ? C.addedNew : r.source_added ? C.known(known) : C.knownSame(known);
+      FLASH = { id: r.id, text: `${said}${r.errors?.length ? ` ${C.readFailed(esc(r.errors.join(" ; ")))}` : ""}`, error: false };
+      FILTER = "";  // the card shown, whatever its state
+      [nameF, urlF, noteF].forEach(f => { f.value = ""; });
       viewCandidates();
-    } catch (e) { $("#add-error").textContent = e.message; }
+    } catch (e) { errorF.textContent = e.message; }
   };
   const publish = $("#publish");
   if (publish) publish.onclick = async () => {

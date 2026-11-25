@@ -136,11 +136,13 @@ def router(ctx: AppContext) -> APIRouter:
         """A candidate added by hand (a lead, origin « hand »); a name or an address already known adds its source."""
         def do(reg):
             today = date.today().isoformat()
-            before = len(reg.get(cand.key(body.name)).get("sources", [])) if reg.find(body.name) else 0
+            known = reg.find(body.name, body.url.strip())  # by its address first, else by its name
+            before = len(known.get("sources", [])) if known else 0
             c, new = reg.note(body.name, body.url.strip(), origin="hand", seen=today, kind=body.kind, note=body.note)
             # Read on Hugging Face or GitHub (D1) when it is new or got an address it did not have
-            errors = enrich.enrich(c, today=today) if new or len(c.get("sources", [])) > before else []
-            return {"id": c["id"], "new": new, "errors": errors}
+            added = new or len(c.get("sources", [])) > before
+            errors = enrich.enrich(c, today=today) if added else []
+            return {"id": c["id"], "new": new, "source_added": added and not new, "errors": errors}
         return change(do)
 
     @api.post("/api/candidates/{cid}/enrich")

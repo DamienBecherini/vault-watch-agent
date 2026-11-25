@@ -1,6 +1,8 @@
 """What a candidate is, read on Hugging Face and GitHub without a model (ROADMAP D1), with answers recorded here: the
 tests never reach the network."""
 
+import re
+
 from test_candidates_page import ACT, page  # noqa: F401  (fixture: the page on the sample guide)
 
 from vault_watch_agent import enrich
@@ -43,7 +45,7 @@ def test_a_model_and_a_repository_read_without_a_model():
                    "https://api.github.com/repos/acme/runner/contributors?per_page=100": [{}] * 100})
     c = {"sources": [{"url": "https://huggingface.co/acme/Base-7B"}, {"url": "https://github.com/acme/runner"},
                      {"url": "https://example.org/news"}]}
-    assert enrich.enrich(c, today="2026-11-26", get=get, token="t0k") == []
+    assert enrich.enrich(c, today="2026-11-26", get=get, token="t0k", at="2026-11-26") == []
     model, repo = c["facts"]
     assert model == {"url": "https://huggingface.co/acme/Base-7B", "read": "2026-11-26", "source": "huggingface",
                      "repo": "acme/Base-7B", "licence": "apache-2.0", "params": 7_615_616_512, "gguf": True,
@@ -77,6 +79,10 @@ def test_a_candidate_added_on_the_page_is_read_and_can_be_read_again(page, monke
                    headers=ACT).json()
     base = added["candidates"][0]
     assert added["errors"] == [] and base["facts"][0]["licence"] == "apache-2.0" and "context" not in base["facts"][0]
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", base["facts"][0]["read"])  # the day and the time it was read
+    # The same address again, under another name: nothing added (said so on the page), nor read again
+    same = c.post("/api/candidates", json={"name": "Base", "url": "https://huggingface.co/acme/Base-7B"}, headers=ACT).json()
+    assert (same["new"], same["source_added"], len(same["candidates"])) == (False, False, 1)
     table["https://huggingface.co/acme/Base-7B/resolve/main/config.json"] = {"text_config": {"max_position_embeddings": 131072}}
     again = c.post("/api/candidates/base-7b/enrich", headers=ACT).json()
     assert again["errors"] == [] and again["candidates"][0]["facts"][0]["context"] == 131072
