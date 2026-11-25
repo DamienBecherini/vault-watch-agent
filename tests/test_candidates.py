@@ -120,3 +120,27 @@ def test_the_manifest_gets_its_key_where_its_watch_is():
     for bad in ("../c.json", "/c.json", "c.txt", "C:/c.json"):
         with pytest.raises(RegistryError):
             valid_path(bad)
+
+
+def test_the_kinds_of_candidates_are_the_guides(sample_guide, tmp_path):
+    from vault_watch_agent.candidates import kinds_of
+
+    root, _ = sample_guide
+    manifest = root / "vault-watch.toml"
+    text = manifest.read_text(encoding="utf-8")
+    assert kinds_of(guide.load(root).watch) == ("model", "tool", "hardware", "other")  # none declared
+    manifest.write_text(text.replace("[watch]\n", '[watch]\ncandidate_kinds = ["software", "plugin", "host"]\n', 1), encoding="utf-8")
+    kinds = kinds_of(guide.load(root).watch)
+    assert kinds == ("software", "plugin", "host", "other")
+    reg = Registry.load(tmp_path / "c.json", kinds)
+    reg.note("Quillnote Sync", origin="hand", seen="2026-11-25", kind="plugin")
+    with pytest.raises(RegistryError, match="one of software, plugin, host, other"):
+        reg.note("A model", origin="hand", seen="2026-11-25", kind="model")
+    # A kind removed from the manifest since: the candidate keeps it, the registry still reads it
+    reg.candidates.append({"id": "old", "name": "Old", "kind": "model", "state": "lead", "sources": []})
+    reg.save()
+    assert [c["kind"] for c in Registry.load(tmp_path / "c.json", kinds).candidates] == ["model", "plugin"]
+    for bad in ('"model"', '["Model"]', '["a b"]', "[1]"):
+        manifest.write_text(text.replace("[watch]\n", f"[watch]\ncandidate_kinds = {bad}\n", 1), encoding="utf-8")
+        with pytest.raises(guide.GuideError, match="candidate_kinds"):
+            guide.load(root)

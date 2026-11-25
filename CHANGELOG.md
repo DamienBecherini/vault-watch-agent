@@ -21,6 +21,10 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   opens the pull request, which adds `[watch] candidates` to the manifest when it is missing (the path asked, beside
   the watch's files by default; it needs vault-watch-agent 1.7.0 wherever the guide is read). While it is open,
   publishing again adds a commit to it; merged, the folder follows and the draft goes.
+- **The kinds of candidates are the guide's** (asked by the user, 2026-11-25: they depend on the guide):
+  `[watch] candidate_kinds` in the manifest, `["model", "tool", "hardware"]` when not given, « other » always added;
+  the registry refuses a kind the guide does not declare (a candidate keeps a kind removed since), the page offers
+  the guide's and shows a kind it does not translate as it is written.
 
 - **The editor's journeys clicked in a real browser** (asked by the user, 2026-11-22 and 2026-11-25):
   `tests/test_e2e.py`, six journeys Playwright clicks in Chrome on the throwaway guide and the fake model: review

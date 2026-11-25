@@ -170,7 +170,7 @@ export async function viewCandidates() {
     <div class="card"><div class="chapter-fields">
       <label class="small">${C.name}<input type="text" id="c-name" maxlength="120"></label>
       <label class="small">${C.url}<input type="url" id="c-url" spellcheck="false"></label>
-      <label class="small">${C.kind}<select id="c-kind">${d.kinds.map(k => `<option value="${k}">${esc(C.kinds[k] || k)}</option>`).join("")}</select></label>
+      <label class="small">${C.kind}<select id="c-kind">${d.kinds.map(k => `<option value="${esc(k)}">${esc(C.kinds[k] || k)}</option>`).join("")}</select></label>
       <label class="small">${C.note}<input type="text" id="c-note" maxlength="300"></label>
     </div><p><button type="button" id="c-add">${C.addButton}</button> <span class="error-text small" id="add-error"></span></p></div>`;
   SAID = "";

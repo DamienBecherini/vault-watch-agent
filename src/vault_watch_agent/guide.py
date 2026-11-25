@@ -33,6 +33,9 @@ def language_name(code: str) -> str:
     return LANGUAGES.get(code.split("-")[0].lower(), code)
 
 
+_KIND = re.compile(r"[a-z][a-z0-9-]{0,29}")  # a kind of candidate ([watch] candidate_kinds)
+
+
 class GuideError(ValueError):
     """The manifest cannot be used; the message names the key and says what is expected."""
 
@@ -48,6 +51,7 @@ class Watch:
     floors: str = ""        # collect: version floors ({"floors": {feed id: version}}); default [checks] version_floors
     changes_page: str = ""  # a page where a watch adds dated lines; shown to every proposal step
     candidates: str = ""    # the registry of discovery (candidates.py), a JSON file of the guide; created when first saved
+    candidate_kinds: tuple[str, ...] = ()  # the kinds of its candidates (« other » added); () = candidates.KINDS
 
 
 @dataclass(frozen=True)
@@ -150,7 +154,8 @@ _KEYS = {
     "": {"schema", "guide", "content", "watch", "rules", "checks", "budget", "chapter"},
     "guide": {"name", "description", "repository", "forge", "forge_url", "forge_token", "site", "base_branch"},
     "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
-    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates"},
+    "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates",
+              "candidate_kinds"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
     "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
@@ -201,8 +206,12 @@ def parse(data: dict, root: Path) -> Guide:
     source = SOURCE_NAMES.get(source, source)
     if source not in WATCH_SOURCES:
         raise GuideError(f"[watch] source = {source!r}: one of {', '.join(WATCH_SOURCES)}")
+    kinds = w.get("candidate_kinds", [])
+    if not isinstance(kinds, list) or not all(isinstance(k, str) and _KIND.fullmatch(k) for k in kinds):
+        raise GuideError('[watch] candidate_kinds: a list of short names in lower case (letters, digits, -), '
+                         'as ["model", "tool", "hardware"]')
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
-                  path=_text(w, "watch", "path"),
+                  path=_text(w, "watch", "path"), candidate_kinds=tuple(dict.fromkeys(kinds)),
                   **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors", "changes_page")
                      if k in w},
                   **({"candidates": _file(root, "watch", "candidates", w["candidates"], exists=False).as_posix()}

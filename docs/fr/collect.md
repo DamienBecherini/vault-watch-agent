@@ -31,6 +31,7 @@ feeds = "watch/feeds.json"          # les flux à lire (toute source peut le nom
 floors = "watch/floors.json"        # facultatif : les versions minimales que le guide recommande
 seen = "watch/seen.md"              # facultatif : les éléments déjà triés, écartés s'ils reviennent
 candidates = "watch/candidates.json" # facultatif : le registre de la découverte (créé par l'agent au premier enregistrement)
+candidate_kinds = ["model", "tool", "hardware"]  # facultatif : les types de ses candidats (ceux-ci par défaut ; "other" ajouté)
 ```
 
 Sans `floors`, l'agent prend le fichier de `[checks] version_floors` quand le guide en a un.
@@ -139,7 +140,8 @@ compte. Un tableau des éléments déjà triés convient.
 ## Le registre des candidats
 
 `candidates` désigne un fichier JSON du guide où l'agent suit ce qu'il a trouvé et que le guide ne couvre pas encore :
-un modèle, un outil, un matériel, avec ses sources, un état (`lead` piste, `watching` en observation, `confirmed`
+quelque chose d'un des types du guide (`candidate_kinds` : par défaut un modèle, un outil, un matériel, ou autre),
+avec ses sources, un état (`lead` piste, `watching` en observation, `confirmed`
 confirmé, `proposed` proposé, `added` ajouté, `dismissed` écarté), une raison, une date de revérification et son
 historique. La collecte écarte les adresses qu'il suit, pour qu'un candidat mis de côté ne revienne pas chaque
 semaine, et liste dans la veille et son issue les candidats dont la date de revérification est arrivée

@@ -35,13 +35,20 @@ from . import vault
 
 SCHEMA = 1
 STATES = ("lead", "watching", "confirmed", "proposed", "added", "dismissed")
-KINDS = ("model", "tool", "hardware", "other")
+KINDS = ("model", "tool", "hardware", "other")  # the kinds of a guide whose manifest declares none
 LOOK_AGAIN = ("watching", "dismissed")  # the states a date to look again applies to
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class RegistryError(ValueError):
     """The registry cannot be read or a change to it is refused: said to the editor as it is."""
+
+
+def kinds_of(watch) -> tuple[str, ...]:
+    """The kinds of candidates of a guide: those its manifest declares ([watch] candidate_kinds), else KINDS; « other »
+    always, last."""
+    declared = tuple(getattr(watch, "candidate_kinds", ()) or ())
+    return tuple(dict.fromkeys((*(declared or KINDS), "other")))
 
 
 def key(name: str) -> str:
@@ -67,20 +74,21 @@ def _date(value: str, what: str) -> str:
 class Registry:
     path: Path
     candidates: list[dict] = field(default_factory=list)
+    kinds: tuple[str, ...] = KINDS  # those `note` accepts (kinds_of the guide); a candidate keeps a kind removed since
 
     # -- the file -------------------------------------------------------------------------------------------------
     @classmethod
-    def load(cls, path: Path) -> Registry:
+    def load(cls, path: Path, kinds: tuple[str, ...] = KINDS) -> Registry:
         """The registry of `path`; empty when the file does not exist yet."""
         if not path.is_file():
-            return cls(path)
+            return cls(path, kinds=kinds)
         try:
-            return cls.parse(path.read_text(encoding="utf-8"), path)
+            return cls.parse(path.read_text(encoding="utf-8"), path, kinds)
         except OSError as e:
             raise RegistryError(f"{path.name}: {e}") from e
 
     @classmethod
-    def parse(cls, text: str, path: Path) -> Registry:
+    def parse(cls, text: str, path: Path, kinds: tuple[str, ...] = KINDS) -> Registry:
         """The registry written in `text` (a file, or the file as a branch of the guide has it), saved at `path`."""
         try:
             data = json.loads(text)
@@ -88,7 +96,7 @@ class Registry:
             raise RegistryError(f"{path.name}: {e}") from e
         if not isinstance(data, dict) or data.get("schema") != SCHEMA or not isinstance(data.get("candidates"), list):
             raise RegistryError(f"{path.name}: not a registry of candidates (schema {SCHEMA}, a list `candidates`)")
-        return cls(path, data["candidates"])
+        return cls(path, data["candidates"], kinds)
 
     def text(self) -> str:
         """Sorted by state then name, two spaces, one line per source: a diff a reviewer can read."""
@@ -132,8 +140,8 @@ class Registry:
         """A candidate seen once more: its source added (an address not known yet) and its last date moved, or a new
         candidate in state `lead`. (candidate, True when it is new)."""
         _date(seen, "seen")
-        if kind not in KINDS:
-            raise RegistryError(f"kind {kind!r}: one of {', '.join(KINDS)}")
+        if kind not in self.kinds:
+            raise RegistryError(f"kind {kind!r}: one of {', '.join(self.kinds)}")
         found = self.find(name, url)
         source = {"url": url, "seen": seen, "origin": origin, **({"title": title} if title else {})}
         if found:

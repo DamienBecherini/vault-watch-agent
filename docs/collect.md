@@ -30,6 +30,7 @@ feeds = "watch/feeds.json"          # the feeds to read (any source can name it:
 floors = "watch/floors.json"        # optional: the lowest versions the guide recommends
 seen = "watch/seen.md"              # optional: items already triaged, dropped when they come back
 candidates = "watch/candidates.json" # optional: the registry of discovery (created by the agent when first saved)
+candidate_kinds = ["model", "tool", "hardware"]  # optional: the kinds of its candidates (these by default; "other" added)
 ```
 
 `floors` defaults to the file of `[checks] version_floors` when the guide has one.
@@ -132,7 +133,8 @@ triaged works.
 ## The registry of candidates
 
 `candidates` names a JSON file of the guide where the agent follows what it found and the guide does not cover yet:
-a model, a tool, a piece of hardware, with its sources, a state (`lead`, `watching`, `confirmed`, `proposed`,
+something of one of the guide's kinds (`candidate_kinds`: by default a model, a tool, a piece of hardware, or
+other), with its sources, a state (`lead`, `watching`, `confirmed`, `proposed`,
 `added`, `dismissed`), a reason, a date to look again and its history. The collection drops the addresses it
 tracks, so a candidate set aside does not come back every week, and lists in the watch and its issue the candidates
 whose date to look again has come (« Candidates to look at again », the watch's `recheck`). The file does not have

@@ -56,6 +56,7 @@ def test_the_registry_is_changed_in_a_draft_and_published_by_a_pull_request(page
     now = c.get("/api/candidates").json()
     assert (now["declared"], now["path"], now["draft"], now["candidates"], now["pending"]) == ("", "candidates.json", False, [], {})
     assert now["has_repo"] and now["needs"] == candidates.NEEDS and now["states"][0] == "lead"
+    assert now["kinds"] == ["model", "tool", "hardware", "other"]  # the sample guide declares none
 
     # Added by hand; the same address under another name only adds nothing (one candidate)
     added = c.post("/api/candidates", json={"name": "Reflection Beam 501B", "url": "https://hf.co/reflection/beam",

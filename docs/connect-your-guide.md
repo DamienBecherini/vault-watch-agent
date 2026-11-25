@@ -110,6 +110,12 @@ guide's feeds, without a model; the reusable GitHub workflow does it on the guid
 since »: every proposal step sees it whole, whatever the item's keywords found, and adds a line by quoting the
 page's last line (or a placeholder sentence) and giving it back followed by the new one. It must not be read-only.
 
+`candidates` (any source) names the registry of discovery, a JSON file of the guide the agent creates, and
+`candidate_kinds` the kinds of its candidates, as fits the guide: `["model", "tool", "hardware"]` when it is not
+given, `["software", "plugin", "host"]` for a guide of self-hosted software; « other » is always added. Short names
+in lower case (letters, digits, -); the page translates the default ones and shows the others as they are written
+([Collecting a watch](collect.md#the-registry-of-candidates)).
+
 A `watch.json` holds the items your collector kept (feeds, release pages, advisories); its format, key by key:
 [The watch format](watch-format.md).
 

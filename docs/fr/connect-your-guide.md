@@ -111,6 +111,12 @@ et ouvre l'issue : [Collecter une veille](collect.md).
 l'élément, et ajoute une ligne en citant la dernière ligne de la page (ou une phrase d'attente) et en la rendant suivie
 de la nouvelle. Elle ne doit pas être en lecture seule.
 
+`candidates` (quelle que soit la source) désigne le registre de la découverte, un fichier JSON du guide que l'agent
+crée, et `candidate_kinds` les types de ses candidats, selon le guide : `["model", "tool", "hardware"]` quand il n'est
+pas donné, `["software", "plugin", "host"]` pour un guide de logiciels auto-hébergés ; « other » (autre) est toujours
+ajouté. Des noms courts en minuscules (lettres, chiffres, -) ; la page traduit ceux par défaut et montre les autres
+tels qu'ils sont écrits ([Collecter une veille](collect.md#le-registre-des-candidats)).
+
 Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) ; son
 format, clé par clé : [Le format d'une veille](watch-format.md).
 

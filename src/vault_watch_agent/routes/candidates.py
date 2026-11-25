@@ -63,14 +63,18 @@ def where(ctx: AppContext) -> tuple[str, str]:
     return "", opened or cand.default_path(watch)
 
 
+def kinds(ctx: AppContext) -> tuple[str, ...]:
+    return cand.kinds_of(vault.guide_of(ctx.settings.vault).watch)
+
+
 def base_registry(ctx: AppContext, rel: str) -> cand.Registry:
     """The registry as the base branch of the guide's folder has it (git show: the folder's own files and branch do
     not matter); empty when it has none yet."""
     try:
         text = inputs.run(["git", "show", f"{ctx.guide.base_branch}:{rel}"], cwd=ctx.settings.vault)
     except RuntimeError:
-        return cand.Registry(draft_file(ctx))
-    return cand.Registry.parse(text, draft_file(ctx))
+        return cand.Registry(draft_file(ctx), kinds=kinds(ctx))
+    return cand.Registry.parse(text, draft_file(ctx), kinds(ctx))
 
 
 def pending(ctx: AppContext) -> dict:
@@ -101,7 +105,8 @@ def current(ctx: AppContext, rel: str) -> tuple[cand.Registry, cand.Registry]:
     """(the registry as the page shows and changes it: the draft, else the base's; the base's)."""
     try:
         base = base_registry(ctx, rel)
-        draft = cand.Registry.load(draft_file(ctx)) if draft_file(ctx).is_file() else cand.Registry(draft_file(ctx), [dict(c) for c in base.candidates])
+        draft = (cand.Registry.load(draft_file(ctx), base.kinds) if draft_file(ctx).is_file()
+                 else cand.Registry(draft_file(ctx), [dict(c) for c in base.candidates], base.kinds))
     except cand.RegistryError as e:
         raise HTTPException(409, str(e)) from e
     return draft, base
@@ -134,7 +139,7 @@ def router(ctx: AppContext) -> APIRouter:
                 "unpublished": bool(found) and reg.text() != open_pr.get("published"),
                 "pending": {k: v for k, v in open_pr.items() if k != "published"},
                 "candidates": reg.candidates, "due": [c["id"] for c in reg.due(today)], "today": today,
-                "states": list(cand.STATES), "kinds": list(cand.KINDS), "look_again": list(cand.LOOK_AGAIN),
+                "states": list(cand.STATES), "kinds": list(reg.kinds), "look_again": list(cand.LOOK_AGAIN),
                 "has_repo": bool(now.repository), "forge": forge.get().name, "base": now.base_branch,
                 "manifest": guide_mod.MANIFEST, "needs": cand.NEEDS}
 
