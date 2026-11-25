@@ -963,11 +963,16 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
     return _pr_body(state, False, 120, low)
 
 
+# Where a proofreading of the editor's edits was asked, as the pull request says it
+_PROOFREAD_AT = {"retouch": "at the retouches ", "publish": "before publishing "}
+
+
 def _checks_lines(state: WatchState) -> str:
     """The guide's audits, the mirrors and the external sources, as every pull request says them."""
     retouched, translated = state.get("retouched") or [], state.get("translation_retouched") or []
     proofread_lines = "".join(
-        f"The editor's edits proofread ({', '.join(x['checks'])}): {x['fixes']} fix(es) proposed, {x['applied']} accepted.\n\n"
+        f"The editor's edits proofread {_PROOFREAD_AT.get(x.get('from'), '')}({', '.join(x['checks'])}): "
+        f"{x['fixes']} fix(es) proposed, {x['applied']} accepted.\n\n"
         for x in state.get("proofread_log") or [])
     return (
         (f"Retouched by the editor before the mirrors: {', '.join(f'`{p}`' for p in retouched)}.\n\n" if retouched else "")

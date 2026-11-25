@@ -84,7 +84,7 @@ def test_the_retouches_proofread_then_the_fixes_accepted_committed_as_the_editor
     assert log.index("Proofread fixes accepted|t") < log.index("Retouches at the review|t")  # before the mirrors' commit
     state = graph.get_state(config).values
     assert state["proofread_log"] == [{"checks": ["spelling", "facts"], "fixes": 1, "applied": 1, "from": "retouch"}]
-    assert "The editor's edits proofread (spelling, facts): 1 fix(es) proposed, 1 accepted." in pr_body(state)
+    assert "The editor's edits proofread at the retouches (spelling, facts): 1 fix(es) proposed, 1 accepted." in pr_body(state)
 
 
 def test_nothing_asked_or_nothing_retouched_calls_nothing(setup):  # noqa: F811
