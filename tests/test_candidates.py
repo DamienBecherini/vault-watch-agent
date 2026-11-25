@@ -106,3 +106,17 @@ def test_the_manifest_names_a_registry_that_may_not_exist_yet(sample_guide):
     manifest.write_text(text.replace("[watch]\n", '[watch]\ncandidates = "../outside.json"\n', 1), encoding="utf-8")
     with pytest.raises(guide.GuideError, match="must stay inside the guide"):
         guide.load(root)
+
+
+def test_the_manifest_gets_its_key_where_its_watch_is():
+    from vault_watch_agent.candidates import default_path, valid_path, with_key
+    from vault_watch_agent.guide import Watch
+
+    raw = '[guide]\nname = "T"\n\n[watch]\nsource = "file"\nseen = "w/seen.md"\n\n[rules]\nbrief = "b.md"\n'
+    assert with_key(raw, "w/candidates.json") == raw.replace('seen = "w/seen.md"\n', 'seen = "w/seen.md"\ncandidates = "w/candidates.json"\n')
+    assert with_key('[guide]\nname = "T"\r\n', "c.json") == '[guide]\r\nname = "T"\r\n\r\n[watch]\r\ncandidates = "c.json"\r\n'
+    assert default_path(Watch(seen="w/seen.md")) == "w/candidates.json" and default_path(Watch()) == "watch/candidates.json"
+    assert valid_path(r"watch\c.json") == "watch/c.json"
+    for bad in ("../c.json", "/c.json", "c.txt", "C:/c.json"):
+        with pytest.raises(RegistryError):
+            valid_path(bad)

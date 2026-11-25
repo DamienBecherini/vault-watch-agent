@@ -183,6 +183,36 @@ def test_a_lead_ticked_on_a_check_becomes_an_addition_run(site):
     assert site.c.get(f"/api/runs/{thread}").json()["thread"] == thread
 
 
+def test_a_candidate_added_dismissed_with_its_reason_then_proposed(site):
+    site.open("/candidates")
+    p = site.page
+    p.fill("#c-name", "Larkdb 3")
+    p.fill("#c-url", "https://example.org/larkdb-3")
+    p.select_option("#c-kind", "tool")
+    p.click("#c-add")
+    p.wait_for_selector("[data-card='larkdb-3']")
+    assert "Larkdb 3" in p.inner_text("#draft")  # a change to publish
+    # Dismissed: refused without a reason, kept with one and a date to look again
+    p.click("[data-card='larkdb-3'] [data-act='dismissed']")
+    p.click("[data-card='larkdb-3'] [data-f='ok']")
+    p.wait_for_function("() => document.querySelector(\"[data-card='larkdb-3'] [data-f='error']\").textContent.includes('raison')")
+    p.fill("[data-card='larkdb-3'] [data-f='reason']", "closed beta")
+    p.fill("[data-card='larkdb-3'] [data-f='recheck']", "2999-01-01")
+    p.click("[data-card='larkdb-3'] [data-f='ok']")
+    p.wait_for_selector("[data-card='larkdb-3'] .badge >> text=Écarté")
+    assert "closed beta" in p.inner_text("[data-card='larkdb-3']")
+    # Proposed: « Propose an addition » with its line, the run started marks it proposed
+    p.click("[data-propose='larkdb-3']")
+    p.wait_for_url(re.compile(r"#/idea$"))
+    p.wait_for_selector("#for-candidate")
+    assert "https://example.org/larkdb-3" in p.input_value("#text")
+    p.click("#send")
+    p.wait_for_url(re.compile(r"#/run/add-"))
+    thread = p.url.split("#/run/")[1]
+    lark = next(c for c in site.c.get("/api/candidates").json()["candidates"] if c["id"] == "larkdb-3")
+    assert (lark["state"], lark["reason"]) == ("proposed", f"run {thread}")
+
+
 def test_the_settings_open_save_and_the_language_switches(site):
     site.open("/")
     p = site.page

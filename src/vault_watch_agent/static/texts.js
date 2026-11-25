@@ -8,7 +8,7 @@ import { forgeName, info } from "./api.js";
 // --- Languages ---------------------------------------------------------------------------------------
 const TEXTS = {
   fr: {
-    nav: { menu: "Veille", todo: "À traiter", watches: "Veille automatique", check: "Vérifier le guide", sources: "Sources suivies", runs: "Toutes les passes",
+    nav: { menu: "Veille", todo: "À traiter", watches: "Veille automatique", check: "Vérifier le guide", sources: "Sources suivies", candidates: "Candidats", runs: "Toutes les passes",
       report: "Signaler ou proposer", languages: "Langues", costs: "Coûts" },
     // Under each entry of the menu « Watch »: where it starts from
     navHelp: {
@@ -17,6 +17,7 @@ const TEXTS = {
         : `Tous les 15 jours, ${forgeName()} ouvre un ticket avec ce qui a bougé dans les sources suivies ; une passe le traite`,
       check: "À la demande : santé (liens, cohérence, traductions), allègement, nouveautés que le guide n'a pas",
       sources: "Ce que la veille automatique lit, et ce que chaque source rapporte",
+      candidates: "Ce que l'agent a trouvé et que le guide ne couvre pas encore, suivi dans le temps",
       runs: "L'historique : veilles, corrections, ajouts, traductions, avec leur pull request",
     },
     todo: {
@@ -458,7 +459,7 @@ const TEXTS = {
     subscription: "abonnement, non facturé", local: "modèle local, non facturé", provider: "facturé par ton fournisseur",
   },
   en: {
-    nav: { menu: "Watch", todo: "To handle", watches: "Automatic watch", check: "Check the guide", sources: "Sources followed", runs: "Every run",
+    nav: { menu: "Watch", todo: "To handle", watches: "Automatic watch", check: "Check the guide", sources: "Sources followed", candidates: "Candidates", runs: "Every run",
       report: "Report or suggest", languages: "Languages", costs: "Costs" },
     navHelp: {
       todo: "Everything that waits for you: runs to review, leads to sort, a watch to start",
@@ -466,6 +467,7 @@ const TEXTS = {
         : `Every two weeks, ${forgeName()} opens an issue with what moved in the sources followed; a run handles it`,
       check: "On demand: health (links, consistency, translations), trimming, news the guide lacks",
       sources: "What the automatic watch reads, and what each source brings",
+      candidates: "What the agent found that the guide does not cover yet, followed over time",
       runs: "The history: watches, fixes, additions, translations, with their pull request",
     },
     todo: {

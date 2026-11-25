@@ -81,6 +81,8 @@ whole guide (D4) after. Candidates come from four places: the addition candidate
   key, nothing changes.
 - **D3.2 The screen « Candidates ».** The list by state; watch, dismiss (a reason and a date), propose (an addition
   run), add by hand. The changes go on a branch of the agent; « Publish the registry » opens the pull request.
+  *Done (2026-11-25): `routes/candidates.py`, `static/candidates.js`; the changes are kept in a draft of the agent
+  until published.*
 - **D3.3 Where they come from.** A watch's addition candidates, a check's leads set aside or dismissed, the discovery
   feeds: each becomes or feeds a candidate, matched by address and by name.
 - **D1 The enrichment, no model.** Hugging Face (size, licence, context, GGUF, downloads) and GitHub (licence,

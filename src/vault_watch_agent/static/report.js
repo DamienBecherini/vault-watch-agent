@@ -20,6 +20,18 @@ function storeDraft(k) {
 }
 let draftTimer = null;
 addEventListener("pagehide", () => [...UNSAVED].forEach(storeDraft));
+
+// A candidate of the registry proposed as an addition (candidates.js): its line added to the draft of « Propose an
+// addition », and its id sent with the run, which marks it proposed (routes/candidates.py)
+let FOR_CANDIDATE = null;  // {id, name}
+/** @param {{id: string, name: string}} c @param {string} line */
+export function proposeCandidate(c, line) {
+  const now = draft("add").trim();
+  DRAFTS.add = now && !now.split("\n").includes(line) ? `${now}\n${line}` : now || line;
+  storeDraft("add");
+  FOR_CANDIDATE = { id: c.id, name: c.name };
+  location.hash = "/idea";
+}
 // The text area of tab `k` and the line under it that says the draft is kept, with « Clear » (and « Restore » after)
 function bindDraft(k, area, note, changed = () => {}) {
   let undone = "";
@@ -59,6 +71,8 @@ export async function viewReport(idea = false) {
     ${reportTabs(idea ? "idea" : "report")}
     <p class="subtitle">${idea ? T.ideaIntro : T.reportIntro} ${price}</p>
     ${idea ? `<p class="small attention-text">${T.ideaLimit}</p>` : ""}
+    ${idea && FOR_CANDIDATE ? `<p class="banner small" id="for-candidate">${T.candidates.proposing(esc(FOR_CANDIDATE.name))}
+      <button type="button" class="link" id="forget-candidate">${T.candidates.forget}</button></p>` : ""}
     <textarea id="text" placeholder="${esc(idea ? T.ideaExample : T.reportExample)}">${esc(draft(kind))}</textarea>
     <p class="muted small" id="draft-note"></p>
     ${idea ? `<p><label class="small"><input type="checkbox" id="deep"> ${T.ideaDeep}</label></p>` : ""}
@@ -67,13 +81,17 @@ export async function viewReport(idea = false) {
     <p><button class="primary" id="send">${idea ? T.ideaButton : T.reportButton}</button> <span class="error-text small" id="send-error"></span></p>`;
   bindDraft(kind, $("#text"), $("#draft-note"));
   bindSteps(page, () => viewReport(idea));
+  const forget = $("#forget-candidate");
+  if (forget) forget.onclick = () => { FOR_CANDIDATE = null; $("#for-candidate").remove(); };
   $("#send").onclick = async () => {
     const text = $("#text").value.trim();
     if (!text) return;
     $("#send").disabled = true;
     const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
     try {  // the draft stays until the run has started: a refusal or a lost connection keeps the text
-      const { thread } = await api("/api/fix", { text, mode: kind, steps: ownFor(wanted), ...(idea && $("#deep").checked ? { deep: lines } : {}) });
+      const { thread } = await api("/api/fix", { text, mode: kind, steps: ownFor(wanted), ...(idea && $("#deep").checked ? { deep: lines } : {}),
+        ...(idea && FOR_CANDIDATE ? { candidate: FOR_CANDIDATE.id } : {}) });
+      if (idea) FOR_CANDIDATE = null;
       dropDraft(kind);
       location.hash = `/run/${encodeURIComponent(thread)}`;
     } catch (e) { $("#send-error").textContent = e.message; $("#send").disabled = false; }

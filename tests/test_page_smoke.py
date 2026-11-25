@@ -22,6 +22,7 @@ import pytest
 from fastapi.testclient import TestClient
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
+from vault_watch_agent import candidates
 from vault_watch_agent.web import Settings, create_app
 
 websockets = pytest.importorskip("websockets.sync.client")
@@ -125,6 +126,15 @@ def served(setup, tmp_path):  # noqa: F811
     assert {s: r["status"] for s, r in statuses.items()} == {"review": "review", "retouch": "retouch", "proofread": "proofread",
                                                              "publish": "publish"}, \
         {s: (r["status"], r["error"]) for s, r in statuses.items()}
+    # The registry of candidates: one added by hand, one watched and due, one dismissed (a draft not published)
+    c.post("/api/candidates", json={"name": "Larkdb 3", "url": "https://example.org/larkdb-3", "kind": "tool"}, headers=ACT)
+    c.post("/api/candidates", json={"name": "Beam 7B", "url": "https://example.org/beam", "kind": "model"}, headers=ACT)
+    c.post("/api/candidates", json={"name": "Old box", "kind": "hardware"}, headers=ACT)
+    c.post("/api/candidates/old-box", json={"state": "dismissed", "reason": "no longer sold"}, headers=ACT)
+    reg = candidates.Registry.load(deps.home / "candidates-draft.json")
+    beam = reg.get("beam-7b")
+    beam.update(state="watching", reason="weights later", recheck="2026-01-01")  # a date passed: due
+    reg.save()
     # A check of what is new, with one lead to sort
     verifs = deps.home / "verifications"
     verifs.mkdir(parents=True, exist_ok=True)
@@ -172,7 +182,7 @@ def chrome(tmp_path):
 
 
 def screens(runs: dict) -> list[str]:
-    return ["/", "/watches", "/runs", "/check", "/check?new", "/check/verif-2026-11-22-120000", "/sources", "/report",
+    return ["/", "/watches", "/runs", "/check", "/check?new", "/check/verif-2026-11-22-120000", "/sources", "/candidates", "/report",
             "/idea", "/links", "/languages", "/costs", "/chapters", "/settings",
             *(f"/run/{t}" for t in runs.values())]
 

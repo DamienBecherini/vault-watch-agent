@@ -19,7 +19,7 @@ from .. import chapters as chapters_mod
 from .. import compact, fix, inputs, llm, news, vault, verify
 from .. import config as user_settings
 from ..graph import Deps, retouchable, usage_line
-from . import checks
+from . import candidates, checks
 from .context import AppContext, Job, interrupts, read_json, thread_config
 from .languages import translation_usd
 
@@ -45,6 +45,7 @@ class Report(BaseModel):
     # an addition run: what each call reads, the whole guide or its lead's pages and the plan of the guide
     context: Literal["guide", "pages"] = news.CONTEXT
     steps: dict = {}  # for this run alone: {step: {engine, model, effort}} (config.run_steps)
+    candidate: str = ""  # an addition run started from the page « Candidates »: that candidate becomes proposed
 
 
 def lead_of(ctx: AppContext, thread: str, line: str) -> dict:
@@ -263,6 +264,8 @@ def router(ctx: AppContext) -> APIRouter:
         if body.verification:  # the findings of a check, sent here: they are handled
             checks.mark(ctx, body.verification, findings, {"status": "fix", "thread": thread})
         ctx.start(thread, "fix", "fix", work)
+        if body.candidate and body.mode == "add":
+            candidates.mark_proposed(ctx, body.candidate, thread)
         return {"thread": thread}
 
     return api

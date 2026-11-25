@@ -146,6 +146,13 @@ semaine, et liste dans la veille et son issue les candidats dont la date de rev�
 (« Candidates to look at again », le `recheck` de la veille). Le fichier n'a pas besoin d'exister : l'agent le crée au
 premier enregistrement, et rien ne change sans la clé.
 
+La page « Candidats » (menu « Veille ») le montre par état et le change : ajouter un candidat à la main, le mettre en
+observation ou l'écarter (une raison, obligatoire pour écarter, et une date de revérification), le proposer comme
+ajout (« Proposer un ajout » s'ouvre avec sa ligne ; la passe lancée, il devient `proposed`). Les changements restent
+dans un brouillon de l'agent ; « Publier le registre » les écrit sur une branche du guide et ouvre la pull request,
+qui ajoute aussi la clé au manifeste s'il n'en a pas (le chemin est alors demandé). Tant qu'elle est ouverte, publier
+à nouveau y ajoute un commit.
+
 ## Quelles sources méritent leur place
 
 La page « Sources suivies » de l'interface (dans le menu « Veille », `GET /api/sources`) montre, pour chaque

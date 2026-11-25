@@ -16,6 +16,10 @@ tracks (as it drops those of `seen`) and lists those whose date to look again ha
     reg.save()
 
 No model here: a name is matched by its normalised form, an address by its canonical form.
+
+The page « Candidates » (routes/candidates.py, D3.2) changes a draft of the registry kept by the agent, never the
+guide's folder; `publish` writes it on a branch of the guide and opens the pull request (and adds the key to the
+manifest when it has none yet).
 """
 
 from __future__ import annotations
@@ -23,8 +27,11 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, urlunsplit
+
+from . import guide as guide_mod
+from . import vault
 
 SCHEMA = 1
 STATES = ("lead", "watching", "confirmed", "proposed", "added", "dismissed")
@@ -68,20 +75,30 @@ class Registry:
         if not path.is_file():
             return cls(path)
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as e:
+            return cls.parse(path.read_text(encoding="utf-8"), path)
+        except OSError as e:
+            raise RegistryError(f"{path.name}: {e}") from e
+
+    @classmethod
+    def parse(cls, text: str, path: Path) -> Registry:
+        """The registry written in `text` (a file, or the file as a branch of the guide has it), saved at `path`."""
+        try:
+            data = json.loads(text)
+        except ValueError as e:
             raise RegistryError(f"{path.name}: {e}") from e
         if not isinstance(data, dict) or data.get("schema") != SCHEMA or not isinstance(data.get("candidates"), list):
             raise RegistryError(f"{path.name}: not a registry of candidates (schema {SCHEMA}, a list `candidates`)")
         return cls(path, data["candidates"])
 
-    def save(self) -> None:
-        """Written sorted by state then name, two spaces, one line per source: a diff a reviewer can read."""
+    def text(self) -> str:
+        """Sorted by state then name, two spaces, one line per source: a diff a reviewer can read."""
         order = {s: i for i, s in enumerate(STATES)}
         self.candidates.sort(key=lambda c: (order.get(c.get("state") or "", 99), key(c.get("name", ""))))
+        return json.dumps({"schema": SCHEMA, "candidates": self.candidates}, ensure_ascii=False, indent=2) + "\n"
+
+    def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        text = json.dumps({"schema": SCHEMA, "candidates": self.candidates}, ensure_ascii=False, indent=2)
-        self.path.write_text(text + "\n", encoding="utf-8", newline="\n")
+        self.path.write_text(self.text(), encoding="utf-8", newline="\n")
 
     # -- reading --------------------------------------------------------------------------------------------------
     def get(self, cid: str) -> dict:
@@ -111,7 +128,7 @@ class Registry:
 
     # -- changes --------------------------------------------------------------------------------------------------
     def note(self, name: str, url: str = "", *, origin: str, seen: str, kind: str = "other",
-             title: str = "") -> tuple[dict, bool]:
+             title: str = "", note: str = "") -> tuple[dict, bool]:
         """A candidate seen once more: its source added (an address not known yet) and its last date moved, or a new
         candidate in state `lead`. (candidate, True when it is new)."""
         _date(seen, "seen")
@@ -132,7 +149,7 @@ class Registry:
             raise RegistryError(f"{cid!r} already exists")
         c = {"id": cid, "name": name.strip(), "kind": kind, "state": "lead", "reason": "", "recheck": "",
              "first_seen": seen, "last_seen": seen, "sources": [source] if url else [],
-             "history": [{"date": seen, "state": "lead", "note": f"seen: {origin}"}]}
+             "history": [{"date": seen, "state": "lead", "note": f"seen: {origin}" + (f": {note.strip()}" if note.strip() else "")}]}
         self.candidates.append(c)
         return c, True
 
@@ -155,3 +172,144 @@ class Registry:
         c.setdefault("history", []).append({"date": today, "state": state, "note": reason.strip(),
                                             **({"recheck": recheck} if recheck else {})})
         return c
+
+
+# -- the draft of the page and its pull request (D3.2) -------------------------------------------------------------
+TITLE = "chore(watch): the registry of candidates"
+NEEDS = "1.7.0"  # the agent that knows `[watch] candidates`: an older one refuses the manifest (unknown key)
+
+
+def changes(before: list[dict], after: list[dict]) -> list[dict]:
+    """What `after` changes in `before`, one change each, by name: {what: new | state | sources | removed, name, …}."""
+    old = {c["id"]: c for c in before}
+    out: list[dict] = []
+    for c in sorted(after, key=lambda c: key(c.get("name", ""))):
+        o = old.pop(c["id"], None)
+        if o is None:
+            out.append({"what": "new", "name": c["name"], "kind": c.get("kind", ""), "state": c.get("state", ""),
+                        "reason": c.get("reason", ""), "recheck": c.get("recheck", "")})
+            continue
+        if any(o.get(k, "") != c.get(k, "") for k in ("state", "reason", "recheck")):
+            out.append({"what": "state", "name": c["name"], "from": o.get("state", ""), "state": c.get("state", ""),
+                        "reason": c.get("reason", ""), "recheck": c.get("recheck", "")})
+        added = len(c.get("sources", [])) - len(o.get("sources", []))
+        if added > 0:
+            out.append({"what": "sources", "name": c["name"], "n": added})
+    out += [{"what": "removed", "name": o["name"]} for o in old.values()]
+    return out
+
+
+def said(change: dict) -> str:
+    """A change in English, for the pull request."""
+    name, what = change["name"], change["what"]
+    why = (f": {change['reason']}" if change.get("reason") else "") + (f", look again on {change['recheck']}" if change.get("recheck") else "")
+    if what == "new":
+        return f"**{name}** ({change['kind']}) added, {change['state']}{why}"
+    if what == "state":
+        return f"**{name}**: {change['from']} → {change['state']}{why}"
+    if what == "sources":
+        return f"**{name}**: {change['n']} source(s) added"
+    return f"**{name}** removed"
+
+
+def default_path(watch) -> str:
+    """Where a guide whose manifest names no registry keeps it: beside its seen file or its feeds, else watch/."""
+    beside = watch.seen or watch.feeds
+    return str(PurePosixPath(beside).parent / "candidates.json") if beside else "watch/candidates.json"
+
+
+def valid_path(rel: str) -> str:
+    """A path for the registry, relative to the guide and inside it, a .json file; else RegistryError."""
+    rel = rel.strip().replace("\\", "/")
+    parts = PurePosixPath(rel).parts
+    if not rel.endswith(".json") or rel.startswith("/") or ":" in rel or ".." in parts or not parts:
+        raise RegistryError(f"{rel!r}: a .json file of the guide, its path relative to the guide (watch/candidates.json)")
+    return rel
+
+
+def with_key(raw: str, rel: str) -> str:
+    """The manifest `raw` naming the registry `rel` in its [watch] section (the section added when it has none)."""
+    lines = raw.replace("\r\n", "\n").rstrip("\n").split("\n")
+    entry = f'candidates = "{rel}"'
+    try:
+        i = next(n for n, line in enumerate(lines) if line.strip() == "[watch]")
+    except StopIteration:
+        lines += ["", "[watch]", entry]
+    else:
+        j = i + 1
+        while j < len(lines) and not lines[j].lstrip().startswith("["):
+            j += 1
+        while j > i + 1 and not lines[j - 1].strip():
+            j -= 1
+        lines.insert(j, entry)
+    text = "\n".join(lines) + "\n"
+    return text.replace("\n", "\r\n") if "\r\n" in raw else text
+
+
+def pull_request_body(found: list[dict], rel: str, key_added: bool) -> str:
+    lines = [f"The registry of discovery (`{rel}`): what the agent found that the guide does not cover yet, followed "
+             "over time. Changed from the page « Candidates » of vault-watch-agent. No page of the guide changes.", ""]
+    lines += [f"- {said(c)}" for c in found] or ["- (the file as the agent keeps it)"]
+    if key_added:
+        lines += ["", f"The manifest now names it (`[watch] candidates`): this needs vault-watch-agent {NEEDS} or newer "
+                  "wherever the guide is read, the workflow that collects its watch included; an older agent refuses the "
+                  "manifest (unknown key). Update those before merging."]
+    return "\n".join(lines) + "\n"
+
+
+def publish(guide, home: Path, text: str, rel: str, found: list[dict], *, stamp: str, branch: str = "",
+            pr_url: str = "", open_pull_request=None) -> dict:
+    """The registry `text` written at `rel` on a branch of the guide, in a worktree of the agent, from its base branch
+    up to date; the manifest names it when it does not yet. `branch` (with its `pr_url`): the branch of a pull request
+    still open, which gets one more commit. Committed, then pushed with a pull request when the guide has a
+    repository (`open_pull_request`, the forge's). Returns {branch, pr_url}. The guide's folder is not touched.
+    RegistryError when the branch already holds this registry."""
+    from . import inputs
+
+    git = lambda *args, cwd: inputs.run(["git", *args], cwd=cwd)  # noqa: E731
+    with vault._GIT:  # not while a run syncs the base or resets the reading copy
+        vault._sync(guide.root, guide.base_branch)
+        existing = git("branch", "--list", "--format=%(refname:short)", "chore/candidates*", cwd=guide.root).split()
+        again = bool(branch) and branch in existing
+        if not again:
+            branch, n, pr_url = f"chore/candidates-{stamp}", 1, ""
+            while branch in existing:
+                n += 1
+                branch = f"chore/candidates-{stamp}-{n}"
+        worktree = home / "worktrees" / branch.replace("/", "-")
+        git("worktree", "prune", cwd=guide.root)
+        if again:
+            git("worktree", "add", "-q", str(worktree), branch, cwd=guide.root)
+        else:
+            git("worktree", "add", "-q", "-B", branch, str(worktree), guide.base_branch, cwd=guide.root)
+    committed, url = False, pr_url
+    try:
+        target = worktree / rel
+        changed = [rel] if not target.is_file() or target.read_text(encoding="utf-8") != text else []
+        if changed:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8", newline="\n")
+        manifest = worktree / guide_mod.MANIFEST
+        key_added = manifest.is_file() and not guide_mod.load(worktree).watch.candidates
+        if key_added:
+            vault.write(manifest, with_key(vault.read(manifest), rel))
+            changed.append(guide_mod.MANIFEST)
+        if not changed:
+            raise RegistryError(f"nothing to publish: {branch if again else guide.base_branch} already holds this registry")
+        git("add", *changed, cwd=worktree)
+        git("commit", "-q", "-m", f"{TITLE} ({len(found)} change(s))", cwd=worktree)
+        committed = True
+        if guide.repository and open_pull_request:
+            git("push", "-q", "-u", "origin", branch, cwd=worktree)
+            if not url:
+                url = open_pull_request(guide.repository, base=guide.base_branch, head=branch, title=TITLE,
+                                        body=pull_request_body(found, rel, key_added), cwd=worktree)
+    finally:
+        with vault._GIT:  # the branch holds the commit; its folder is no longer needed
+            for args in (["worktree", "remove", "--force", str(worktree)],
+                         *([] if committed or again else [["branch", "-q", "-D", branch]])):
+                try:
+                    git(*args, cwd=guide.root)
+                except RuntimeError:
+                    pass
+    return {"branch": branch, "pr_url": url}

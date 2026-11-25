@@ -1,6 +1,6 @@
 // @ts-check
 /* vault-watch: which screen the address shows. Routes: #/ (to handle), #/watches, #/runs, #/run/<thread>, #/check,
-   #/check/<id>, #/sources, #/report, #/idea, #/links, #/languages, #/costs, #/chapters, #/settings (the window of
+   #/check/<id>, #/sources, #/candidates, #/report, #/idea, #/links, #/languages, #/costs, #/chapters, #/settings (the window of
    settings.js, over the first page). */
 
 import { $, esc, forgetBar, keepRoomForBar, page, stopFollowing } from "./util.js";
@@ -16,6 +16,7 @@ import { viewSources } from "./sources.js";
 import { viewLanguages } from "./languages.js";
 import { leaveChapters, viewChapters } from "./chapters.js";
 import { viewCosts } from "./costs.js";
+import { viewCandidates } from "./candidates.js";
 import { openSettings } from "./settings.js";
 
 // --- Router --------------------------------------------------------------------------------------
@@ -37,7 +38,7 @@ export async function route() {
   }
   const here = h === "/" ? "todo" : ["/idea", "/links"].includes(h) ? "report" : h.startsWith("/run/") ? "runs" : h.split("/")[1].split("?")[0];
   /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("nav [data-nav]")).forEach(a => a.classList.toggle("active", a.dataset.nav === here));
-  $("#watch-menu").classList.toggle("active", ["todo", "watches", "check", "sources", "runs"].includes(here));
+  $("#watch-menu").classList.toggle("active", ["todo", "watches", "check", "sources", "candidates", "runs"].includes(here));
   if (!$("header").classList.contains("narrow")) $("#watch-menu").open = false;
   page.innerHTML = `<p class="muted">${T.loading}</p>`;
   forgetBar();  // the room left for a check's bar, until it is drawn again
@@ -46,6 +47,7 @@ export async function route() {
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
     else if (h === "/check" || h === "/check?new") { setNewCheck(h.endsWith("?new")); await viewChecks(); if (NEW_CHECK) $("#new-check")?.scrollIntoView(); }
     else if (h === "/sources") await viewSources();
+    else if (h === "/candidates") await viewCandidates();
     else if (h === "/links") await viewLinks();
     else if (h === "/report" || h === "/idea") await viewReport(h === "/idea");
     else if (h === "/costs") await viewCosts();

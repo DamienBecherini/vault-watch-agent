@@ -19,7 +19,7 @@ export function header() {
   const entry = (h, k, dot) => `<a href="#/${h}" data-nav="${k}"><span class="dot ${dot}"></span><span><b>${T.nav[k]}</b><small>${
     typeof T.navHelp[k] === "function" ? T.navHelp[k]() : T.navHelp[k]}</small></span>${k === "todo" ? '<span class="count" data-todo-count hidden></span>' : ""}</a>`;
   $("#watch-items").innerHTML = `${entry("", "todo", "todo")}<hr>${entry("watches", "watches", "auto")}${entry("check", "check", "check")}${
-    entry("sources", "sources", "auto")}<hr>${entry("runs", "runs", "runs")}`;
+    entry("sources", "sources", "auto")}${entry("candidates", "candidates", "check")}<hr>${entry("runs", "runs", "runs")}`;
   showTodoCount();
   // The guide's menu: its name opens its site, its repository and its chapters (one guide per server)
   $("#guide-name").textContent = info?.guide || "";

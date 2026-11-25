@@ -32,7 +32,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import watches as watches_mod
-from .routes import chapters, checks, languages, notices, pauses, runs, security, service, sources, todo
+from .routes import candidates, chapters, checks, languages, notices, pauses, runs, security, service, sources, todo
 from .routes import settings as settings_routes
 from .routes.chapters import Chapters, Propose
 from .routes.checks import NOTE_CHARS, Handle, LeadNote, Verification
@@ -78,7 +78,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.jobs = ctx.jobs
     app.state.idle_seconds = ctx.idle_seconds
     security.install(ctx)
-    for area in (notices, service, settings_routes, todo, runs, pauses, sources, checks, languages, chapters):
+    for area in (notices, service, settings_routes, todo, runs, pauses, sources, checks, languages, chapters, candidates):
         app.include_router(area.router(ctx))
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     guide_languages = {"source": ctx.guide.language, "mirrors": dict(ctx.guide.mirrors)}

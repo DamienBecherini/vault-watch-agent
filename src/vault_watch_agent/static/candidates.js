@@ -1,0 +1,236 @@
+// @ts-check
+/* vault-watch: « Candidates » (ROADMAP D3.2): the registry of discovery, what the agent found that the guide does
+   not cover yet, followed over time (candidates.py). Changed here in a draft of the agent, published by a pull request
+   of the guide (routes/candidates.py); « Propose an addition » takes a candidate to the screen of an addition run. */
+
+import { $, esc, extLink, page, shortUrl, tip } from "./util.js";
+import { api } from "./api.js";
+import { addTexts, T } from "./texts.js";
+import { proposeCandidate } from "./report.js";
+
+const CANDIDATES_TEXTS = {
+  fr: {
+    title: "Candidats",
+    proposing: name => `Pour le candidat « ${name} » du registre : il deviendra « Proposé » quand la passe démarrera.`,
+    forget: "Ne plus le lier",
+    intro: "Ce que l'agent a trouvé et que le guide ne couvre pas encore : un modèle, un outil, un matériel. Plutôt que d'être trié une fois puis oublié, chacun est suivi : mis en observation avec une date pour le revoir, écarté avec sa raison, ou proposé comme ajout. La collecte de la veille ne repropose pas ce que le registre suit, et liste ceux dont la date est arrivée.",
+    states: { lead: "Piste", watching: "En observation", confirmed: "Confirmé", proposed: "Proposé", added: "Ajouté", dismissed: "Écarté" },
+    kinds: { model: "Modèle", tool: "Outil", hardware: "Matériel", other: "Autre" },
+    all: "Tous",
+    none: "Aucun candidat pour l'instant. Ajoute ici ce que tu as repéré ; la veille, les vérifications et la collecte en ajouteront ensuite d'elles-mêmes.",
+    noneHere: "Aucun candidat dans cet état.",
+    due: n => `${n} candidat(s) à revoir : leur date est arrivée.`,
+    dueBadge: "à revoir",
+    seen: (first, last) => first === last ? `vu le ${first}` : `vu du ${first} au ${last}`,
+    lookAgain: d => `à revoir le ${d}`,
+    sources: n => `${n} source(s)`,
+    history: "Historique",
+    add: "Ajouter un candidat",
+    addHelp: "Un nom déjà suivi, ou une adresse déjà connue, ajoute seulement la source au candidat existant.",
+    name: "Nom", url: "Adresse (facultative)", kind: "Type", note: "Pourquoi (facultatif)",
+    addButton: "Ajouter",
+    known: name => `Déjà suivi : la source est ajoutée à « ${name} ».`,
+    watch: "Mettre en observation", dismiss: "Écarter", confirm: "Confirmer", lead: "Remettre en piste", added: "Marquer ajouté",
+    propose: "Proposer un ajout",
+    tips: {
+      watch: "Pas encore assez pour le guide (pas de poids, pas de mesure…) : à revoir à une date. La veille te le rappellera.",
+      dismiss: "Ne convient pas au guide : la raison reste, et une date pour le revoir si la situation peut changer.",
+      confirm: "Vérifié : sa place dans le guide est acquise, il reste à l'y écrire.",
+      propose: "Ouvre « Proposer un ajout » avec ce candidat : la passe d'ajout vérifie sur le web et écrit là où il faut. Le candidat devient « Proposé ».",
+      added: "Le guide le couvre maintenant (la pull request de son ajout est fusionnée).",
+    },
+    reason: "Raison", reasonNeeded: "Raison (obligatoire)", reasonMissing: "Dis pourquoi tu l'écartes : la raison reste dans le registre.", date: "À revoir le", ok: "Valider", cancel: "Annuler",
+    draftTitle: n => `Changements à publier (${n})`,
+    draftHelp: "Tes changements restent dans un brouillon de l'agent : ton dossier du guide n'est pas touché. Le registre est un fichier du guide, lu par sa collecte hebdomadaire ; il change par une pull request.",
+    inPr: "Tous ces changements sont dans la pull request ouverte.",
+    pending: url => `Une pull request publie le registre : ${extLink(url, "pull request ↗")}. Publier à nouveau y ajoute un commit.`,
+    path: "Fichier du registre dans le guide",
+    pathHelp: (manifest, needs) => `Le manifeste (${manifest}) ne nomme pas encore de registre : la pull request l'y ajoute. Il faudra vault-watch-agent ${needs} ou plus là où le guide est lu (le workflow de la collecte compris) avant de la fusionner.`,
+    publish: "Publier le registre",
+    publishLocal: "Enregistrer le registre sur une branche",
+    discard: "Abandonner ces changements",
+    confirmDiscard: "Abandonner les changements non publiés du registre ?",
+    published: (branch, url) => url ? `Publié : ${extLink(url, "pull request ↗")} (branche ${esc(branch)}).` : `Enregistré sur la branche ${esc(branch)} (le guide n'a pas de dépôt).`,
+    change: {
+      new: c => `<b>${esc(c.name)}</b> ajouté (${esc(c.state)})`,
+      state: c => `<b>${esc(c.name)}</b> : ${esc(c.from)} → ${esc(c.state)}`,
+      sources: c => `<b>${esc(c.name)}</b> : ${c.n} source(s) en plus`,
+      removed: c => `<b>${esc(c.name)}</b> retiré`,
+    },
+  },
+  en: {
+    title: "Candidates",
+    proposing: name => `For the candidate « ${name} » of the registry: it becomes « Proposed » when the run starts.`,
+    forget: "Unlink it",
+    intro: "What the agent found that the guide does not cover yet: a model, a tool, a piece of hardware. Instead of being triaged once and forgotten, each is followed: watched with a date to look again, dismissed with its reason, or proposed as an addition. The collection of the watch does not propose again what the registry tracks, and lists those whose date has come.",
+    states: { lead: "Lead", watching: "Watching", confirmed: "Confirmed", proposed: "Proposed", added: "Added", dismissed: "Dismissed" },
+    kinds: { model: "Model", tool: "Tool", hardware: "Hardware", other: "Other" },
+    all: "All",
+    none: "No candidate yet. Add here what you spotted; the watch, the checks and the collection will add theirs later.",
+    noneHere: "No candidate in this state.",
+    due: n => `${n} candidate(s) to look at again: their date has come.`,
+    dueBadge: "look again",
+    seen: (first, last) => first === last ? `seen on ${first}` : `seen from ${first} to ${last}`,
+    lookAgain: d => `look again on ${d}`,
+    sources: n => `${n} source(s)`,
+    history: "History",
+    add: "Add a candidate",
+    addHelp: "A name already followed, or an address already known, only adds the source to the existing candidate.",
+    name: "Name", url: "Address (optional)", kind: "Kind", note: "Why (optional)",
+    addButton: "Add",
+    known: name => `Already followed: the source is added to « ${name} ».`,
+    watch: "Watch", dismiss: "Dismiss", confirm: "Confirm", lead: "Back to lead", added: "Mark added",
+    propose: "Propose an addition",
+    tips: {
+      watch: "Not enough for the guide yet (no weights, no measure…): to look at again on a date. The watch will remind you.",
+      dismiss: "Not for the guide: the reason stays, and a date to look again if things may change.",
+      confirm: "Checked: its place in the guide is settled, it remains to write it there.",
+      propose: "Opens « Propose an addition » with this candidate: the addition run checks on the web and writes where it belongs. The candidate becomes « Proposed ».",
+      added: "The guide covers it now (the pull request of its addition is merged).",
+    },
+    reason: "Reason", reasonNeeded: "Reason (required)", reasonMissing: "Say why you dismiss it: the reason stays in the registry.", date: "Look again on", ok: "Apply", cancel: "Cancel",
+    draftTitle: n => `Changes to publish (${n})`,
+    draftHelp: "Your changes stay in a draft of the agent: your folder of the guide is not touched. The registry is a file of the guide, read by its weekly collection; it changes through a pull request.",
+    inPr: "All these changes are in the open pull request.",
+    pending: url => `A pull request publishes the registry: ${extLink(url, "pull request ↗")}. Publishing again adds a commit to it.`,
+    path: "File of the registry in the guide",
+    pathHelp: (manifest, needs) => `The manifest (${manifest}) names no registry yet: the pull request adds it. It will need vault-watch-agent ${needs} or newer wherever the guide is read (the collection's workflow included) before merging it.`,
+    publish: "Publish the registry",
+    publishLocal: "Save the registry on a branch",
+    discard: "Drop these changes",
+    confirmDiscard: "Drop the changes of the registry not published?",
+    published: (branch, url) => url ? `Published: ${extLink(url, "pull request ↗")} (branch ${esc(branch)}).` : `Saved on the branch ${esc(branch)} (the guide has no repository).`,
+    change: {
+      new: c => `<b>${esc(c.name)}</b> added (${esc(c.state)})`,
+      state: c => `<b>${esc(c.name)}</b>: ${esc(c.from)} → ${esc(c.state)}`,
+      sources: c => `<b>${esc(c.name)}</b>: ${c.n} more source(s)`,
+      removed: c => `<b>${esc(c.name)}</b> removed`,
+    },
+  },
+};
+addTexts("candidates", CANDIDATES_TEXTS);
+
+let FILTER = "";  // the state shown, "" for all
+let SAID = "";    // said once after an action (a source added to a known candidate, a publication)
+
+// The line of a candidate in the draft of « Propose an addition »: its name, kind, sources and what was said of it
+const leadLine = (c, C) => `${c.name} (${C.kinds[c.kind] || c.kind})${(c.sources || []).length ? ` : ${c.sources.map(s => s.url).filter(Boolean).join(" ")}` : ""}${c.reason ? ` (${c.reason})` : ""}`;
+
+export async function viewCandidates() {
+  const d = await api("/api/candidates"), C = T.candidates;
+  const stateOf = s => C.states[s] || s;
+  const due = new Set(d.due);
+  const count = s => d.candidates.filter(c => c.state === s).length;
+  const shown = d.candidates.filter(c => !FILTER || c.state === FILTER);
+  const changeLine = c => C.change[c.what]({ ...c, from: stateOf(c.from), state: stateOf(c.state) });
+  const actions = c => {
+    const b = (state, label, help, cls = "") => `<span><button type="button" class="small-button ${cls}" data-act="${state}" data-id="${esc(c.id)}">${label}</button>${help ? tip(help) : ""}</span>`;
+    const out = [];
+    if (!["proposed", "added"].includes(c.state)) out.push(`<span><button type="button" class="small-button primary" data-propose="${esc(c.id)}">${C.propose}</button>${tip(C.tips.propose)}</span>`);
+    if (["lead", "dismissed", "confirmed"].includes(c.state)) out.push(b("watching", C.watch, C.tips.watch));
+    if (["lead", "watching"].includes(c.state)) out.push(b("confirmed", C.confirm, C.tips.confirm));
+    if (["proposed", "confirmed"].includes(c.state)) out.push(b("added", C.added, C.tips.added));
+    if (c.state !== "lead" && c.state !== "added") out.push(b("lead", C.lead, ""));
+    if (c.state !== "dismissed" && c.state !== "added") out.push(b("dismissed", C.dismiss, C.tips.dismiss, "danger"));
+    if (c.state === "watching") out.push(b("watching", `${C.date}…`, ""));
+    return out.join("");
+  };
+  const card = c => `<div class="card candidate" data-card="${esc(c.id)}">
+      <div class="header"><b>${esc(c.name)}</b> <span class="badge neutral">${esc(C.kinds[c.kind] || c.kind)}</span>
+        <span class="badge ${c.state === "dismissed" ? "neutral" : c.state === "added" ? "ok" : "attention"}">${esc(stateOf(c.state))}</span>
+        ${due.has(c.id) ? `<span class="badge error">${C.dueBadge}</span>` : ""}</div>
+      <p class="muted small">${C.seen(esc(c.first_seen), esc(c.last_seen))}${c.recheck ? ` · ${C.lookAgain(esc(c.recheck))}` : ""}</p>
+      ${c.reason ? `<p class="small">${esc(c.reason)}</p>` : ""}
+      ${(c.sources || []).length ? `<ul class="small">${c.sources.map(s => `<li>${extLink(s.url, esc(s.title || shortUrl(s.url)))} <span class="muted">${esc(s.seen)} · ${esc(s.origin)}</span></li>`).join("")}</ul>` : ""}
+      <details class="small"><summary>${C.history}</summary><ul>${(c.history || []).map(h => `<li>${esc(h.date)} · ${esc(stateOf(h.state))}${h.note ? ` : ${esc(h.note)}` : ""}${h.recheck ? ` (${C.lookAgain(esc(h.recheck))})` : ""}</li>`).join("")}</ul></details>
+      <div class="actions">${actions(c)}</div>
+      <div class="move-form" hidden></div>
+    </div>`;
+  const pending = d.pending?.pr_url;
+  const asksPath = !d.declared && !pending;
+  page.innerHTML = `
+    <h1>${C.title}</h1>
+    <p class="subtitle">${C.intro}</p>
+    ${pending ? `<p class="banner">${C.pending(d.pending.pr_url)}</p>` : ""}
+    ${SAID ? `<p class="banner">${SAID}</p>` : ""}
+    ${d.due.length ? `<p class="banner">${C.due(d.due.length)}</p>` : ""}
+    ${d.changes.length ? `<div class="card" id="draft"><div class="header"><b>${C.draftTitle(d.changes.length)}</b></div>
+      <ul class="small">${d.changes.map(c => `<li>${changeLine(c)}</li>`).join("")}</ul>
+      ${d.unpublished ? `<p class="muted small">${C.draftHelp}</p>
+        ${asksPath ? `<p><label class="small">${C.path} <input type="text" id="reg-path" value="${esc(d.path)}" spellcheck="false"></label></p>
+          <p class="muted small">${C.pathHelp(esc(d.manifest), esc(d.needs))}</p>` : ""}
+        <p class="actions"><button type="button" class="primary" id="publish">${d.has_repo ? C.publish : C.publishLocal}</button>
+          <button type="button" class="small-button danger" id="discard">${C.discard}</button> <span class="error-text small" id="publish-error"></span></p>`
+        : `<p class="muted small">${C.inPr}</p>`}
+    </div>` : ""}
+    <p class="tabs">${["", ...d.states].map(s => `<a href="#" data-filter="${s}"${s === FILTER ? ' class="active"' : ""}>${s ? stateOf(s) : C.all} (${s ? count(s) : d.candidates.length})</a>`).join("")}</p>
+    <div id="list">${shown.map(card).join("") || `<p class="muted">${d.candidates.length ? C.noneHere : C.none}</p>`}</div>
+    <h2>${C.add}</h2>
+    <p class="muted small">${C.addHelp}</p>
+    <div class="card"><div class="chapter-fields">
+      <label class="small">${C.name}<input type="text" id="c-name" maxlength="120"></label>
+      <label class="small">${C.url}<input type="url" id="c-url" spellcheck="false"></label>
+      <label class="small">${C.kind}<select id="c-kind">${d.kinds.map(k => `<option value="${k}">${esc(C.kinds[k] || k)}</option>`).join("")}</select></label>
+      <label class="small">${C.note}<input type="text" id="c-note" maxlength="300"></label>
+    </div><p><button type="button" id="c-add">${C.addButton}</button> <span class="error-text small" id="add-error"></span></p></div>`;
+  SAID = "";
+
+  page.querySelectorAll("[data-filter]").forEach(a => a.addEventListener("click", e => {
+    e.preventDefault();
+    FILTER = /** @type {HTMLElement} */ (a).dataset.filter || "";
+    viewCandidates();
+  }));
+  const byId = id => d.candidates.find(c => c.id === id);
+  page.querySelectorAll("[data-propose]").forEach(b => b.addEventListener("click", () => {
+    const c = byId(/** @type {HTMLElement} */ (b).dataset.propose);
+    if (c) proposeCandidate(c, leadLine(c, C));
+  }));
+  const move = async (id, body, error) => {
+    try { await api(`/api/candidates/${encodeURIComponent(id)}`, body); viewCandidates(); }
+    catch (e) { error.textContent = e.message; }
+  };
+  page.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+    const { act, id } = /** @type {HTMLElement} */ (b).dataset;
+    const c = byId(id), box = /** @type {HTMLElement} */ (b.closest("[data-card]")), form = /** @type {HTMLElement} */ (box.querySelector(".move-form"));
+    if (!c || !act) return;
+    if (!["watching", "dismissed"].includes(act)) { move(id, { state: act }, form); return; }
+    // Watching or dismissed: a reason (needed to dismiss) and a date to look again
+    form.hidden = false;
+    form.innerHTML = `<div class="chapter-fields">
+        <label class="small">${act === "dismissed" ? C.reasonNeeded : C.reason}<input type="text" data-f="reason" maxlength="300" value="${esc(act === c.state ? c.reason : "")}"></label>
+        <label class="small">${C.date}<input type="date" data-f="recheck" min="${esc(d.today)}" value="${esc(act === c.state ? c.recheck : "")}"></label>
+      </div><p class="actions"><button type="button" class="small-button primary" data-f="ok">${C.ok}</button>
+        <button type="button" class="small-button" data-f="cancel">${C.cancel}</button> <span class="error-text small" data-f="error"></span></p>`;
+    const f = k => /** @type {HTMLInputElement} */ (form.querySelector(`[data-f=${k}]`));
+    f("reason").focus();
+    f("cancel").onclick = () => { form.hidden = true; form.innerHTML = ""; };
+    f("ok").onclick = () => {
+      if (act === "dismissed" && !f("reason").value.trim()) { f("error").textContent = C.reasonMissing; f("reason").focus(); return; }
+      move(id, { state: act, reason: f("reason").value, recheck: f("recheck").value }, f("error"));
+    };
+  }));
+  $("#c-add").onclick = async () => {
+    const name = /** @type {HTMLInputElement} */ ($("#c-name")).value.trim();
+    if (!name) return;
+    try {
+      const r = await api("/api/candidates", { name, url: $("#c-url").value.trim(), kind: $("#c-kind").value, note: $("#c-note").value.trim() });
+      if (!r.new) SAID = C.known(esc(byId(r.id)?.name || r.candidates.find(c => c.id === r.id)?.name || name));
+      viewCandidates();
+    } catch (e) { $("#add-error").textContent = e.message; }
+  };
+  const publish = $("#publish");
+  if (publish) publish.onclick = async () => {
+    publish.disabled = true;
+    try {
+      const r = await api("/api/candidates-draft/publish", { path: $("#reg-path")?.value.trim() || "" });
+      SAID = C.published(r.branch, r.pr_url);
+      viewCandidates();
+    } catch (e) { $("#publish-error").textContent = e.message; publish.disabled = false; }
+  };
+  const discard = $("#discard");
+  if (discard) discard.onclick = async () => {
+    if (!confirm(C.confirmDiscard)) return;
+    await api("/api/candidates-draft/discard", {});
+    viewCandidates();
+  };
+}

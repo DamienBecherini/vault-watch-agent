@@ -97,7 +97,7 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
-| `web.py` | 83 | `create_app(settings)` : l'application construite à partir des routeurs de `routes/` (plus bas), la page statique avec une version dans l'adresse de ses fichiers ; les noms que le module avait avant le départ de ses routes s'importent toujours depuis lui |
+| `web.py` | 91 | `create_app(settings)` : l'application construite à partir des routeurs de `routes/` (plus bas), la page statique avec une version dans l'adresse de ses fichiers ; les noms que le module avait avant le départ de ses routes s'importent toujours depuis lui |
 | `graph.py` | 94 | Construit le graphe (`build(deps, checkpointer)`) : les étapes et les arêtes. Chaque étape est une fonction `node(deps, state)` du module de sa partie de la passe, liée à `deps` par `functools.partial` |
 | `graph_proposals.py` | 258 | Les étapes jusqu'à la relecture, en lecture seule : `collect`, `triage`, `locate` et `fan_out` (les groupes d'éléments, `clusters`), `propose`, `number`, `crosscheck`, `report` |
 | `graph_review.py` | 212 | Les étapes de la relecture et de la branche : `review`, `apply`, `retouch`, `proofread`, `proofread_review` |
@@ -107,7 +107,7 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 | `graph_common.py` | 51 | Ce que les étapes partagent : `Deps`, git dans un worktree, l'ordre des propositions, la branche d'une passe |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
 | `collect.py` | 727 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
-| `candidates.py` | 157 | Le registre de la découverte (ROADMAP D3) : les candidats suivis dans le temps, leurs sources, états, raisons et dates de revérification, dans le fichier que nomme le manifeste (`[watch] candidates`) ; la collecte écarte ce qu'il suit et liste ce qui est dû |
+| `candidates.py` | 315 | Le registre de la découverte (ROADMAP D3) : les candidats suivis dans le temps, leurs sources, états, raisons et dates de revérification, dans le fichier que nomme le manifeste (`[watch] candidates`) ; la collecte écarte ce qu'il suit et liste ce qui est dû |
 | `llm.py` | 442 | Le contrat que tient chaque moteur : les protocoles `LLM` et `Engine`, `ModelError`, les efforts, `Capabilities`, le journal des coûts (`_Journal`), `EngineKind` et `engines()` (protocole 1) ; `engine()` et `create`, le moteur d'un rôle (`Routed` quand des étapes sont réglées à part) ; si Claude Code est installé et connecté |
 | `engines/api.py` | 190 | `Claude`, l'API Claude par le SDK officiel, facturée au token : sortie structurée, cache de prompt, recherche et lecture web côté serveur, limites de sortie lues dans l'API Models |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code sur un abonnement Claude, `claude -p` une fois par appel ; le lecteur de pages de l'agent offert comme son `web_fetch` |
@@ -124,7 +124,7 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 | `chapters.py` | 413 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
 | `sourcecheck.py` | 386 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
 | `compact.py` | 372 | Compactage : les consignes du rapport, des allègements et de leur relecture croisée ; les notes qu'un allègement laisse sans phrase retirées avec lui, un allègement qui laisserait une phrase citer une note retirée refusé ; `in_calls`, plusieurs appels qui partagent le guide en cache ou ne lisent que les pages qu'ils désignent |
-| `vault.py` | 465 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
+| `vault.py` | 504 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
 | `onboard.py` | 355 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
 | `crosscheck.py` | 266 | Seconde lecture des corrections avec tout le guide en cache dans le contexte (ou chapitre par chapitre), puis le balayage |
 | `config.py` | 273 | Les réglages de l'utilisateur (`settings.json`) : moteur, modèles, prix, et la clé d'API sous forme de référence (`env:`, `sops:`, `file:`), jamais de valeur |
@@ -154,17 +154,18 @@ Chacun a un `router(ctx)` qui construit son routeur FastAPI à partir du context
 | Module | Lignes | Rôle |
 | :-- | --: | :-- |
 | `context.py` | 401 | `AppContext`, ce que les routeurs partagent : les `Settings` du serveur, les tâches de fond (`Job`), les points de reprise et le graphe qui les lit, `read_json` et `write_json`, le résumé d'une passe, l'état des pull requests, la pause où une passe attend |
-| `security.py` | 76 | Local seulement : le middleware qui refuse un Host qui n'est pas local, une requête qu'un autre site fait envoyer au navigateur (`Sec-Fetch-Site`, `Origin`) et une requête de l'API sans l'en-tête `X-Vault-Watch` ; les en-têtes de chaque réponse (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control: no-cache` sur la page et ses fichiers) |
+| `security.py` | 90 | Local seulement : le middleware qui refuse un Host qui n'est pas local, une requête qu'un autre site fait envoyer au navigateur (`Sec-Fetch-Site`, `Origin`) et une requête de l'API sans l'en-tête `X-Vault-Watch` ; les en-têtes de chaque réponse (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control: no-cache` sur la page et ses fichiers) |
 | `notices.py` | 69 | Ce que l'humain doit faire ensuite quand une tâche de fond s'arrête : sur le bureau (`serve --notify`) et dans la page dont la cloche est activée |
 | `service.py` | 91 | Le serveur lui-même : santé, informations, coûts, les explications d'une pause |
 | `settings.py` | 159 | « Réglages » : les étapes, les modèles, les réglages de l'utilisateur, les prix |
 | `todo.py` | 92 | « À traiter » : les veilles, une nouvelle veille collectée, le dossier du guide (« Mettre à jour mon dossier ») |
-| `runs.py` | 268 | Les passes : la liste, une passe, son rapport, son diff et le flux de ses étapes ; une veille analysée, des remarques ou des pistes envoyées à une passe de correction, une passe reprise après une erreur |
+| `runs.py` | 271 | Les passes : la liste, une passe, son rapport, son diff et le flux de ses étapes ; une veille analysée, des remarques ou des pistes envoyées à une passe de correction, une passe reprise après une erreur |
 | `pauses.py` | 221 | Les réponses aux pauses d'une passe : la relecture, les retouches (le dossier de la passe, le dossier du guide qui lui est prêté), la vérification des modifications, la traduction, la publication |
 | `sources.py` | 181 | « Sources suivies » : ce que chaque flux a apporté, le contrôle des sources et ses propositions |
 | `checks.py` | 309 | « Vérifier le guide » : les vérifications, leurs pistes et leurs notes, leurs estimations ; l'état de dl-sub-dub pour les vidéos |
 | `languages.py` | 236 | « Langues » : les miroirs, « Synchroniser les langues », les modifications de l'éditeur vérifiées avant la synchronisation |
 | `chapters.py` | 117 | « Chapitres » : les chapitres vus, proposés par un modèle, déclarés par une pull request |
+| `candidates.py` | 209 | « Candidats » (ROADMAP D3.2) : le registre vu et changé dans un brouillon de l'agent (jamais le dossier du guide), publié par une pull request du guide qui ajoute `[watch] candidates` au manifeste s'il manque ; une pull request ouverte reçoit un commit de plus |
 | `__init__.py` | 2 | Le paquet des routes |
 
 La page est dans [`static/`](../../src/vault_watch_agent/static/) : des modules ES servis tels quels, sans étape de build.
@@ -181,11 +182,11 @@ n'a pas changé), si bien qu'une mise à jour ne laisse jamais un ancien module 
 | `boot.js` | 107 | Avant le premier affichage (un script classique) : clair ou sombre, la palette, la taille du texte |
 | `app.js` | 33 | Le module d'entrée : l'en-tête, les notifications, le premier écran |
 | `util.js` | 106 | Les aides de chaque écran : le DOM, le HTML échappé, les liens hors de la page et vers Obsidian, une bulle d'aide |
-| `api.js` | 22 | Les appels à l'API du serveur, et ce que le serveur dit de lui-même (`/api/info`) |
+| `api.js` | 43 | Les appels à l'API du serveur, et ce que le serveur dit de lui-même (`/api/info`) |
 | `texts.js` | 907 | Les textes de l'interface en français et en anglais (`T`) |
 | `explain.js` | 39 | Les lignes qu'un modèle ou un contrôle a écrites en anglais, montrées dans la langue de l'interface |
 | `header.js` | 103 | L'en-tête et ses menus |
-| `router.js` | 65 | Quel écran l'adresse affiche |
+| `router.js` | 67 | Quel écran l'adresse affiche |
 | `steps.js` | 120 | Le moteur, le modèle et l'effort des étapes d'une passe, et ce que coûte une action |
 | `watches.js` | 195 | « À traiter », la veille automatique, toutes les passes, le dossier du guide |
 | `run.js` | 89 | Une passe : son écran choisi d'après son état, ses étapes pendant qu'elle tourne, sa fin |
@@ -200,10 +201,11 @@ n'a pas changé), si bien qu'une mise à jour ne laisse jamais un ancien module 
 | `checks.js` | 153 | « Vérifier le guide » : les vérifications à lancer, celles qui ont des pistes à trier, l'historique |
 | `check.js` | 340 | La page d'une vérification : ses résultats et ses pistes |
 | `rules.js` | 33 | Ce qui peut être coché sur la page d'une vérification |
-| `report.js` | 125 | « Signaler ou proposer » |
+| `report.js` | 143 | « Signaler ou proposer » |
 | `sources.js` | 203 | « Sources suivies » |
 | `languages.js` | 154 | « Langues » |
 | `chapters.js` | 128 | « Chapitres » |
+| `candidates.js` | 236 | « Candidats » : le registre par état, l'ajout à la main, l'observation ou l'écart (une raison, une date de revérification), la proposition d'un ajout (« Proposer un ajout » avec sa ligne), la publication du registre |
 | `costs.js` | 26 | « Coûts » |
 | `themes.js` | 325 | L'apparence de la page : taille du texte, clair ou sombre, les palettes, la fenêtre Thème |
 | `notify.js` | 91 | Les notifications du navigateur, la cloche |
@@ -390,7 +392,8 @@ des allègements proposés par `compact.py`, avec une relecture croisée écrite
 | [`tests/test_folder.py`](../../tests/test_folder.py), [`tests/test_store.py`](../../tests/test_store.py), [`tests/test_notify.py`](../../tests/test_notify.py), [`tests/test_python311.py`](../../tests/test_python311.py) | Le dossier du guide face à sa forge (« Mettre à jour mon dossier ») ; la base des passes gardée légère ; les notifications du bureau de chaque système ; rien que Python 3.11 refuse |
 | [`tests/test_page_smoke.py`](../../tests/test_page_smoke.py) | Chaque écran de la page dessiné dans un Chrome sans interface, en français et en anglais, sans erreur JavaScript ni « undefined » affiché |
 | [`tests/report.py`](../../tests/report.py) | Pas un test : le compte rendu de chaque suite, `.pytest-report.md` (ce qui a échoué, les plus lents, les tests qui ont échoué dans une des dernières suites et passent maintenant), son historique dans `.pytest-history.jsonl` |
-| [`tests/test_e2e.py`](../../tests/test_e2e.py) | Les parcours de l'éditeur cliqués dans Chrome par Playwright (`pytest -m e2e`, hors d'un `pytest` simple) : relire et appliquer, une correction retouchée, une page corrigée à la publication, une piste devenue passe, les Réglages et la langue |
+| [`tests/test_candidates.py`](../../tests/test_candidates.py), [`tests/test_candidates_page.py`](../../tests/test_candidates_page.py) | Le registre de la découverte : noms et adresses sous une seule forme, les états et leurs règles, ce qui est dû, la collecte ; la page : le brouillon, sa pull request (un commit de plus tant qu'elle est ouverte ; fusionnée, le brouillon disparaît), un candidat proposé par sa passe |
+| [`tests/test_e2e.py`](../../tests/test_e2e.py) | Les parcours de l'éditeur cliqués dans Chrome par Playwright (`pytest -m e2e`, hors d'un `pytest` simple) : relire et appliquer, une correction retouchée, une page corrigée à la publication, une piste devenue passe, un candidat ajouté, écarté puis proposé, les Réglages et la langue |
 | [`tests/test_footnotes.py`](../../tests/test_footnotes.py) | Une note s'en va avec son dernier appel à l'application, quels que soient les groupes ; les notes cassées des pages modifiées dites avant de publier |
 
 Aucun test n'appelle la vraie API ni le vrai Claude Code. `vault-watch eval` est la mesure sur de vraies veilles (résultats dans

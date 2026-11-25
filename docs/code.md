@@ -97,7 +97,7 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 
 | Module | Lines | Role |
 | :-- | --: | :-- |
-| `web.py` | 83 | `create_app(settings)`: the app made from the routers of `routes/` (below), the static page with a version in the addresses of its files; the names the module had before its routes moved still imported from it |
+| `web.py` | 91 | `create_app(settings)`: the app made from the routers of `routes/` (below), the static page with a version in the addresses of its files; the names the module had before its routes moved still imported from it |
 | `graph.py` | 94 | Builds the graph (`build(deps, checkpointer)`): the nodes and the edges. Each node is a function `node(deps, state)` of the module of its part of the run, bound to `deps` with `functools.partial` |
 | `graph_proposals.py` | 258 | The nodes up to the review, read-only: `collect`, `triage`, `locate` and `fan_out` (the groups of items, `clusters`), `propose`, `number`, `crosscheck`, `report` |
 | `graph_review.py` | 212 | The nodes of the review and of the branch: `review`, `apply`, `retouch`, `proofread`, `proofread_review` |
@@ -107,7 +107,7 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `graph_common.py` | 51 | What the nodes share: `Deps`, git in a worktree, the order of the proposals, the branch of a run |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
 | `collect.py` | 727 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
-| `candidates.py` | 157 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
+| `candidates.py` | 315 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
 | `llm.py` | 442 | The contract every engine keeps: the `LLM` and `Engine` protocols, `ModelError`, the efforts, `Capabilities`, the cost journal (`_Journal`), `EngineKind` and `engines()` (protocol 1); `engine()` and `create`, the engine of a role (`Routed` when steps are set apart); whether Claude Code is installed and signed in |
 | `engines/api.py` | 190 | `Claude`, the Claude API through the official SDK, billed per token: structured output, prompt caching, the server-side web search and fetch, the output limits read from the Models API |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code on a Claude subscription, `claude -p` once per call; the agent's page reader offered as its `web_fetch` |
@@ -124,7 +124,7 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `chapters.py` | 413 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
 | `sourcecheck.py` | 386 | « Check the sources »: asks each source itself (network, no model), reads the guide again, proposes changes to the feeds file and rewrites it for a pull request |
 | `compact.py` | 372 | Compaction: the prompts of the report, of the trims and of their cross-check; the notes a trim orphans removed with it, a trim that would leave a sentence citing a removed note refused; `in_calls`, several calls that share the guide in the cache or read only the pages they name |
-| `vault.py` | 465 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit (a passage removed whole leaves no hole), leftovers sweep, the values no page states any more |
+| `vault.py` | 504 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit (a passage removed whole leaves no hole), leftovers sweep, the values no page states any more |
 | `onboard.py` | 355 | `init` (a manifest from what a repository shows) and `doctor` (what will run, what is missing) |
 | `crosscheck.py` | 266 | Second reading of the corrections with the whole guide cached in context (or chapter by chapter), then the sweep |
 | `config.py` | 273 | The user's settings (`settings.json`): engine, models, prices, and the API key as a reference (`env:`, `sops:`, `file:`), never a value |
@@ -154,17 +154,18 @@ one has a `router(ctx)` that makes its FastAPI router from the app's context; `w
 | Module | Lines | Role |
 | :-- | --: | :-- |
 | `context.py` | 401 | `AppContext`, what the routers share: the server's `Settings`, the background `Job`s, the checkpoints and the graph that reads them, `read_json` and `write_json`, a run's summary, the states of the pull requests, the pause a run waits at |
-| `security.py` | 76 | Local only: the middleware that refuses a Host that is not local, a request another site makes the browser send (`Sec-Fetch-Site`, `Origin`) and a request of the API without the `X-Vault-Watch` header; the headers of every answer (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control: no-cache` on the page and its files) |
+| `security.py` | 90 | Local only: the middleware that refuses a Host that is not local, a request another site makes the browser send (`Sec-Fetch-Site`, `Origin`) and a request of the API without the `X-Vault-Watch` header; the headers of every answer (`Content-Security-Policy`, `X-Frame-Options`, `Cache-Control: no-cache` on the page and its files) |
 | `notices.py` | 69 | What the human has to do next when background work stops: on the desktop (`serve --notify`) and in the page whose bell is on |
 | `service.py` | 91 | The server itself: health, info, costs, the explanations of a pause |
 | `settings.py` | 159 | « Settings »: the steps, the models, the user's settings, the prices |
 | `todo.py` | 92 | « To handle »: the watches, a new watch collected, the guide's folder (« Update my folder ») |
-| `runs.py` | 268 | The runs: the list, one run, its report, its diff and the stream of its steps; a watch analysed, findings or leads sent to a fix run, a run resumed after an error |
+| `runs.py` | 271 | The runs: the list, one run, its report, its diff and the stream of its steps; a watch analysed, findings or leads sent to a fix run, a run resumed after an error |
 | `pauses.py` | 221 | The answers to a run's pauses: the review, the retouches (the run's folder, the guide's folder lent to it), the proofreading, the translation, the publish step |
 | `sources.py` | 181 | « Sources followed »: what each feed brought, the check of the sources and its proposals |
 | `checks.py` | 309 | « Check the guide »: the verifications, their leads and notes, their estimates; the state of dl-sub-dub for the videos |
 | `languages.py` | 236 | « Languages »: the mirrors, « Sync the languages », the editor's edits checked before the sync |
 | `chapters.py` | 117 | « Chapters »: the chapters seen, proposed by a model, declared through a pull request |
+| `candidates.py` | 209 | « Candidates » (ROADMAP D3.2): the registry seen and changed in a draft of the agent (never the guide's folder), published by a pull request of the guide that adds `[watch] candidates` to the manifest when it is missing; an open one gets a commit more |
 | `__init__.py` | 2 | The package of the routes |
 
 The page is in [`static/`](../src/vault_watch_agent/static/): ES modules served as they are, without build step.
@@ -181,11 +182,11 @@ changed), so an update never leaves an old module beside a new one.
 | `boot.js` | 107 | Before the first paint (a classic script): light or dark, the palette, the size of the text |
 | `app.js` | 33 | The entry module: the header, the notices, the first screen |
 | `util.js` | 106 | The helpers of every screen: the DOM, HTML escaped, links out of the page and into Obsidian, a help bubble |
-| `api.js` | 22 | The calls of the server's API, and what the server says of itself (`/api/info`) |
+| `api.js` | 43 | The calls of the server's API, and what the server says of itself (`/api/info`) |
 | `texts.js` | 907 | The texts of the interface in French and in English (`T`) |
 | `explain.js` | 39 | The lines a model or a check wrote in English, shown in the language of the interface |
 | `header.js` | 103 | The header and its menus |
-| `router.js` | 65 | Which screen the address shows |
+| `router.js` | 67 | Which screen the address shows |
 | `steps.js` | 120 | The engine, model and effort of a run's steps, and what an action costs |
 | `watches.js` | 195 | « To handle », the automatic watch, every run, the guide's folder |
 | `run.js` | 89 | One run: its screen chosen by its state, its steps while it runs, its end |
@@ -200,10 +201,11 @@ changed), so an update never leaves an old module beside a new one.
 | `checks.js` | 153 | « Check the guide »: the checks to start, those with leads to sort, the history |
 | `check.js` | 340 | The page of one check: its results and its leads |
 | `rules.js` | 33 | What may be ticked on the page of a check |
-| `report.js` | 125 | « Report or suggest » |
+| `report.js` | 143 | « Report or suggest » |
 | `sources.js` | 203 | « Sources followed » |
 | `languages.js` | 154 | « Languages » |
 | `chapters.js` | 128 | « Chapters » |
+| `candidates.js` | 236 | « Candidates »: the registry by state, add by hand, watch or dismiss (a reason, a date to look again), propose an addition (« Propose an addition » with its line), publish the registry |
 | `costs.js` | 26 | « Costs » |
 | `themes.js` | 325 | The look of the page: size of the text, light or dark, the palettes, the Theme window |
 | `notify.js` | 91 | The notifications of the browser, the bell |
@@ -388,7 +390,8 @@ trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
 | [`tests/test_folder.py`](../tests/test_folder.py), [`tests/test_store.py`](../tests/test_store.py), [`tests/test_notify.py`](../tests/test_notify.py), [`tests/test_python311.py`](../tests/test_python311.py) | The guide's folder against its forge (« Update my folder »); the runs database kept light; the desktop notifications of each system; nothing that Python 3.11 refuses |
 | [`tests/test_page_smoke.py`](../tests/test_page_smoke.py) | Every screen of the page drawn in a headless Chrome, in French and in English, without a JavaScript error nor « undefined » shown |
 | [`tests/report.py`](../tests/report.py) | Not a test: the report of each suite, `.pytest-report.md` (what failed, the slowest, the tests that failed in one of the last suites and pass now), its history in `.pytest-history.jsonl` |
-| [`tests/test_e2e.py`](../tests/test_e2e.py) | The editor's journeys clicked in Chrome by Playwright (`pytest -m e2e`, left out of a plain `pytest`): review and apply, a correction retouched, a page corrected at the publish pause, a lead turned into a run, the Settings and the language |
+| [`tests/test_candidates.py`](../tests/test_candidates.py), [`tests/test_candidates_page.py`](../tests/test_candidates_page.py) | The registry of discovery: names and addresses in one form, states and their rules, what is due, the collection; the page: the draft, its pull request (a commit more while it is open, merged: the draft goes), a candidate proposed by its run |
+| [`tests/test_e2e.py`](../tests/test_e2e.py) | The editor's journeys clicked in Chrome by Playwright (`pytest -m e2e`, left out of a plain `pytest`): review and apply, a correction retouched, a page corrected at the publish pause, a lead turned into a run, a candidate added, dismissed and proposed, the Settings and the language |
 | [`tests/test_footnotes.py`](../tests/test_footnotes.py) | A footnote goes with its last citation at apply, whatever the groups; the broken notes of the changed pages said before publishing |
 
 No test calls the real API nor the real Claude Code. `vault-watch eval` is the measure against real watches (results in

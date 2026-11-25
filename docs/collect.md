@@ -138,6 +138,12 @@ tracks, so a candidate set aside does not come back every week, and lists in the
 whose date to look again has come (« Candidates to look at again », the watch's `recheck`). The file does not have
 to exist: it is created when the agent first saves it, and nothing changes without the key.
 
+The page « Candidates » (in the menu « Watch ») shows it by state and changes it: add a candidate by hand, watch it
+or dismiss it (a reason, needed to dismiss, and a date to look again), propose it as an addition (« Propose an
+addition » opens with its line; the run started, it becomes `proposed`). The changes stay in a draft of the agent;
+« Publish the registry » writes them on a branch of the guide and opens the pull request, which also adds the key to
+the manifest when it has none (the path is asked then). While it is open, publishing again adds a commit to it.
+
 ## Which sources earn their place
 
 The page « Sources followed » of the interface (in the menu « Watch », `GET /api/sources`) shows, for each feed

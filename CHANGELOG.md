@@ -13,13 +13,21 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   names and addresses are matched in one form. The collection drops the addresses it tracks (« already seen ») and
   lists the candidates due in the watch (`recheck`) and its issue (« Candidates to look at again »). The screen
   « Candidates » and what feeds the registry come next (D3.2, D3.3).
+- **The screen « Candidates »** (ROADMAP D3.2, in the menu « Watch »): the registry by state, the candidates due
+  flagged; add one by hand (a name or an address already known adds its source), watch or dismiss it (a reason,
+  needed to dismiss, and a date to look again), confirm it, mark it added, propose it as an addition (« Propose an
+  addition » opens with its line, and the run started marks it `proposed`, naming the run). The changes stay in a
+  draft of the agent, never in the guide's folder; « Publish the registry » writes it on a branch of the guide and
+  opens the pull request, which adds `[watch] candidates` to the manifest when it is missing (the path asked, beside
+  the watch's files by default; it needs vault-watch-agent 1.7.0 wherever the guide is read). While it is open,
+  publishing again adds a commit to it; merged, the folder follows and the draft goes.
 
 - **The editor's journeys clicked in a real browser** (asked by the user, 2026-11-22 and 2026-11-25):
-  `tests/test_e2e.py`, five journeys Playwright clicks in Chrome on the throwaway guide and the fake model: review
+  `tests/test_e2e.py`, six journeys Playwright clicks in Chrome on the throwaway guide and the fake model: review
   and apply (a group ticked by its own box, nothing ticked: nothing to apply), skip the retouches and decline to
   publish, with the publish checklist read; a correction retouched at the review is what is applied; a page corrected
   at the publish pause is committed and checked again; a lead ticked on a check becomes an addition run named with
-  its time; the Settings open and close, the language switches. Marked `e2e`, left out of a plain `pytest`
+  its time; a candidate added, dismissed with its reason, then proposed; the Settings open and close, the language switches. Marked `e2e`, left out of a plain `pytest`
   (`pytest -m e2e`), the extra `e2e` (`playwright`, `uvicorn`), no browser download: the Chrome of the machine, or
   `$VW_CHROME`. About 15 seconds: a CI job `e2e` of its own, on Linux.
 
