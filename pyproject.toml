@@ -18,6 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "httpx>=0.28", "websockets>=13", "ruff>=0.14", "pyright>=1.1.400"]  # websockets: the page drawn in a headless Chrome (test_page_smoke)
 pdf = ["pypdf>=6.1"]  # the check « links » reads the text of a PDF (links.py)
+e2e = ["playwright>=1.50", "uvicorn>=0.30"]  # tests/test_e2e.py, run with pytest -m e2e: the editor's journeys clicked in Chrome
 
 [project.scripts]
 vault-watch = "vault_watch_agent.cli:main"
@@ -38,6 +39,9 @@ vault_watch_agent = ["static/*", "defaults/*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# The journeys clicked in a browser (tests/test_e2e.py) run only when asked: pytest -m e2e
+markers = ["e2e: a journey of the editor clicked in a real browser (Playwright); run with pytest -m e2e"]
+addopts = "-m 'not e2e'"
 
 # ruff check src tests: the rules the code keeps (1.6.0); long lines up to 160 (the prose of the docstrings and
 # of the prompts is wrapped at 120, a line of code may run longer)

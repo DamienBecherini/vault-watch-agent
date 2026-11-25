@@ -5,6 +5,15 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
 
 ## Unreleased
 
+- **The editor's journeys clicked in a real browser** (asked by the user, 2026-11-22 and 2026-11-25):
+  `tests/test_e2e.py`, five journeys Playwright clicks in Chrome on the throwaway guide and the fake model: review
+  and apply (a group ticked by its own box, nothing ticked: nothing to apply), skip the retouches and decline to
+  publish, with the publish checklist read; a correction retouched at the review is what is applied; a page corrected
+  at the publish pause is committed and checked again; a lead ticked on a check becomes an addition run named with
+  its time; the Settings open and close, the language switches. Marked `e2e`, left out of a plain `pytest`
+  (`pytest -m e2e`), the extra `e2e` (`playwright`, `uvicorn`), no browser download: the Chrome of the machine, or
+  `$VW_CHROME`. About 15 seconds: a CI job `e2e` of its own, on Linux.
+
 - **The runs named with their time** (asked by the user, 2026-11-25: two addition runs of the same day were
   `add-2026-11-25` and `add-2026-11-25-2`): a fix, addition, compaction or « Languages » run started from the page or
   with `vault-watch mirror` is now `<kind>-YYYY-MM-DD-HHMM`, local time (`add-2026-11-25-2130`), like the checks;

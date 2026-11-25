@@ -26,6 +26,22 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - run: python -m pytest -q
 
+  e2e:
+    # The editor's journeys clicked in the runner's Chrome by Playwright (tests/test_e2e.py, pytest -m e2e): about
+    # 15 seconds, so a job like the others; Linux only, the page is the same on every system
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Git identity (the tests commit in throwaway repositories)
+        run: |
+          git config --global user.name "tests"
+          git config --global user.email "tests@example.invalid"
+      - run: python -m pip install -e ".[dev,e2e]"
+      - run: python -m pytest -q -m e2e
+
   lint:
     # The rules and the types of pyproject.toml ([tool.ruff], [tool.pyright]), once: they do not depend on the system
     runs-on: ubuntu-latest

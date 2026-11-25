@@ -386,6 +386,8 @@ trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
 | [`tests/test_network_guard.py`](../tests/test_network_guard.py), [`tests/test_mcp_fetch.py`](../tests/test_mcp_fetch.py), [`tests/test_pages_only.py`](../tests/test_pages_only.py) | The page reader never reaches the machine or its local network (DNS rebinding, an IPv6 address carrying a private IPv4, a redirection); the MCP tool Claude Code gets; a correction touches only a content page of the guide or its mirror |
 | [`tests/test_folder.py`](../tests/test_folder.py), [`tests/test_store.py`](../tests/test_store.py), [`tests/test_notify.py`](../tests/test_notify.py), [`tests/test_python311.py`](../tests/test_python311.py) | The guide's folder against its forge (« Update my folder »); the runs database kept light; the desktop notifications of each system; nothing that Python 3.11 refuses |
 | [`tests/test_page_smoke.py`](../tests/test_page_smoke.py) | Every screen of the page drawn in a headless Chrome, in French and in English, without a JavaScript error nor « undefined » shown |
+| [`tests/test_e2e.py`](../tests/test_e2e.py) | The editor's journeys clicked in Chrome by Playwright (`pytest -m e2e`, left out of a plain `pytest`): review and apply, a correction retouched, a page corrected at the publish pause, a lead turned into a run, the Settings and the language |
+| [`tests/test_footnotes.py`](../tests/test_footnotes.py) | A footnote goes with its last citation at apply, whatever the groups; the broken notes of the changed pages said before publishing |
 
 No test calls the real API nor the real Claude Code. `vault-watch eval` is the measure against real watches (results in
 [`metrics/eval/`](../metrics/eval/)).

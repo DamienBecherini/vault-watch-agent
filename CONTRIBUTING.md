@@ -17,14 +17,20 @@ How the code is laid out, module by module: [docs/code.md](docs/code.md).
 
 ## Checks
 
-CI runs four of them; run them before a pull request (Windows: `.venv/Scripts/python`):
+CI runs five of them; run them before a pull request (Windows: `.venv/Scripts/python`):
 
 ```bash
 .venv/bin/python -m pytest -q                                     # the tests
 .venv/bin/python -m ruff check src tests                          # style and common mistakes
 .venv/bin/python -m pyright --pythonpath .venv/bin/python   # types (src/, basic mode)
 npx -y -p typescript@5.9 tsc -p jsconfig.json --noEmit            # the page's scripts, checked by TypeScript
+.venv/bin/python -m pytest -q -m e2e                              # the editor's journeys, clicked in Chrome
 ```
+
+The journeys (`tests/test_e2e.py`) are left out of a plain `pytest`: Playwright clicks through the page in the Chrome
+installed on the machine (or `$VW_CHROME`), on the throwaway guide and the fake model of the tests. They need the
+extra `e2e` (`pip install -e ".[dev,e2e]"`, no browser download) and take about 15 seconds; without Chrome they are
+skipped. Run them when you touch the page.
 
 CI checks the types on Linux: on another system, add `--pythonplatform Linux` to the pyright line to see what it
 sees (and install the extra `pdf`, whose `pypdf` it reads).
