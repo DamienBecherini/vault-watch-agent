@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "httpx>=0.28", "websockets>=13"]  # websockets: the page drawn in a headless Chrome (test_page_smoke)
+dev = ["pytest>=8", "httpx>=0.28", "websockets>=13", "ruff>=0.14", "pyright>=1.1.400"]  # websockets: the page drawn in a headless Chrome (test_page_smoke)
 pdf = ["pypdf>=6.1"]  # the check « links » reads the text of a PDF (links.py)
 
 [project.scripts]
@@ -38,3 +38,23 @@ vault_watch_agent = ["static/*", "defaults/*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+# ruff check src tests: the rules the code keeps (1.6.0); long lines up to 160 (the prose of the docstrings and
+# of the prompts is wrapped at 120, a line of code may run longer)
+[tool.ruff]
+line-length = 160
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+# E731: a short lambda named is the house style; B905: zip() of lists of the same length by construction;
+# SIM105: try/except/pass reads plainer than contextlib.suppress here
+ignore = ["E731", "B905", "SIM105"]
+
+# pyright: the types the code says, checked in CI (1.6.0). A run's state is a TypedDict read with state["key"] where
+# the graph guarantees the key: not reported.
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+reportTypedDictNotRequiredAccess = false

@@ -1,11 +1,10 @@
 """The explanations of a pause in the page's language (explain.py, /api/explain): one call for the lines not
 translated yet, each line kept; nothing in English; a model that fails leaves the English."""
 
-from pathlib import Path
 
 from fastapi.testclient import TestClient
-
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+
 from vault_watch_agent import explain, llm, steps
 from vault_watch_agent.web import Settings, create_app
 

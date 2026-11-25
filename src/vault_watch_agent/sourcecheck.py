@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from . import collect, sources
@@ -235,7 +235,7 @@ def check(guide: Guide, home: Path, runs: list[dict[str, str]], collector: colle
 
     with ThreadPoolExecutor(WORKERS) as pool:
         probes = dict(pool.map(one, feed_list))
-    return {"checked": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "stale_days": STALE_DAYS,
+    return {"checked": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"), "stale_days": STALE_DAYS,
             "min_pages": MIN_PAGES, "probes": probes,
             "proposals": propose(feed_list, rows, probes, guide, collector)}
 

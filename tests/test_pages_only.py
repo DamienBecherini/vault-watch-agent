@@ -2,8 +2,8 @@
 writes as the page of a correction comes from what it read, and the agent runs the guide's scripts after applying."""
 
 import pytest
-
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+
 from vault_watch_agent import vault
 
 

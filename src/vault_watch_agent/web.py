@@ -17,7 +17,6 @@ and the Host header must be local (no DNS rebinding).
 from __future__ import annotations
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -26,10 +25,12 @@ import shutil
 import sqlite3
 import threading
 import time
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, StreamingResponse
@@ -38,10 +39,31 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from . import __version__
-from . import config as user_settings  # `config` is a helper of create_app
+from . import (
+    __version__,
+    compact,
+    costs,
+    explain,
+    fix,
+    forge,
+    inputs,
+    links,
+    llm,
+    mirrors,
+    news,
+    prices,
+    proofread,
+    retouch,
+    sourcecheck,
+    sources,
+    steps,
+    store,
+    vault,
+    verify,
+    videos,
+)
 from . import chapters as chapters_mod
-from . import compact, costs, explain, fix, forge, inputs, links, llm, mirrors, news, prices, proofread, retouch, sourcecheck, sources, steps, store, vault, verify, videos
+from . import config as user_settings  # `config` is a helper of create_app
 from . import guide as guide_mod
 from . import watches as watches_mod
 from .graph import Deps, build, retouchable, retouched, usage_line

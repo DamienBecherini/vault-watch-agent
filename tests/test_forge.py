@@ -3,12 +3,13 @@
 import io
 import json
 import zipfile
+from pathlib import Path
 
 import httpx
 import pytest
 
 from vault_watch_agent import forge
-from vault_watch_agent.forge import ForgeError, GitHub, Gitea, for_guide
+from vault_watch_agent.forge import ForgeError, Gitea, GitHub, for_guide
 from vault_watch_agent.guide import GuideError, parse
 
 URL = "http://gitea.test:3100"
@@ -136,7 +137,7 @@ def test_github_gets_a_long_description_in_a_file(tmp_path, monkeypatch):
     seen = {}
 
     def run(command, cwd=None):
-        seen.update(command=command, cwd=cwd, body=open(command[command.index("--body-file") + 1], encoding="utf-8").read())
+        seen.update(command=command, cwd=cwd, body=Path(command[command.index("--body-file") + 1]).read_text(encoding="utf-8"))
         return "https://github.com/owner/guide/pull/12\n"
 
     monkeypatch.setattr(forge.inputs, "run", run)

@@ -3,8 +3,8 @@
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-
 from test_graph import setup, sh  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+
 from vault_watch_agent import retouch, vault
 from vault_watch_agent.web import Settings, create_app
 

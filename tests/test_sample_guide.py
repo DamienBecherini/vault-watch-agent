@@ -10,7 +10,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from vault_watch_agent import vault
-from vault_watch_agent.crosscheck import CrossCheck, CorrectionReview
+from vault_watch_agent.crosscheck import CorrectionReview, CrossCheck
 from vault_watch_agent.graph import Deps, build, pr_body
 from vault_watch_agent.state import ClusterProposal, Correction, ItemOutcome, TriageDecision, TriageResult
 

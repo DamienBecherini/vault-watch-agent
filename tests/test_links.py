@@ -7,8 +7,8 @@ import time
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-
 from test_explore import guide  # noqa: F401  (fixture: a small guide with a read-only chapter)
+
 from vault_watch_agent import links, news, steps, verify, webtools
 from vault_watch_agent.graph import Deps
 from vault_watch_agent.llm import ModelError

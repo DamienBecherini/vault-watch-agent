@@ -6,9 +6,9 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from test_graph import ia_layout
 
 from vault_watch_agent import vault
-from test_graph import ia_layout
 from vault_watch_agent.guide import GuideError, legacy, load, matches, parse
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -232,7 +232,7 @@ def test_the_command_line_finds_the_guide(tmp_path, monkeypatch):
     assert cli.find_guide(None) == tmp_path.resolve() and cli.find_guide(str(guide)) == guide.resolve()
     monkeypatch.setattr(cli, "CONFIG_HOME", tmp_path / "home")
     cli.use_guide(str(guide))
-    assert cli.VAULT == guide.resolve() and cli.HOME == tmp_path / "home" / "guides" / "g"
+    assert guide.resolve() == cli.VAULT and tmp_path / "home" / "guides" / "g" == cli.HOME
     (guide / "vault-watch.toml").write_text('[guide]\nname = "G"\n', encoding="utf-8")
     import os
     import time

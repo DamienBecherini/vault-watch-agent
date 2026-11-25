@@ -84,7 +84,7 @@ class Prices:
         ]
 
     @classmethod
-    def of_home(cls, home: Path | None, settings: dict | None = None) -> "Prices":
+    def of_home(cls, home: Path | None, settings: dict | None = None) -> Prices:
         """The table of a user: their settings' `prices`, the list fetched into `home` (when there is one)."""
         fetched = None
         if home is not None and (home / FETCHED).is_file():
@@ -154,7 +154,7 @@ def fetch(today: str, url: str = LITELLM, timeout: int = 30) -> dict:
     return fetched
 
 
-def diff(before: "Prices", fetched: dict) -> list[str]:
+def diff(before: Prices, fetched: dict) -> list[str]:
     """What replacing the cached list with `fetched` changes, for the models priced today and the new ones."""
     lines = []
     for model, rates in fetched["models"].items():

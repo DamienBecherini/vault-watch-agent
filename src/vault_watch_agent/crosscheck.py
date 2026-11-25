@@ -107,7 +107,7 @@ def _by_chapter(text: str, chapter: str) -> str:
     return text.replace("The whole guide is above, one <page> per file.", CHAPTER.format(chapter=chapter), 1)
 
 
-def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: "reading.Plan | None" = None,
+def run(vault_dir: Path, corrections: list[dict], llm: LLM, plan: reading.Plan | None = None,
         system: str = "", web: bool = True) -> tuple[CrossCheck, dict, list[str]]:
     """The cross-check: the whole guide in one call, or chapter by chapter when `plan` says it does not fit."""
     if plan is not None and plan.mode == "chapters":
@@ -166,7 +166,7 @@ def _run_by_chapter(vault_dir: Path, corrections: list[dict], llm: LLM, system: 
 
 
 def sweep(vault_dir: Path, corrections: list[dict], llm: LLM,
-          plan: "reading.Plan | None" = None) -> tuple[CrossCheck, dict, list[str]] | None:
+          plan: reading.Plan | None = None) -> tuple[CrossCheck, dict, list[str]] | None:
     """Second pass, on what the corrections leave behind, the ones the cross-check added included.
 
     The code finds the values they remove that still appear elsewhere; the model only decides which of

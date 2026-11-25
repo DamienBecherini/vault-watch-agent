@@ -20,8 +20,8 @@ from pathlib import Path
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+
 from vault_watch_agent.web import Settings, create_app
 
 websockets = pytest.importorskip("websockets.sync.client")

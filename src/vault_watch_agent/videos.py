@@ -133,7 +133,7 @@ class Videos:
         self.sleep, self.now, self.max_wait, self.spawn = sleep, now, max_wait, spawn
 
     @classmethod
-    def of(cls, settings: dict | None) -> "Videos | None":
+    def of(cls, settings: dict | None) -> Videos | None:
         """The client the settings describe (config.py, `videos`), or None when they give no token."""
         own = (settings or {}).get("videos") or {}
         return cls(own.get("url") or DEFAULT_URL, own["token"], own.get("start") or "") if own.get("token") else None

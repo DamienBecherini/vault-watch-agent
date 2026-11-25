@@ -3,14 +3,14 @@ the feeds file and the branch that carries it. A fake network and a throwaway gi
 
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from vault_watch_agent import collect, sourcecheck
 from vault_watch_agent.guide import parse
 
-NOW = datetime(2026, 11, 19, tzinfo=timezone.utc)
+NOW = datetime(2026, 11, 19, tzinfo=UTC)
 
 
 def atom(*dates: str) -> str:

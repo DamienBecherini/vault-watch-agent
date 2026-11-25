@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import config, llm
-from .guide import LANGUAGES, MANIFEST, GuideError, Guide, is_legacy, legacy, load, matches, no_manifest
+from .guide import LANGUAGES, MANIFEST, Guide, GuideError, is_legacy, legacy, load, matches, no_manifest
 
 # Folders and files that are tooling, not pages, when the guide has them.
 TOOLING = ("node_modules/**", "build/**", "dist/**", "public/**", "scripts/**", "docs/**", "assets/**")
@@ -138,7 +138,7 @@ def _mirrors(root: Path, pages: list[str]) -> dict[str, str]:
     for code in LANGUAGES:
         folder = f"{code}/"
         inside = {p[len(folder):] for p in pages if p.startswith(folder)}
-        outside = {p for p in pages if "/" not in p or not p.split("/")[0] in LANGUAGES}
+        outside = {p for p in pages if "/" not in p or p.split("/")[0] not in LANGUAGES}
         if inside and len(inside & outside) >= max(1, len(inside) // 2):
             mirrors[code] = folder
     return mirrors

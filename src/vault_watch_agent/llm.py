@@ -17,17 +17,18 @@ Engines share that method (`Engine`, docs/write-an-engine.md):
 from __future__ import annotations
 
 import json
-import sys
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Callable, Protocol, TypeVar
+from typing import Protocol, TypeVar
 
 import anthropic
 from pydantic import BaseModel, ValidationError
@@ -78,7 +79,7 @@ class Engine(Protocol):
     def parse(self, *, system: str, prompt: str, schema: type[T], effort: str, node: str,
               context: str | None = None, web: bool = False) -> tuple[T, dict]: ...
 
-    def capabilities(self) -> "Capabilities": ...
+    def capabilities(self) -> Capabilities: ...
 
 
 USAGE_KEYS = ("node", "model", "engine", "effort", "input", "output", "cache_read", "cache_write", "web_searches",
@@ -146,7 +147,7 @@ class _Journal:
             return
         self.journal.parent.mkdir(parents=True, exist_ok=True)
         with open(self.journal, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            f.write(json.dumps({"ts": datetime.now(UTC).isoformat(timespec="seconds"),
                                 "tool": "vault-watch-agent", "run": self.run, "kind": self.kind,
                                 **usage}) + "\n")
 

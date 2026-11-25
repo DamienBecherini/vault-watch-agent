@@ -6,8 +6,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
-
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+
 from vault_watch_agent.graph import build, pr_body, retouchable, retouched
 from vault_watch_agent.web import Settings, create_app
 
@@ -133,7 +133,7 @@ def test_the_folder_lent_with_a_draft_set_aside_and_put_back(setup, tmp_path):  
     assert c.post(f"/api/runs/{thread}/folder", json={"set_aside": True}, headers=act).status_code == 200
     assert not (folder / "brouillon.md").exists()  # set aside
     assert "vLLM 0.33" in vault.read(folder / "03-stack" / "engines.md")  # the folder shows the branch, as Obsidian will
-    assert c.get(f"/api/folder/aside").json() == [{"thread": thread, "lent": True, "aside": ["brouillon.md"]}]
+    assert c.get("/api/folder/aside").json() == [{"thread": thread, "lent": True, "aside": ["brouillon.md"]}]
 
     # Retouched in Obsidian (the folder), and in the page of the agent: both land in the folder
     page = folder / "03-stack" / "engines.md"

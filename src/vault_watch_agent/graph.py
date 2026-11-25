@@ -21,7 +21,7 @@ from pathlib import Path
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send, interrupt
 
-from . import compact, crosscheck, forge, inputs, mirrors, news, proofread, prompts, quotes, reading, retouch, steps, vault, verify
+from . import compact, crosscheck, forge, inputs, mirrors, news, prompts, proofread, quotes, reading, retouch, steps, vault, verify
 from .guide import language_name
 from .llm import LLM
 from .state import ClusterProposal, MirrorResult, TriageResult, WatchState

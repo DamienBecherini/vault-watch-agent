@@ -1,14 +1,14 @@
 """vault-watch collect: the feeds read from fixtures (no network), the rules of the pre-triage, the watch it writes."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
 from vault_watch_agent import collect, inputs, watches
 from vault_watch_agent.collect import Collector
 
-NOW = datetime(2026, 11, 18, 8, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 11, 18, 8, 0, tzinfo=UTC)
 
 ATOM = """<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
 <entry><id>1</id><updated>2026-11-16T10:00:00Z</updated>

@@ -180,7 +180,8 @@ def test_engines_declare_what_they_can_do():
     llm.CONTEXTS.clear()
     api, cc = llm.Claude("claude-opus-5-5", client=object()), llm.ClaudeCode("claude-opus-5-5")
     assert (api.capabilities().context, api.capabilities().billing, api.capabilities().exact_count) == (1_000_000, "token", True)
-    assert (cc.capabilities().billing, cc.capabilities().web_reading, cc.capabilities().exact_count) == ("subscription", "page", False)  # its pages through the agent's reader (mcp_fetch)
+    # its pages through the agent's reader (mcp_fetch)
+    assert (cc.capabilities().billing, cc.capabilities().web_reading, cc.capabilities().exact_count) == ("subscription", "page", False)
     assert llm.context_of("claude-mythos-7") == llm.UNKNOWN_CONTEXT  # unknown: the smaller window, never more
     assert llm.context_of("claude-sonnet-4-6-20260101") == llm.KNOWN_CONTEXT  # a dated id of a known model
     llm.CONTEXTS["claude-mythos-7"] = 2_000_000  # read from the Models API

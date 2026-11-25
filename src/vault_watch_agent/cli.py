@@ -33,9 +33,8 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
 from . import proofread, vault
-from .prices import Prices
 from .graph import Deps, build, describe
-
+from .prices import Prices
 
 
 def default_home() -> Path:
@@ -280,9 +279,8 @@ def news_command(args) -> None:
     # The other way: the web explored chapter by chapter (news.explore), each chapter a call with the web
     import tempfile
 
-    from . import news
-
     from . import chapters as split
+    from . import news
 
     known = news.explorable(VAULT)
     chapters = [c.strip() for c in (args.chapters or "").split(",") if c.strip()] or [
@@ -680,7 +678,7 @@ def main(argv: list[str] | None = None) -> None:
 
             excerpts: dict[str, list[dict]] = {}
             if args.findings:
-                findings = [l.strip() for l in args.findings.read_text(encoding="utf-8").splitlines() if l.strip()]
+                findings = [line.strip() for line in args.findings.read_text(encoding="utf-8").splitlines() if line.strip()]
                 label = args.findings.stem
             else:
                 runs = args.from_threads.split(",")

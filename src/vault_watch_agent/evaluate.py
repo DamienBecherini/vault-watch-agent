@@ -54,7 +54,7 @@ def truth_hunks(vault: Path, base: str, head: str) -> list[dict]:
                 or not any(matches(page, p) for p in guide.include) or any(matches(page, p) for p in guide.exclude)):
             continue
         lines = h["removed"] + h["added"]
-        if lines and all(DATE_LINE.match(l.strip()) for l in lines):
+        if lines and all(DATE_LINE.match(line.strip()) for line in lines):
             continue
         out.append({"id": f"H{len(out) + 1}", **h})
     return out

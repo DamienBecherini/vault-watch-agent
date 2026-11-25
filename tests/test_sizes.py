@@ -124,7 +124,8 @@ def test_without_a_ceiling_a_page_is_flagged_when_it_grew_much(tmp_path):
     assert "budget" not in sizes.describe(rows["long.md"]) and "KB 90 days ago" in sizes.describe(rows["long.md"])
     assert sizes.gained(rows["tiny.md"]) == "new" and sizes.gained(rows["steady.md"]).startswith("+0.9 KB, +3%")
     # the thresholds are the guide's
-    write(root, "vault-watch.toml", 'schema = 1\n[guide]\nname = "T"\n[content]\nlanguage = "fr"\nreadonly = ["projet/**"]\n[budget]\ngrowth_kb = 50\ngrowth_percent = 400\n')
+    write(root, "vault-watch.toml", 'schema = 1\n[guide]\nname = "T"\n[content]\nlanguage = "fr"\nreadonly = ["projet/**"]\n'
+                                    '[budget]\ngrowth_kb = 50\ngrowth_percent = 400\n')
     assert sizes.report(root, today="2026-04-15")["grew"] == 0
 
 
@@ -165,5 +166,5 @@ def test_a_wrong_budget_is_refused_with_its_key(tmp_path, budget, message):
 def test_doctor_warns_about_the_pages_over_their_budget(guide):
     from vault_watch_agent import onboard
 
-    line = next(l for l in onboard.diagnose(guide, guide / ".home", gh_check=False) if l.label == "size")
+    line = next(x for x in onboard.diagnose(guide, guide / ".home", gh_check=False) if x.label == "size")
     assert line.status == "warn" and "06-ops/security.md" in line.detail

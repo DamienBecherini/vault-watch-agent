@@ -6,12 +6,11 @@ from pathlib import Path
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
+from test_graph import ia_layout, setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
 from vault_watch_agent import config, links, verify, videos
 from vault_watch_agent.web import Settings, create_app
-from fastapi.testclient import TestClient
-
-from test_graph import ia_layout, setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
 RESULT = {
     "url": "https://www.youtube.com/watch?v=AbCdEfGhIjK", "site": "youtube", "video_id": "AbCdEfGhIjK",

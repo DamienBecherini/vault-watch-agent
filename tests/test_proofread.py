@@ -4,8 +4,8 @@ rest of the guide; the fixes accepted applied in the guide's folder, the others 
 import time
 
 from fastapi.testclient import TestClient
-
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide with an English mirror)
+
 from vault_watch_agent import proofread, vault
 from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck
 from vault_watch_agent.web import Settings, create_app

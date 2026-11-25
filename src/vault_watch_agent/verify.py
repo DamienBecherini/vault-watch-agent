@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -380,7 +381,7 @@ def _detail(f) -> dict:
     return {**(detail.model_dump() if detail else {}), **({"title": f.title} if getattr(f, "title", "") else {})}
 
 
-def _read_guide(vault_dir: Path, llm: LLM, plan: "reading.Plan", system: str, prompt: str, schema: type,
+def _read_guide(vault_dir: Path, llm: LLM, plan: reading.Plan, system: str, prompt: str, schema: type,
                 step: str) -> tuple[list, list[dict]]:
     """The findings of a check that reads the whole guide, and the usage of its calls: one call, or one per chapter
     when the guide does not fit in the model's window (what spans two chapters is then missed, said in the summary)."""

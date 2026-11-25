@@ -5,8 +5,8 @@ import subprocess
 from types import SimpleNamespace
 
 import httpx
-
 from engine_contract import FACTS, Answer, check_engine
+
 from vault_watch_agent import llm
 from vault_watch_agent.openai_compat import OpenAICompatible
 

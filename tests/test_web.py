@@ -5,8 +5,8 @@ import time
 
 import pytest
 from fastapi.testclient import TestClient
-
 from test_graph import setup  # noqa: F401  (fixture: throwaway vault, fake model, watch file)
+
 from vault_watch_agent.web import Job, Settings, create_app
 
 ACT = {"X-Vault-Watch": "1"}

@@ -116,8 +116,8 @@ def test_a_page_ahead_of_its_mirror_since_the_mirror_last_moved(guide: Path):
 # -- « Sync the languages » through the server, on the guide of test_graph ------------------------------------
 
 from fastapi.testclient import TestClient  # noqa: E402
-
 from test_graph import setup  # noqa: E402,F401  (fixture: throwaway guide with an English mirror)
+
 from vault_watch_agent import vault  # noqa: E402
 from vault_watch_agent.state import MirrorEdit, MirrorResult  # noqa: E402
 from vault_watch_agent.web import Settings, create_app  # noqa: E402

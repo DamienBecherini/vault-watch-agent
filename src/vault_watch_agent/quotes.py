@@ -169,5 +169,5 @@ def markdown(found: list[dict]) -> list[str]:
             continue
         flag = "" if e["match"] == "exact" else " (closest passage, not an exact quote)"
         out.append(f"  - `{e['page']}:{e['line']}`{flag}")
-        out += [f"    > {'→ ' if l['hit'] else ''}{l['text']}" for l in e["lines"]]
+        out += [f"    > {'→ ' if x['hit'] else ''}{x['text']}" for x in e["lines"]]
     return out

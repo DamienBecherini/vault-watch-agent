@@ -31,13 +31,13 @@ import os
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from functools import cmp_to_key
 from pathlib import Path
-from typing import Callable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlsplit
 from urllib.request import Request, urlopen
@@ -186,7 +186,7 @@ def parse_date(text) -> datetime | None:
             d = parsedate_to_datetime(text)
         except (TypeError, ValueError, IndexError):
             return None
-    return (d if d.tzinfo else d.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+    return (d if d.tzinfo else d.replace(tzinfo=UTC)).astimezone(UTC)
 
 
 def iso(d: datetime) -> str:
@@ -350,7 +350,7 @@ class Collector:
         return (self.get or http_get)(url, **kw)
 
     def _now(self) -> datetime:
-        return self.now() if self.now else datetime.now(timezone.utc)
+        return self.now() if self.now else datetime.now(UTC)
 
     def _gh(self, url: str):
         return self._get(url, as_json=True, github=True, token=self.token)

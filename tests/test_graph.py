@@ -17,16 +17,16 @@ from vault_watch_agent import proofread, vault
 from vault_watch_agent.crosscheck import ConsistencyEdit, CorrectionReview, CrossCheck, Noticed
 from vault_watch_agent.graph import Deps, build, pr_body
 from vault_watch_agent.quotes import Quote
-from vault_watch_agent.verify import Finding, Findings
 from vault_watch_agent.state import (
-    Correction,
     ClusterProposal,
+    Correction,
     ItemOutcome,
     MirrorEdit,
     MirrorResult,
     TriageDecision,
     TriageResult,
 )
+from vault_watch_agent.verify import Finding, Findings
 
 PAGE = """---
 title: Moteurs d'inférence

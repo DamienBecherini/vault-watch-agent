@@ -8,8 +8,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
-
 from test_graph import FakeLLM, setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
+
 from vault_watch_agent import proofread, vault
 from vault_watch_agent.graph import build, pr_body
 from vault_watch_agent.state import MirrorEdit, MirrorResult

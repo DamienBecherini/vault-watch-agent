@@ -31,8 +31,8 @@ def vault(tmp_path: Path) -> Path:
 def test_an_exact_quote_is_marked_in_its_line_with_the_nearest_line_around(tmp_path):
     e = quotes.locate(vault(tmp_path), "03-stack/engines.md", "version **minimale** recommandée")
     assert e["match"] == "exact" and e["line"] == 7
-    assert [l["n"] for l in e["lines"]] == [5, 7, 9]  # the nearest non-blank lines
-    hit = next(l for l in e["lines"] if l["hit"])
+    assert [x["n"] for x in e["lines"]] == [5, 7, 9]  # the nearest non-blank lines
+    hit = next(x for x in e["lines"] if x["hit"])
     assert hit["parts"] == ["vLLM 0.31 est la ", "version **minimale** recommandée", "[^1], d’après l’éditeur."]
 
 
@@ -41,7 +41,7 @@ def test_a_quote_the_model_retyped_finds_the_page_text(tmp_path):
     e = quotes.locate(vault(tmp_path), "03-stack/engines.md",
                       "vLLM 0.31 est la version minimale recommandée, d'après l'éditeur.")
     assert e["match"] == "approx" and e["line"] == 7
-    assert next(l for l in e["lines"] if l["hit"])["text"].startswith("vLLM 0.31 est la version **minimale**")
+    assert next(x for x in e["lines"] if x["hit"])["text"].startswith("vLLM 0.31 est la version **minimale**")
 
 
 def test_a_table_row_retyped_without_its_wiki_link(tmp_path):

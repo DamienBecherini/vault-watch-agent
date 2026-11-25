@@ -51,7 +51,7 @@ FILE = "settings.json"
 SCHEMA = 1  # the version of the settings format; a change of format is a new number and an entry in MIGRATIONS
 # schema n -> n+1, applied in order to a file written by an older agent, before it is checked. A file written by a
 # newer agent (a higher number) is refused: an older agent would drop the fields it does not know when it saves.
-MIGRATIONS: dict[int, "Callable[[dict], dict]"] = {}
+MIGRATIONS: dict[int, Callable[[dict], dict]] = {}
 ENGINE_NAME = re.compile(r"[a-z][a-z0-9-]{1,40}")  # "": Claude Code on a subscription, otherwise the API
 REFERENCES = ("env:", "file:", "sops:")
 KEY_FORMS = "env:NAME, sops:file#NAME or file:path"

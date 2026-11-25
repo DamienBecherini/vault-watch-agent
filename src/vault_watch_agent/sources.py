@@ -125,7 +125,7 @@ def table(feed_list: list[dict], watch_list: list[dict], runs: list[dict[str, st
                 items[i["url"]] = {**i, "triage": "keep" if kept_before else i.get("triage", "")}
         kept = [u for u, i in items.items() if i["triage"] == "keep"]
         judged = [u for u in kept if u in best]
-        count = lambda *names: sum(1 for u in judged if best[u] in names)  # noqa: E731
+        count = lambda *names, judged=judged: sum(1 for u in judged if best[u] in names)
         name, link = target(feed)
         row = {
             "id": fid, "type": feed.get("type", ""), "domain": feed.get("domain", ""), "tier": feed.get("tier", ""),
