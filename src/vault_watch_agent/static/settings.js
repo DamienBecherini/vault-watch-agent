@@ -1,5 +1,6 @@
+// @ts-check
 /* vault-watch: the Settings, a window over the current page (the gear of the header, or the address #/settings),
-   loaded before app.js, which owns the router, the texts and the helpers used here ($, api, esc, T, info, route).
+   whose texts are T.settings.
    The page under it is not drawn again when the window closes, unless the engine changed (the costs shown follow
    it). Close, Cancel, the Escape key or a click outside close it; with changes not saved, only Cancel does (it
    drops them), so a stray click loses nothing. What it edits is the settings file of the server (config.py):
@@ -7,6 +8,11 @@
    never the key) and the model of each role. A change applies to the next run.
    Layout after the Settings of dl-sub-dub: the categories at the left, one page each, Claude Code found on the
    machine proposed in a framed box. */
+
+import { $, esc, extLink } from "./util.js";
+import { api, info } from "./api.js";
+import { addTexts, lang, T } from "./texts.js";
+import { route } from "./router.js";
 
 const SETTINGS_TEXTS = {
   fr: {
@@ -194,8 +200,9 @@ const SETTINGS_TEXTS = {
     },
   },
 };
+addTexts("settings", SETTINGS_TEXTS);
 
-const SETTINGS_ICONS = {
+export const SETTINGS_ICONS = {
   gear: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>`,
   engine: `<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>`,
   models: `<svg viewBox="0 0 24 24"><path d="M12 3l8 4.5-8 4.5-8-4.5z"/><path d="M4 12l8 4.5 8-4.5M4 16.5L12 21l8-4.5"/></svg>`,
@@ -204,7 +211,7 @@ const SETTINGS_ICONS = {
 };
 
 const KEY_REFERENCES = ["env:", "sops:", "file:"];
-const modelName = m => m.replace(/^claude-/, "").replace(/-(\d+)-(\d+)$/, " $1.$2").replace(/^./, c => c.toUpperCase());
+export const modelName = m => m.replace(/^claude-/, "").replace(/-(\d+)-(\d+)$/, " $1.$2").replace(/^./, c => c.toUpperCase());
 let settingsCategory = "engine";  // the category shown, kept across redraws
 
 let settingsEngine = null;         // the engine in use when the window opened: the page is drawn again if it changed
@@ -212,7 +219,7 @@ let settingsChanged = () => false; // whether the window holds changes not saved
 let settingsOpening = 0;           // counts the openings: an answer of the server for an earlier one is dropped
 
 /* Opens the window over the current page. */
-async function openSettings() {
+export async function openSettings() {
   let dialog = $("#settings-dialog");
   if (!dialog) {
     dialog = document.createElement("dialog");

@@ -1,5 +1,6 @@
+// @ts-check
 /* vault-watch: the buttons of the header for the look of the page (the size of the text, light or dark, the palettes)
-   and the Theme window. Loaded before app.js, which owns the texts (T.theme) and the helpers used here ($, esc).
+   and the Theme window, whose texts are T.theme.
    Taken from dl-sub-dub (subtitles/web/static/v2/header.js and themes.js), written without Preact.
 
    The Theme window: the mode (system, light, dark), then the palettes of each mode, built-in and the user's own.
@@ -7,6 +8,9 @@
    boot.js), with a check of the contrasts against WCAG shown while choosing (AAA, AA, large text only, not enough);
    saving is allowed whatever the result. A built-in palette changed has "Back to factory"; a theme of the user can be
    deleted. Everything is kept in this browser (localStorage, keys in boot.js). */
+
+import { $, esc } from "./util.js";
+import { addTexts, T } from "./texts.js";
 
 const THEME_TEXTS = {
   fr: {
@@ -76,6 +80,7 @@ const THEME_TEXTS = {
     close: "Close", save: "Save", cancel: "Cancel",
   },
 };
+addTexts("theme", THEME_TEXTS);
 
 // --- what this browser remembers (keys in boot.js) ---
 const THEME_COLORS = ["bg", "text", "muted", "accent"];
@@ -127,6 +132,7 @@ const styleOf = vars => Object.entries(vars).map(([k, v]) => `${k}:${v}`).join("
 const THEME_LEVELS = ["fail", "large", "AA", "AAA"];
 function checkTheme(colors) {
   const v = window.themes.tokens(colors);
+  /** @type {[string, string, string, boolean?][]} */
   const pairs = [["text_bg", "--text", "--bg"], ["text_card", "--text", "--card"], ["muted_card", "--muted", "--card"],
     ["muted_bg", "--muted", "--bg"], ["accent_card", "--accent", "--card"], ["button", "--accent-text", "--accent"],
     ["field", "--field-border", "--card", true]];
@@ -148,7 +154,7 @@ const THEME_ICONS = {
 };
 
 /* Two magnifiers (- and +: the size of the whole page), light or dark, and the palettes. */
-function themeButtons() {
+export function themeButtons() {
   const TH = T.theme, pct = Math.round(window.textZoom.get() * 100), toggle = currentMode() === "dark" ? TH.toLight : TH.toDark;
   const button = (id, title, icon, disabled) => `<button type="button" class="icon" data-tool="${id}" title="${esc(title)}" aria-label="${esc(title)}"${disabled ? " disabled" : ""}>${icon}</button>`;
   return button("zoom-out", TH.zoomOut(pct), THEME_ICONS.zoom(false), !window.textZoom.canShrink())
@@ -157,7 +163,7 @@ function themeButtons() {
 }
 
 /* `redraw`: draws the header again (the bubbles of the buttons say the size and the mode). */
-function bindThemeButtons(root, redraw) {
+export function bindThemeButtons(root, redraw) {
   const on = (id, action) => { const b = root.querySelector(`[data-tool="${id}"]`); if (b) b.onclick = action; };
   const refocus = id => root.querySelector(`[data-tool="${id}"]:not(:disabled)`)?.focus();   // the header is drawn again: keep the keyboard there
   on("zoom-out", () => { window.textZoom.step(-1); redraw(); refocus("zoom-out"); });

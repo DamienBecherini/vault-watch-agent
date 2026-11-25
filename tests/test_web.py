@@ -280,7 +280,7 @@ def test_the_feedback_window_fills_in_the_fields_the_issue_form_has():
     assert ids == ["rating", "type", "message", "version", "environment"]
     assert all(re.search(rf"out\.{i} = ", script) for i in ids) and 'template: "feedback.yml"' in script
     assert "labels: [feedback]" in form and 'labels: "feedback"' in script
-    assert "/static/feedback.js" in (root / "src" / "vault_watch_agent" / "static" / "index.html").read_text(encoding="utf-8")
+    assert 'from "./feedback.js";' in (root / "src" / "vault_watch_agent" / "static" / "header.js").read_text(encoding="utf-8")
 
 
 def test_the_page_names_its_files_with_a_version(client):
@@ -464,7 +464,7 @@ def test_the_texts_of_the_interface_name_every_step_and_write_no_key_twice():
 
     from vault_watch_agent import web
 
-    lines = (Path(web.__file__).parent / "static" / "app.js").read_text(encoding="utf-8").split("\n")
+    lines = (Path(web.__file__).parent / "static" / "texts.js").read_text(encoding="utf-8").split("\n")
     starts = [n for n, line in enumerate(lines) if line in ("  fr: {", "  en: {")]
     assert len(starts) == 2
     end = next(n for n in range(starts[1], len(lines)) if lines[n] == "};")

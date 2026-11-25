@@ -1,3 +1,4 @@
+// @ts-check
 /* « Give my opinion »: a note out of five, a kind (opinion, bug, idea), a message, all optional. Nothing is sent
    by the agent: the reader sends it, as an issue of the agent's repository (public, a GitHub account) or by e-mail
    (no account), or copies the text. What is sent is shown before. It never says anything of the guide: its name,
@@ -9,7 +10,11 @@
    that public form: its button opens the private report of the repository (the message copied, to paste there), and
    the mail stays.
 
-   Needs from app.js: $, esc, extLink, info, lang, T (T.feedback is FEEDBACK_TEXTS of the language). */
+   Its texts are T.feedback (FEEDBACK_TEXTS of the language). */
+
+import { $, esc } from "./util.js";
+import { info } from "./api.js";
+import { addTexts, T } from "./texts.js";
 
 const FEEDBACK_TEXTS = {
   fr: {
@@ -59,6 +64,7 @@ const FEEDBACK_TEXTS = {
     labels: { rating: "Rating", type: "Type", message: "Message", version: "Version", environment: "Environment" },
   },
 };
+addTexts("feedback", FEEDBACK_TEXTS);
 
 const FEEDBACK_ICON = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 13.2 9.4 10.7a1.7 1.7 0 0 1 2.4-2.4l.2.2.2-.2a1.7 1.7 0 0 1 2.4 2.4z"/></svg>`;
 const FEEDBACK_MAX = { issue: 8000, mail: 1800 };   // the longest address an issue form, a mail program takes
@@ -200,9 +206,9 @@ function drawFeedback() {
 }
 
 /* The button of the header and of the footer: an icon and its name. */
-function feedbackButton(extra = "") {
+export function feedbackButton(extra = "") {
   return `<button type="button" class="feedback ${extra}" data-feedback title="${esc(T.feedback.open)}">${FEEDBACK_ICON}<span>${T.feedback.open}</span></button>`;
 }
-function bindFeedback(root) {
+export function bindFeedback(root) {
   root.querySelectorAll("[data-feedback]").forEach(b => b.onclick = openFeedback);
 }

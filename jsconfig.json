@@ -1,0 +1,16 @@
+{
+  // The page's scripts (src/vault_watch_agent/static), checked as they are served: ES modules, no build step.
+  // CI: npx -y -p typescript@5.9 tsc -p jsconfig.json
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true
+  },
+  "include": ["src/vault_watch_agent/static/*.js", "types/*.d.ts"]
+}

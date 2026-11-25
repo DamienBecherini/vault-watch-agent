@@ -1,7 +1,9 @@
+// @ts-check
+
 // What may be ticked on the page of a check: the leads sent to a run, and among them those dug deeper.
 // One rule: a lead dug deeper is always a lead ticked. Pure functions on {ticked, dug} (two Sets of lead lines), no
-// page: app.js reads the boxes, applies one of these, then sets the boxes; tests/test_rules.py runs them with node.
-const LeadRules = {
+// page: check.js reads the boxes, applies one of these, then sets the boxes; tests/test_rules.py runs them with node.
+export const LeadRules = {
   // The state made consistent: a lead dug deeper and not ticked is no longer dug
   settle({ ticked, dug }) {
     return { ticked: new Set(ticked), dug: new Set([...dug].filter(lead => ticked.has(lead))) };
@@ -29,4 +31,3 @@ const LeadRules = {
     return { ticked: new Set(ticked), dug: d };
   },
 };
-if (typeof module !== "undefined") module.exports = LeadRules;  // node, for the tests
