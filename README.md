@@ -204,7 +204,7 @@ tick leads.*
 
 Every screen that starts a paid step says what it will cost (on a subscription, what it is worth at list price,
 struck through) and what will run it (engine, model, effort) before the click. The interface is in English or
-French, light or dark, with palettes and a text size of your choice. A run started here can be resumed from the
+French (the checks' explanations too, translated when a pause shows them), light or dark, with palettes and a text size of your choice. A run started here can be resumed from the
 command line, and the reverse. The server listens on 127.0.0.1 only
 ([Security](docs/security.md)).
 

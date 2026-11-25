@@ -210,7 +210,7 @@ demande donc de cocher des pistes.*
 
 Chaque écran qui lance une étape payante dit ce qu'elle coûtera (sur un abonnement, ce qu'elle vaut au prix
 catalogue, barré) et ce qui la fera tourner (moteur, modèle, effort) avant le clic. L'interface est en français
-ou en anglais, claire ou sombre, avec des palettes et une taille de texte au choix. Une passe lancée ici peut être
+ou en anglais (les explications des vérifications aussi, traduites quand une pause les montre), claire ou sombre, avec des palettes et une taille de texte au choix. Une passe lancée ici peut être
 reprise en ligne de commande, et l'inverse. Le serveur n'écoute que sur
 127.0.0.1 ([Sécurité](docs/fr/security.md)).
 
