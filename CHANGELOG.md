@@ -3,7 +3,12 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.5.0 (2026-11-25)
+
+What you write during a run, proofread when you ask; the explanations of every pause in the page's language;
+desktop notifications on macOS and Linux; a new welcome in the README with two diagrams. Tried for real on the IA
+on-prem guide, on the Claude subscription: an error reported (PR #111: a figure added by hand with no source found
+and removed, a translation written by hand kept by the loop) and the urgent watch #110 (PR #112).
 
 - **The explanations of the pauses in the page's language** (asked by the user after the first real run proofread
   on 2026-11-25: the reasons and the doubts were in English in the French page): why a correction is proposed, the
