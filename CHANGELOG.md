@@ -21,6 +21,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   opens the pull request, which adds `[watch] candidates` to the manifest when it is missing (the path asked, beside
   the watch's files by default; it needs vault-watch-agent 1.7.0 wherever the guide is read). While it is open,
   publishing again adds a commit to it; merged, the folder follows and the draft goes.
+- **Where the candidates come from** (ROADMAP D3.3): once the guide uses the registry (its manifest names it, or a
+  draft was started on the page), the possible additions a watch run sets aside become leads (the item's address,
+  the watch, the reason) instead of a line of its report; a lead of an addition check that the editor dismisses
+  becomes a dismissed candidate (not a lead « Newer »), so that it does not come back. The kind is guessed from the
+  address (a Hugging Face model page, a GitHub repository). The draft moved into `candidates.py`, shared by the page,
+  the runs and the checks.
 - **The kinds of candidates are the guide's** (asked by the user, 2026-11-25: they depend on the guide):
   `[watch] candidate_kinds` in the manifest, `["model", "tool", "hardware"]` when not given, « other » always added;
   the registry refuses a kind the guide does not declare (a candidate keeps a kind removed since), the page offers

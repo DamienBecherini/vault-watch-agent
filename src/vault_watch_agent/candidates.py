@@ -19,19 +19,21 @@ No model here: a name is matched by its normalised form, an address by its canon
 
 The page « Candidates » (routes/candidates.py, D3.2) changes a draft of the registry kept by the agent, never the
 guide's folder; `publish` writes it on a branch of the guide and opens the pull request (and adds the key to the
-manifest when it has none yet).
+manifest when it has none yet). What the agent finds feeds the same draft (D3.3, `note_all`): the possible additions
+a watch run sets aside, the leads the editor dismisses on a check.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, urlunsplit
 
 from . import guide as guide_mod
-from . import vault
+from . import inputs, vault
 
 SCHEMA = 1
 STATES = ("lead", "watching", "confirmed", "proposed", "added", "dismissed")
@@ -182,7 +184,93 @@ class Registry:
         return c
 
 
-# -- the draft of the page and its pull request (D3.2) -------------------------------------------------------------
+# -- the draft the agent keeps (D3.2), and what feeds it (D3.3) ---------------------------------------------------
+DRAFT = "candidates-draft.json"  # in the agent's home: the registry as changed, until merged
+PENDING = "candidates-pr.json"   # in the agent's home: the pull request of the registry, while it is open
+LOCK = threading.Lock()          # one change of the draft at a time (the page, a run, a check)
+
+
+def draft_path(home: Path) -> Path:
+    return home / DRAFT
+
+
+def place(guide, home: Path) -> tuple[str, str]:
+    """(the path the manifest names, "" when none; the path the registry has or will have: the manifest's, else the
+    one its open pull request gives it, else one beside the watch's files)."""
+    if guide.watch.candidates:
+        return guide.watch.candidates, guide.watch.candidates
+    try:
+        opened = json.loads((home / PENDING).read_text(encoding="utf-8")).get("path", "")
+    except (OSError, ValueError):
+        opened = ""
+    return "", opened or default_path(guide.watch)
+
+
+def followed(guide, home: Path) -> bool:
+    """Whether the guide uses the registry: its manifest names one, or the editor started a draft. Else what the
+    agent finds is not noted (a guide that does not want it is left as it was)."""
+    return bool(guide.watch.candidates) or draft_path(home).is_file()
+
+
+def base_of(guide, home: Path, rel: str) -> Registry:
+    """The registry as the base branch of the guide's folder has it (git show: the folder's own files and branch do
+    not matter); empty when it has none yet. Saved, it becomes the draft."""
+    kinds = kinds_of(guide.watch)
+    try:
+        text = inputs.run(["git", "show", f"{guide.base_branch}:{rel}"], cwd=guide.root)
+    except RuntimeError:
+        return Registry(draft_path(home), kinds=kinds)
+    return Registry.parse(text, draft_path(home), kinds)
+
+
+def working(guide, home: Path, rel: str) -> tuple[Registry, Registry]:
+    """(the registry as it is changed: the draft, else the base's; the base's)."""
+    base = base_of(guide, home, rel)
+    if draft_path(home).is_file():
+        return Registry.load(draft_path(home), base.kinds), base
+    return Registry(draft_path(home), [dict(c) for c in base.candidates], base.kinds), base
+
+
+_HF_REPO = re.compile(r"^/(?!datasets/|spaces/|docs/|blog/|papers/|collections/)[^/]+/[^/]+/?$")
+
+
+def guess_kind(url: str, kinds: tuple[str, ...]) -> str:
+    """The kind an address says, among the guide's: a Hugging Face model page a model, a GitHub repository a tool;
+    else « other » (the editor corrects it on the page)."""
+    parts = urlsplit(url or "")
+    host = parts.netloc.lower().removeprefix("www.")
+    if host in ("huggingface.co", "hf.co") and _HF_REPO.match(parts.path) and "model" in kinds:
+        return "model"
+    if host == "github.com" and parts.path.strip("/").count("/") >= 1 and "tool" in kinds:
+        return "tool"
+    return "other"
+
+
+def note_all(guide, home: Path, found: list[dict], *, origin: str, seen: str) -> list[str]:
+    """What the agent found, noted in the draft: each {name, url, why?, dismiss?} becomes a candidate (or a source
+    more of one already followed), dismissed with the reason `dismiss` when it is new or still a lead. Nothing when
+    the guide does not use the registry. Returns the names of the new candidates."""
+    if not found or not followed(guide, home):
+        return []
+    _, rel = place(guide, home)
+    new_names = []
+    with LOCK:
+        reg, _ = working(guide, home, rel)
+        for f in found:
+            name, url = (f.get("name") or "").strip(), (f.get("url") or "").strip()
+            if not name:
+                continue
+            c, new = reg.note(name[:120], url, origin=origin, seen=seen, kind=guess_kind(url, reg.kinds),
+                              note=(f.get("why") or "")[:300])
+            if new:
+                new_names.append(c["name"])
+            if f.get("dismiss") and (new or c["state"] == "lead"):
+                reg.move(c["id"], "dismissed", today=seen, reason=f["dismiss"])
+        reg.save()
+    return new_names
+
+
+# -- the pull request of the registry (D3.2) -----------------------------------------------------------------------
 TITLE = "chore(watch): the registry of candidates"
 NEEDS = "1.7.0"  # the agent that knows `[watch] candidates`: an older one refuses the manifest (unknown key)
 

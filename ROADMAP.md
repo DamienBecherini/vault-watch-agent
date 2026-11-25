@@ -85,6 +85,9 @@ whole guide (D4) after. Candidates come from four places: the addition candidate
   until published.*
 - **D3.3 Where they come from.** A watch's addition candidates, a check's leads set aside or dismissed, the discovery
   feeds: each becomes or feeds a candidate, matched by address and by name.
+  *Done (2026-11-26): a watch run's possible additions become leads, a lead dismissed on an addition check a
+  dismissed candidate (`candidates.note_all`), once the guide uses the registry; the discovery feeds reach it through
+  the watch run, which sets aside what deserves it.*
 - **D1 The enrichment, no model.** Hugging Face (size, licence, context, GGUF, downloads) and GitHub (licence,
   releases, contributors), read when a candidate is added or re-checked.
 

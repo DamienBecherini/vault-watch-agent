@@ -135,6 +135,24 @@ def line(lead: Lead) -> str:
     return f"[{KINDS[lead.kind]}] {', '.join(lead.pages) or NO_PAGE}: {lead.problem}{read}{sources}"
 
 
+_LINE_SOURCES = re.compile(r" Sources: (https?://\S.*)$")
+_LINE_HEAD = re.compile(r"^\[([^\]]+)\] [^:]*?: ")
+
+
+def parts(text: str) -> dict:
+    """A lead's line (`line`) back in parts: {kind (its label, "" when none), text (without its pages, « Read also »
+    and sources), sources}."""
+    rest, sources = text, []
+    m = _LINE_SOURCES.search(rest)
+    if m:
+        sources = [u for u in re.split(r",\s+", m.group(1)) if u.startswith(("http://", "https://"))]
+        rest = rest[:m.start()]
+    rest = rest.split(f" {READ_ALSO}")[0]
+    head = _LINE_HEAD.match(rest)
+    return {"kind": head.group(1) if head else "", "text": rest[head.end():].strip() if head else rest.strip(),
+            "sources": sources}
+
+
 # -- what past watches set aside ------------------------------------------------------------------------------
 CANDIDATE_DAYS = 120  # a lead older than that was either written since or is no longer news
 MAX_CANDIDATES = 60

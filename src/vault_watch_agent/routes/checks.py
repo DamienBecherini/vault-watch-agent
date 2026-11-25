@@ -6,15 +6,16 @@ from __future__ import annotations
 import re
 import shutil
 import time
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from .. import candidates, inputs, links, llm, news, vault, verify, videos
 from .. import chapters as chapters_mod
 from .. import config as user_settings
-from .. import inputs, links, llm, news, vault, verify, videos
 from .context import AppContext, Job, read_json, write_json
 
 NOTE_CHARS = 4000  # « What I already know » on a lead: what the editor wrote, at most
@@ -119,6 +120,29 @@ def mark(ctx: AppContext, vid: str, findings: list[str], entry: dict | None) -> 
         write_json(path, data)
 
 
+def dismissed_to_registry(ctx: AppContext, vid: str, findings: list[str]) -> list[str]:
+    """Leads of an addition check that the editor dismissed: dismissed candidates of the registry (D3.3), so that
+    the next watches and checks do not bring them back. Not a lead « Newer » (about what the guide covers already).
+    Nothing when the guide does not use the registry; a registry that cannot be read leaves the dismissal as it is."""
+    data = read_json(verif_path(ctx, vid))
+    found = []
+    for result in data.get("results", {}).values():
+        if result.get("mode") != "add":
+            continue
+        for f in findings:
+            p = news.parts(f)
+            if f not in result.get("findings", []) or p["kind"] == news.KINDS["newer"]:
+                continue
+            title = (result.get("details", {}).get(f) or {}).get("title") or re.split(r"(?<=\.)\s", p["text"])[0][:140]
+            found.append({"name": title, "url": (p["sources"] or [""])[0], "why": p["text"],
+                          "dismiss": f"dismissed on the check {vid}"})
+    try:
+        return candidates.note_all(vault.guide_of(ctx.settings.vault), ctx.settings.home, found, origin=f"check {vid}",
+                                   seen=date.today().isoformat())
+    except (candidates.RegistryError, OSError, RuntimeError):
+        return []
+
+
 def verif_card(ctx: AppContext, path: Path) -> dict:
     """What the list of the checks shows of one: its kinds (verify.KINDS), the links it read (or was given, while
     it reads them). What its calls on a subscription are worth at list price is in verif_view (`unbilled_usd`)."""
@@ -216,6 +240,8 @@ def router(ctx: AppContext) -> APIRouter:
     @api.post("/api/verifications/{vid}/leads")
     def verif_handle(vid: str, body: Handle):
         mark(ctx, vid, body.findings, {"status": "dismissed"} if body.status == "dismissed" else None)
+        if body.status == "dismissed":
+            dismissed_to_registry(ctx, vid, body.findings)
         return verif_view(ctx, verif_path(ctx, vid))["counts"]
 
     @api.post("/api/verifications/{vid}/delete")

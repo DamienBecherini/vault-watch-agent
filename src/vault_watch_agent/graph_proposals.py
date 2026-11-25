@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from langgraph.types import Send
 
-from . import compact, crosscheck, inputs, news, prompts, reading, steps, vault
+from . import candidates, compact, crosscheck, inputs, news, prompts, reading, steps, vault
 from .graph_common import sorted_proposals
 from .graph_corrections import mark_conflicts
 from .graph_text import render_report
@@ -255,4 +255,19 @@ def report(deps: Deps, state: WatchState) -> dict:
         unsourced = vault.unsourced_versions(deps.vault, corrections)
         corrections = [{**c, "warning": unsourced.get(c["id"], "")} for c in corrections]
     path.write_text(render_report(state, sorted_proposals(state), corrections), encoding="utf-8")
+    note_additions(deps, state)
     return {"report_path": str(path), "corrections": corrections}
+
+
+def note_additions(deps: Deps, state: WatchState) -> list[str]:
+    """What a watch run set aside as possible additions (its report's « Addition candidates »): leads of the registry
+    of candidates (D3.3), with the item's address and the reason, instead of a line forgotten in a report. Nothing
+    when the guide does not use the registry; a registry that cannot be read leaves the run as it is."""
+    items = {i["id"]: i for i in state.get("items", [])}
+    found = [{"name": items[d["item_id"]]["title"], "url": items[d["item_id"]]["url"], "why": d.get("reason", "")}
+             for d in state.get("decisions", []) if d.get("action") == "addition" and d.get("item_id") in items]
+    origin = f"watch issue #{state['issue']}" if state.get("issue") else f"watch {state.get('as_of', deps.today)}"
+    try:
+        return candidates.note_all(vault.guide_of(deps.vault), deps.home, found, origin=origin, seen=deps.today)
+    except (candidates.RegistryError, OSError, RuntimeError):
+        return []

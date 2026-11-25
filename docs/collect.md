@@ -146,6 +146,15 @@ addition » opens with its line; the run started, it becomes `proposed`). The ch
 « Publish the registry » writes them on a branch of the guide and opens the pull request, which also adds the key to
 the manifest when it has none (the path is asked then). While it is open, publishing again adds a commit to it.
 
+Once the guide uses the registry (its manifest names it, or the editor started a draft on the page), what the agent
+finds goes into the same draft: the possible additions a watch run sets aside (the « Addition candidates » of its
+report) become leads, with the item's address, the watch and the reason; a lead of an addition check that the editor
+dismisses becomes a dismissed candidate, so that it does not come back (not a lead « Newer », about what the guide
+covers already). The kind is guessed from the address (a Hugging Face model page a model, a GitHub repository a
+tool, when the guide has these kinds), to correct on the page. The discovery feeds of the collection reach it
+through the watch: its run sets aside what deserves it, the rest is not noted (a list of trending models would drown
+the registry).
+
 ## Which sources earn their place
 
 The page « Sources followed » of the interface (in the menu « Watch », `GET /api/sources`) shows, for each feed

@@ -155,6 +155,15 @@ dans un brouillon de l'agent ; « Publier le registre » les écrit sur une bran
 qui ajoute aussi la clé au manifeste s'il n'en a pas (le chemin est alors demandé). Tant qu'elle est ouverte, publier
 à nouveau y ajoute un commit.
 
+Dès que le guide utilise le registre (son manifeste le nomme, ou l'éditeur a commencé un brouillon sur la page), ce
+que trouve l'agent va dans le même brouillon : les ajouts possibles qu'une passe de veille met de côté (les
+« Addition candidates » de son rapport) deviennent des pistes, avec l'adresse de l'élément, la veille et la raison ;
+une piste d'une vérification d'ajout que l'éditeur écarte devient un candidat écarté, pour qu'elle ne revienne pas
+(pas une piste « Newer », qui porte sur ce que le guide couvre déjà). Le type est deviné d'après l'adresse (une page
+de modèle Hugging Face un modèle, un dépôt GitHub un outil, quand le guide a ces types), à corriger sur la page. Les
+flux de découverte de la collecte y arrivent par la veille : sa passe met de côté ce qui le mérite, le reste n'est
+pas noté (une liste de modèles en vogue noierait le registre).
+
 ## Quelles sources méritent leur place
 
 La page « Sources suivies » de l'interface (dans le menu « Veille », `GET /api/sources`) montre, pour chaque

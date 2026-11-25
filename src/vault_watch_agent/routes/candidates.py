@@ -8,7 +8,6 @@ to it. Merged: the folder follows the base branch, and the draft goes when it ho
 
 from __future__ import annotations
 
-import threading
 import time
 from datetime import date
 from pathlib import Path
@@ -17,11 +16,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from .. import candidates as cand
-from .. import forge, inputs, vault
+from .. import forge, vault
 from .. import guide as guide_mod
 from .context import AppContext, read_json, write_json
-
-_LOCK = threading.Lock()  # one change of the draft at a time
 
 
 class Add(BaseModel):
@@ -42,39 +39,16 @@ class PublishBody(BaseModel):
 
 
 def draft_file(ctx: AppContext) -> Path:
-    return ctx.settings.home / "candidates-draft.json"
+    return cand.draft_path(ctx.settings.home)
 
 
 def pending_file(ctx: AppContext) -> Path:
-    """The pull request of the registry, until it is merged or closed: {branch, pr_url, published (the text)}."""
-    return ctx.settings.home / "candidates-pr.json"
+    """The pull request of the registry, until it is merged or closed: {branch, pr_url, path, published (the text)}."""
+    return ctx.settings.home / cand.PENDING
 
 
 def where(ctx: AppContext) -> tuple[str, str]:
-    """(the path the manifest names, "" when none; the path the registry has or will have: the manifest's, else the
-    one its open pull request gives it, else one beside the watch's files)."""
-    watch = vault.guide_of(ctx.settings.vault).watch
-    if watch.candidates:
-        return watch.candidates, watch.candidates
-    try:
-        opened = read_json(pending_file(ctx)).get("path", "")
-    except (OSError, ValueError):
-        opened = ""
-    return "", opened or cand.default_path(watch)
-
-
-def kinds(ctx: AppContext) -> tuple[str, ...]:
-    return cand.kinds_of(vault.guide_of(ctx.settings.vault).watch)
-
-
-def base_registry(ctx: AppContext, rel: str) -> cand.Registry:
-    """The registry as the base branch of the guide's folder has it (git show: the folder's own files and branch do
-    not matter); empty when it has none yet."""
-    try:
-        text = inputs.run(["git", "show", f"{ctx.guide.base_branch}:{rel}"], cwd=ctx.settings.vault)
-    except RuntimeError:
-        return cand.Registry(draft_file(ctx), kinds=kinds(ctx))
-    return cand.Registry.parse(text, draft_file(ctx), kinds(ctx))
+    return cand.place(vault.guide_of(ctx.settings.vault), ctx.settings.home)
 
 
 def pending(ctx: AppContext) -> dict:
@@ -104,18 +78,15 @@ def pending(ctx: AppContext) -> dict:
 def current(ctx: AppContext, rel: str) -> tuple[cand.Registry, cand.Registry]:
     """(the registry as the page shows and changes it: the draft, else the base's; the base's)."""
     try:
-        base = base_registry(ctx, rel)
-        draft = (cand.Registry.load(draft_file(ctx), base.kinds) if draft_file(ctx).is_file()
-                 else cand.Registry(draft_file(ctx), [dict(c) for c in base.candidates], base.kinds))
+        return cand.working(vault.guide_of(ctx.settings.vault), ctx.settings.home, rel)
     except cand.RegistryError as e:
         raise HTTPException(409, str(e)) from e
-    return draft, base
 
 
 def mark_proposed(ctx: AppContext, cid: str, thread: str) -> None:
     """The candidate an addition run was started for (/api/fix `candidate`): proposed, the run named."""
     _, rel = where(ctx)
-    with _LOCK:
+    with cand.LOCK:
         reg, _ = current(ctx, rel)
         try:
             reg.move(cid, "proposed", today=date.today().isoformat(), reason=f"run {thread}")
@@ -145,7 +116,7 @@ def router(ctx: AppContext) -> APIRouter:
 
     def change(do) -> dict:
         _, rel = where(ctx)
-        with _LOCK:
+        with cand.LOCK:
             reg, _ = current(ctx, rel)
             try:
                 out = do(reg)
@@ -178,7 +149,7 @@ def router(ctx: AppContext) -> APIRouter:
     @api.post("/api/candidates-draft/discard")
     def candidates_discard():
         """The draft dropped: the registry as the base branch has it again."""
-        with _LOCK:
+        with cand.LOCK:
             draft_file(ctx).unlink(missing_ok=True)
         return view()
 
@@ -196,7 +167,7 @@ def router(ctx: AppContext) -> APIRouter:
         now = vault.guide_of(ctx.settings.vault)
         if not now.from_manifest:
             raise HTTPException(409, f"the guide has no {guide_mod.MANIFEST}: `vault-watch init` writes one, the registry is named there")
-        with _LOCK:
+        with cand.LOCK:
             reg, base = current(ctx, rel)
             text, found = reg.text(), cand.changes(base.candidates, reg.candidates)
             open_pr = pending(ctx)

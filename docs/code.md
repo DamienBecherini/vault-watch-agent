@@ -99,7 +99,7 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | :-- | --: | :-- |
 | `web.py` | 91 | `create_app(settings)`: the app made from the routers of `routes/` (below), the static page with a version in the addresses of its files; the names the module had before its routes moved still imported from it |
 | `graph.py` | 94 | Builds the graph (`build(deps, checkpointer)`): the nodes and the edges. Each node is a function `node(deps, state)` of the module of its part of the run, bound to `deps` with `functools.partial` |
-| `graph_proposals.py` | 258 | The nodes up to the review, read-only: `collect`, `triage`, `locate` and `fan_out` (the groups of items, `clusters`), `propose`, `number`, `crosscheck`, `report` |
+| `graph_proposals.py` | 273 | The nodes up to the review, read-only: `collect`, `triage`, `locate` and `fan_out` (the groups of items, `clusters`), `propose`, `number`, `crosscheck`, `report` |
 | `graph_review.py` | 212 | The nodes of the review and of the branch: `review`, `apply`, `retouch`, `proofread`, `proofread_review` |
 | `graph_publish.py` | 249 | The nodes from the branch to the pull request: `mirror`, `translation`, `audits`, `links`, `publish`; `correct_again`, what the publish pause sends back (a check, a translation or a proofreading again) |
 | `graph_corrections.py` | 101 | The free checks of the corrections (`mark_unsafe`, `mark_conflicts`: an edit that changes nothing, a footnote lost, two edits of the same passage) and the editor's retouches at the review (`retouchable`, `retouched`) |
@@ -107,14 +107,14 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `graph_common.py` | 51 | What the nodes share: `Deps`, git in a worktree, the order of the proposals, the branch of a run |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
 | `collect.py` | 727 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
-| `candidates.py` | 323 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
+| `candidates.py` | 411 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
 | `llm.py` | 442 | The contract every engine keeps: the `LLM` and `Engine` protocols, `ModelError`, the efforts, `Capabilities`, the cost journal (`_Journal`), `EngineKind` and `engines()` (protocol 1); `engine()` and `create`, the engine of a role (`Routed` when steps are set apart); whether Claude Code is installed and signed in |
 | `engines/api.py` | 190 | `Claude`, the Claude API through the official SDK, billed per token: structured output, prompt caching, the server-side web search and fetch, the output limits read from the Models API |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code on a Claude subscription, `claude -p` once per call; the agent's page reader offered as its `web_fetch` |
 | `engines/__init__.py` | 13 | The package of the engines; it loads the contract of `llm.py` first |
 | `openai_compat.py` | 336 | The OpenAI-compatible engine (llama.cpp, vLLM, Ollama, a hosted service): structured output, the web tools loop, usage and cost |
 | `verify.py` | 677 | Catalogue of checks (`Check`), cost estimates, one `run_*` function per check |
-| `news.py` | 463 | Look for what is new: the prompt of the leads, what past watches set aside (read from their reports), the leads found on the web chapter by chapter, the additions for the leads kept, one lead per call with the web, on the pages the lead names and the plan of the guide, or on the whole guide (`compact.in_calls` makes the calls); what two calls add to the same page put together |
+| `news.py` | 481 | Look for what is new: the prompt of the leads, what past watches set aside (read from their reports), the leads found on the web chapter by chapter, the additions for the leads kept, one lead per call with the web, on the pages the lead names and the plan of the guide, or on the whole guide (`compact.in_calls` makes the calls); what two calls add to the same page put together |
 | `links.py` | 269 | A run from links (D5): each address read whole without a model (a page, a repository's README, a PDF with the optional `pypdf`; a video through dl-sub-dub, `videos.py`), then one call per link with the whole guide, without the web, for the leads it holds; a check of « Check the guide » (`verify.run_links`) |
 | `videos.py` | 259 | The text of a video through dl-sub-dub's route « text of a video » (contract 1): dl-sub-dub started when it does not answer (the command of `videos.start`, set by hand in `settings.json`), its state followed until it ends, the token read from its reference, what it says when it cannot (busy, stopped, older); the site's description, chapters and words in paragraphs with their time |
 | `mirrors.py` | 245 | What changed in a source page, as passages a translator can carry to its mirror (a paragraph, a table row, a list line, from git); the pages ahead of their mirror; the branch and the state of a « Sync the languages » run |
@@ -162,10 +162,10 @@ one has a `router(ctx)` that makes its FastAPI router from the app's context; `w
 | `runs.py` | 271 | The runs: the list, one run, its report, its diff and the stream of its steps; a watch analysed, findings or leads sent to a fix run, a run resumed after an error |
 | `pauses.py` | 221 | The answers to a run's pauses: the review, the retouches (the run's folder, the guide's folder lent to it), the proofreading, the translation, the publish step |
 | `sources.py` | 181 | « Sources followed »: what each feed brought, the check of the sources and its proposals |
-| `checks.py` | 309 | « Check the guide »: the verifications, their leads and notes, their estimates; the state of dl-sub-dub for the videos |
+| `checks.py` | 335 | « Check the guide »: the verifications, their leads and notes, their estimates; the state of dl-sub-dub for the videos |
 | `languages.py` | 236 | « Languages »: the mirrors, « Sync the languages », the editor's edits checked before the sync |
 | `chapters.py` | 117 | « Chapters »: the chapters seen, proposed by a model, declared through a pull request |
-| `candidates.py` | 214 | « Candidates » (ROADMAP D3.2): the registry seen and changed in a draft of the agent (never the guide's folder), published by a pull request of the guide that adds `[watch] candidates` to the manifest when it is missing; an open one gets a commit more |
+| `candidates.py` | 185 | « Candidates » (ROADMAP D3.2): the registry seen and changed in a draft of the agent (never the guide's folder), published by a pull request of the guide that adds `[watch] candidates` to the manifest when it is missing; an open one gets a commit more |
 | `__init__.py` | 2 | The package of the routes |
 
 The page is in [`static/`](../src/vault_watch_agent/static/): ES modules served as they are, without build step.
@@ -391,6 +391,7 @@ trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
 | [`tests/test_page_smoke.py`](../tests/test_page_smoke.py) | Every screen of the page drawn in a headless Chrome, in French and in English, without a JavaScript error nor « undefined » shown |
 | [`tests/report.py`](../tests/report.py) | Not a test: the report of each suite, `.pytest-report.md` (what failed, the slowest, the tests that failed in one of the last suites and pass now), its history in `.pytest-history.jsonl` |
 | [`tests/test_candidates.py`](../tests/test_candidates.py), [`tests/test_candidates_page.py`](../tests/test_candidates_page.py) | The registry of discovery: names and addresses in one form, states and their rules, what is due, the collection; the page: the draft, its pull request (a commit more while it is open, merged: the draft goes), a candidate proposed by its run |
+| [`tests/test_candidates_sources.py`](../tests/test_candidates_sources.py) | Where the candidates come from: a watch run's possible additions noted as leads once the registry is used, a lead dismissed on a check a dismissed candidate (not « Newer »), the kind an address says |
 | [`tests/test_e2e.py`](../tests/test_e2e.py) | The editor's journeys clicked in Chrome by Playwright (`pytest -m e2e`, left out of a plain `pytest`): review and apply, a correction retouched, a page corrected at the publish pause, a lead turned into a run, a candidate added, dismissed and proposed, the Settings and the language |
 | [`tests/test_footnotes.py`](../tests/test_footnotes.py) | A footnote goes with its last citation at apply, whatever the groups; the broken notes of the changed pages said before publishing |
 
