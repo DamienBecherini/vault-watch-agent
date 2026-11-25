@@ -27,6 +27,17 @@ def page_reads_with_its_header(monkeypatch):
     monkeypatch.setattr(TestClient, "get", get)
 
 
+@pytest.fixture(autouse=True)
+def no_network_for_enrich(monkeypatch):
+    """A candidate is read on Hugging Face and GitHub when it is added (enrich.py): never in the tests, which give
+    their own reader when they test it."""
+    from vault_watch_agent import enrich
+
+    def offline(url, **kw):
+        raise RuntimeError("no network in the tests")
+    monkeypatch.setattr(enrich, "GET", offline)
+
+
 def _git(*args, cwd):
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
 

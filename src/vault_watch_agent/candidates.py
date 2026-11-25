@@ -249,7 +249,10 @@ def guess_kind(url: str, kinds: tuple[str, ...]) -> str:
 def note_all(guide, home: Path, found: list[dict], *, origin: str, seen: str) -> list[str]:
     """What the agent found, noted in the draft: each {name, url, why?, dismiss?} becomes a candidate (or a source
     more of one already followed), dismissed with the reason `dismiss` when it is new or still a lead. Nothing when
-    the guide does not use the registry. Returns the names of the new candidates."""
+    the guide does not use the registry. A new candidate not dismissed is read on Hugging Face or GitHub when its
+    address is there (enrich.py, D1; a failure leaves it as it is). Returns the names of the new candidates."""
+    from . import enrich  # enrich reads through collect, which imports this module
+
     if not found or not followed(guide, home):
         return []
     _, rel = place(guide, home)
@@ -266,6 +269,8 @@ def note_all(guide, home: Path, found: list[dict], *, origin: str, seen: str) ->
                 new_names.append(c["name"])
             if f.get("dismiss") and (new or c["state"] == "lead"):
                 reg.move(c["id"], "dismissed", today=seen, reason=f["dismiss"])
+            elif new:
+                enrich.enrich(c, today=seen)
         reg.save()
     return new_names
 

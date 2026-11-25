@@ -370,6 +370,7 @@ src/vault_watch_agent/
   forge.py       GitHub (gh) et Gitea (API) : issues, artefacts, pull requests
   watches.py     d'où viennent les veilles ; collect.py la collecte de l'agent ; inputs.py le format de la veille
   candidates.py  le registre de la découverte : les candidats suivis dans le temps, leurs états et dates de revérification
+  enrich.py      ce qu'est un candidat, lu sur Hugging Face et GitHub (sans modèle)
   sources.py     ce que chaque source de la veille a apporté ; sourcecheck.py les sources elles-mêmes, contrôlées
   crosscheck.py  relecture croisée ; fix.py passes de correction ; verify.py vérifications ; evaluate.py rejeux
   sizes.py       ce que pèse chaque page et ce qu'elle a pris ; compact.py compactage : ce qui pèse, les allègements

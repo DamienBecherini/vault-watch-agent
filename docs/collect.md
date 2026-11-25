@@ -155,6 +155,13 @@ tool, when the guide has these kinds), to correct on the page. The discovery fee
 through the watch: its run sets aside what deserves it, the rest is not noted (a list of trending models would drown
 the registry).
 
+A candidate added (by hand or by a watch run) is read where it lives, without a model (`enrich.py`): for a Hugging
+Face model page, the public API of Hugging Face (licence, parameters, context from its `config.json`, GGUF,
+downloads, dates); for a GitHub repository, GitHub's (licence, stars, latest release, contributors, last push, with
+the token `collect` uses, sent to api.github.com only). What it says is kept in the candidate (`facts`, with the day
+it was read) and shown on its card; « Read again » reads it once more. What cannot be read (a removed model, GitHub's
+limit without a token) is said, and what was read before stays.
+
 ## Which sources earn their place
 
 The page « Sources followed » of the interface (in the menu « Watch », `GET /api/sources`) shows, for each feed

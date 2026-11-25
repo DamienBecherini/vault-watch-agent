@@ -107,7 +107,8 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 | `graph_common.py` | 51 | Ce que les étapes partagent : `Deps`, git dans un worktree, l'ordre des propositions, la branche d'une passe |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
 | `collect.py` | 727 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
-| `candidates.py` | 411 | Le registre de la découverte (ROADMAP D3) : les candidats suivis dans le temps, leurs sources, états, raisons et dates de revérification, dans le fichier que nomme le manifeste (`[watch] candidates`) ; la collecte écarte ce qu'il suit et liste ce qui est dû |
+| `candidates.py` | 416 | Le registre de la découverte (ROADMAP D3) : les candidats suivis dans le temps, leurs sources, états, raisons et dates de revérification, dans le fichier que nomme le manifeste (`[watch] candidates`) ; la collecte écarte ce qu'il suit et liste ce qui est dû |
+| `enrich.py` | 110 | Ce qu'est un candidat, lu sans modèle (ROADMAP D1) : l'API de Hugging Face pour une page de modèle (licence, paramètres, contexte, GGUF, téléchargements), celle de GitHub pour un dépôt (licence, étoiles, dernière version, contributeurs) ; `where` dit quelles adresses elles savent lire |
 | `llm.py` | 442 | Le contrat que tient chaque moteur : les protocoles `LLM` et `Engine`, `ModelError`, les efforts, `Capabilities`, le journal des coûts (`_Journal`), `EngineKind` et `engines()` (protocole 1) ; `engine()` et `create`, le moteur d'un rôle (`Routed` quand des étapes sont réglées à part) ; si Claude Code est installé et connecté |
 | `engines/api.py` | 190 | `Claude`, l'API Claude par le SDK officiel, facturée au token : sortie structurée, cache de prompt, recherche et lecture web côté serveur, limites de sortie lues dans l'API Models |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code sur un abonnement Claude, `claude -p` une fois par appel ; le lecteur de pages de l'agent offert comme son `web_fetch` |
@@ -165,7 +166,7 @@ Chacun a un `router(ctx)` qui construit son routeur FastAPI à partir du context
 | `checks.py` | 335 | « Vérifier le guide » : les vérifications, leurs pistes et leurs notes, leurs estimations ; l'état de dl-sub-dub pour les vidéos |
 | `languages.py` | 236 | « Langues » : les miroirs, « Synchroniser les langues », les modifications de l'éditeur vérifiées avant la synchronisation |
 | `chapters.py` | 117 | « Chapitres » : les chapitres vus, proposés par un modèle, déclarés par une pull request |
-| `candidates.py` | 185 | « Candidats » (ROADMAP D3.2) : le registre vu et changé dans un brouillon de l'agent (jamais le dossier du guide), publié par une pull request du guide qui ajoute `[watch] candidates` au manifeste s'il manque ; une pull request ouverte reçoit un commit de plus |
+| `candidates.py` | 193 | « Candidats » (ROADMAP D3.2) : le registre vu et changé dans un brouillon de l'agent (jamais le dossier du guide), publié par une pull request du guide qui ajoute `[watch] candidates` au manifeste s'il manque ; une pull request ouverte reçoit un commit de plus |
 | `__init__.py` | 2 | Le paquet des routes |
 
 La page est dans [`static/`](../../src/vault_watch_agent/static/) : des modules ES servis tels quels, sans étape de build.
@@ -205,7 +206,7 @@ n'a pas changé), si bien qu'une mise à jour ne laisse jamais un ancien module 
 | `sources.js` | 203 | « Sources suivies » |
 | `languages.js` | 154 | « Langues » |
 | `chapters.js` | 128 | « Chapitres » |
-| `candidates.js` | 236 | « Candidats » : le registre par état, l'ajout à la main, l'observation ou l'écart (une raison, une date de revérification), la proposition d'un ajout (« Proposer un ajout » avec sa ligne), la publication du registre |
+| `candidates.js` | 283 | « Candidats » : le registre par état, l'ajout à la main, l'observation ou l'écart (une raison, une date de revérification), la proposition d'un ajout (« Proposer un ajout » avec sa ligne), la publication du registre |
 | `costs.js` | 26 | « Coûts » |
 | `themes.js` | 325 | L'apparence de la page : taille du texte, clair ou sombre, les palettes, la fenêtre Thème |
 | `notify.js` | 91 | Les notifications du navigateur, la cloche |
@@ -394,6 +395,7 @@ des allègements proposés par `compact.py`, avec une relecture croisée écrite
 | [`tests/report.py`](../../tests/report.py) | Pas un test : le compte rendu de chaque suite, `.pytest-report.md` (ce qui a échoué, les plus lents, les tests qui ont échoué dans une des dernières suites et passent maintenant), son historique dans `.pytest-history.jsonl` |
 | [`tests/test_candidates.py`](../../tests/test_candidates.py), [`tests/test_candidates_page.py`](../../tests/test_candidates_page.py) | Le registre de la découverte : noms et adresses sous une seule forme, les états et leurs règles, ce qui est dû, la collecte ; la page : le brouillon, sa pull request (un commit de plus tant qu'elle est ouverte ; fusionnée, le brouillon disparaît), un candidat proposé par sa passe |
 | [`tests/test_candidates_sources.py`](../../tests/test_candidates_sources.py) | D'où viennent les candidats : les ajouts possibles d'une passe de veille notés en pistes une fois le registre utilisé, une piste écartée sur une vérification un candidat écarté (pas « Newer »), le type que dit une adresse |
+| [`tests/test_enrich.py`](../../tests/test_enrich.py) | L'enrichissement avec des réponses enregistrées (sans réseau) : les adresses lues, un modèle et un dépôt, un échec qui garde ce qui avait été lu, un modèle à accès restreint, « Relire » sur la page |
 | [`tests/test_e2e.py`](../../tests/test_e2e.py) | Les parcours de l'éditeur cliqués dans Chrome par Playwright (`pytest -m e2e`, hors d'un `pytest` simple) : relire et appliquer, une correction retouchée, une page corrigée à la publication, une piste devenue passe, un candidat ajouté, écarté puis proposé, les Réglages et la langue |
 | [`tests/test_footnotes.py`](../../tests/test_footnotes.py) | Une note s'en va avec son dernier appel à l'application, quels que soient les groupes ; les notes cassées des pages modifiées dites avant de publier |
 

@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from .. import candidates as cand
-from .. import forge, vault
+from .. import enrich, forge, vault
 from .. import guide as guide_mod
 from .context import AppContext, read_json, write_json
 
@@ -135,10 +135,18 @@ def router(ctx: AppContext) -> APIRouter:
     def candidates_add(body: Add):
         """A candidate added by hand (a lead, origin « hand »); a name or an address already known adds its source."""
         def do(reg):
-            c, new = reg.note(body.name, body.url.strip(), origin="hand", seen=date.today().isoformat(), kind=body.kind,
-                              note=body.note)
-            return {"id": c["id"], "new": new}
+            today = date.today().isoformat()
+            before = len(reg.get(cand.key(body.name)).get("sources", [])) if reg.find(body.name) else 0
+            c, new = reg.note(body.name, body.url.strip(), origin="hand", seen=today, kind=body.kind, note=body.note)
+            # Read on Hugging Face or GitHub (D1) when it is new or got an address it did not have
+            errors = enrich.enrich(c, today=today) if new or len(c.get("sources", [])) > before else []
+            return {"id": c["id"], "new": new, "errors": errors}
         return change(do)
+
+    @api.post("/api/candidates/{cid}/enrich")
+    def candidates_enrich(cid: str):
+        """A candidate read again on Hugging Face and GitHub (no model): its facts of today, what failed."""
+        return change(lambda reg: {"errors": enrich.enrich(reg.get(cid), today=date.today().isoformat())})
 
     @api.post("/api/candidates/{cid}")
     def candidates_move(cid: str, body: Move):

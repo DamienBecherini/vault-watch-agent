@@ -164,6 +164,13 @@ de modèle Hugging Face un modèle, un dépôt GitHub un outil, quand le guide a
 flux de découverte de la collecte y arrivent par la veille : sa passe met de côté ce qui le mérite, le reste n'est
 pas noté (une liste de modèles en vogue noierait le registre).
 
+Un candidat ajouté (à la main ou par une passe de veille) est lu là où il vit, sans modèle (`enrich.py`) : pour une
+page de modèle Hugging Face, l'API publique de Hugging Face (licence, paramètres, contexte d'après son `config.json`,
+GGUF, téléchargements, dates) ; pour un dépôt GitHub, celle de GitHub (licence, étoiles, dernière version,
+contributeurs, dernier commit, avec le jeton qu'utilise `collect`, envoyé à api.github.com seulement). Ce qu'elle dit
+est gardé dans le candidat (`facts`, avec le jour de lecture) et montré sur sa carte ; « Relire » le relit. Ce qui ne
+peut pas être lu (un modèle retiré, la limite de GitHub sans jeton) est dit, et ce qui avait été lu reste.
+
 ## Quelles sources méritent leur place
 
 La page « Sources suivies » de l'interface (dans le menu « Veille », `GET /api/sources`) montre, pour chaque

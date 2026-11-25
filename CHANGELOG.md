@@ -21,6 +21,11 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   opens the pull request, which adds `[watch] candidates` to the manifest when it is missing (the path asked, beside
   the watch's files by default; it needs vault-watch-agent 1.7.0 wherever the guide is read). While it is open,
   publishing again adds a commit to it; merged, the folder follows and the draft goes.
+- **What a candidate is, read without a model** (ROADMAP D1): `enrich.py` reads a Hugging Face model page through
+  Hugging Face's public API (licence, parameters, context from its `config.json`, GGUF, downloads, dates) and a GitHub
+  repository through GitHub's (licence, stars, latest release, contributors up to « 100+ », last push, archived),
+  when a candidate is added by hand or by a watch run, and on « Read again » on its card. Kept in the candidate
+  (`facts`, with the day read) and shown on the page; a failure is said and keeps what was read before.
 - **Where the candidates come from** (ROADMAP D3.3): once the guide uses the registry (its manifest names it, or a
   draft was started on the page), the possible additions a watch run sets aside become leads (the item's address,
   the watch, the reason) instead of a line of its report; a lead of an addition check that the editor dismisses

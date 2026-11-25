@@ -107,7 +107,8 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `graph_common.py` | 51 | What the nodes share: `Deps`, git in a worktree, the order of the proposals, the branch of a run |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
 | `collect.py` | 727 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
-| `candidates.py` | 411 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
+| `candidates.py` | 416 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
+| `enrich.py` | 110 | What a candidate is, read without a model (ROADMAP D1): Hugging Face's API for a model page (licence, parameters, context, GGUF, downloads), GitHub's for a repository (licence, stars, latest release, contributors); `where` tells which address they can read |
 | `llm.py` | 442 | The contract every engine keeps: the `LLM` and `Engine` protocols, `ModelError`, the efforts, `Capabilities`, the cost journal (`_Journal`), `EngineKind` and `engines()` (protocol 1); `engine()` and `create`, the engine of a role (`Routed` when steps are set apart); whether Claude Code is installed and signed in |
 | `engines/api.py` | 190 | `Claude`, the Claude API through the official SDK, billed per token: structured output, prompt caching, the server-side web search and fetch, the output limits read from the Models API |
 | `engines/claude_code.py` | 157 | `ClaudeCode`, Claude Code on a Claude subscription, `claude -p` once per call; the agent's page reader offered as its `web_fetch` |
@@ -165,7 +166,7 @@ one has a `router(ctx)` that makes its FastAPI router from the app's context; `w
 | `checks.py` | 335 | « Check the guide »: the verifications, their leads and notes, their estimates; the state of dl-sub-dub for the videos |
 | `languages.py` | 236 | « Languages »: the mirrors, « Sync the languages », the editor's edits checked before the sync |
 | `chapters.py` | 117 | « Chapters »: the chapters seen, proposed by a model, declared through a pull request |
-| `candidates.py` | 185 | « Candidates » (ROADMAP D3.2): the registry seen and changed in a draft of the agent (never the guide's folder), published by a pull request of the guide that adds `[watch] candidates` to the manifest when it is missing; an open one gets a commit more |
+| `candidates.py` | 193 | « Candidates » (ROADMAP D3.2): the registry seen and changed in a draft of the agent (never the guide's folder), published by a pull request of the guide that adds `[watch] candidates` to the manifest when it is missing; an open one gets a commit more |
 | `__init__.py` | 2 | The package of the routes |
 
 The page is in [`static/`](../src/vault_watch_agent/static/): ES modules served as they are, without build step.
@@ -205,7 +206,7 @@ changed), so an update never leaves an old module beside a new one.
 | `sources.js` | 203 | « Sources followed » |
 | `languages.js` | 154 | « Languages » |
 | `chapters.js` | 128 | « Chapters » |
-| `candidates.js` | 236 | « Candidates »: the registry by state, add by hand, watch or dismiss (a reason, a date to look again), propose an addition (« Propose an addition » with its line), publish the registry |
+| `candidates.js` | 283 | « Candidates »: the registry by state, add by hand, watch or dismiss (a reason, a date to look again), propose an addition (« Propose an addition » with its line), publish the registry |
 | `costs.js` | 26 | « Costs » |
 | `themes.js` | 325 | The look of the page: size of the text, light or dark, the palettes, the Theme window |
 | `notify.js` | 91 | The notifications of the browser, the bell |
@@ -392,6 +393,7 @@ trims) and an addition run (`"add"`, the leads checked on the web by `news.py`).
 | [`tests/report.py`](../tests/report.py) | Not a test: the report of each suite, `.pytest-report.md` (what failed, the slowest, the tests that failed in one of the last suites and pass now), its history in `.pytest-history.jsonl` |
 | [`tests/test_candidates.py`](../tests/test_candidates.py), [`tests/test_candidates_page.py`](../tests/test_candidates_page.py) | The registry of discovery: names and addresses in one form, states and their rules, what is due, the collection; the page: the draft, its pull request (a commit more while it is open, merged: the draft goes), a candidate proposed by its run |
 | [`tests/test_candidates_sources.py`](../tests/test_candidates_sources.py) | Where the candidates come from: a watch run's possible additions noted as leads once the registry is used, a lead dismissed on a check a dismissed candidate (not « Newer »), the kind an address says |
+| [`tests/test_enrich.py`](../tests/test_enrich.py) | The enrichment with recorded answers (no network): the addresses read, a model and a repository, a failure that keeps the facts of before, a gated model, « Read again » on the page |
 | [`tests/test_e2e.py`](../tests/test_e2e.py) | The editor's journeys clicked in Chrome by Playwright (`pytest -m e2e`, left out of a plain `pytest`): review and apply, a correction retouched, a page corrected at the publish pause, a lead turned into a run, a candidate added, dismissed and proposed, the Settings and the language |
 | [`tests/test_footnotes.py`](../tests/test_footnotes.py) | A footnote goes with its last citation at apply, whatever the groups; the broken notes of the changed pages said before publishing |
 

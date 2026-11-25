@@ -90,6 +90,7 @@ whole guide (D4) after. Candidates come from four places: the addition candidate
   the watch run, which sets aside what deserves it.*
 - **D1 The enrichment, no model.** Hugging Face (size, licence, context, GGUF, downloads) and GitHub (licence,
   releases, contributors), read when a candidate is added or re-checked.
+  *Done (2026-11-26): `enrich.py`, read when a candidate is added (by hand, by a watch run) and on « Read again ».*
 
 ## Phase E — keep the vault and the sources in shape
 
