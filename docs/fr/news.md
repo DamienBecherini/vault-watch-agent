@@ -158,7 +158,10 @@ L'onglet « Des liens à lire en entier » dit si dl-sub-dub est prêt. Arrêté
 à lire, avec cette commande (réglée à la main dans `settings.json` seulement : la page ne peut pas la changer,
 puisque l'agent l'exécute) : sans shell, le port de `url` ajouté quand la commande n'en donne pas, un environnement
 sans les clés ni les jetons de l'agent ; dl-sub-dub s'arrête ensuite tout seul après son propre temps sans activité
-(60 minutes par défaut, `--idle`). Sans `start`, c'est dit avec la forme générique de la commande. Quand dl-sub-dub travaille pour un projet de sa propre page, une vidéo est dite
+(60 minutes par défaut, `--idle`). Sans `start`, c'est dit avec la forme générique de la commande. Un dl-sub-dub qui refuse de démarrer parce qu'un autre
+tourne déjà pour les mêmes données (depuis sa version « un seul service à la fois ») est dit tout de suite, avec
+l'adresse de celui-là à mettre dans `url`. Quand la carte graphique est prise par un autre programme (un modèle local,
+un jeu), la vidéo est dite « carte graphique occupée », avec sa mémoire libre : relisez le lien plus tard. Quand dl-sub-dub travaille pour un projet de sa propre page, une vidéo est dite
 « occupé », avec le temps restant : relisez le lien plus tard. dl-sub-dub garde ses propres limites (un quota par
 jeton, 3 heures de vidéo au plus, une demande de programme à la fois), et sa page peut arrêter une lecture à tout
 moment.

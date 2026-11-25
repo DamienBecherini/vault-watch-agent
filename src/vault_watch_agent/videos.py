@@ -29,6 +29,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -46,6 +47,8 @@ MAX_WAIT_S = 2 * 3600  # a video of 3 hours, transcribed: about 30 minutes on a 
 PARAGRAPH_S = 30  # a time mark every 30 seconds or so: what a lead cites (« at 12:34 »)
 FINAL = ("done", "failed", "cancelled")
 START_WAIT_S = 90  # dl-sub-dub started: the time it is given to answer (it loads its settings, its models are lazy)
+ALREADY_RUNNING = 4  # dl-sub-dub's exit code when another service runs for the same data folder (its message on stderr)
+START_LOG = Path(tempfile.gettempdir()) / "vault-watch-dl-sub-dub.log"  # what the dl-sub-dub started here printed
 SECRET_ENV = ("_API_KEY", "_TOKEN", "_SECRET", "_PASSWORD")  # never handed to the program started
 _WAKING = threading.Lock()  # two videos read at once start it once
 
@@ -61,15 +64,25 @@ def command(start: str, url: str) -> tuple[list[str], str | None]:
     return argv, folder
 
 
-def spawn(argv: list[str], folder: str | None) -> None:
-    """Starts the program on its own: no window, no console, detached from this server, without its secrets."""
+def spawn(argv: list[str], folder: str | None) -> subprocess.Popen:
+    """Starts the program on its own: no window, no console, detached from this server, without its secrets; what it
+    prints goes to START_LOG (a refusal to start says why there)."""
     env = {k: v for k, v in os.environ.items() if not k.upper().endswith(SECRET_ENV)}
     null = subprocess.DEVNULL
-    if os.name == "nt":
-        subprocess.Popen(argv, cwd=folder, env=env, close_fds=True, stdin=null, stdout=null, stderr=null,
-                         creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
-    else:
-        subprocess.Popen(argv, cwd=folder, env=env, close_fds=True, stdin=null, stdout=null, stderr=null, start_new_session=True)
+    with START_LOG.open("w", encoding="utf-8") as log:  # the child keeps its own handle
+        if os.name == "nt":
+            return subprocess.Popen(argv, cwd=folder, env=env, close_fds=True, stdin=null, stdout=log, stderr=log,
+                                    creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
+        return subprocess.Popen(argv, cwd=folder, env=env, close_fds=True, stdin=null, stdout=log, stderr=log, start_new_session=True)
+
+
+def printed() -> str:
+    """The last line the dl-sub-dub started here printed (its reason to stop), or ""."""
+    try:
+        lines = [x.strip() for x in START_LOG.read_text(encoding="utf-8", errors="replace").splitlines() if x.strip()]
+    except OSError:
+        return ""
+    return lines[-1][:300] if lines else ""
 
 
 def clock(seconds: float) -> str:
@@ -122,6 +135,10 @@ def why(error: dict) -> str:
                 + (f", about {max(1, round(left / 60))} min left" if left else "") + "): read this link again later")
     if code == "agent_busy":
         return "dl-sub-dub is already reading a video for a program: read this link again later"
+    if code == "gpu_busy":
+        free = error.get("free_mb")
+        return ("the graphics card is taken by another program (a local model, a game…)"
+                + (f", {free} MB free" if free is not None else "") + ": read this link again later")
     return f"dl-sub-dub: {message or 'an error'} ({code or 'unknown'})"
 
 
@@ -155,7 +172,7 @@ class Videos:
                 return f"dl-sub-dub does not answer at {self.url}: start it with {GENERIC_START}"
             argv, folder = command(self.start, self.url)
             try:
-                self.spawn(argv, folder)
+                started = self.spawn(argv, folder)
             except (OSError, ValueError) as e:
                 return f"dl-sub-dub could not be started ({type(e).__name__}: {e}): check videos.start in settings.json"
             began = self.now()
@@ -163,6 +180,13 @@ class Videos:
                 self.sleep(1)
                 if self.health() is not None:
                     return ""
+                ended = started.poll() if started is not None and hasattr(started, "poll") else None
+                if ended == ALREADY_RUNNING:  # another dl-sub-dub runs for the same data: its address said
+                    return (f"another dl-sub-dub already runs on this machine, not at {self.url}: "
+                            f"{printed() or 'see its window'}. Set videos.url in settings.json to its address")
+                if ended is not None:
+                    return (f"dl-sub-dub stopped at once (code {ended}): {printed() or 'no message'}; "
+                            f"check videos.start in settings.json")
             return f"dl-sub-dub was started but does not answer at {self.url} after {START_WAIT_S} s: start it by hand ({self.start})"
 
     def status(self) -> dict:

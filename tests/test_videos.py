@@ -214,3 +214,25 @@ def test_a_start_command_whose_program_is_missing_is_said(tmp_path):
     state = sleeper(Asleep(), tmp_path, start="D:/nowhere/dl-sub-dub/.venv/Scripts/python -m subtitles.web").status()
     assert state["ready"] is False and "the program of videos.start is not found" in state["why"]
     assert "install dl-sub-dub" in state["why"]
+
+
+def test_dl_sub_dub_s_own_protections_are_said(tmp_path, monkeypatch):
+    """dl-sub-dub's graphics card taken by another program (gpu_busy), and a second dl-sub-dub refused (exit code 4,
+    another one runs for the same data): said at once, with what to do."""
+    url = "https://youtu.be/AbCdEfGhIjK"
+    gpu = {"code": "gpu_busy", "message": "The graphics card is taken.", "free_mb": 812}
+    assert reader(DlSubDub(states=("transcribing", "failed"), error=gpu), tmp_path).read(url).error == (
+        "the graphics card is taken by another program (a local model, a game…), 812 MB free: read this link again later")
+
+    class Refused:
+        def poll(self):
+            return videos.ALREADY_RUNNING
+
+    log = tmp_path / "started.log"
+    log.write_text("Un service dl-sub-dub tourne déjà pour ce dossier : http://127.0.0.1:4500/ (pid 77).\n", encoding="utf-8")
+    monkeypatch.setattr(videos, "START_LOG", log)
+    second = sleeper(Asleep(wakes=False), tmp_path)
+    second.spawn = lambda argv, folder: Refused()
+    error = second.read(url).error
+    assert error.startswith("another dl-sub-dub already runs on this machine, not at http://127.0.0.1:4420: Un service")
+    assert "http://127.0.0.1:4500/" in error and error.endswith("Set videos.url in settings.json to its address")
