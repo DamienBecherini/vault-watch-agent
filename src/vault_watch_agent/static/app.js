@@ -1001,12 +1001,17 @@ const costHtml = (step, usd) => {
     ? `<s class="worth" title="${esc(T.verif.listPriceTip)}">${esc(usd)}</s> ${esc(said)}` : esc(said);
 };
 const billedStep = step => costOf(step, "$") === "$";
+// How a step is paid, in the page's language: its chip's class and word
+const payOf = s => s.billing === "subscription" ? ["free", T.perStep.chipSubscription] : s.billing === "none" ? ["free", T.perStep.chipLocal]
+  : s.engine !== "api" ? ["", T.perStep.chipProvider] : ["bill", T.perStep.chipBilled];
+// The engine's name without its English parenthesis (« Claude Code (subscription) »): how it is paid is said apart
+const engineName = s => s.engine_label.replace(/\s*\([^)]*\)$/, "");
 // One line per step: what runs it, and the fields to change it for this run
 function stepLine(step, name = "") {
   const s = stepNow(step);
   if (!s) return "";
   return `<div class="step-line small" data-step-line="${step}">
-    <span class="muted">${name ? `${esc(name)}${T.colon}` : ""}${esc(s.engine_label)} · ${esc(s.model || "?")} · ${T.perStep.effort(s.effort)}</span>
+    <span class="muted">${name ? `${esc(name)}${T.colon}` : ""}${esc(engineName(s))} · ${esc(s.model ? modelName(s.model) : "?")} · ${T.perStep.effort(s.effort)} · ${payOf(s)[1]}</span>
     ${OWN[step] ? `<span class="badge attention">${T.perStep.once}</span>` : ""}
     ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.perStep.edit : T.perStep.change}">${OWN[step] ? T.perStep.edit : T.perStep.change}</button>`}
     ${OWN[step] && !STEPS.forced ? `<button type="button" class="small-button" data-step-reset="${step}">${T.perStep.reset}</button>` : ""}
@@ -1023,13 +1028,12 @@ function stepLine(step, name = "") {
 function stepCard(step, n, name, what = "") {
   const s = stepNow(step);
   if (!s) return "";
-  const pay = s.billing === "subscription" ? ["free", T.perStep.chipSubscription] : s.billing === "none" ? ["free", T.perStep.chipLocal]
-    : s.engine !== "api" ? ["", T.perStep.chipProvider] : ["bill", T.perStep.chipBilled];
+  const pay = payOf(s);
   return `<div class="step-card${OWN[step] ? " changed" : ""}" data-step-line="${step}">
     <div class="step-head"><b>${n} · ${esc(name)}</b>${what ? `<span class="narrow-only">${tip(what)}</span>` : ""}
       ${STEPS.forced ? "" : `<button type="button" class="small-button" data-step-edit="${step}" data-closed="${OWN[step] ? T.perStep.edit : T.perStep.changeShort}">${OWN[step] ? T.perStep.edit : T.perStep.changeShort}</button>`}</div>
     ${what ? `<div class="step-what wide-only">${esc(what)}</div>` : ""}
-    <div class="chips"><span class="chip">${esc(s.engine_label.replace(/\s*\([^)]*\)$/, ""))}</span><span class="chip">${esc(s.model ? modelName(s.model) : "?")}</span><span class="chip">${T.perStep.effort(s.effort)}</span><span class="chip ${pay[0]}">${pay[1]}</span></div>
+    <div class="chips"><span class="chip">${esc(engineName(s))}</span><span class="chip">${esc(s.model ? modelName(s.model) : "?")}</span><span class="chip">${T.perStep.effort(s.effort)}</span><span class="chip ${pay[0]}">${pay[1]}</span></div>
     ${OWN[step] ? `<div class="step-once">${T.perStep.once}${STEPS.forced ? "" : ` · <button type="button" class="link-button" data-step-reset="${step}">${T.perStep.reset}</button>`}</div>` : ""}
     <span class="step-fields" data-step-fields="${step}" hidden>
       <select data-f="engine" aria-label="${T.perStep.engine}">${STEPS.engines.map(e => `<option value="${esc(e.name)}"${e.name === s.engine ? " selected" : ""}>${esc(e.label)}</option>`).join("")}</select>
