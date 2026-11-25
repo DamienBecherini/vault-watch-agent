@@ -154,11 +154,12 @@ to be read, with that command (set by hand in `settings.json` only: the page can
 it): no shell, the port of `url` added when the command names none, an environment without the agent's keys and
 tokens; dl-sub-dub then stops by itself after its own time without activity (60 minutes by default, `--idle`).
 Without `start`, it is said with the command's generic form. A dl-sub-dub that refuses to start because another one
-already runs for the same data (from version with « one service at a time ») is said at once, with that one's address
-to put in `url`. When the graphics card is taken by another program (a local model, a game), the video is said
-« graphics card taken », with its free memory: read the link again later. When dl-sub-dub works for a project of its own page, a video is said « busy », with
-the time left: read the link again later. dl-sub-dub keeps its own limits (a quota per token, 3 hours of video at
-the most, one request of a program at a time), and its page can stop a reading at any time.
+already runs for the same data is said at once, with that one's address to put in `url`. When the graphics card is
+taken by another program (a local model, a game), the video is said « graphics card taken », with its free memory:
+read the link again later. When dl-sub-dub works for a project of its own page, a video is said « busy », with the
+time left: read the link again later. dl-sub-dub keeps its own limits (a quota per token, one request of a program at
+a time, and the estimated transcription work: 60 minutes by default, `max_work_min` in its Settings › Other programs;
+a video whose site has subtitles passes whatever its length), and its page can stop a reading at any time.
 
 ## The additions
 

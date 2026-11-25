@@ -13,7 +13,9 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   `videos.start` is not there (dl-sub-dub not installed), the tab says so, with where to get it. dl-sub-dub's own
   protections are said: a second dl-sub-dub refused because another one runs for the same data (its exit code 4, its
   message naming that one's address, said at once instead of after 90 s), and a video ended by `gpu_busy` (the
-  graphics card taken by another program, its free memory): read the link again later.
+  graphics card taken by another program, its free memory): read the link again later. A video over dl-sub-dub's
+  limit (the estimated transcription work since its `max_work_min`, no longer the length) is said in minutes, with
+  where to raise it.
 - **Fixed: a folder without `vault-watch.toml` was taken for the IA on-prem guide**, the guide the agent was written
   for: its repository, its site and its Node scripts, on anyone's machine. Only that guide is now read without a
   manifest (by its watch brief and its audits script); any other folder is refused with what to do (`vault-watch

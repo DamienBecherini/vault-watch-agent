@@ -224,6 +224,12 @@ def test_dl_sub_dub_s_own_protections_are_said(tmp_path, monkeypatch):
     assert reader(DlSubDub(states=("transcribing", "failed"), error=gpu), tmp_path).read(url).error == (
         "the graphics card is taken by another program (a local model, a game…), 812 MB free: read this link again later")
 
+    # The limit is the estimated work (dl-sub-dub since its max_work_min), said in minutes with where to raise it
+    long = {"code": "too_long", "message": "Too long.", "duration_s": 28800, "work_s": 7200, "max_work_s": 3600}
+    assert reader(DlSubDub(refuse=(422, long)), tmp_path).read(url).error == (
+        "this video asks dl-sub-dub about 120 min of transcription, more than its limit of 60 min "
+        "(its Settings › Other programs, max_work_min)")
+
     class Refused:
         def poll(self):
             return videos.ALREADY_RUNNING

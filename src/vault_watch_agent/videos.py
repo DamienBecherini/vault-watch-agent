@@ -43,7 +43,7 @@ CONTRACT = 1  # the version of dl-sub-dub's contract « text of a video » this 
 DEFAULT_URL = "http://127.0.0.1:4420"
 GENERIC_START = "<dl-sub-dub's folder>/.venv/Scripts/python -m subtitles.web (Windows; .venv/bin/python elsewhere)"
 POLL_S = 2.0
-MAX_WAIT_S = 2 * 3600  # a video of 3 hours, transcribed: about 30 minutes on a small home server
+MAX_WAIT_S = 2 * 3600  # dl-sub-dub refuses more than 60 min of estimated work by default (max_work_min): room left
 PARAGRAPH_S = 30  # a time mark every 30 seconds or so: what a lead cites (« at 12:34 »)
 FINAL = ("done", "failed", "cancelled")
 START_WAIT_S = 90  # dl-sub-dub started: the time it is given to answer (it loads its settings, its models are lazy)
@@ -135,6 +135,11 @@ def why(error: dict) -> str:
                 + (f", about {max(1, round(left / 60))} min left" if left else "") + "): read this link again later")
     if code == "agent_busy":
         return "dl-sub-dub is already reading a video for a program: read this link again later"
+    if code == "too_long":
+        work, limit = error.get("work_s"), error.get("max_work_s")
+        if work and limit:
+            return (f"this video asks dl-sub-dub about {max(1, round(work / 60))} min of transcription, more than its "
+                    f"limit of {max(1, round(limit / 60))} min (its Settings › Other programs, max_work_min)")
     if code == "gpu_busy":
         free = error.get("free_mb")
         return ("the graphics card is taken by another program (a local model, a game…)"
