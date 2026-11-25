@@ -37,3 +37,11 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - run: python -m ruff check src tests
       - run: python -m pyright
+
+  page:
+    # The page's scripts (ES modules, // @ts-check) checked by TypeScript, as jsconfig.json says; nothing is built
+    # (the runner's own Node, as for the node tests of the suite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: npx -y -p typescript@5.9 tsc -p jsconfig.json --noEmit
