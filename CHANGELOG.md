@@ -3,6 +3,18 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 1.7.1 (2026-11-26)
+
+The CI green again: tests of 1.7.0 passed only on the machine they were written on (one needed `gh` signed in, the
+others a checkout with `\n` line endings). Nothing changes in what the agent does.
+
+- **Fixed: a test reached GitHub** (`test_a_watch_run_notes_what_it_sets_aside_once_the_registry_is_used`): a watch
+  run of « issue #30 » fetched the real issue and its artifact through `gh`; the CI has no `gh` signed in. The test
+  now gives the run its own watch.
+- **Fixed: the tests of the screen « Candidates » failed on Windows**: they edited the sample manifest looking for
+  `\n`, and a Windows checkout has `\r\n` (nothing changed, nothing to commit). They read it in text mode now;
+  tried on a sample guide converted to CRLF.
+
 ## 1.7.0 (2026-11-26)
 
 Discovery: what the guide does not cover yet is followed over time in a registry of the guide (`[watch] candidates`),
