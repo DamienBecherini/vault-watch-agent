@@ -171,3 +171,21 @@ def test_the_check_is_priced_by_the_open_candidates(guide):
     none = verify.estimates(guide, {})["candidates"]
     assert est["usd"] > none["usd"] > 0 and "3 open candidate(s)" in est["note"]["en"]
     assert verify.BY_ID["candidates"].fix_mode == "add" and verify.BY_ID["candidates"].kind == "news"
+
+
+def test_a_new_candidate_judged_says_its_judgement_among_the_changes():
+    new = {"id": "qwen3", "name": "Qwen3", "kind": "model", "state": "lead", "judgement": {"verdict": "dismiss"}}
+    assert [c["what"] for c in candidates.changes([], [new])] == ["new", "judged"]
+
+
+def test_the_estimates_follow_the_engine_of_each_step(guide):
+    """Claude Code writes its cache for an hour (2x the input price, 1.25x on the API): a check that reads the whole
+    guide was under-estimated there (D4 on 2026-11-26: 2.18 $ shown, 3.43 $ at list price); a claim costs less there."""
+    api = verify.estimates(guide, {"candidates": 1, "claims": 18})
+    cc = verify.estimates(guide, {"candidates": 1, "claims": 18}, engine_of=lambda step: "claude-code")
+    p_in, _, _, p_write = verify.price_of(verify.MODEL)
+    assert p_write == 1.25 * p_in  # the API's 5 minutes
+    fr = verify._tokens(verify.vault.pages(guide))
+    assert cc["candidates"]["usd"] - api["candidates"]["usd"] == pytest.approx(fr * 0.75 * p_in / 1e6)
+    assert cc["coherence"]["usd"] > api["coherence"]["usd"] and cc["translation"]["usd"] == api["translation"]["usd"]
+    assert (api["claims"]["usd"], cc["claims"]["usd"]) == (pytest.approx(18 * 0.18), pytest.approx(18 * 0.07))

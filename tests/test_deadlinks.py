@@ -104,6 +104,24 @@ def test_the_key_names_an_artifact_and_a_json_file(tmp_path):
             guide.load(tmp_path)
 
 
+def test_the_claims_are_checked_against_their_pages_as_they_read_today(guide_dir, tmp_path):
+    """The watchlist's wording can be older than the page (2026-11-26: four claims « outdated » that their pages had
+    corrected): the pages go with the claims, and a page already current gives no finding."""
+    class LLM:
+        def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
+            self.system, self.prompt, self.context, self.web = system, prompt, context, web
+            return verify.Findings(findings=[]), {"cost_usd": 0.1}
+
+    llm = LLM()
+    claims = [{"page": "page.md", "claim": "« vLLM ≥ 0.33.0 »", "recheckBy": "2026-11-20"},
+              {"page": "gone.md", "claim": "« something »", "recheckBy": "2026-11-20"}]
+    r = verify.run_claims(guide_dir, tmp_path, {"freshness": {"claims": claims}}, llm)
+    assert llm.web and llm.context.startswith('<page path="page.md">') and PAGE.strip() in llm.context
+    assert "gone.md" not in llm.context  # a page that is gone: not sent
+    assert "as they read today" in llm.system and "report no finding for it" in llm.system
+    assert "page.md (recheck by 2026-11-20): « vLLM ≥ 0.33.0 »" in llm.prompt and r["summary"] == "2 claims checked, 0 outdated"
+
+
 def test_the_replacement_opens_the_dead_address_first(guide_dir, tmp_path):
     class LLM:
         def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):

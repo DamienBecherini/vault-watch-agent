@@ -215,7 +215,8 @@ export async function viewCandidates() {
   const scoreOf = c => E[c.id]?.score || 0;
   const shown = d.candidates.filter(c => !FILTER || c.state === FILTER);
   if (SORT === "score") shown.sort((a, b) => scoreOf(b) - scoreOf(a));
-  const changeLine = c => C.change[c.what]({ ...c, from: stateOf(c.from), state: stateOf(c.state) });
+  const changeLine = c => C.change[c.what]({ ...c, from: stateOf(c.from), state: stateOf(c.state),
+    verdict: C.verdicts[c.verdict] || c.verdict });
   const actions = c => {
     const b = (state, label, help, cls = "") => `<span><button type="button" class="small-button ${cls}" data-act="${state}" data-id="${esc(c.id)}">${label}</button>${help ? tip(help) : ""}</span>`;
     const out = [];

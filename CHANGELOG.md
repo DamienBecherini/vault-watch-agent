@@ -3,6 +3,25 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 1.8.1 (2026-11-26)
+
+What the first real runs of 1.8.0 showed.
+
+- **The claims re-checked against their pages as they read today.** The check « claims » sent only the wording
+  the watchlist noted when a claim was last checked; its pages may have been corrected since. On the IA on-prem
+  guide it reported four claims outdated that their pages had already corrected (the fix run found nothing to
+  change). The pages of the claims now go with them (≈ 60 k tokens for 18 claims), and a page already current gives
+  no finding.
+
+- **The estimates follow the engine of each step.** The Claude Code engine writes its cache for an hour (twice the
+  input price), not five minutes (1.25 times) as the estimates counted: every check that reads the whole guide was
+  under-estimated on it (the candidates judged: 2.18 $ shown, 3.43 $ at list price). A claim re-checked costs what it
+  was measured to cost on its engine (0.18 $ on the API, 0.07 $ with Claude Code, where 0.21 $ was shown).
+- **A run's page never shows a pause with what the previous one showed**: its job is read before its state, so a
+  job that ends between the two reads shows as running once more (a test failed on the Linux CI that way).
+- **« Changes to publish » names a judgement** of a candidate not yet in the guide, with its verdict in words
+  (« to dismiss », not « dismiss »).
+
 ## 1.8.0 (2026-11-26)
 
 The registry of candidates grows into a discovery that weighs and judges (ROADMAP D2, D4), the search for what the

@@ -435,7 +435,9 @@ def _paid_check(args, check: str, prefix: str, what: str, flag: str, run, each: 
     table = Prices.of_home(CONFIG_HOME, settings)
     llm = create("reasoning", JOURNAL, settings, table)
     apart = {step: own["model"] for step, own in settings["steps"].items() if own.get("model")}
-    estimate = verify.estimates(VAULT, {}, settings["models"], table, apart)[check]
+    from .llm import step_engine
+
+    estimate = verify.estimates(VAULT, {}, settings["models"], table, apart, lambda step: step_engine(settings, step))[check]
     billing = llm.capabilities().billing if hasattr(llm, "capabilities") else "token"
     usd = estimate["usd"] + (estimate[each[0]] * each[1] if each else 0)
     paid = {"subscription": "taken from the subscription, not billed", "none": "a local model, not billed"}.get(

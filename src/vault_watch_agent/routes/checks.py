@@ -301,7 +301,7 @@ def router(ctx: AppContext) -> APIRouter:
         apart = {step: llm.step_model(cfg, step) for step, own in cfg["steps"].items() if own.get("model") or own.get("engine")}
         how = {s["step"]: s for s in ctx.steps_view(cfg)}  # the engine, the effort and the billing of each step
         table = ctx.price_table()
-        est = verify.estimates(ctx.settings.vault, known, models, table, apart)
+        est = verify.estimates(ctx.settings.vault, known, models, table, apart, lambda step: llm.step_engine(cfg, step))
         name = {verify.MODEL: models["reasoning"], verify.TRANSLATOR: models["translator"]}
 
         def origin(model: str | None) -> str:  # where the price of the estimate comes from, said when it is not set or fetched

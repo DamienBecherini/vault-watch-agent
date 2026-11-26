@@ -99,6 +99,9 @@ class FakeLLM:
                 other_findings=[Noticed(problem="a doubt elsewhere", excerpts=[
                     Quote(page="03-stack/engines.md", quote="Ollama reste le plus simple pour démarrer.")])],
             ), usage
+        if node == "verify claims":  # the claims with their pages, which already say the current fact
+            assert web and "<page path=" in (context or "")
+            return Findings(findings=[]), usage
         if schema is Findings:
             assert "<page path=" in (context or "") or "<pair page=" in prompt
             return Findings(findings=[Finding(pages=["03-stack/engines.md"], problem="floor differs from another page",

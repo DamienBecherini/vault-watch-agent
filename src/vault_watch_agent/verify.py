@@ -30,7 +30,11 @@ BYTES_PER_TOKEN = 2.1
 # Measured on the first full check (2026-11-08, 7.26 $): the whole-guide read wrote 27 k tokens; checking a
 # claim on the web read ≈ 46 k tokens of sources (0.21 $), finding where a dead source moved ≈ 0.27 $.
 COHERENCE_OUT = 27_000  # output tokens of the whole-guide read
-CLAIM_USD = 0.21  # one watchlist claim checked on the web
+CLAIM_USD = 0.18  # one watchlist claim checked on the web (API: 0.21 and 0.14 measured, November 2026)
+# The same on another engine, measured: Claude Code searches the web for less (0.07 a claim, 18 on 2026-11-26)
+CLAIM_USD_BY_ENGINE = {"claude-code": 0.07}
+# The engines that write their cache for an hour (2x the input price), not 5 minutes (1.25x): Claude Code
+HOUR_CACHE = {"claude-code"}
 DEAD_LINK_USD = 0.27  # one dead source: find where it moved
 OUTPUT_PER_CHAPTER = 3_000
 # Output tokens, thinking included, counted high on purpose: an estimate shown before a billed run should not be
@@ -139,8 +143,11 @@ def _tokens(paths: list[Path]) -> int:
     return int(sum(p.stat().st_size for p in paths) / BYTES_PER_TOKEN)
 
 
-def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0, table=None, cache_read: int = 0) -> float:
+def _usd(model: str, tokens_in: int = 0, tokens_out: int = 0, cache_write: int = 0, table=None, cache_read: int = 0,
+         hour: bool = False) -> float:
+    """`hour`: the cache written for an hour (2x the input price), as Claude Code does; else for 5 minutes."""
     p_in, p_out, p_read, p_write = price_of(model, table) or (0.0, 0.0, 0.0, 0.0)  # a model without a known price: 0, said in the Settings
+    p_write = 2 * p_in if hour else p_write
     return (tokens_in * p_in + tokens_out * p_out + cache_write * p_write + cache_read * p_read) / 1e6
 
 
@@ -155,27 +162,31 @@ english_pages = mirror_pages  # its name before manifests
 
 
 def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=None,
-              step_models: dict | None = None) -> dict[str, dict]:
+              step_models: dict | None = None, engine_of=None) -> dict[str, dict]:
     """{check id: {tokens, usd, note}}; `known` holds counts from the last run (dead links, claims due).
     `models`: the models of the user's settings ({reasoning, translator}), priced instead of the defaults;
-    `step_models`: the steps that run on a model of their own ({step: model})."""
+    `step_models`: the steps that run on a model of their own ({step: model}); `engine_of(step)`: the engine that
+    runs it (the cache it writes, what a claim costs there), the API engine when not given."""
     reasoning, translator = (models or {}).get("reasoning", MODEL), (models or {}).get("translator", TRANSLATOR)
     of = lambda step: (step_models or {}).get(step) or (translator if steps.STEPS[step].role == "translator" else reasoning)  # noqa: E731
+    engine = engine_of or (lambda step: "api")
+    u = lambda step, **n: _usd(of(step), table=table, hour=engine(step) in HOUR_CACHE, **n)  # noqa: E731
+    claim_usd = CLAIM_USD_BY_ENGINE.get(engine("claims"), CLAIM_USD)
     fr = _tokens(vault.pages(vault_dir))
     en = _tokens(mirror_pages(vault_dir))
     chapters = len(by_chapter(vault_dir))
     claims, dead, open_ = known.get("claims"), known.get("dead"), known.get("candidates")
     note = lambda fr_, en_: {"fr": fr_, "en": en_}  # noqa: E731
     # What follows the proposals of a lead of an addition run: its share of the cross-check, and its mirror
-    add_after = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=ADD_CROSS_OUT_EACH, table=table)
-                 + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
+    add_after = (u("crosscheck", tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=ADD_CROSS_OUT_EACH)
+                 + (u("mirror", tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH)
                     if vault.guide_of(vault_dir).mirrors else 0.0))
     # The cross-check of an addition run (the guide written to its cache, read at each round) and the sweep after it
-    add_checked = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN, tokens_out=ADD_CROSS_OUT, cache_write=fr,
-                        cache_read=ADD_CROSS_READS * fr, table=table)
-                   + _usd(of("crosscheck"), tokens_in=ADD_SWEEP_IN, tokens_out=ADD_SWEEP_OUT, cache_read=fr, table=table))
+    add_checked = (u("crosscheck", tokens_in=ADD_CROSS_WEB_IN, tokens_out=ADD_CROSS_OUT, cache_write=fr,
+                        cache_read=ADD_CROSS_READS * fr)
+                   + u("crosscheck", tokens_in=ADD_SWEEP_IN, tokens_out=ADD_SWEEP_OUT, cache_read=fr))
     # A check of leads started in another language than English: its leads explained in it, written on top
-    explained = lambda step, out: _usd(of(step), tokens_out=int(EXPLAIN_SHARE * out), table=table)  # noqa: E731
+    explained = lambda step, out: u(step, tokens_out=int(EXPLAIN_SHARE * out))  # noqa: E731
     # What a call of the "pages" context reads, and caches: never more than the guide itself
     own = min(fr, int(PLAN_SHARE * fr + ADD_PAGES_BYTES / BYTES_PER_TOKEN))
     return {
@@ -183,37 +194,37 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         "sources": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 à 4 min (réseau)", "≈ 2-4 min (network)")},
         "freshness": {"tokens": 0, "usd": 0.0, "note": note("≈ 5 s", "≈ 5 s")},
         "sizes": {"tokens": 0, "usd": 0.0, "note": note("≈ 2 s", "≈ 2 s")},
-        "compaction": {"tokens": fr + COMPACTION_OUT, "usd": _usd(of("compaction"), tokens_out=COMPACTION_OUT, cache_write=fr, table=table),
+        "compaction": {"tokens": fr + COMPACTION_OUT, "usd": u("compaction", tokens_out=COMPACTION_OUT, cache_write=fr),
                        "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est modifié".replace(",", " "),
                                     f"{fr:,} tokens of pages, read whole; nothing is edited")},
         # Not a check: the run the compaction leads go to (shown on the button that creates it)
         # `usd`: whatever the findings (the guide written to the cache by the proposals, then by the cross-check);
         # `usd_each`: per finding sent to the run
         "compact-run": {"tokens": 2 * fr + CROSS_OUT,
-                        "usd": _usd(of("compact"), cache_write=fr, table=table)
-                        + _usd(of("crosscheck"), tokens_out=CROSS_OUT, cache_write=fr, table=table),
-                        "usd_each": _usd(of("compact"), cache_read=fr // COMPACT_PER_CALL, tokens_out=COMPACT_OUT_EACH, table=table)
-                        + _usd(of("crosscheck"), tokens_in=CROSS_IN_EACH, tokens_out=CROSS_OUT_EACH, table=table)
-                        + (_usd(of("mirror"), tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH, table=table)
+                        "usd": u("compact", cache_write=fr)
+                        + u("crosscheck", tokens_out=CROSS_OUT, cache_write=fr),
+                        "usd_each": u("compact", cache_read=fr // COMPACT_PER_CALL, tokens_out=COMPACT_OUT_EACH)
+                        + u("crosscheck", tokens_in=CROSS_IN_EACH, tokens_out=CROSS_OUT_EACH)
+                        + (u("mirror", tokens_in=MIRROR_IN_EACH, tokens_out=MIRROR_OUT_EACH)
                            if vault.guide_of(vault_dir).mirrors else 0.0)},
-        "news": {"tokens": fr + NEWS_OUT, "usd": _usd(of("news"), tokens_out=NEWS_OUT, cache_write=fr, table=table),
-                 "usd_explained": _usd(of("news"), tokens_out=NEWS_OUT, cache_write=fr, table=table) + explained("news", NEWS_OUT),
+        "news": {"tokens": fr + NEWS_OUT, "usd": u("news", tokens_out=NEWS_OUT, cache_write=fr),
+                 "usd_explained": u("news", tokens_out=NEWS_OUT, cache_write=fr) + explained("news", NEWS_OUT),
                  "note": note(f"{fr:,} tokens de pages lues en entier ; rien n'est vérifié ni modifié".replace(",", " "),
                               f"{fr:,} tokens of pages, read whole; nothing is verified or edited")},
         # One call per chapter: `usd` whatever the chapters (the guide written to the cache), `usd_chapter` for each
-        "explore": {"tokens": fr + WEB_CALL_IN, "usd": _usd(of("explore"), cache_write=fr, table=table),
-                    "usd_chapter": _usd(of("explore"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
-                                        cache_read=WEB_CALL_ROUNDS * fr, table=table),
-                    "usd_chapter_explained": _usd(of("explore"), tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
-                                                  cache_read=WEB_CALL_ROUNDS * fr, table=table) + explained("explore", WEB_CALL_OUT),
+        "explore": {"tokens": fr + WEB_CALL_IN, "usd": u("explore", cache_write=fr),
+                    "usd_chapter": u("explore", tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
+                                        cache_read=WEB_CALL_ROUNDS * fr),
+                    "usd_chapter_explained": u("explore", tokens_in=WEB_CALL_IN, tokens_out=WEB_CALL_OUT,
+                                                  cache_read=WEB_CALL_ROUNDS * fr) + explained("explore", WEB_CALL_OUT),
                     "note": note(f"un appel par chapitre choisi, avec le web et les {fr:,} tokens du guide ; rien n'est "
                                  "modifié".replace(",", " "),
                                  f"one call per chapter chosen, with the web and the {fr:,} tokens of the guide; nothing is "
                                  "edited")},
         # One call per link read: `usd` whatever the links (the guide written to the cache), `usd_link` for each
-        "links": {"tokens": fr + LINK_IN, "usd": _usd(of("links"), cache_write=fr, table=table),
-                  "usd_link": _usd(of("links"), tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr, table=table),
-                  "usd_link_explained": _usd(of("links"), tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr, table=table)
+        "links": {"tokens": fr + LINK_IN, "usd": u("links", cache_write=fr),
+                  "usd_link": u("links", tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr),
+                  "usd_link_explained": u("links", tokens_in=LINK_IN, tokens_out=LINK_OUT, cache_read=fr)
                   + explained("links", LINK_OUT),
                   "note": note(f"un appel par lien lu, sans le web, avec les {fr:,} tokens du guide ; rien n'est vérifié ni "
                                "modifié".replace(",", " "),
@@ -222,34 +233,34 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         # Not a check: the run the leads of « news » go to. `usd`: whatever the leads (the guide written to the cache
         # by the proposals, then the cross-check); `usd_each`: per lead sent to the run
         "add-run": {"tokens": 2 * fr + CROSS_OUT,
-                    "usd": _usd(of("add"), cache_write=fr, table=table) + add_checked,
-                    "usd_each": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH,
-                                     cache_read=ADD_ROUNDS_EACH * fr, table=table) + add_after,
+                    "usd": u("add", cache_write=fr) + add_checked,
+                    "usd_each": u("add", tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH,
+                                     cache_read=ADD_ROUNDS_EACH * fr) + add_after,
                     # a lead dug deeper: the same call, asked for a fuller look
-                    "usd_deep": _usd(of("add"), tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT,
-                                     cache_read=ADD_DEEP_ROUNDS * fr, table=table) + add_after,
+                    "usd_deep": u("add", tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT,
+                                     cache_read=ADD_DEEP_ROUNDS * fr) + add_after,
                     # the same run when each call reads its lead's pages and the plan (context "pages"): the
                     # proposals no longer write the guide to the cache, each call writes and reads its own pages
                     "usd_pages": add_checked,
-                    "usd_each_pages": _usd(of("add"), tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH, cache_write=own,
-                                           cache_read=ADD_ROUNDS_EACH * own, table=table) + add_after,
-                    "usd_deep_pages": _usd(of("add"), tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT, cache_write=own,
-                                           cache_read=ADD_DEEP_ROUNDS * own, table=table) + add_after},
-        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": _usd(of("coherence"), tokens_out=COHERENCE_OUT, cache_write=fr, table=table),
+                    "usd_each_pages": u("add", tokens_in=ADD_WEB_IN_EACH, tokens_out=ADD_OUT_EACH, cache_write=own,
+                                           cache_read=ADD_ROUNDS_EACH * own) + add_after,
+                    "usd_deep_pages": u("add", tokens_in=ADD_DEEP_WEB_IN, tokens_out=ADD_DEEP_OUT, cache_write=own,
+                                           cache_read=ADD_DEEP_ROUNDS * own) + add_after},
+        "coherence": {"tokens": fr + COHERENCE_OUT, "usd": u("coherence", tokens_out=COHERENCE_OUT, cache_write=fr),
                       "note": note(f"{fr:,} tokens de pages françaises, lues en entier".replace(",", " "),
                                    f"{fr:,} tokens of French pages, read whole")},
         "translation": {"tokens": fr + en + chapters * OUTPUT_PER_CHAPTER,
-                        "usd": _usd(of("translation"), tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER, table=table),
+                        "usd": u("translation", tokens_in=fr + en, tokens_out=chapters * OUTPUT_PER_CHAPTER),
                         "note": note(f"FR + EN, {chapters} appels (un par chapitre)", f"FR + EN, {chapters} calls (one per chapter)")},
-        "claims": {"tokens": None, "usd": CLAIM_USD * claims if claims is not None else None,
+        "claims": {"tokens": None, "usd": claim_usd * claims if claims is not None else None,
                    "note": note(f"{claims} affirmations dues au dernier contrôle de fraîcheur", f"{claims} claims due at the last freshness check")
-                   if claims is not None else note(f"≈ {CLAIM_USD} $ par affirmation due", f"≈ {CLAIM_USD} $ per claim due")},
+                   if claims is not None else note(f"≈ {claim_usd} $ par affirmation due", f"≈ {claim_usd} $ per claim due")},
         # The open candidates of the registry, judged in one call that reads the whole guide (D4)
         "candidates": {"tokens": fr + (open_ or 0) * (CANDIDATE_IN + CANDIDATE_OUT),
-                       "usd": _usd(of("candidates"), tokens_in=(open_ or 0) * CANDIDATE_IN,
-                                   tokens_out=max(open_ or 0, 1) * CANDIDATE_OUT, cache_write=fr, table=table),
-                       "usd_explained": _usd(of("candidates"), tokens_in=(open_ or 0) * CANDIDATE_IN,
-                                             tokens_out=max(open_ or 0, 1) * CANDIDATE_OUT, cache_write=fr, table=table)
+                       "usd": u("candidates", tokens_in=(open_ or 0) * CANDIDATE_IN,
+                                   tokens_out=max(open_ or 0, 1) * CANDIDATE_OUT, cache_write=fr),
+                       "usd_explained": u("candidates", tokens_in=(open_ or 0) * CANDIDATE_IN,
+                                             tokens_out=max(open_ or 0, 1) * CANDIDATE_OUT, cache_write=fr)
                        + explained("candidates", max(open_ or 0, 1) * CANDIDATE_OUT),
                        "note": note(f"{fr:,} tokens de pages lues en entier, {open_} candidat(s) ouvert(s) dans le registre".replace(",", " "),
                                     f"{fr:,} tokens of pages, read whole; {open_} open candidate(s) in the registry")
@@ -397,9 +408,12 @@ that says nothing differs. Each finding names the <<MIRROR>> page and quotes bot
 findings in English."""
 
 CLAIMS = """You check claims of <<GUIDE>> whose « Recheck by » date has
-passed. For each claim, search the web and open primary sources (release notes, official docs, vendor pages).
-Report a finding only for a claim that is now wrong or outdated, with what the sources say today and their URLs.
-Write the findings in English."""
+passed. Each claim is worded as the guide's watchlist noted it when it was last checked; the pages that hold the
+claims are above, as they read today, and they may have been corrected since. For each claim, first find what its
+page says now, then search the web and open primary sources (release notes, official docs, vendor pages).
+Report a finding only when the page itself is now wrong or outdated, with what the page says, what the sources say
+today and their URLs. When the page already states a current fact (a newer version, date or price than the
+watchlist's wording), report no finding for it. Write the findings in English."""
 
 DEAD_LINKS = """Sources cited by <<GUIDE>> no longer answer the agent's probe. A probe is not a reader: a
 site may refuse a script and serve a person. So for each source, first open the dead URL itself: if it opens and
@@ -632,8 +646,13 @@ def run_claims(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
     if not claims:
         return {"ok": True, "summary": "no claim due", "findings": []}
     listing = "\n".join(f"- {c.get('page', '')} (recheck by {c.get('recheckBy', '')}): {c.get('claim', '')}" for c in claims)
+    # The pages as they read today: the watchlist's wording can be older than them (2026-11-26: four claims reported
+    # outdated that their pages had already corrected; the fix run found nothing to change)
+    pages = sorted({c.get("page", "") for c in claims if c.get("page") and (vault_dir / c["page"]).is_file()})
+    context = "\n\n".join(f'<page path="{p}">\n{vault.read(vault_dir / p).replace(chr(13) + chr(10), chr(10))}\n</page>'
+                          for p in pages)
     result, usage = llm.parse(system=prompts.fill(CLAIMS, vault_dir) + EXCERPTS, prompt=f"Claims to check:\n{listing}", schema=Findings,
-                              effort=steps.effort("claims"), node="verify claims", web=True)
+                              effort=steps.effort("claims"), node="verify claims", web=True, context=context or None)
     return {"ok": not result.findings, "summary": f"{len(claims)} claims checked, {len(result.findings)} outdated",
             **_findings(vault_dir, result), "usage": [usage]}
 

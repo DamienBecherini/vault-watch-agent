@@ -82,8 +82,12 @@ def publish_extras(ctx: AppContext, v: dict) -> dict:
 
 def run_page(ctx: AppContext, thread: str) -> dict:
     """One run as its page shows it: where it stands, its pause, its job, and what each pause shows."""
+    # Whether its job runs, read before its state: a job that ends between the two reads shows as running once
+    # more, never as its next pause with what the previous one showed (a CI run on Linux, 2026-11-26)
+    job = ctx.jobs.get(thread)
+    running = bool(job and not job.done)
     snapshot = ctx.viewer.get_state(thread_config(thread))
-    v, job = snapshot.values, ctx.jobs.get(thread)
+    v = snapshot.values
     if not v and not job:
         raise HTTPException(404, f"no run {thread}")
     pending = interrupts(snapshot)
@@ -94,7 +98,7 @@ def run_page(ctx: AppContext, thread: str) -> dict:
     decisions = v.get("decisions", [])
     usage = v.get("usage", [])
     return {
-        **ctx.summary(thread),
+        **ctx.summary(thread), **({"status": "running"} if running else {}),
         "pause": pending[0] if pending else None,
         # Made so far without a bill (a subscription, a local model) while the settings now name a billed
         # engine: the steps left (the translation) would be billed. The review page says so before the click.

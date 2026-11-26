@@ -338,6 +338,8 @@ def changes(before: list[dict], after: list[dict]) -> list[dict]:
         if o is None:
             out.append({"what": "new", "name": c["name"], "kind": c.get("kind", ""), "state": c.get("state", ""),
                         "reason": c.get("reason", ""), "recheck": c.get("recheck", "")})
+            if c.get("judgement"):  # judged before it reached the guide: said too (« Qwen3 » on 2026-11-26)
+                out.append({"what": "judged", "name": c["name"], "verdict": c["judgement"].get("verdict", "")})
             continue
         if any(o.get(k, "") != c.get(k, "") for k in ("state", "reason", "recheck")):
             out.append({"what": "state", "name": c["name"], "from": o.get("state", ""), "state": c.get("state", ""),
