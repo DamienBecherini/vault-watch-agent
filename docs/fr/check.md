@@ -42,22 +42,25 @@ prix public ; les coûts mesurés sont ceux des contrôles lancés les 8 et 17 n
 | Contrôle | Ce qu'il lit | Modèle | Estimation | Mesuré | Ce qu'il trouve | Ses pistes partent dans |
 | :-- | :-- | :-- | --: | --: | :-- | :-- |
 | Contrôles du guide | Le script `[checks] audits` du guide (`npm test` pour le guide IA on-prem) | aucun | gratuit, ≈ 10 s | 0 $ | Un journal, réussi ou en échec | pas de pistes |
-| Liens morts | Chaque URL citée par une page source, interrogée par le script `[checks] sources` du guide | aucun | gratuit, ≈ 2 à 4 min | 0 $ | Les sources qui ne répondent pas (404, erreurs, délais dépassés), et à part celles que bloquent des protections anti-robots | une passe de correction |
+| Liens morts | Chaque URL citée par une page source, interrogée par le script `[checks] sources` du guide | aucun | gratuit, ≈ 2 à 4 min | 0 $ | Les sources qui ne répondent pas (404, erreurs, délais dépassés), et à part celles que bloquent des protections anti-robots ; croisées avec le rapport hebdomadaire de la CI du guide quand le manifeste le nomme (`[checks] sources_weekly`) : une source qui n'échoue que depuis les machines de la CI répond d'ici, listée à part, pas à remplacer | une passe de correction |
 | Fraîcheur | Le script `[checks] claims_due` du guide : la watchlist et les dates de revue des pages | aucun | gratuit, ≈ 5 s | 0 $ | Les affirmations dont la date « Recheck by » est passée, les pages à revoir | pas de pistes : la revérification des affirmations s'en sert |
 | Cohérence de tout le guide | Toutes les pages sources, en un appel | raisonnement (Opus 5.5) | 2,59 $ | 2,64 à 2,73 $ | Contradictions entre pages, une page restée en arrière des autres, définitions fausses, une note qui ne soutient pas sa phrase | une passe de correction |
 | Fidélité des traductions | Chaque page à côté de son miroir, un appel par chapitre | traduction (Sonnet 5.5) | 1,84 $ | 1,58 à 1,64 $ | Un passage absent d'un côté, un chiffre, une version ou un lien qui diffère, du texte non traduit | une passe de correction des traductions |
 | Revérification des affirmations datées | Les affirmations trouvées par « Fraîcheur », vérifiées sur le web | raisonnement | 0,21 $ par affirmation (4,20 $ pour 20) | 2,50 $ pour 12, 2,89 $ pour 20 | Les affirmations devenues fausses, avec ce que disent les sources aujourd'hui | une passe de correction |
-| Remplacement des liens morts | Les sources mortes trouvées par « Liens morts », avec les lignes qui citent chacune | raisonnement | 0,27 $ par source | 0,54 $ et 3,57 $ pour 2 | Où chaque page a déménagé, ou une source primaire équivalente | une passe de correction |
+| Remplacement des liens morts | Les sources mortes trouvées par « Liens morts », avec les lignes qui citent chacune | raisonnement | 0,27 $ par source | 0,54 $ et 3,57 $ pour 2 | Où chaque page a déménagé, ou une source primaire équivalente ; chaque adresse morte est d'abord ouverte, et celle qui s'ouvre et dit toujours ce pour quoi le guide la cite n'est pas signalée | une passe de correction |
 | Taille des pages | Les fichiers, avec leur historique sur 90 jours | aucun | gratuit, ≈ 2 s | 0 $ | Ce que pèse chaque page et ce qu'elle a pris ; un avertissement pour une page qui a beaucoup grossi ou dépassé son plafond | pas de pistes : le compactage s'en sert |
 | Compactage | Toutes les pages en un appel, les plus lourdes nommées | raisonnement (Fable 5.2 sur ce guide) | 6,50 $ | 6,28 $ | Le même fait répété, l'historique empilé, les sections plus longues que ce qu'elles disent ([Compactage](compact.md)) | une passe de compactage |
 | Nouveautés | Toutes les pages, et ce que les veilles passées ont mis de côté | raisonnement | 2,45 $ | 2,28 $ | Ce que le guide présente comme actuel et qui a sans doute évolué, les sujets qu'un lecteur attendrait et qu'aucune page ne couvre ([Nouveautés](news.md)) | une passe d'ajouts |
 | Nouveautés : exploration du web | Un appel par chapitre coché, chacun avec le web et tout le guide | raisonnement | 2,05 $, puis 4,81 $ par chapitre | pas encore lancé | Ce que le web dit des sujets d'un chapitre et que le guide ne dit pas, chaque piste avec ses sources ([Chapitres](chapters.md)) | une passe d'ajouts |
+| Nouveautés : les candidats jugés | Toutes les pages, avec les candidats ouverts du registre | raisonnement | 2,16 $, et ≈ 0,03 $ par candidat | pas encore lancé | Chaque candidat à ajouter (où, quelle décision il change), à surveiller ou à écarter, gardé dans le registre ([Jugés avec le guide](collect.md#jugés-avec-le-guide)) | une passe d'ajouts |
 
 Les contrôles sont de trois sortes, que la liste des vérifications montre par des étiquettes en couleur : **santé
 du guide** (les contrôles du guide, les liens morts, la fraîcheur, la cohérence, les traductions, les affirmations,
-le remplacement des liens morts), **allègement** (la taille des pages, le compactage) et **nouveautés** (les deux
-contrôles de nouveautés, et « Des liens à lire en entier », un douzième contrôle absent du catalogue : il se lance
-depuis « Signaler ou proposer », [plus bas](#signaler-ou-proposer)).
+le remplacement des liens morts), **allègement** (la taille des pages, le compactage) et **nouveautés** (les trois
+contrôles de nouveautés, et « Des liens à lire en entier », un treizième contrôle absent du catalogue : il se lance
+depuis « Signaler ou proposer », [plus bas](#signaler-ou-proposer)). Une piste d'un contrôle de nouveautés peut aussi
+être suivie dans le registre des candidats au lieu d'être écrite ou écartée
+([Depuis une recherche de ce qui manque au guide](collect.md#depuis-une-recherche-de-ce-qui-manque-au-guide)).
 
 Trois contrôles ont besoin d'un autre avant eux, qui tourne même s'il n'est pas coché : la revérification des
 affirmations a besoin de « Fraîcheur », le remplacement des liens morts de « Liens morts », le compactage de
@@ -172,7 +175,9 @@ contexte. Ce que la relecture croisée d'une passe remarque ailleurs dans le gui
 listé dans sa relecture sous « Remarqué ailleurs dans le guide » : copiez les lignes dans « Signaler ou proposer »,
 onglet « Une erreur à corriger », pour les faire corriger.
 
-En ligne de commande, `vault-watch news` (`--explore` pour le web) et `vault-watch compact --report` lancent trois
+En ligne de commande, `vault-watch deadlinks` sonde les liens morts (croisés avec le rapport hebdomadaire), puis,
+après la question, cherche un remplacement pour chacun et les écrit dans un fichier pour
+`vault-watch fix <fil> --findings <fichier>`. `vault-watch news` (`--explore` pour le web) et `vault-watch compact --report` lancent trois
 de ces contrôles ; `vault-watch fix <nom> --findings fichier.txt` fait une passe à partir d'un fichier de pistes,
 une par ligne, avec `--translation`, `--compact` ou `--add` pour les autres sortes (une ligne qui commence par `!`
 est creusée).

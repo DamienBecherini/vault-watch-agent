@@ -40,21 +40,24 @@ the checks run on 8 and 17 November ([what an estimate is](costs.md#the-estimate
 | Check | What it reads | Model | Estimate | Measured | What it finds | Its leads go to |
 | :-- | :-- | :-- | --: | --: | :-- | :-- |
 | Guide audits | The guide's `[checks] audits` script (`npm test` for the IA on-prem guide) | none | free, ≈ 10 s | 0 $ | A log, pass or fail | no leads |
-| Dead links | Every URL cited by a source page, probed by the guide's `[checks] sources` script | none | free, ≈ 2-4 min | 0 $ | The sources that do not answer (404, errors, timeouts), and those blocked by anti-bot protections, apart | a fix run |
+| Dead links | Every URL cited by a source page, probed by the guide's `[checks] sources` script | none | free, ≈ 2-4 min | 0 $ | The sources that do not answer (404, errors, timeouts), and those blocked by anti-bot protections, apart; crossed with the weekly report of the guide's CI when the manifest names it (`[checks] sources_weekly`): a source that fails only from the CI's runners answers here, listed apart, not to replace | a fix run |
 | Freshness | The guide's `[checks] claims_due` script: the watchlist and the review dates of the pages | none | free, ≈ 5 s | 0 $ | The claims past their « Recheck by » date, the pages due for review | no leads: the re-check of claims uses them |
 | Consistency of the whole guide | Every source page, in one call | reasoning (Opus 5.5) | 2.59 $ | 2.64 – 2.73 $ | Contradictions between pages, a page left behind by the others, wrong definitions, a footnote that does not support its sentence | a fix run |
 | Translation fidelity | Each page beside its mirror, one call per chapter | translator (Sonnet 5.5) | 1.84 $ | 1.58 – 1.64 $ | A passage missing on one side, a figure, version or link that differs, text left untranslated | a translation fix run |
 | Re-check of dated claims | The claims found by « Freshness », checked on the web | reasoning | 0.21 $ a claim (4.20 $ for 20) | 2.50 $ for 12, 2.89 $ for 20 | The claims that are now wrong, with what the sources say today | a fix run |
-| Replacement of dead links | The dead sources found by « Dead links », with the lines that cite each one | reasoning | 0.27 $ a source | 0.54 $ and 3.57 $ for 2 | Where each page moved, or an equivalent primary source | a fix run |
+| Replacement of dead links | The dead sources found by « Dead links », with the lines that cite each one | reasoning | 0.27 $ a source | 0.54 $ and 3.57 $ for 2 | Where each page moved, or an equivalent primary source; each dead address is opened first, and one that opens and still says what the guide cites it for is not reported | a fix run |
 | Size of the pages | The files, with their history over 90 days | none | free, ≈ 2 s | 0 $ | What each page weighs and gained; a warning for a page that grew much or passed its ceiling | no leads: compaction uses it |
 | Compaction | Every page in one call, with the heaviest named | reasoning (Fable 5.2 on this guide) | 6.50 $ | 6.28 $ | The same fact repeated, history piled up, sections longer than what they say ([Compaction](compact.md)) | a compaction run |
 | What is new | Every page, and what past watches set aside | reasoning | 2.45 $ | 2.28 $ | What the guide presents as current and has probably moved on, the subjects a reader would expect and no page covers ([What is new](news.md)) | an addition run |
 | What is new: the web explored | One call per chapter ticked, each with the web and the whole guide | reasoning | 2.05 $, then 4.81 $ a chapter | not run yet | What the web says about a chapter's subjects that the guide does not, each lead with its sources ([Chapters](chapters.md)) | an addition run |
+| What is new: the candidates judged | Every page, with the open candidates of the registry | reasoning | 2.16 $, and ≈ 0.03 $ a candidate | not run yet | Each candidate to add (where, which decision it changes), to watch or to dismiss, kept in the registry ([Judged with the guide](collect.md#judged-with-the-guide)) | an addition run |
 
 The checks are of three kinds, which the list of the checks shows as tags in colour: **guide health** (the audits,
 the dead links, freshness, consistency, the translations, the claims, the replacement of dead links), **lighter
-guide** (the size of the pages, compaction) and **what is new** (the two checks of what is new, and « Links to read
-whole », a twelfth check that is not in the catalogue: it starts from « Report or suggest », [below](#report-or-suggest)).
+guide** (the size of the pages, compaction) and **what is new** (the three checks of what is new, and « Links to read
+whole », a thirteenth check that is not in the catalogue: it starts from « Report or suggest », [below](#report-or-suggest)).
+A lead of a check of what is new can also be followed in the registry of candidates instead of written or dismissed
+([From a search for what the guide lacks](collect.md#from-a-search-for-what-the-guide-lacks)).
 
 Three checks need another one first, which runs even when it is not ticked: the re-check of claims needs
 « Freshness », the replacement of dead links needs « Dead links », compaction needs « Size of the pages ». A
@@ -159,7 +162,9 @@ the cross-check of any run notices elsewhere in the guide, outside its correctio
 « Noticed elsewhere in the guide »: copy the lines into « Report or suggest », tab « An error to fix », to have them
 fixed.
 
-On the command line, `vault-watch news` (`--explore` for the web) and `vault-watch compact --report` run three of
+On the command line, `vault-watch deadlinks` probes the dead links (crossed with the weekly report), then, asked
+first, searches a replacement for each and writes them to a file for `vault-watch fix <thread> --findings <file>`.
+`vault-watch news` (`--explore` for the web) and `vault-watch compact --report` run three of
 these checks; `vault-watch fix <name> --findings file.txt` makes a run from a file of leads, one per line, with
 `--translation`, `--compact` or `--add` for the other kinds (a line that begins with `!` is dug deeper).
 

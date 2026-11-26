@@ -226,6 +226,7 @@ vault-watch fix <passe> --findings erreurs.txt    # erreurs signalées → corre
 vault-watch collect --json watch.json       # la veille depuis les flux du guide, sans modèle
 vault-watch compact                         # ce que pèse et a pris chaque page, sans modèle ; --report : quoi alléger
 vault-watch news                            # pistes : ce qu'un lecteur chercherait et ne trouve pas ; --explore : le web
+vault-watch deadlinks                       # liens morts, croisés avec le rapport hebdomadaire de la CI du guide ; puis remplacements pour fix
 vault-watch chapters                        # les chapitres sur lesquels l'agent travaille ; --propose : un modèle les propose
 vault-watch mirror                          # les pages en avance sur leur miroir ; --yes : traduire ce qui a changé
 vault-watch costs --by month                # ou year, run, step

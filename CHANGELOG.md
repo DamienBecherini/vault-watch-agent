@@ -3,6 +3,36 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+The registry of candidates grows into a discovery that weighs and judges (ROADMAP D2, D4), the search for what the
+guide lacks feeds it (E4), and dead links are told from sites that only refuse robots (E7).
+
+- **Candidates grouped by entity and scored** (D2, `entities.py`, no model): the candidates of one family (the name
+  without its size, variant, quantisation or date of release: « Qwen3-235B-A22B-Instruct-2507 » and « Qwen3 30B » are
+  « qwen3 ») are shown together and can be merged (sources, facts and history go to one, the other name stays as
+  `aka`). Each shows the score of its entity: the tier of each independent publisher (a site, or an account on GitHub,
+  Hugging Face, Reddit…) × the weeks it was seen; two publishers of tier A or B make the badge « 2 A/B sources ». The
+  tiers are the guide's file, named by a new key `[watch] source_tiers` (domains under « ## Tier A/B/C », the format
+  of the IA on-prem guide's `source-tiers.md`, or JSON). The list sorts by score.
+- **Candidates judged with the whole guide** (D4, `opportunity.py`): a new check, « What is new: the candidates of
+  the registry judged with the guide » (« Judge with the guide » on the page « Candidates »), reads the whole guide
+  with the open candidates (sources, facts, score, history) and judges each: to add (where, which decision of the
+  reader it changes), to watch (what is missing, when to look again) or to dismiss (why). Nothing is verified on the
+  web. The judgement is kept in the candidate and shown on its card; the candidates to add are leads that go to an
+  addition run. Estimated at 2.16 $ plus ≈ 0.03 $ a candidate on the IA on-prem guide at list price.
+- **A lead of a search for what the guide lacks can be followed in the registry** (E4): beside « Dismiss », « Follow
+  in the registry » makes the leads ticked candidates in state « lead » (read by the guide's readers, scored, judged
+  when asked), instead of writing or dismissing them. « To handle » recalls the search once a quarter, after 90 days
+  without « What is new » or the exploration of the web.
+- **Dead links crossed with the weekly report of the guide's CI** (E7): a new key `[checks] sources_weekly`
+  (« artifact/file.json », `freshness-report/sources.json` for the IA on-prem guide) has the check « Dead links »
+  download the newest report through the forge (`latest_artifact`, GitHub and Gitea) and cross it with the probe made
+  from the machine: a source that fails only from the CI's runners answers here (a site that refuses data-centre
+  addresses) and is listed apart, not to replace. The replacement opens each dead address first and reports none that
+  still says what the guide cites it for. `vault-watch deadlinks` does both from the command line and writes the
+  replacements for `vault-watch fix`.
+
 ## 1.7.2 (2026-11-26)
 
 An advisory the guide answers with a workaround is no longer raised at every watch; the tests can no longer reach

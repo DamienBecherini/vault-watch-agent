@@ -117,7 +117,9 @@ pas donné, `["software", "plugin", "host"]` pour un guide de logiciels auto-hé
 ajouté. Des noms courts en minuscules (lettres, chiffres, -) ; la page traduit ceux par défaut et montre les autres
 tels qu'ils sont écrits. `candidate_readers` nomme où ses candidats sont lus sans modèle : `"huggingface"` (une page
 de modèle), `"github"` (un dépôt) ; aucun s'il n'est pas donné, pour que rien ne soit envoyé à ces sites pour un guide
-qui n'en a pas l'usage ([Collecter une veille](collect.md#le-registre-des-candidats)).
+qui n'en a pas l'usage ([Collecter une veille](collect.md#le-registre-des-candidats)). `source_tiers` nomme le fichier
+des rangs de sources du guide (des domaines sous « ## Tier A/B/C », ou du JSON) : le score d'un candidat compte ses
+éditeurs indépendants selon leur rang ([Une entité sous plusieurs noms, et son score](collect.md#une-entité-sous-plusieurs-noms-et-son-score)).
 
 Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) ; son
 format, clé par clé : [Le format d'une veille](watch-format.md).
@@ -159,6 +161,7 @@ ne déclare pas est « non vérifié » dans le rapport, sur l'écran de publica
 | `audits` | avant la pull request, sur la copie corrigée | Code de sortie 0 quand le guide est sain. Sa sortie va dans la pull request en cas d'échec. |
 | `claims_due` | au début d'une passe (sans réseau) | `{out}` : `{"claimsDue": [{"page": "...", "claim": "...", "recheckBy": "2026-11-01"}]}`, les affirmations datées dont la date de revérification est passée. Elles sont listées dans le rapport. |
 | `sources` | avant la pull request | `{out}` : `{"sources": [{"url": "...", "citations": [{"page": "..."}], "probe": {"status": "ok", "code": 200}}]}`. Une source citée par une page corrigée dont le statut est `dead`, `server-error`, `network-error`, `timeout` ou `blocked` est signalée sur l'écran de publication. |
+| `sources_weekly` | par la vérification « Liens morts » | `"artefact/fichier.json"` : l'artefact de la CI du guide qui contient le rapport JSON du même audit des sources, lancé chaque semaine (`"freshness-report/sources.json"` pour le guide IA on-prem). Le plus récent est téléchargé par la forge et croisé avec la sonde faite depuis ta machine : une source morte des deux côtés est à remplacer, une qui n'échoue que depuis les machines de la CI répond d'ici (un site qui refuse les adresses de datacenter) et est listée à part. Demande `[guide] repository`. |
 | `version_floors` | après l'application des corrections | Une table `{ script = "...", file = "..." }` : `node <script> --write` met à jour `file` (les versions minimales qu'énoncent les pages), commité avec les corrections. |
 
 ### `[budget]`

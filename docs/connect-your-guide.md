@@ -116,7 +116,9 @@ given, `["software", "plugin", "host"]` for a guide of self-hosted software; « 
 in lower case (letters, digits, -); the page translates the default ones and shows the others as they are written.
 `candidate_readers` names where its candidates are read without a model: `"huggingface"` (a model page),
 `"github"` (a repository); none when it is not given, so that nothing is sent to these sites for a guide that has
-no use for them ([Collecting a watch](collect.md#the-registry-of-candidates)).
+no use for them ([Collecting a watch](collect.md#the-registry-of-candidates)). `source_tiers` names the guide's file
+of source tiers (domains under « ## Tier A/B/C », or JSON): the score of a candidate counts its independent publishers
+by tier ([One entity under several names, and its score](collect.md#one-entity-under-several-names-and-its-score)).
 
 A `watch.json` holds the items your collector kept (feeds, release pages, advisories); its format, key by key:
 [The watch format](watch-format.md).
@@ -158,6 +160,7 @@ declare reads « not checked » in the report, on the publish screen and in the 
 | `audits` | before the pull request, on the corrected copy | Exit code 0 when the guide is sound. Its output goes into the pull request when it fails. |
 | `claims_due` | at the start of a run (no network) | `{out}`: `{"claimsDue": [{"page": "...", "claim": "...", "recheckBy": "2026-11-01"}]}`, the dated claims whose recheck date has passed. They are listed in the report. |
 | `sources` | before the pull request | `{out}`: `{"sources": [{"url": "...", "citations": [{"page": "..."}], "probe": {"status": "ok", "code": 200}}]}`. A source cited by a corrected page whose status is `dead`, `server-error`, `network-error`, `timeout` or `blocked` is listed on the publish screen. |
+| `sources_weekly` | by the check « Dead links » | `"artifact/file.json"`: the artifact of the guide's CI that holds the JSON report of the same source audit, run weekly (`"freshness-report/sources.json"` for the IA on-prem guide). Its newest one is downloaded through the forge and crossed with the probe made from your machine: a source dead from both is to replace, one that fails only from the CI's runners answers here (a site that refuses data-centre addresses) and is listed apart. Needs `[guide] repository`. |
 | `version_floors` | after the corrections are applied | A table `{ script = "...", file = "..." }`: `node <script> --write` updates `file` (the minimum versions the pages state), committed with the corrections. |
 
 ### `[budget]`

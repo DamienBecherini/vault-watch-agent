@@ -32,6 +32,7 @@ seen = "watch/seen.md"              # optional: items already triaged, dropped w
 candidates = "watch/candidates.json" # optional: the registry of discovery (created by the agent when first saved)
 candidate_kinds = ["model", "tool", "hardware"]  # optional: the kinds of its candidates (these by default; "other" added)
 candidate_readers = ["huggingface", "github"]    # optional: where its candidates are read (none by default)
+source_tiers = "watch/source-tiers.md"           # optional: the tiers of its sources, for the score of a candidate
 ```
 
 `floors` defaults to the file of `[checks] version_floors` when the guide has one.
@@ -182,6 +183,48 @@ the token `collect` uses, sent to api.github.com only). What it says is kept in 
 it was read) and shown on its card; « Read again » reads it once more. What cannot be read (a removed model, GitHub's
 limit without a token) is said, and what was read before stays, as does what a reader removed from the manifest
 since had read. Another reader (PyPI, npm, Docker Hub…) is an entry of `READERS` in `enrich.py`.
+
+### One entity under several names, and its score
+
+A model is announced under many names (« Qwen3-235B-A22B-Instruct-2507 », « Qwen3 30B-A3B », « qwen3 GGUF »). The page
+shows together the candidates of one **family**: the name without what tells one release from another (a size, the
+active parameters, a variant, a quantisation, a date of release as `2507`; not the number of a card, « RTX 5090 »
+stays itself). « Merge here » makes two of them one: the sources, the facts read and the history go to the candidate
+kept, and the other name stays one of its names (`aka`): noted again under it, it comes to the same candidate. The
+pull request of the registry says « merged into ».
+
+Each candidate shows the **score** of its entity, its family pooled (`entities.py`, no model):
+
+    score = the tier of each independent publisher (A 3, B 2, C or unclassified 1), added up, × the weeks it was seen
+
+A publisher is the site without its subdomains (docs.vllm.ai and blog.vllm.ai are one), or the account on a site
+where anyone publishes (a GitHub owner, a Hugging Face organisation, a subreddit): two pages of one site are one
+source. Two publishers of tier A or B at least make the badge « 2 A/B sources », the threshold an editor checks before
+writing. The tiers are the guide's: `source_tiers` names its file of tiers, a list of domains under « ## Tier A »,
+« ## Tier B », « ## Tier C » (the format of the IA on-prem guide's `source-tiers.md`, which its source audit reads), or
+JSON `{"A": [...], "B": [...], "C": [...]}`; a domain covers its subdomains. Without it, every source counts 1. The
+list can be sorted by score.
+
+### Judged with the guide
+
+« Judge with the guide » (on the page, when candidates are open) opens « Check the guide » with the check
+« What is new: the candidates of the registry judged with the guide » ticked (`opportunity.py`). One call reads the
+whole guide with the open candidates (lead, watching, confirmed; the 40 most seen at most), their sources, what their
+pages said, their score and their history, and judges each one: **to add** (where it goes, and which decision of the
+reader it changes), **to watch** (what is missing, and a date to look again) or **to dismiss** (why). Nothing is
+verified on the web. Each judgement is kept in its candidate (`judgement`, shown on its card with a link to the
+check); the state stays the editor's to change. The candidates to add are leads of the check: kept, they go to an
+addition run, which checks them on primary sources and writes them where they belong; dismissed, they are dismissed
+in the registry. About 2.45 $ for ten candidates on the IA on-prem guide at list price (the guide read whole, written
+to the cache), nothing billed on a subscription.
+
+### From a search for what the guide lacks
+
+A lead of « What is new » (or of the web explored, or of links read) that is neither to write now nor to dismiss can
+be **followed in the registry** (the button of the bar, beside « Dismiss »): it becomes a candidate in state `lead`,
+with the check as its origin, read by the guide's readers, scored with the others and judged with the guide when the
+editor asks. Not a lead « Newer », about what the guide covers already. The page « To handle » recalls the search
+for what the guide lacks once a quarter: after 90 days without « What is new » or the exploration, it offers it.
 
 ## Which sources earn their place
 

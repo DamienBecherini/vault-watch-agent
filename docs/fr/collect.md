@@ -33,6 +33,7 @@ seen = "watch/seen.md"              # facultatif : les éléments déjà triés,
 candidates = "watch/candidates.json" # facultatif : le registre de la découverte (créé par l'agent au premier enregistrement)
 candidate_kinds = ["model", "tool", "hardware"]  # facultatif : les types de ses candidats (ceux-ci par défaut ; "other" ajouté)
 candidate_readers = ["huggingface", "github"]    # facultatif : où ses candidats sont lus (aucun lecteur par défaut)
+source_tiers = "watch/source-tiers.md"           # facultatif : les rangs de ses sources, pour le score d'un candidat
 ```
 
 Sans `floors`, l'agent prend le fichier de `[checks] version_floors` quand le guide en a un.
@@ -192,6 +193,49 @@ contributeurs, dernier commit, avec le jeton qu'utilise `collect`, envoyé à ap
 est gardé dans le candidat (`facts`, avec le jour de lecture) et montré sur sa carte ; « Relire » le relit. Ce qui ne
 peut pas être lu (un modèle retiré, la limite de GitHub sans jeton) est dit, et ce qui avait été lu reste, de même que ce qu'avait lu un lecteur retiré
 du manifeste depuis. Un autre lecteur (PyPI, npm, Docker Hub…) est une entrée de `READERS` dans `enrich.py`.
+
+### Une entité sous plusieurs noms, et son score
+
+Un modèle s'annonce sous bien des noms (« Qwen3-235B-A22B-Instruct-2507 », « Qwen3 30B-A3B », « qwen3 GGUF »). La page
+montre ensemble les candidats d'une même **famille** : le nom sans ce qui distingue une version d'une autre (une
+taille, les paramètres actifs, une variante, une quantification, une date de sortie comme `2507` ; pas le numéro
+d'une carte, « RTX 5090 » reste lui-même). « Fusionner ici » en fait un seul : les sources, les informations lues et
+l'historique vont au candidat gardé, et l'autre nom reste un de ses noms (`aka`) : noté de nouveau sous ce nom, il
+arrive au même candidat. La pull request du registre dit « fusionné dans ».
+
+Chaque candidat montre le **score** de son entité, sa famille mise en commun (`entities.py`, sans modèle) :
+
+    score = le rang de chaque éditeur indépendant (A 3, B 2, C ou non classé 1), additionnés, × les semaines où il a été vu
+
+Un éditeur est le site sans ses sous-domaines (docs.vllm.ai et blog.vllm.ai n'en font qu'un), ou le compte sur un site
+où chacun publie (un propriétaire GitHub, une organisation Hugging Face, un subreddit) : deux pages d'un même site
+sont une seule source. Deux éditeurs de rang A ou B au moins donnent le badge « 2 sources A/B », le seuil qu'un
+éditeur vérifie avant d'écrire. Les rangs sont ceux du guide : `source_tiers` nomme son fichier de rangs, une liste
+de domaines sous « ## Tier A », « ## Tier B », « ## Tier C » (le format du `source-tiers.md` du guide IA on-prem, que
+lit son audit des sources), ou du JSON `{"A": [...], "B": [...], "C": [...]}` ; un domaine couvre ses sous-domaines.
+Sans lui, chaque source compte 1. La liste peut se trier par score.
+
+### Jugés avec le guide
+
+« Juger avec le guide » (sur la page, quand des candidats sont ouverts) ouvre « Vérifier le guide » avec la
+vérification « Nouveautés : les candidats du registre jugés avec le guide » cochée (`opportunity.py`). Un appel lit
+tout le guide avec les candidats ouverts (piste, en observation, confirmé ; les 40 plus vus au plus), leurs sources,
+ce que disaient leurs pages, leur score et leur historique, et juge chacun : **à ajouter** (où, et quelle décision du
+lecteur il change), **à surveiller** (ce qui manque, et une date pour le revoir) ou **à écarter** (pourquoi). Rien
+n'est vérifié sur le web. Chaque jugement est gardé dans son candidat (`judgement`, montré sur sa carte avec un lien
+vers la vérification) ; changer l'état reste à l'éditeur. Les candidats à ajouter sont des pistes de la
+vérification : gardées, elles partent dans une passe d'ajouts, qui les vérifie sur des sources primaires et les écrit
+là où il faut ; écartées, elles sont écartées dans le registre. Environ 2,45 $ pour dix candidats sur le guide IA
+on-prem au prix catalogue (le guide lu en entier, écrit dans le cache), rien de facturé sur un abonnement.
+
+### Depuis une recherche de ce qui manque au guide
+
+Une piste de « Nouveautés » (ou de l'exploration du web, ou de liens lus) qui n'est ni à écrire maintenant ni à
+écarter peut être **suivie dans le registre** (le bouton de la barre, à côté d'« Écarter ») : elle devient un
+candidat à l'état `lead`, avec la vérification pour origine, lu par les lecteurs du guide, noté avec les autres et
+jugé avec le guide quand l'éditeur le demande. Pas une piste « Plus récent », qui porte sur ce que le guide couvre
+déjà. La page « À traiter » rappelle la recherche de ce qui manque au guide une fois par trimestre : après 90 jours
+sans « Nouveautés » ni exploration, elle la propose.
 
 ## Quelles sources méritent leur place
 

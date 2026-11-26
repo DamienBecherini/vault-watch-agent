@@ -220,6 +220,7 @@ vault-watch fix <run> --findings errors.txt # reported errors → checked correc
 vault-watch collect --json watch.json       # the watch from the guide's feeds, no model
 vault-watch compact                         # what each page weighs and gained, no model; --report: what to trim
 vault-watch news                            # leads: what a reader would look for and not find; --explore: the web
+vault-watch deadlinks                       # dead links, crossed with the weekly report of the guide's CI; then replacements for fix
 vault-watch chapters                        # the chapters the agent works on; --propose: a model's split
 vault-watch mirror                          # the pages ahead of their mirror; --yes: translate what changed
 vault-watch costs --by month                # or year, run, step

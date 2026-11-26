@@ -48,12 +48,16 @@ Discovery becomes a tracker of candidates over time instead of a one-shot triage
 
 - [x] **D1. Deterministic enrichment before any judgement.** Hugging Face: size, licence, context, GGUF
   availability, downloads. GitHub: licence, releases, contributors, README head.
-- [ ] **D2. Group by entity across sources and weeks.** Normalise names (model family, tool), score =
+- [x] **D2. Group by entity across sources and weeks.** Normalise names (model family, tool), score =
   sources × tier × persistence. "Two independent tier B sources" becomes a computation.
+  *Done (2026-11-26): `entities.py`; the family of a name, independent publishers by the guide's tiers
+  (`[watch] source_tiers`) × the weeks seen, « 2 A/B sources »; two names of one entity merged on the page.*
 - [x] **D3. Candidate store with states and re-check dates**, replacing the flat `watch-seen.md`
   (handles "weights announced for later": Reflection Beam, Mistral Large 4).
-- [ ] **D4. Relevance judged with the whole vault in context** (C1): where the addition fits and which
+- [x] **D4. Relevance judged with the whole vault in context** (C1): where the addition fits and which
   decision it changes, which is the opportunity note.
+  *Done (2026-11-26): `opportunity.py`, the check « candidates »: add, watch or dismiss with why, kept in the
+  registry; those to add are leads of an addition run. Not run for real yet.*
 - [ ] **D5. A run from links** (proposed by the user, 2026-11-21; articles, pages and PDFs done on 2026-11-21,
   `links.py`, the check « links »; videos through dl-sub-dub's route « text of a video », `videos.py`,
   written against its contract v1 the same day; to try once dl-sub-dub ships the route). The editor gives one or more addresses in the
@@ -104,12 +108,16 @@ whole guide (D4) after. Candidates come from four places: the addition candidate
   timer: the size check says when.
 - [x] **E3. Feed coverage audit** (2026-11-19, in « Check the sources »). Every tool with a solution sheet has a release feed and an advisory feed
   (today advisories cover 9 tools out of about 25; Liquid AI, Microsoft, AllenAI, Aleph Alpha are not followed).
-- [ ] **E4. Gap-driven discovery, quarterly.** With the whole vault in context, list what an SME on-prem AI
+- [x] **E4. Gap-driven discovery, quarterly.** With the whole vault in context, list what an SME on-prem AI
   guide should cover and does not. The model's knowledge only generates leads; each one goes through D1–D4.
+  *Done (2026-11-26): the check « What is new » is the search; a lead can be followed in the registry (a candidate
+  « lead », then D1 to D4), and « To handle » recalls the search after 90 days.*
 - [x] **E6. External links of the changed pages checked before publish** (`links` node, the vault's
   `audit-sources.mjs`), listed in the publish pause and in the PR.
 - [x] **E8. On-demand health check** (`verify.py`, « Vérifier le guide » page): free checks (audits, dead links, freshness) and paid ones (whole-guide consistency, translation fidelity, re-check of dated claims, replacement of dead links), each with its estimate; findings go to a fix run (translation findings to a cheaper translation run: Sonnet, the two pages only, no cross-check).
-- [ ] **E7. Dead links fixed by a fix run.** The weekly source audit (warn-only today) feeds `vault-watch fix`:
+- [x] **E7. Dead links fixed by a fix run.** *Done (2026-11-26): `[checks] sources_weekly`, the weekly report
+  crossed with the probe made here (failing only from the CI's runners: not to replace); the replacement opens the
+  dead address first; `vault-watch deadlinks` writes the replacements for `fix`.* The weekly source audit (warn-only today) feeds `vault-watch fix`:
   find the moved page or an equivalent primary source on the web; tell a real 404 from an anti-bot 403 with the
   API's web fetch. First case: the OpenHuman architecture README (404).
 - [x] **E5. Yield per source** (2026-11-19: the « Sources » page, `sources.py`). From the watches and the runs
@@ -733,7 +741,8 @@ Left open when the Claude Code engine, the Settings and the header buttons came 
 - [x] **Models read from the API** (2026-11-17): the Settings list the Claude models the key can use (Models API),
   those with a 1M-token context only; without a key that answers, the models the agent knows. A model without a
   price in `llm.PRICES` is counted at 0 $ and the page says so.
-- [ ] **The guide's instructions still say a run is billed.** `CLAUDE.md` and the `vault-watch` skill of the guide
+- [x] **The guide's instructions still say a run is billed** (found done on 2026-11-26: `CLAUDE.md` and the skill
+  `vault-watch` of the guide tell the API billing from the subscription use). `CLAUDE.md` and the `vault-watch` skill of the guide
   ask before launching a run because it costs money; with the Claude Code engine it no longer does. Change them
   through a pull request of the guide (its `main` is protected).
 - [ ] **Not checked yet in the interface:** the header and the Settings on a narrow window (phone); the browser
