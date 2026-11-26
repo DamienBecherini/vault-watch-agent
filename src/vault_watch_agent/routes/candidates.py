@@ -105,7 +105,12 @@ def router(ctx: AppContext) -> APIRouter:
         today = date.today().isoformat()
         now = vault.guide_of(ctx.settings.vault)
         found = cand.changes(base.candidates, reg.candidates)
-        return {"declared": declared, "path": rel, "draft": draft_file(ctx).is_file(), "changes": found,
+        readers = enrich.readers_of(now.watch)
+        return {"readers": list(readers), "reader_labels": {k: r.label for k, r in enrich.READERS.items()},
+                # the candidates one of the guide's readers can read (« Read again »)
+                "readable": [c["id"] for c in reg.candidates
+                             if any(enrich.where(s.get("url", ""), readers) for s in c.get("sources", []))],
+                "declared": declared, "path": rel, "draft": draft_file(ctx).is_file(), "changes": found,
                 # what the draft holds that the open pull request does not (all of it when none is open)
                 "unpublished": bool(found) and reg.text() != open_pr.get("published"),
                 "pending": {k: v for k, v in open_pr.items() if k != "published"},
@@ -113,6 +118,10 @@ def router(ctx: AppContext) -> APIRouter:
                 "states": list(cand.STATES), "kinds": list(reg.kinds), "look_again": list(cand.LOOK_AGAIN),
                 "has_repo": bool(now.repository), "forge": forge.get().name, "base": now.base_branch,
                 "manifest": guide_mod.MANIFEST, "needs": cand.NEEDS}
+
+    def readers_now() -> tuple[str, ...]:
+        """The readers the guide names ([watch] candidate_readers)."""
+        return enrich.readers_of(vault.guide_of(ctx.settings.vault).watch)
 
     def change(do) -> dict:
         _, rel = where(ctx)
@@ -139,16 +148,17 @@ def router(ctx: AppContext) -> APIRouter:
             known = reg.find(body.name, body.url.strip())  # by its address first, else by its name
             before = len(known.get("sources", [])) if known else 0
             c, new = reg.note(body.name, body.url.strip(), origin="hand", seen=today, kind=body.kind, note=body.note)
-            # Read on Hugging Face or GitHub (D1) when it is new or got an address it did not have
+            # Read by the guide's readers (D1) when it is new or got an address it did not have
             added = new or len(c.get("sources", [])) > before
-            errors = enrich.enrich(c, today=today) if added else []
+            errors = enrich.enrich(c, today=today, readers=readers_now()) if added else []
             return {"id": c["id"], "new": new, "source_added": added and not new, "errors": errors}
         return change(do)
 
     @api.post("/api/candidates/{cid}/enrich")
     def candidates_enrich(cid: str):
-        """A candidate read again on Hugging Face and GitHub (no model): its facts of today, what failed."""
-        return change(lambda reg: {"errors": enrich.enrich(reg.get(cid), today=date.today().isoformat())})
+        """A candidate read again by the guide's readers (no model): its facts of today, what failed."""
+        return change(lambda reg: {"errors": enrich.enrich(reg.get(cid), today=date.today().isoformat(),
+                                                           readers=readers_now())})
 
     @api.post("/api/candidates/{cid}")
     def candidates_move(cid: str, body: Move):

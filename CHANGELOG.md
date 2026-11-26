@@ -26,6 +26,12 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   repository through GitHub's (licence, stars, latest release, contributors up to « 100+ », last push, archived),
   when a candidate is added by hand or by a watch run, and on « Read again » on its card. Kept in the candidate
   (`facts`, with the day read) and shown on the page; a failure is said and keeps what was read before.
+- **The readers of candidates are the guide's** (asked by the user, 2026-11-26: Hugging Face and GitHub fit a guide
+  of AI or software, not every guide): `[watch] candidate_readers` in the manifest names where candidates are read
+  (`"huggingface"`, `"github"`), **none when not given**: a guide that names none sends nothing to these sites, and
+  the kind of a candidate is no longer guessed from such an address. One reader per site in `enrich.py` (`READERS`),
+  so that another one is an entry there; what a reader dropped since had read stays; « Read again » shows only on a
+  candidate the guide's readers can read.
 - **Where the candidates come from** (ROADMAP D3.3): once the guide uses the registry (its manifest names it, or a
   draft was started on the page), the possible additions a watch run sets aside become leads (the item's address,
   the watch, the reason) instead of a line of its report; a lead of an addition check that the editor dismisses

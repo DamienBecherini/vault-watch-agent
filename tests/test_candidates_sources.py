@@ -9,18 +9,8 @@ from test_candidates_page import ACT, page  # noqa: F401  (fixture: the page on 
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
 from vault_watch_agent import news
-from vault_watch_agent.candidates import Registry, draft_path, guess_kind
+from vault_watch_agent.candidates import Registry, draft_path
 from vault_watch_agent.graph import build
-
-
-def test_the_kind_an_address_says():
-    kinds = ("model", "tool", "hardware", "other")
-    assert guess_kind("https://huggingface.co/acme/Base-7B", kinds) == "model"
-    assert guess_kind("https://huggingface.co/datasets/acme/set", kinds) == "other"
-    assert guess_kind("https://github.com/acme/runner", kinds) == "tool"
-    assert guess_kind("https://github.com/acme", kinds) == "other"
-    assert guess_kind("https://example.org/news", kinds) == "other"
-    assert guess_kind("https://huggingface.co/acme/Base-7B", ("software", "other")) == "other"  # not a kind of this guide
 
 
 def test_a_watch_run_notes_what_it_sets_aside_once_the_registry_is_used(setup):  # noqa: F811

@@ -31,6 +31,7 @@ floors = "watch/floors.json"        # optional: the lowest versions the guide re
 seen = "watch/seen.md"              # optional: items already triaged, dropped when they come back
 candidates = "watch/candidates.json" # optional: the registry of discovery (created by the agent when first saved)
 candidate_kinds = ["model", "tool", "hardware"]  # optional: the kinds of its candidates (these by default; "other" added)
+candidate_readers = ["huggingface", "github"]    # optional: where its candidates are read (none by default)
 ```
 
 `floors` defaults to the file of `[checks] version_floors` when the guide has one.
@@ -150,17 +151,26 @@ Once the guide uses the registry (its manifest names it, or the editor started a
 finds goes into the same draft: the possible additions a watch run sets aside (the « Addition candidates » of its
 report) become leads, with the item's address, the watch and the reason; a lead of an addition check that the editor
 dismisses becomes a dismissed candidate, so that it does not come back (not a lead « Newer », about what the guide
-covers already). The kind is guessed from the address (a Hugging Face model page a model, a GitHub repository a
-tool, when the guide has these kinds), to correct on the page. The discovery feeds of the collection reach it
+covers already). The kind is guessed from the address through the guide's readers (a Hugging Face model page a
+model, a GitHub repository a tool, when the guide reads there and has these kinds), to correct on the page. The discovery feeds of the collection reach it
 through the watch: its run sets aside what deserves it, the rest is not noted (a list of trending models would drown
 the registry).
 
-A candidate added (by hand or by a watch run) is read where it lives, without a model (`enrich.py`): for a Hugging
-Face model page, the public API of Hugging Face (licence, parameters, context from its `config.json`, GGUF,
+A candidate added (by hand or by a watch run) is read where it lives, without a model (`enrich.py`), by the readers
+the guide names (`candidate_readers`; none by default, so that a guide that has no use for them sends nothing to
+these sites):
+
+| Reader | Reads | For a guide of |
+| :-- | :-- | :-- |
+| `huggingface` | a Hugging Face model page | AI models |
+| `github` | a GitHub repository | software, tools |
+
+For a Hugging Face model page, the public API of Hugging Face (licence, parameters, context from its `config.json`, GGUF,
 downloads, dates); for a GitHub repository, GitHub's (licence, stars, latest release, contributors, last push, with
 the token `collect` uses, sent to api.github.com only). What it says is kept in the candidate (`facts`, with the day
 it was read) and shown on its card; « Read again » reads it once more. What cannot be read (a removed model, GitHub's
-limit without a token) is said, and what was read before stays.
+limit without a token) is said, and what was read before stays, as does what a reader removed from the manifest
+since had read. Another reader (PyPI, npm, Docker Hub…) is an entry of `READERS` in `enrich.py`.
 
 ## Which sources earn their place
 

@@ -144,3 +144,17 @@ def test_the_kinds_of_candidates_are_the_guides(sample_guide, tmp_path):
         manifest.write_text(text.replace("[watch]\n", f"[watch]\ncandidate_kinds = {bad}\n", 1), encoding="utf-8")
         with pytest.raises(guide.GuideError, match="candidate_kinds"):
             guide.load(root)
+
+
+def test_the_readers_of_candidates_are_the_guides(sample_guide):
+    root, _ = sample_guide
+    manifest = root / "vault-watch.toml"
+    text = manifest.read_text(encoding="utf-8")
+    assert guide.load(root).watch.candidate_readers == ()  # none named: nothing is read
+    manifest.write_text(text.replace("[watch]\n", '[watch]\ncandidate_readers = ["github", "huggingface", "github"]\n', 1),
+                        encoding="utf-8")
+    assert guide.load(root).watch.candidate_readers == ("github", "huggingface")
+    for bad in ('"github"', '["pypi"]', "[1]"):
+        manifest.write_text(text.replace("[watch]\n", f"[watch]\ncandidate_readers = {bad}\n", 1), encoding="utf-8")
+        with pytest.raises(guide.GuideError, match="candidate_readers: a list of readers among huggingface, github"):
+            guide.load(root)

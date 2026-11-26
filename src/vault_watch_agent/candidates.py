@@ -231,30 +231,17 @@ def working(guide, home: Path, rel: str) -> tuple[Registry, Registry]:
     return Registry(draft_path(home), [dict(c) for c in base.candidates], base.kinds), base
 
 
-_HF_REPO = re.compile(r"^/(?!datasets/|spaces/|docs/|blog/|papers/|collections/)[^/]+/[^/]+/?$")
-
-
-def guess_kind(url: str, kinds: tuple[str, ...]) -> str:
-    """The kind an address says, among the guide's: a Hugging Face model page a model, a GitHub repository a tool;
-    else « other » (the editor corrects it on the page)."""
-    parts = urlsplit(url or "")
-    host = parts.netloc.lower().removeprefix("www.")
-    if host in ("huggingface.co", "hf.co") and _HF_REPO.match(parts.path) and "model" in kinds:
-        return "model"
-    if host == "github.com" and parts.path.strip("/").count("/") >= 1 and "tool" in kinds:
-        return "tool"
-    return "other"
-
-
 def note_all(guide, home: Path, found: list[dict], *, origin: str, seen: str) -> list[str]:
     """What the agent found, noted in the draft: each {name, url, why?, dismiss?} becomes a candidate (or a source
     more of one already followed), dismissed with the reason `dismiss` when it is new or still a lead. Nothing when
-    the guide does not use the registry. A new candidate not dismissed is read on Hugging Face or GitHub when its
-    address is there (enrich.py, D1; a failure leaves it as it is). Returns the names of the new candidates."""
+    the guide does not use the registry. Its kind is guessed from its address and a new candidate not dismissed is
+    read, through the readers the guide names (enrich.py, D1; a failure leaves it as it is). Returns the names of the
+    new candidates."""
     from . import enrich  # enrich reads through collect, which imports this module
 
     if not found or not followed(guide, home):
         return []
+    readers = enrich.readers_of(guide.watch)
     _, rel = place(guide, home)
     new_names = []
     with LOCK:
@@ -263,14 +250,14 @@ def note_all(guide, home: Path, found: list[dict], *, origin: str, seen: str) ->
             name, url = (f.get("name") or "").strip(), (f.get("url") or "").strip()
             if not name:
                 continue
-            c, new = reg.note(name[:120], url, origin=origin, seen=seen, kind=guess_kind(url, reg.kinds),
+            c, new = reg.note(name[:120], url, origin=origin, seen=seen, kind=enrich.guess_kind(url, reg.kinds, readers),
                               note=(f.get("why") or "")[:300])
             if new:
                 new_names.append(c["name"])
             if f.get("dismiss") and (new or c["state"] == "lead"):
                 reg.move(c["id"], "dismissed", today=seen, reason=f["dismiss"])
             elif new:
-                enrich.enrich(c, today=seen)
+                enrich.enrich(c, today=seen, readers=readers)
         reg.save()
     return new_names
 

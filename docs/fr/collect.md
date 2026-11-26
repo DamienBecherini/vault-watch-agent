@@ -32,6 +32,7 @@ floors = "watch/floors.json"        # facultatif : les versions minimales que le
 seen = "watch/seen.md"              # facultatif : les éléments déjà triés, écartés s'ils reviennent
 candidates = "watch/candidates.json" # facultatif : le registre de la découverte (créé par l'agent au premier enregistrement)
 candidate_kinds = ["model", "tool", "hardware"]  # facultatif : les types de ses candidats (ceux-ci par défaut ; "other" ajouté)
+candidate_readers = ["huggingface", "github"]    # facultatif : où ses candidats sont lus (aucun lecteur par défaut)
 ```
 
 Sans `floors`, l'agent prend le fichier de `[checks] version_floors` quand le guide en a un.
@@ -159,17 +160,27 @@ Dès que le guide utilise le registre (son manifeste le nomme, ou l'éditeur a c
 que trouve l'agent va dans le même brouillon : les ajouts possibles qu'une passe de veille met de côté (les
 « Addition candidates » de son rapport) deviennent des pistes, avec l'adresse de l'élément, la veille et la raison ;
 une piste d'une vérification d'ajout que l'éditeur écarte devient un candidat écarté, pour qu'elle ne revienne pas
-(pas une piste « Newer », qui porte sur ce que le guide couvre déjà). Le type est deviné d'après l'adresse (une page
-de modèle Hugging Face un modèle, un dépôt GitHub un outil, quand le guide a ces types), à corriger sur la page. Les
+(pas une piste « Newer », qui porte sur ce que le guide couvre déjà). Le type est deviné d'après l'adresse, par les
+lecteurs du guide (une page de modèle Hugging Face un modèle, un dépôt GitHub un outil, quand le guide lit là et a
+ces types), à corriger sur la page. Les
 flux de découverte de la collecte y arrivent par la veille : sa passe met de côté ce qui le mérite, le reste n'est
 pas noté (une liste de modèles en vogue noierait le registre).
 
-Un candidat ajouté (à la main ou par une passe de veille) est lu là où il vit, sans modèle (`enrich.py`) : pour une
-page de modèle Hugging Face, l'API publique de Hugging Face (licence, paramètres, contexte d'après son `config.json`,
+Un candidat ajouté (à la main ou par une passe de veille) est lu là où il vit, sans modèle (`enrich.py`), par les
+lecteurs que nomme le guide (`candidate_readers` ; aucun par défaut, pour qu'un guide qui n'en a pas l'usage
+n'envoie rien à ces sites) :
+
+| Lecteur | Lit | Pour un guide |
+| :-- | :-- | :-- |
+| `huggingface` | une page de modèle Hugging Face | de modèles d'IA |
+| `github` | un dépôt GitHub | de logiciels, d'outils |
+
+Pour une page de modèle Hugging Face, l'API publique de Hugging Face (licence, paramètres, contexte d'après son `config.json`,
 GGUF, téléchargements, dates) ; pour un dépôt GitHub, celle de GitHub (licence, étoiles, dernière version,
 contributeurs, dernier commit, avec le jeton qu'utilise `collect`, envoyé à api.github.com seulement). Ce qu'elle dit
 est gardé dans le candidat (`facts`, avec le jour de lecture) et montré sur sa carte ; « Relire » le relit. Ce qui ne
-peut pas être lu (un modèle retiré, la limite de GitHub sans jeton) est dit, et ce qui avait été lu reste.
+peut pas être lu (un modèle retiré, la limite de GitHub sans jeton) est dit, et ce qui avait été lu reste, de même que ce qu'avait lu un lecteur retiré
+du manifeste depuis. Un autre lecteur (PyPI, npm, Docker Hub…) est une entrée de `READERS` dans `enrich.py`.
 
 ## Quelles sources méritent leur place
 

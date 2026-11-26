@@ -115,7 +115,9 @@ de la nouvelle. Elle ne doit pas être en lecture seule.
 crée, et `candidate_kinds` les types de ses candidats, selon le guide : `["model", "tool", "hardware"]` quand il n'est
 pas donné, `["software", "plugin", "host"]` pour un guide de logiciels auto-hébergés ; « other » (autre) est toujours
 ajouté. Des noms courts en minuscules (lettres, chiffres, -) ; la page traduit ceux par défaut et montre les autres
-tels qu'ils sont écrits ([Collecter une veille](collect.md#le-registre-des-candidats)).
+tels qu'ils sont écrits. `candidate_readers` nomme où ses candidats sont lus sans modèle : `"huggingface"` (une page
+de modèle), `"github"` (un dépôt) ; aucun s'il n'est pas donné, pour que rien ne soit envoyé à ces sites pour un guide
+qui n'en a pas l'usage ([Collecter une veille](collect.md#le-registre-des-candidats)).
 
 Un `watch.json` contient les éléments retenus par votre collecteur (flux, pages de versions, avis de sécurité) ; son
 format, clé par clé : [Le format d'une veille](watch-format.md).

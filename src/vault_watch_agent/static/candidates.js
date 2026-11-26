@@ -32,7 +32,7 @@ const CANDIDATES_TEXTS = {
       pushed: d => `dernier commit le ${d}`, archived: "archivé", read: d => { const [day, time] = String(d).split(" "); return time ? `lu le ${day} à ${time}` : `lu le ${day}`; },
     },
     readAgain: "Relire",
-    readAgainTip: "Relit sur Hugging Face et GitHub ce que dit chaque adresse du candidat (licence, taille, versions…), sans modèle ni coût.",
+    readAgainTip: "Relit ce que dit chaque adresse du candidat là où le guide sait lire (son manifeste, candidate_readers : licence, taille, versions…), sans modèle ni coût.",
     readFailed: list => `Lecture impossible : ${list}`,
     add: "Ajouter un candidat",
     addHelp: "Un nom déjà suivi, ou une adresse déjà connue, ajoute seulement la source au candidat existant.",
@@ -93,7 +93,7 @@ const CANDIDATES_TEXTS = {
       pushed: d => `last commit on ${d}`, archived: "archived", read: d => { const [day, time] = String(d).split(" "); return time ? `read on ${day} at ${time}` : `read on ${day}`; },
     },
     readAgain: "Read again",
-    readAgainTip: "Reads again on Hugging Face and GitHub what each address of the candidate says (licence, size, releases…), no model, no cost.",
+    readAgainTip: "Reads again what each address of the candidate says where the guide can read (its manifest, candidate_readers: licence, size, releases…), no model, no cost.",
     readFailed: list => `Could not read: ${list}`,
     add: "Add a candidate",
     addHelp: "A name already followed, or an address already known, only adds the source to the existing candidate.",
@@ -137,16 +137,18 @@ addTexts("candidates", CANDIDATES_TEXTS);
 // Numbers as the reader reads them: 7.6 B, 1.2 M, 32 768
 const big = n => typeof n !== "number" ? String(n) : n >= 1e9 ? `${(n / 1e9).toLocaleString(lang, { maximumFractionDigits: 1 })} B`
   : n >= 1e6 ? `${(n / 1e6).toLocaleString(lang, { maximumFractionDigits: 1 })} M` : n.toLocaleString(lang);
-// What Hugging Face or GitHub says of an address of a candidate (enrich.py), in one line
-const factLine = (f, C) => {
+// What a reader of the guide says of an address of a candidate (enrich.py), in one line; `labels` names the readers
+const factLine = (f, C, labels) => {
   const F = C.facts;
   const bits = f.source === "huggingface"
     ? [f.licence && `${F.licence} ${esc(f.licence)}`, f.params && F.params(big(f.params)), f.context && F.context(big(f.context)),
       f.gguf && F.gguf, f.gated && F.gated, f.downloads != null && F.downloads(big(f.downloads)), f.updated && F.updated(esc(f.updated))]
-    : [f.licence && `${F.licence} ${esc(f.licence)}`, f.stars != null && F.stars(big(f.stars)),
+    : f.source === "github"
+    ? [f.licence && `${F.licence} ${esc(f.licence)}`, f.stars != null && F.stars(big(f.stars)),
       f.release && F.release(esc(f.release), esc(f.released || "")), f.contributors != null && F.contributors(esc(f.contributors)),
-      f.pushed && F.pushed(esc(f.pushed)), f.archived && `<b>${F.archived}</b>`];
-  return `<li><span class="badge neutral">${f.source === "huggingface" ? "Hugging Face" : "GitHub"}</span> ${bits.filter(Boolean).join(" · ")}
+      f.pushed && F.pushed(esc(f.pushed)), f.archived && `<b>${F.archived}</b>`]
+    : [f.licence && `${F.licence} ${esc(f.licence)}`];  // a reader this page does not lay out yet
+  return `<li><span class="badge neutral">${esc((labels || {})[f.source] || f.source)}</span> ${bits.filter(Boolean).join(" · ")}
     <span class="muted">(${F.read(esc(f.read))})</span>${f.description ? `<br><span class="muted">${esc(f.description)}</span>` : ""}</li>`;
 };
 
@@ -174,7 +176,7 @@ export async function viewCandidates() {
     if (c.state !== "lead" && c.state !== "added") out.push(b("lead", C.lead, ""));
     if (c.state !== "dismissed" && c.state !== "added") out.push(b("dismissed", C.dismiss, C.tips.dismiss, "danger"));
     if (c.state === "watching") out.push(b("watching", `${C.date}…`, ""));
-    if ((c.sources || []).some(s => /^https?:\/\/(www\.)?(huggingface\.co|hf\.co|github\.com)\//i.test(s.url || "")))
+    if ((d.readable || []).includes(c.id))
       out.push(`<span><button type="button" class="small-button" data-enrich="${esc(c.id)}">↻ ${C.readAgain}</button>${tip(C.readAgainTip)}</span>`);
     return out.join("");
   };
@@ -185,7 +187,7 @@ export async function viewCandidates() {
       <p class="muted small">${C.seen(esc(c.first_seen), esc(c.last_seen))}${c.recheck ? ` · ${C.lookAgain(esc(c.recheck))}` : ""}</p>
       ${c.reason ? `<p class="small">${esc(c.reason)}</p>` : ""}
       ${(c.sources || []).length ? `<ul class="small">${c.sources.map(s => `<li>${extLink(s.url, esc(s.title || shortUrl(s.url)))} <span class="muted">${esc(s.seen)} · ${esc(s.origin)}</span></li>`).join("")}</ul>` : ""}
-      ${(c.facts || []).length ? `<ul class="small facts">${c.facts.map(f => factLine(f, C)).join("")}</ul>` : ""}
+      ${(c.facts || []).length ? `<ul class="small facts">${c.facts.map(f => factLine(f, C, d.reader_labels)).join("")}</ul>` : ""}
       <details class="small"><summary>${C.history}</summary><ul>${(c.history || []).map(h => `<li>${esc(h.date)} · ${esc(stateOf(h.state))}${h.note ? ` : ${esc(h.note)}` : ""}${h.recheck ? ` (${C.lookAgain(esc(h.recheck))})` : ""}</li>`).join("")}</ul></details>
       <div class="actions">${actions(c)}</div>
       <div class="move-form" hidden></div>

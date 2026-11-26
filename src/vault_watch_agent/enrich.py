@@ -4,16 +4,20 @@ release, contributors, last push). Read when a candidate is added and when the e
 on the page), kept in the candidate (`facts`, one entry per address read, with the day it was read), so that the
 editor and the reviewer of the registry see what it is without opening it.
 
-    errors = enrich(candidate, today="2026-11-26")   # candidate["facts"] = [{url, read, source, licence, …}]
+    errors = enrich(candidate, today="2026-11-26", readers=("huggingface", "github"))
+    # candidate["facts"] = [{url, read, source, licence, …}]
 
-An address that is neither a Hugging Face model nor a GitHub repository is not read. A failure (a gated or removed
-model, GitHub's limit of 60 requests an hour without a token) is said, and the facts read before are kept.
+Only the readers the guide names are used (`[watch] candidate_readers`, none by default: a guide of cooking has no
+use for Hugging Face); each is an entry of READERS. An address none of them can tell about is not read. A failure (a
+gated or removed model, GitHub's limit of 60 requests an hour without a token) is said, and the facts read before
+are kept.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import urlsplit
 
@@ -24,17 +28,6 @@ GET: Callable = collect.http_get
 _HF = re.compile(r"^/(?!datasets/|spaces/|docs/|blog/|papers/|collections/|models/|api/)([^/]+/[^/]+?)/?$")
 _GH = re.compile(r"^/([^/]+)/([^/]+?)(?:\.git)?(?:/.*)?$")
 _GH_NOT_REPOS = ("orgs", "users", "topics", "search", "marketplace", "sponsors", "features", "settings", "apps")
-
-
-def where(url: str) -> tuple[str, str] | None:
-    """("huggingface", "org/model") or ("github", "owner/repo") for an address these two can tell about; else None."""
-    parts = urlsplit(url or "")
-    host = parts.netloc.lower().removeprefix("www.")
-    if host in ("huggingface.co", "hf.co") and (m := _HF.match(parts.path)):
-        return "huggingface", m.group(1)
-    if host == "github.com" and (m := _GH.match(parts.path)) and m.group(1) not in _GH_NOT_REPOS:
-        return "github", f"{m.group(1)}/{m.group(2)}"
-    return None
 
 
 def huggingface(repo: str, get: Callable | None = None) -> dict:
@@ -83,24 +76,81 @@ def github(repo: str, get: Callable | None = None, token: str = "") -> dict:
     return {k: v for k, v in out.items() if v not in (None, "", False)}
 
 
+@dataclass(frozen=True)
+class Reader:
+    """A place a candidate can be read (asked by the user, 2026-11-26: Hugging Face and GitHub fit a guide of AI or
+    software, not every guide; a guide names the readers it wants, `[watch] candidate_readers`)."""
+    label: str                                         # as the page names it
+    place: Callable[[str], str | None]                 # what it reads at an address (its id there), or None
+    read: Callable[[str, Callable | None, str | None], dict]  # (id, get, token): the facts
+    kind: str                                          # the kind its addresses are, when the guide has it
+
+
+def _hf_place(url: str) -> str | None:
+    parts = urlsplit(url or "")
+    m = _HF.match(parts.path) if parts.netloc.lower().removeprefix("www.") in ("huggingface.co", "hf.co") else None
+    return m.group(1) if m else None
+
+
+def _gh_place(url: str) -> str | None:
+    parts = urlsplit(url or "")
+    m = _GH.match(parts.path) if parts.netloc.lower().removeprefix("www.") == "github.com" else None
+    return f"{m.group(1)}/{m.group(2)}" if m and m.group(1) not in _GH_NOT_REPOS else None
+
+
+# The readers a guide can name, in the order it names them. Another one (PyPI, npm, Docker Hub…) is an entry here
+READERS: dict[str, Reader] = {
+    "huggingface": Reader("Hugging Face", _hf_place, lambda repo, get, token: huggingface(repo, get), "model"),
+    "github": Reader("GitHub", _gh_place,
+                     lambda repo, get, token: github(repo, get, collect.github_token() if token is None else token),
+                     "tool"),
+}
+
+
+def readers_of(watch) -> tuple[str, ...]:
+    """The readers a guide names ([watch] candidate_readers); none when it names none: nothing is read."""
+    return tuple(getattr(watch, "candidate_readers", ()) or ())
+
+
+def where(url: str, readers: tuple[str, ...] | list[str] = tuple(READERS)) -> tuple[str, str] | None:
+    """(reader, id) for an address one of `readers` can tell about, as ("huggingface", "org/model") or ("github",
+    "owner/repo"); else None."""
+    for name in readers:
+        if name in READERS and (found := READERS[name].place(url)):
+            return name, found
+    return None
+
+
+def guess_kind(url: str, kinds: tuple[str, ...], readers: tuple[str, ...]) -> str:
+    """The kind an address says, among the guide's, through its readers: a Hugging Face model page a model, a GitHub
+    repository a tool; else « other » (the editor corrects it on the page)."""
+    place = where(url, readers)
+    kind = READERS[place[0]].kind if place else ""
+    return kind if kind in kinds else "other"
+
+
 def read(place: tuple[str, str], get: Callable | None, token: str | None) -> dict:
     """The facts of one address `where` placed; the token of GitHub found only when GitHub is asked."""
-    if place[0] == "huggingface":
-        return huggingface(place[1], get)
-    return github(place[1], get, collect.github_token() if token is None else token)
+    return READERS[place[0]].read(place[1], get, token)
 
 
-def enrich(candidate: dict, *, today: str, get: Callable | None = None, token: str | None = None,
-           at: str = "") -> list[str]:
-    """The facts of each address of `candidate` that Hugging Face or GitHub can tell about, read again (`facts`, in
-    the order of its sources; what could not be read keeps its facts of before), each with when it was read (`read`:
-    `today` and the time, or `at`). Returns what failed, as « address: why »."""
+def enrich(candidate: dict, *, today: str, readers: tuple[str, ...], get: Callable | None = None,
+           token: str | None = None, at: str = "") -> list[str]:
+    """The facts of each address of `candidate` that one of the guide's `readers` can tell about, read again
+    (`facts`, in the order of its sources; what could not be read, or no reader of the guide reads any more, keeps its
+    facts of before), each with when it was read (`read`: `today` and the time, or `at`). Returns what failed, as
+    « address: why »."""
     stamp = at or f"{today} {datetime.now():%H:%M}"
     known = {f["url"]: f for f in candidate.get("facts", [])}
     facts, errors = [], []
     for s in candidate.get("sources", []):
-        url, place = s.get("url", ""), where(s.get("url", ""))
-        if not place or any(f["url"] == url for f in facts):
+        url = s.get("url", "")
+        if any(f["url"] == url for f in facts):
+            continue
+        place = where(url, readers)
+        if not place:
+            if url in known:
+                facts.append(known[url])
             continue
         try:
             facts.append({"url": url, "read": stamp, **read(place, get, token)})

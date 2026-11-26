@@ -52,6 +52,7 @@ class Watch:
     changes_page: str = ""  # a page where a watch adds dated lines; shown to every proposal step
     candidates: str = ""    # the registry of discovery (candidates.py), a JSON file of the guide; created when first saved
     candidate_kinds: tuple[str, ...] = ()  # the kinds of its candidates (« other » added); () = candidates.KINDS
+    candidate_readers: tuple[str, ...] = ()  # where its candidates are read (enrich.READERS); () = nowhere
 
 
 @dataclass(frozen=True)
@@ -155,7 +156,7 @@ _KEYS = {
     "guide": {"name", "description", "repository", "forge", "forge_url", "forge_token", "site", "base_branch"},
     "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates",
-              "candidate_kinds"},
+              "candidate_kinds", "candidate_readers"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
     "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
@@ -210,8 +211,15 @@ def parse(data: dict, root: Path) -> Guide:
     if not isinstance(kinds, list) or not all(isinstance(k, str) and _KIND.fullmatch(k) for k in kinds):
         raise GuideError('[watch] candidate_kinds: a list of short names in lower case (letters, digits, -), '
                          'as ["model", "tool", "hardware"]')
+    from .enrich import READERS  # enrich reads through collect, which reads manifests
+
+    readers = w.get("candidate_readers", [])
+    if not isinstance(readers, list) or not all(isinstance(r, str) and r in READERS for r in readers):
+        raise GuideError(f"[watch] candidate_readers: a list of readers among {', '.join(READERS)}, "
+                         'as ["huggingface", "github"]')
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
                   path=_text(w, "watch", "path"), candidate_kinds=tuple(dict.fromkeys(kinds)),
+                  candidate_readers=tuple(dict.fromkeys(readers)),
                   **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors", "changes_page")
                      if k in w},
                   **({"candidates": _file(root, "watch", "candidates", w["candidates"], exists=False).as_posix()}

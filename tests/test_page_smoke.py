@@ -178,7 +178,11 @@ def chrome(tmp_path):
         yield port
     finally:
         p.terminate()
-        p.wait(timeout=10)
+        try:
+            p.wait(timeout=10)
+        except subprocess.TimeoutExpired:  # a Chrome slow to quit (seen 2026-11-26): not the page's fault
+            p.kill()
+            p.wait(timeout=10)
 
 
 def screens(runs: dict) -> list[str]:

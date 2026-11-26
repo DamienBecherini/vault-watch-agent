@@ -355,7 +355,7 @@ src/vault_watch_agent/
   forge.py       GitHub (gh) and Gitea (API): issues, artifacts, pull requests
   watches.py     where the watches come from; collect.py the agent's own collection; inputs.py the watch format
   candidates.py  the registry of discovery: candidates followed over time, their states and dates to look again
-  enrich.py      what a candidate is, read on Hugging Face and GitHub (no model)
+  enrich.py      what a candidate is, read where the guide says (Hugging Face, GitHub; no model)
   sources.py     what each source of the watch brought; sourcecheck.py the sources themselves, checked
   crosscheck.py  whole-guide cross-check; fix.py fix runs; verify.py checks of the guide; evaluate.py replays
   sizes.py       what each page weighs and gained; compact.py compaction: what weighs, the trims
