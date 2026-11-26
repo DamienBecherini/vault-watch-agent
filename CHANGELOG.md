@@ -3,7 +3,10 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.7.2 (2026-11-26)
+
+An advisory the guide answers with a workaround is no longer raised at every watch; the tests can no longer reach
+the network.
 
 - **An advisory the guide answers another way no longer comes back** (noticed on the guide's watch #110, 2026-11-25:
   LiteLLM's 1.106 line, kept with two workarounds, raised three advisories fixed only from 1.108.0 at every urgent

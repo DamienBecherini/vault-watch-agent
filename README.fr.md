@@ -79,7 +79,7 @@ flowchart LR
 ## Démarrage rapide
 
 ```bash
-pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.7.1
+pipx install git+https://github.com/DamienBecherini/vault-watch-agent@v1.7.2
 
 cd mon-guide                # la racine du dépôt git du guide
 vault-watch init            # écrit vault-watch.toml d'après ce que montre le dossier ; relisez-le, ajustez-le
