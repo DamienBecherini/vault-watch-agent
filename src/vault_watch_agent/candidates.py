@@ -315,7 +315,7 @@ def judged(guide, home: Path, judgements: list[dict], *, check: str, today: str)
                 c = reg.get(j.get("id", ""))
             except RegistryError:
                 continue
-            c["judgement"] = {"date": today, "check": check, **{k: v for k, v in j.items() if k != "id"}}
+            c["judgement"] = {"date": today, "check": check, **{k: v for k, v in j.items() if k not in ("id", "name")}}
             c.setdefault("history", []).append({"date": today, "state": c["state"],
                                                 "note": f"judged with the guide ({check}): {j.get('verdict', '')}"})
             n += 1

@@ -60,7 +60,7 @@ export async function viewCheck(id) {
           ${list(V.claims, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
           ${list(V.linksRead, (r.links || []).map(l => `${extLink(l.url, esc(l.title || l.url))} — ${l.error ? `<span class="attention-text">${esc(l.error)}</span>` : V.linkChars(l.chars, l.cut)}`))}
-          ${list(V.judgedOther, (r.judgements || []).filter(j => j.verdict !== "add").map(j => `<b>${esc(j.id)}</b> <span class="badge neutral">${esc(T.candidates?.verdicts?.[j.verdict] || j.verdict)}</span> ${esc(j.matters || j.why || "")}${j.recheck ? ` <span class="muted">(${esc(j.recheck)})</span>` : ""}`))}
+          ${list(V.judgedOther, (r.judgements || []).filter(j => j.verdict !== "add").map(j => `<b>${esc(j.name || j.id)}</b> <span class="badge neutral">${esc(T.candidates?.verdicts?.[j.verdict] || j.verdict)}</span> ${esc(j.matters || j.why || "")}${j.recheck ? ` <span class="muted">(${esc(j.recheck)})</span>` : ""}`))}
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<details class="lead-legend"><summary>${V.howToRead}</summary><p>${V.leadsAdd}</p><dl>${
@@ -257,8 +257,10 @@ export async function viewCheck(id) {
     bindSteps($("#run-steps"), count);
     $("#fix").disabled = n === 0 || v.running;
     page.querySelectorAll("[data-dismiss]").forEach(b => { b.textContent = V.dismiss(e); b.disabled = e === 0 || v.running; });
-    // Leads of an addition check that can be followed in the registry (E4): not « Newer », about what the guide has
-    const trackable = ticked().filter(c => c.dataset.mode === "add" && !/^\[Newer\] /.test(c.dataset.lead || ""));
+    // Leads of an addition check that can be followed in the registry (E4): not « Newer », about what the guide has,
+    // nor those of the candidates judged with the guide (D4), which are in the registry already
+    const trackable = ticked().filter(c => c.dataset.mode === "add" && c.dataset.card !== "candidates"
+      && !/^\[Newer\] /.test(c.dataset.lead || ""));
     page.querySelectorAll(".track-box, .bar-row [data-track]").forEach(b => { /** @type {HTMLElement} */ (b).hidden = !trackable.length; });
     page.querySelectorAll("[data-track]").forEach(b => {
       b.textContent = V.track(trackable.length);

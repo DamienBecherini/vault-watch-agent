@@ -100,9 +100,10 @@ def test_the_open_candidates_are_judged_with_the_whole_guide(guide, tmp_path):
     assert result["excerpts"][line][0]["line"] == 3
     assert result["judgements"] == [
         {"id": "qwen3-5-32b", "verdict": "add", "why": "a successor of the default family; check the model card and "
-         "whether the default for a 48 GB server changes.", "pages": ["02-modeles/choix.md"], "matters": "It may change the default model."},
-        {"id": "larkdb-3", "verdict": "dismiss", "why": "a database: off the guide's subject."},
-        {"id": "beam-501b", "verdict": "watch", "why": "no weights yet.", "recheck": "2026-12-20"}]
+         "whether the default for a 48 GB server changes.", "pages": ["02-modeles/choix.md"], "matters": "It may change the default model.",
+         "name": "Qwen3.5 32B"},  # the name: the page lists the judgements by it
+        {"id": "larkdb-3", "verdict": "dismiss", "why": "a database: off the guide's subject.", "name": "Larkdb 3"},
+        {"id": "beam-501b", "verdict": "watch", "why": "no weights yet.", "recheck": "2026-12-20", "name": "Beam 501B"}]
     assert [u["cost_usd"] for u in result["usage"]] == [0.5]
 
 

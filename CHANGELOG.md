@@ -22,7 +22,8 @@ guide lacks feeds it (E4), and dead links are told from sites that only refuse r
   web. The judgement is kept in the candidate and shown on its card; the candidates to add are leads that go to an
   addition run. Estimated at 2.16 $ plus ≈ 0.03 $ a candidate on the IA on-prem guide at list price.
 - **A lead of a search for what the guide lacks can be followed in the registry** (E4): beside « Dismiss », « Follow
-  in the registry » makes the leads ticked candidates in state « lead » (read by the guide's readers, scored, judged
+  in the registry » makes the leads ticked candidates in state « lead », named after the product each is about (a new
+  field `subject` of a lead; its headline when it names none) (read by the guide's readers, scored, judged
   when asked), instead of writing or dismissing them. « To handle » recalls the search once a quarter, after 90 days
   without « What is new » or the exploration of the web.
 - **Dead links crossed with the weekly report of the guide's CI** (E7): a new key `[checks] sources_weekly`

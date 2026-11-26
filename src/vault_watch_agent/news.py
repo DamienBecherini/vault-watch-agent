@@ -81,6 +81,8 @@ class Lead(BaseModel):
     kind: Literal["newer", "missing", "candidate", "found", "link"]  # link: read in a link the editor gave (links.py)
     title: str = Field(default="", description="A short title, in the language the instructions name: what the lead "
                        "is about, as a headline, 90 characters at most.")
+    subject: str = Field(default="", description="The model, tool or hardware the lead is about, named as its makers "
+                         "name it (« SGLang », « Qwen3 30B », « RTX 5090 »); empty when it is about no one product.")
     pages: list[str] = Field(description="Vault-relative paths of the pages concerned: where the addition would go, or "
                              "the page that states the older fact. Empty for a subject that fits no page.")
     problem: str = Field(description="One self-contained line, in English: what to look for and on which kind of "

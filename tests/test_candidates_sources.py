@@ -84,3 +84,22 @@ def test_a_lead_of_a_gap_search_can_be_followed_in_the_registry(page):  # noqa: 
     assert (eu["state"], eu["sources"]) == ("lead", [])
     assert eu["history"][0]["note"].startswith(f"seen: check {vid}: nothing on the EU obligations")
     assert c.get(f"/api/verifications/{vid}").json()["status"] == "handled"
+
+
+def test_a_lead_followed_is_named_after_the_product_it_is_about(page):  # noqa: F811
+    """The candidate is the product (`subject`), not the headline of the lead (seen in the page on 2026-11-26)."""
+    c, root, _, _ = page
+    found = "[Missing] 03-stack/engines.md: SGLang is not presented beside vLLM. Sources: https://docs.sglang.ai/"
+    verifs = root.parent / "home" / "verifications"
+    verifs.mkdir(parents=True, exist_ok=True)
+    vid = "verif-2026-11-26-110000"
+    (verifs / f"{vid}.json").write_text(json.dumps({
+        "id": vid, "started": 1_790_000_000, "checks": ["news"], "asked": ["news"], "cost": 0.0, "done": True,
+        "results": {"news": {"ok": False, "summary": "1 lead", "findings": [found], "excerpts": {}, "fixable": True,
+                             "details": {found: {"title": "SGLang absent des moteurs", "subject": "SGLang"}},
+                             "open": 1, "mode": "add"}}}), encoding="utf-8")
+    c.post("/api/candidates", json={"name": "Something", "kind": "tool"}, headers=ACT)
+    done = c.post(f"/api/verifications/{vid}/leads", json={"findings": [found], "status": "tracked"}, headers=ACT).json()
+    assert done["noted"] == ["SGLang"]
+    sglang = {x["id"]: x for x in c.get("/api/candidates").json()["candidates"]}["sglang"]
+    assert sglang["sources"][0]["url"] == "https://docs.sglang.ai/"

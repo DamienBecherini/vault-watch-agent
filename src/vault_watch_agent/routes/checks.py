@@ -136,7 +136,8 @@ def dismissed_to_registry(ctx: AppContext, vid: str, findings: list[str], dismis
             p = news.parts(f)
             if f not in result.get("findings", []) or p["kind"] == news.KINDS["newer"]:
                 continue
-            title = (result.get("details", {}).get(f) or {}).get("title") or re.split(r"(?<=\.)\s", p["text"])[0][:140]
+            said = result.get("details", {}).get(f) or {}  # the product it is about, else its headline, else its line
+            title = said.get("subject") or said.get("title") or re.split(r"(?<=\.)\s", p["text"])[0][:140]
             found.append({"name": title, "url": (p["sources"] or [""])[0], "why": p["text"],
                           **({"dismiss": f"dismissed on the check {vid}"} if dismiss else {})})
     try:

@@ -437,7 +437,8 @@ def _findings(vault_dir: Path, result: _HasFindings, line: Callable = _line) -> 
 def _detail(f) -> dict:
     """What a lead says to the editor besides its line: its title, its explanation ({} for a finding)."""
     detail = getattr(f, "detail", None)
-    return {**(detail.model_dump() if detail else {}), **({"title": f.title} if getattr(f, "title", "") else {})}
+    return {**(detail.model_dump() if detail else {}), **({"title": f.title} if getattr(f, "title", "") else {}),
+            **({"subject": f.subject} if getattr(f, "subject", "") else {})}
 
 
 def _read_guide(vault_dir: Path, llm: LLM, plan: reading.Plan, system: str, prompt: str, schema: type,
@@ -543,7 +544,7 @@ def run_candidates(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict
     return {"ok": not leads, "summary": f"{len(judged)} of {len(chosen)} candidates judged: {count['add']} to add, "
             f"{count['watch']} to watch, {count['dismiss']} to dismiss{how}",
             **_findings(vault_dir, news.Leads(findings=leads), news.line),
-            "judgements": [opportunity.said(j) for j in judged], "usage": usages, "reading": plan.summary()}
+            "judgements": [{**opportunity.said(j), "name": by[j.id]["name"]} for j in judged], "usage": usages, "reading": plan.summary()}
 
 
 def options(work: Path) -> dict:
