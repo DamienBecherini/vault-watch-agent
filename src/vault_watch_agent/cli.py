@@ -280,6 +280,50 @@ def compact_command(args) -> None:
                 lambda work, llm: verify.run_compaction(VAULT, work, {"sizes": verify.run_sizes(VAULT, work, {}, None)}, llm))
 
 
+def deadlinks_command(args) -> None:
+    """The guide's dead links (ROADMAP E7): every cited address probed from here and crossed with the weekly report of
+    the guide's CI ([checks] sources_weekly), free; then, after the question, a replacement searched on the web for
+    each one still dead (its own address opened first: a site that refuses scripts is not dead). The replacements go
+    to a file, one per line: the lines kept there make a fix run (`fix <thread> --findings …`)."""
+    from datetime import date
+
+    from . import config, verify
+    from .llm import create
+
+    today = date.today().isoformat()
+    work = HOME / "reports" / f"deadlinks-{today}"
+    work.mkdir(parents=True, exist_ok=True)
+    found = verify.run_sources(VAULT, work, {}, None)
+    print(f"vault-watch: {found['summary']}")
+    for r in found["dead"]:
+        print(f"- {r['url']} ({r['status']} {r['code'] or ''}): {', '.join(r['pages'])}")
+    for r in found.get("runners_only", []):
+        print(f"  (answers from here, not from the CI's runners: {r['url']})")
+    if not found["dead"]:
+        return
+    settings = config.load(CONFIG_HOME)
+    table = Prices.of_home(CONFIG_HOME, settings)
+    llm = create("reasoning", JOURNAL, settings, table)
+    billing = llm.capabilities().billing if hasattr(llm, "capabilities") else "token"
+    paid = {"subscription": "taken from the subscription, not billed", "none": "a local model, not billed"}.get(
+        billing, f"≈ {verify.DEAD_LINK_USD * len(found['dead']):.2f} $")
+    print(f"\nA replacement searched on the web for each of the {len(found['dead'])} dead link(s): {paid}.")
+    if not (args.yes or _confirm("Run it? [y/N] ")):
+        print("vault-watch: nothing run.")
+        return
+    llm.run, llm.kind = f"deadlinks-{today}", "verify"
+    result = verify.run_deadlinks(VAULT, work, {"sources": found}, llm)
+    out = args.out or HOME / "reports" / f"deadlinks-{today}.txt"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("".join(f"{f}\n" for f in result["findings"]), encoding="utf-8")
+    for n, finding in enumerate(result["findings"], start=1):
+        print(f"{n}. {finding}")
+    cost = sum(u.get("cost_usd", 0) for u in result.get("usage", []))
+    print(f"\nvault-watch: {result['summary']} (≈ {cost:.2f} $): {out}")
+    if result["findings"]:
+        print(f"Keep in that file the lines to act on, then: vault-watch fix deadlinks-{today} --findings {out}")
+
+
 def news_command(args) -> None:
     """What a reader would look for in the guide and not find: one model call that reads the whole guide and what
     past watches set aside, verifies nothing and edits nothing; its cost is said first, and asked for unless --yes.
@@ -551,6 +595,11 @@ def main(argv: list[str] | None = None) -> None:
                     "chapter, one call each (it costs more, and finds what nobody thought to ask)")
     nw.add_argument("--chapters", help="--explore: the chapters to explore, e.g. 02-materiel,03-stack (default: all, "
                     "except those the manifest declares with explore = false; `vault-watch chapters` lists them)")
+    dl = sub.add_parser("deadlinks", help="the guide's dead links, probed from here and crossed with the weekly report "
+                        "of its CI (free), then a replacement searched on the web for each (asked first)")
+    dl.add_argument("--out", type=Path, help="where to write the replacements, one per line (default: reports/ of the "
+                    "guide's working folder)")
+    dl.add_argument("--yes", action="store_true", help="search the replacements without asking")
     ch = sub.add_parser("chapters", help="the chapters the agent works on (exploration of the web, check of the "
                         "translations, reading by chapter); --propose asks a model for a split")
     ch.add_argument("--propose", action="store_true", help="one model call reads the outline of the guide (titles, "
@@ -626,6 +675,10 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "chapters":
         chapters_command(args)
+        return
+    if args.cmd == "deadlinks":
+        HOME.mkdir(parents=True, exist_ok=True)
+        deadlinks_command(args)
         return
     if args.cmd == "mirror":
         HOME.mkdir(parents=True, exist_ok=True)

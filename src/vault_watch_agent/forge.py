@@ -37,6 +37,7 @@ class Forge(Protocol):
     def issue_body(self, repo: str, number: int) -> str: ...
     def close_issue(self, repo: str, number: int, comment: str) -> None: ...
     def download_artifact(self, repo: str, run_id: str, name: str, dest: Path) -> None: ...
+    def latest_artifact(self, repo: str, name: str) -> dict | None: ...
     def open_pull_request(self, repo: str, *, base: str, head: str, title: str, body: str, cwd: Path) -> str: ...
     def pull_request_state(self, url: str) -> str: ...
 
@@ -73,6 +74,15 @@ class GitHub:
 
     def download_artifact(self, repo: str, run_id: str, name: str, dest: Path) -> None:
         inputs.run(["gh", "run", "download", run_id, "--repo", repo, "-n", name, "-D", str(dest)])
+
+    def latest_artifact(self, repo: str, name: str) -> dict | None:
+        """The newest artifact `name` of the repository's workflows, not expired: {run_id, created}; None."""
+        out = inputs.run(["gh", "api", f"repos/{repo}/actions/artifacts?name={quote(name)}&per_page=5"])
+        found = [a for a in json.loads(out).get("artifacts") or [] if not a.get("expired")]
+        if not found:
+            return None
+        a = max(found, key=lambda a: a.get("created_at") or "")
+        return {"run_id": str((a.get("workflow_run") or {}).get("id") or ""), "created": (a.get("created_at") or "")[:10]}
 
     def open_pull_request(self, repo: str, *, base: str, head: str, title: str, body: str, cwd: Path) -> str:
         # The description in a file: as an argument, a long one is refused by Windows before gh runs (a command
@@ -176,6 +186,15 @@ class Gitea:
     def close_issue(self, repo: str, number: int, comment: str) -> None:
         self._call("POST", f"{self._repo(repo)}/issues/{int(number)}/comments", json_body={"body": comment})
         self._call("PATCH", f"{self._repo(repo)}/issues/{int(number)}", json_body={"state": "closed"})
+
+    def latest_artifact(self, repo: str, name: str) -> dict | None:
+        """The newest artifact `name` of the repository's Actions, not expired: {run_id, created}; None."""
+        listed = self._call("GET", f"{self._repo(repo)}/actions/artifacts?name={quote(name)}") or {}
+        found = [a for a in listed.get("artifacts") or [] if not a.get("expired")]
+        if not found:
+            return None
+        a = max(found, key=lambda a: a.get("created_at") or "")
+        return {"run_id": str((a.get("workflow_run") or {}).get("id") or ""), "created": (a.get("created_at") or "")[:10]}
 
     def download_artifact(self, repo: str, run_id: str, name: str, dest: Path) -> None:
         """The artifact `name` of the Actions run `run_id`, unzipped into `dest` (Gitea 1.23 or later)."""

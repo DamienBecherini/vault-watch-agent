@@ -277,7 +277,7 @@ def test_the_leads_of_the_check_go_to_an_addition_run(setup, tmp_path):
     card = next(x for x in c.get("/api/verifications").json() if x["id"] == vid)
     assert card["kinds"] == ["news"] and card["runs"][thread]["status"] == "review" and card["links"] == []
     assert ("add 2/3", True) in llm.calls and ("crosscheck", True) in llm.calls  # the web for the additions and their review
-    assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 3, "dismissed": 0}
+    assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 3, "dismissed": 0, "tracked": 0}
     report = (deps.home / "reports" / f"feat-{thread}.md").read_text(encoding="utf-8")
     assert "needs a page: the obligations, under 06-ops" in report and "| Ollama (voix) | 0.14 |" in report
     # The run writes no new page: said before the corrections, with the page its lead would need
@@ -370,11 +370,11 @@ def test_a_lead_its_run_could_not_look_at_can_be_sent_again(setup, tmp_path):
             break
         time.sleep(0.05)
     v = c.get(f"/api/verifications/{vid}").json()
-    assert v["unchecked"] == {LEADS[0]: why} and v["counts"] == {"open": 0, "fix": 3, "dismissed": 0}
+    assert v["unchecked"] == {LEADS[0]: why} and v["counts"] == {"open": 0, "fix": 3, "dismissed": 0, "tracked": 0}
     assert all(x["unchecked"] == {} for x in c.get("/api/verifications").json())  # a list reads no run
     # « Put back to handle »: the lead is open again, and can go to another run
     assert c.post(f"/api/verifications/{vid}/leads", json={"findings": [LEADS[0]], "status": "open"}, headers=act).json() \
-        == {"open": 1, "fix": 2, "dismissed": 0}
+        == {"open": 1, "fix": 2, "dismissed": 0, "tracked": 0}
     assert c.get(f"/api/verifications/{vid}").json()["unchecked"] == {}
 
 

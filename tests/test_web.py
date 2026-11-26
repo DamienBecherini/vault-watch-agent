@@ -145,7 +145,7 @@ def test_check_of_the_guide_runs_what_its_checks_need(client):
     finding = v["results"]["coherence"]["findings"][0]
     assert v["status"] == "to-handle" and v["counts"]["open"] == 1
     act = lambda status: c.post(f"/api/verifications/{vid}/leads", json={"findings": [finding], "status": status}, headers=ACT)
-    assert act("dismissed").json() == {"open": 0, "fix": 0, "dismissed": 1}
+    assert act("dismissed").json() == {"open": 0, "fix": 0, "dismissed": 1, "tracked": 0}
     assert c.get(f"/api/verifications/{vid}").json()["status"] == "handled"
     assert act("open").json()["open"] == 1
     thread = c.post("/api/fix", json={"text": finding, "verification": vid}, headers=ACT).json()["thread"]
@@ -185,7 +185,7 @@ def test_a_check_a_stopped_server_left_unfinished_can_be_handled_and_deleted(cli
     assert v["interrupted"] and not v["running"] and v["missing"] == ["coherence"] and v["status"] == "to-handle"
     r = c.post("/api/verifications/verif-2026-11-17-194034/leads", json={"findings": ["a dead link"], "status": "dismissed"},
                headers=ACT)
-    assert r.status_code == 200 and r.json() == {"open": 0, "fix": 0, "dismissed": 1}  # was a 409 « still running »
+    assert r.status_code == 200 and r.json() == {"open": 0, "fix": 0, "dismissed": 1, "tracked": 0}  # was a 409 « still running »
     assert c.post("/api/verifications/verif-2026-11-17-194034/delete", json={}, headers=ACT).json() == {
         "deleted": "verif-2026-11-17-194034"}
     assert not (verifs / "verif-2026-11-17-194034.json").exists() and not (verifs / "verif-2026-11-17-194034").exists()

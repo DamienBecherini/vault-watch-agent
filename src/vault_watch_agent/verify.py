@@ -296,22 +296,58 @@ def run_audits(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> d
 BROKEN = {"dead", "server-error", "network-error", "timeout"}
 
 
+def weekly(vault_dir: Path, work: Path) -> tuple[dict[str, dict], str]:
+    """The weekly report of the source audit the guide's CI makes ([checks] sources_weekly, « artifact/file.json »),
+    its newest artifact downloaded through the forge: ({url: probe}, what to say of it). ({}, "") when the guide
+    declares none or has no repository; ({}, why) when it cannot be read (offline, expired, gh not signed in)."""
+    from . import forge
+
+    g = vault.guide_of(vault_dir)
+    if not g.sources_weekly or not g.repository:
+        return {}, ""
+    name, file = g.sources_weekly.split("/", 1)
+    try:
+        latest = forge.get().latest_artifact(g.repository, name)
+        if not latest or not latest["run_id"]:
+            return {}, f"no artifact {name!r} in {g.repository} (expired, or the workflow has not run yet)"
+        target = work / f"weekly-{latest['run_id']}"
+        if not (target / file).is_file():
+            target.mkdir(parents=True, exist_ok=True)
+            forge.get().download_artifact(g.repository, latest["run_id"], name, target)
+        data = json.loads((target / file).read_text(encoding="utf-8"))
+    except (RuntimeError, OSError, ValueError) as e:
+        return {}, f"the weekly report could not be read: {e}"[:300]
+    return ({s["url"]: s.get("probe") or {} for s in data.get("sources", []) if isinstance(s, dict) and s.get("url")},
+            f"the weekly report of {latest['created']} (run {latest['run_id']})")
+
+
 def run_sources(vault_dir: Path, work: Path, results: dict, llm: LLM | None) -> dict:
+    """Every cited address probed from this machine (the guide's command), crossed with the weekly report of its CI
+    when the guide declares it (E7): an address that fails from both is dead; one that fails only from the CI's
+    runners answers here, so it is a site that refuses data-centre addresses, not a link to replace."""
     out = work / "sources.json"
     if inputs.check("sources", vault_dir, out) is None:
         return {"ok": True, "summary": NOT_DECLARED.format("sources"), "dead": [], "blocked": [], "findings": []}
     report = json.loads(out.read_text(encoding="utf-8"))
-    rows = []
+    ci, said = weekly(vault_dir, work)
+    rows, runners_only = [], []
     for s in report.get("sources", []):
         probe = s.get("probe") or {}
         pages = sorted({c["page"] for c in s.get("citations", []) if not vault.in_mirror(vault_dir, c["page"])})
+        there = ci.get(s["url"], {}).get("status")
         if pages and probe.get("status") in BROKEN | {"blocked"}:
-            rows.append({"url": s["url"], "status": probe.get("status"), "code": probe.get("code"), "pages": pages})
+            rows.append({"url": s["url"], "status": probe.get("status"), "code": probe.get("code"), "pages": pages,
+                         **({"weekly": there} if there else {})})
+        elif pages and there in BROKEN and probe.get("status") not in BROKEN | {"blocked"}:
+            runners_only.append({"url": s["url"], "status": there, "code": ci[s["url"]].get("code"), "pages": pages})
     dead = [r for r in rows if r["status"] in BROKEN]
     blocked = [r for r in rows if r["status"] == "blocked"]
+    crossed = (f"; crossed with {said}: {sum(1 for r in dead if r.get('weekly') in BROKEN)} dead from its runners "
+               f"too, {len(runners_only)} failing only from them (sites that refuse data-centre addresses)" if ci
+               else f"; {said}" if said else "")
     return {"ok": not dead, "summary": f"{len(report.get('sources', []))} sources: {len(dead)} not answering, "
-            f"{len(blocked)} blocked by anti-bot protections (usually fine in a browser)",
-            "dead": dead, "blocked": blocked,
+            f"{len(blocked)} blocked by anti-bot protections (usually fine in a browser){crossed}",
+            "dead": dead, "blocked": blocked, "runners_only": runners_only, "weekly": said,
             "findings": [_dead(r) for r in dead],
             # The line citing the URL, found by the code: no model, always exact
             "excerpts": {_dead(r): [quotes.locate(vault_dir, p, r["url"]) for p in r["pages"]] for r in dead}}
@@ -365,10 +401,13 @@ passed. For each claim, search the web and open primary sources (release notes, 
 Report a finding only for a claim that is now wrong or outdated, with what the sources say today and their URLs.
 Write the findings in English."""
 
-DEAD_LINKS = """Sources cited by <<GUIDE>> no longer answer. For each, search the web for where the
-page moved, or an equivalent primary source (same publisher first). Report one finding per source: the page, the
-dead URL, the replacement URL you opened and checked, and what it supports. If you find nothing reliable, say so in
-the finding. Write the findings in English."""
+DEAD_LINKS = """Sources cited by <<GUIDE>> no longer answer the agent's probe. A probe is not a reader: a
+site may refuse a script and serve a person. So for each source, first open the dead URL itself: if it opens and
+still supports what the guide cites it for, it is not dead: report no finding for it. Else search the web for where
+the page moved, or an equivalent primary source (same publisher first). Report one finding per source to replace:
+the page, the dead URL, what opening it gave (an error, a page that no longer says it), the replacement URL you
+opened and checked, and what it supports. If you find nothing reliable, say so in the finding. Write the findings
+in English."""
 
 
 EXCERPTS = ("\nIn `excerpts`, copy each passage in question verbatim from its page (one sentence or one table row): "
@@ -623,7 +662,8 @@ def run_deadlinks(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
                         + "".join(f"\n{citing(vault_dir, p, d['url'])}" for p in d["pages"]) for d in dead)
     result, usage = llm.parse(system=prompts.fill(DEAD_LINKS, vault_dir) + EXCERPTS, prompt=f"Dead sources:\n{listing}", schema=Findings,
                               effort=steps.effort("deadlinks"), node="verify deadlinks", web=True)
-    return {"ok": not result.findings, "summary": f"{len(dead)} dead sources, {len(result.findings)} replacements",
+    return {"ok": not result.findings, "summary": f"{len(dead)} dead sources, {len(result.findings)} to replace (the "
+            f"others opened and still say what the guide cites them for)",
             **_findings(vault_dir, result), "usage": [usage]}
 
 

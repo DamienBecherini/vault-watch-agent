@@ -56,6 +56,7 @@ export async function viewCheck(id) {
         ${r ? `<p class="muted small">${esc(r.summary)}</p>
           ${list(V.dead, (r.dead || []).map(d => `${extLink(d.url, esc(d.url))} — ${esc(d.status)} ${esc(d.code ?? "")} (${esc(d.pages.join(", "))})`))}
           ${list(V.blocked, (r.blocked || []).map(d => `${extLink(d.url, esc(d.url))} (${esc(d.pages.join(", "))})`))}
+          ${list(V.runnersOnly, (r.runners_only || []).map(d => `${extLink(d.url, esc(d.url))} — ${esc(d.status)} ${esc(d.code ?? "")} (${esc(d.pages.join(", "))})`))}
           ${list(V.claims, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
           ${list(V.linksRead, (r.links || []).map(l => `${extLink(l.url, esc(l.title || l.url))} — ${l.error ? `<span class="attention-text">${esc(l.error)}</span>` : V.linkChars(l.chars, l.cut)}`))}

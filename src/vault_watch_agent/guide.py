@@ -97,6 +97,8 @@ class Guide:
     claims_due: str | None = None
     sources: str | None = None
     version_floors: Floors | None = None
+    # The weekly report of the same source audit, made by the guide's CI: « artifact/file.json » (verify.weekly)
+    sources_weekly: str = ""
     max_context_tokens: int | None = None
     page_kb: int = 0                # a ceiling for every page, in KB (sizes.py); 0: none. A warning, never a failure
     page_budgets: tuple[tuple[str, int], ...] = ()  # (glob, KB): a ceiling for the pages of a folder; the first match wins
@@ -159,7 +161,7 @@ _KEYS = {
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates",
               "candidate_kinds", "candidate_readers", "source_tiers"},
     "rules": {"brief", "translation_policy"},
-    "checks": {"audits", "claims_due", "sources", "version_floors"},
+    "checks": {"audits", "claims_due", "sources", "version_floors", "sources_weekly"},
     "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
 }
 
@@ -236,6 +238,10 @@ def parse(data: dict, root: Path) -> Guide:
             raise GuideError("[checks] version_floors: a table with script and file")
         floors = Floors(script=_file(root, "checks", "version_floors.script", floors["script"]).as_posix(),
                         file=floors["file"])
+    weekly = checks.get("sources_weekly", "")
+    if not isinstance(weekly, str) or (weekly and not re.fullmatch(r"[\w.-]+/[\w./-]+\.json", weekly)):
+        raise GuideError('[checks] sources_weekly: « artifact/file.json », the artifact of the guide\'s CI that holds '
+                         'the JSON report of its source audit (as "freshness-report/sources.json")')
     tokens = budget.get("max_context_tokens")
     if tokens is not None and (not isinstance(tokens, int) or isinstance(tokens, bool) or tokens <= 0):
         raise GuideError("[budget] max_context_tokens: a positive whole number")
@@ -263,7 +269,8 @@ def parse(data: dict, root: Path) -> Guide:
         include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()), readonly=readonly,
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
         brief=_rule(root, rules, "brief"), translation_policy=_rule(root, rules, "translation_policy"),
-        **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, max_context_tokens=tokens,
+        **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, sources_weekly=weekly,
+        max_context_tokens=tokens,
         page_kb=page_kb, page_budgets=tuple(budgets.items()), **growth, schema=schema,
         chapters=chapters_of(data.get("chapter", [])),
     )

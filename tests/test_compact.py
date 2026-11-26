@@ -476,4 +476,4 @@ def test_the_leads_of_the_check_go_to_a_compaction_run(setup, tmp_path):
         time.sleep(0.05)
     assert run["status"] == "review" and run["mode"] == "compact"
     assert [x["id"] for x in run["corrections"]] == ["C1", "C2", "C3", "C4", "C5"] and run["corrections"][4]["lost"]
-    assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 2, "dismissed": 0}
+    assert c.get(f"/api/verifications/{vid}").json()["counts"] == {"open": 0, "fix": 2, "dismissed": 0, "tracked": 0}
