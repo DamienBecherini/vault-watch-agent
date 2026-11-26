@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.8.0 (2026-11-26)
 
 The registry of candidates grows into a discovery that weighs and judges (ROADMAP D2, D4), the search for what the
 guide lacks feeds it (E4), and dead links are told from sites that only refuse robots (E7).
