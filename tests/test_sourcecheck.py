@@ -149,6 +149,17 @@ def test_the_feeds_file_keeps_its_layout(guide, collector):
     assert [f["id"] for f in json.loads(sourcecheck.edit(compact, [{"action": "remove", "feed": FEEDS[0]}]))["feeds"]][0] == "adv-engine"
 
 
+def test_the_advisories_the_guide_answers_are_listed_with_their_page(guide, collector, tmp_path):
+    (guide.root / "tools" / "c.md").write_text("Behind a proxy: GHSA-2364-6whj-g7vx closed.\n", encoding="utf-8")
+    collector.answered = {"GHSA-2364-6whj-g7vx": {"page": "tools/c.md", "why": "the proxy blocks it"},
+                          "GHSA-fjxr-j47c-4x2x": {"page": "tools/a.md", "why": ""},
+                          "GHSA-wpm4-hgr2-xjwr": {"page": "tools/gone.md", "why": ""}}
+    assert sourcecheck.answered(guide, collector) == [
+        {"id": "GHSA-2364-6whj-g7vx", "page": "tools/c.md", "why": "the proxy blocks it", "page_found": True, "named": True},
+        {"id": "GHSA-fjxr-j47c-4x2x", "page": "tools/a.md", "why": "", "page_found": True, "named": False},
+        {"id": "GHSA-wpm4-hgr2-xjwr", "page": "tools/gone.md", "why": "", "page_found": False, "named": False}]
+
+
 def test_the_whole_check_and_its_pull_request(guide, collector, tmp_path):
     git = lambda *a, cwd=guide.root: subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True).stdout  # noqa: E731
     git("init", "-q", "-b", "main")

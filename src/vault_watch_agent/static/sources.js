@@ -108,6 +108,13 @@ export async function viewSources() {
           list.some(open) ? ` <button class="small-button" data-tick-group="${g}">${T.verif.tickCard(list.filter(open).length)}</button>` : ""}</summary>
         <ul class="leads">${list.map(p => proposal(p, g)).join("")}</ul></details>`).join("") : `<p class="muted">${S.noProposals}</p>`}
       <p class="muted small">${S.staleNote(check.stale_days)}</p>
+      ${(check.answered || []).length ? `<details class="card foldable"><summary class="header"><b>${S.answered.title}</b>
+        <span class="badge neutral">${check.answered.length}</span>${check.answered.some(a => !a.page_found || !a.named)
+          ? ` <span class="badge attention">${S.answered.toLook}</span>` : ""}</summary>
+        <p class="muted small">${S.answered.help}</p>
+        <ul class="leads">${check.answered.map(a => `<li><b>${esc(a.id)}</b> · <code>${esc(a.page)}</code>${a.why ? ` : ${esc(a.why)}` : ""}${
+          !a.page_found ? ` <span class="badge attention">${S.answered.gone}</span>` : !a.named ? ` <span class="badge attention">${S.answered.unnamed}</span>` : ""}</li>`).join("")}</ul>
+      </details>` : ""}
       ${view.error ? `<p class="error-text">${esc(view.error)}</p>` : ""}
       ${check.proposals.some(open) ? `<div class="bar"><button id="all">${T.verif.tickAll}</button><button id="nothing">${T.verif.untickAll}</button>
         <button id="later" title="${esc(S.putOffHelp)}"></button><button class="primary" id="apply"></button></div>

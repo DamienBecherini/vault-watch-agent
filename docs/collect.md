@@ -125,8 +125,19 @@ Each item is kept or dropped by rule, with a reason. Only the kept items reach t
 The floors file:
 
 ```json
-{ "floors": { "adv-memos": "26.11.0" } }
+{
+  "floors": { "adv-memos": "26.11.0" },
+  "answered": {
+    "GHSA-wpm4-hgr2-xjwr": { "page": "security.md", "why": "fixed from 26.12 only; the setting x closes it" }
+  }
+}
 ```
+
+`answered` (optional) names the advisories the guide answers another way than a minimum version: a workaround, a
+setting, a part to keep closed, said on `page`. The collection drops them for good (« answered by the guide »),
+however severe, so that a release line the guide keeps on purpose does not raise them at every watch. « Check the
+sources » lists them, with a flag when the page is gone or no longer names the advisory: remove one when the guide
+changes its answer (drops the line, the workaround).
 
 The seen file can be in any format: each `http(s)://` address it contains counts. A table of the items you already
 triaged works.

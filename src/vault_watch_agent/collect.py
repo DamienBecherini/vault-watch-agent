@@ -279,6 +279,37 @@ def floor_covers(floor: str, vuln: dict) -> bool:
     return bool(fixes) and cmp_version(fixes[0], floor) <= 0
 
 
+_GHSA = re.compile(r"GHSA(?:-[23456789cfghjmpqrvwx]{4}){3}", re.I)
+
+
+def _ghsa_form(text: str) -> str:
+    """A GHSA id as GitHub writes it: GHSA-wpm4-hgr2-xjwr."""
+    return "GHSA-" + text[5:].lower()
+
+
+def advisory_id(item: dict) -> str:
+    """The GHSA id of an advisory item (from its address, else its title), as GitHub writes it; "" when none."""
+    m = _GHSA.search(str(item.get("url") or "")) or _GHSA.search(str(item.get("title") or ""))
+    return _ghsa_form(m.group(0)) if m else ""
+
+
+def answered_of(data: dict, where: str = "floors") -> dict[str, dict]:
+    """The advisories the guide answers another way than a floor (asked by the user, 2026-11-25: LiteLLM's 1.106
+    line, kept with two workarounds, raised three advisories fixed only from 1.108.0 at every urgent watch), from
+    the floors file: {"answered": {"GHSA-…": {"page": "where the guide says it", "why": "the workaround"}}}."""
+    raw = data.get("answered", {}) if isinstance(data, dict) else {}
+    if not isinstance(raw, dict):
+        raise CollectError(f'{where}: "answered" is a table of advisory id: {{"page": …, "why": …}}')
+    out = {}
+    for key, value in raw.items():
+        if not _GHSA.fullmatch(str(key)) or not isinstance(value, dict) or not isinstance(value.get("page"), str) \
+                or not value["page"].strip():
+            raise CollectError(f'{where}: answered {key!r}: a GHSA id with {{"page": "the page that answers it", '
+                               '"why": "how"}')
+        out[_ghsa_form(str(key))] = {"page": value["page"].strip(), "why": str(value.get("why") or "").strip()}
+    return out
+
+
 def floor_fixed_on_its_line(floor: str, vulns: list[dict]) -> bool:
     """Backported fixes come as one entry per release line ("< 1.103.10", "< 1.104.8"…): a floor on an older line
     still falls inside the later ranges, and is safe when the fix of its own line (same major.minor) is at or below it."""
@@ -308,6 +339,7 @@ class Collector:
     max_items: int = 15
     domains: dict[str, str] = field(default_factory=dict)  # domain -> title of its section, in order
     floors: dict[str, str] = field(default_factory=dict)   # advisory feed id -> lowest version the guide recommends
+    answered: dict[str, dict] = field(default_factory=dict)  # advisory id (GHSA-…) -> {page, why}: handled by the guide
     seen: set[str] = field(default_factory=set)            # URLs already triaged by the editor
     due: list[dict] = field(default_factory=list)          # the candidates of the registry to look at again (candidates.py)
     token: str = ""
@@ -320,14 +352,17 @@ class Collector:
 
     @classmethod
     def from_files(cls, feeds: Path, floors: Path | None = None, seen: Path | None = None, **kw) -> Collector:
-        """From a feeds.json, the version floors ({"floors": {feed id: version}}) and a file of seen URLs."""
+        """From a feeds.json, the version floors ({"floors": {feed id: version}, "answered": {advisory id: {page,
+        why}}}) and a file of seen URLs."""
         try:
             config = json.loads(feeds.read_text(encoding="utf-8"))
         except (OSError, ValueError) as e:
             raise CollectError(f"{feeds}: {e}") from e
         check(config, feeds.name)
         defaults = config.get("defaults", {})
-        floor_map = json.loads(floors.read_text(encoding="utf-8")).get("floors", {}) if floors and floors.is_file() else {}
+        floor_data = json.loads(floors.read_text(encoding="utf-8")) if floors and floors.is_file() else {}
+        floor_map = floor_data.get("floors", {})
+        kw.setdefault("answered", answered_of(floor_data, floors.name if floors else "floors"))
         seen_urls = set()
         if seen and seen.is_file():
             seen_urls = {u.rstrip("/") for u in re.findall(r"https?://[^\s)>\]|]+", seen.read_text(encoding="utf-8"))}
@@ -484,6 +519,9 @@ class Collector:
             sev = str(item.get("severity") or "").lower()
             if sev == "low":
                 return "drop", "low severity", False
+            known = self.answered.get(advisory_id(item))
+            if known:  # the guide answers it another way than a floor (a workaround, a setting): not news again
+                return "drop", f"answered by the guide ({known['page']})", False
             floor = self.floors.get(feed["id"])
             vulns = item.get("vulns") or []
             if floor and vulns and (all(floor_covers(floor, v) for v in vulns) or floor_fixed_on_its_line(floor, vulns)):

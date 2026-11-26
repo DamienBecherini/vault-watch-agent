@@ -237,7 +237,21 @@ def check(guide: Guide, home: Path, runs: list[dict[str, str]], collector: colle
         probes = dict(pool.map(one, feed_list))
     return {"checked": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"), "stale_days": STALE_DAYS,
             "min_pages": MIN_PAGES, "probes": probes,
-            "proposals": propose(feed_list, rows, probes, guide, collector)}
+            "proposals": propose(feed_list, rows, probes, guide, collector),
+            "answered": answered(guide, collector)}
+
+
+def answered(guide: Guide, collector: collect.Collector) -> list[dict]:
+    """The advisories the guide answers another way than a floor (the floors file's `answered`), each with whether
+    its page is still there and still names it: what the collection drops for good, said here so that it is not
+    forgotten when the guide changes its answer (drops the release line, the workaround)."""
+    out = []
+    for gid, a in sorted(collector.answered.items()):
+        path = guide.root / a["page"]
+        text = path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+        out.append({"id": gid, "page": a["page"], "why": a["why"], "page_found": path.is_file(),
+                    "named": gid.lower() in text.lower()})
+    return out
 
 
 # -- the feeds file -----------------------------------------------------------------------------------------------

@@ -132,8 +132,19 @@ Les règles :
 Le fichier des planchers :
 
 ```json
-{ "floors": { "adv-memos": "26.11.0" } }
+{
+  "floors": { "adv-memos": "26.11.0" },
+  "answered": {
+    "GHSA-wpm4-hgr2-xjwr": { "page": "security.md", "why": "corrigé en 26.12 seulement ; le réglage x le ferme" }
+  }
+}
 ```
+
+`answered` (facultatif) nomme les avis de sécurité auxquels le guide répond autrement que par une version minimale :
+un contournement, un réglage, une partie à garder fermée, dits sur `page`. La collecte les écarte pour de bon
+(« answered by the guide »), quelle que soit leur gravité, pour qu'une ligne de versions que le guide garde exprès ne
+les fasse pas revenir à chaque veille. « Vérifier les sources » les liste, avec un signal quand la page n'existe plus
+ou ne nomme plus l'avis : retirez-en un quand le guide change de réponse (il abandonne la ligne, le contournement).
 
 Le fichier des éléments déjà vus peut avoir n'importe quel format : chaque adresse `http(s)://` qu'il contient
 compte. Un tableau des éléments déjà triés convient.

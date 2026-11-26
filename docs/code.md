@@ -106,7 +106,7 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `graph_text.py` | 304 | What a run writes for people: the report, the usage and weight lines, the pull request's title and description |
 | `graph_common.py` | 51 | What the nodes share: `Deps`, git in a worktree, the order of the proposals, the branch of a run |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve`; finds the guide, wires the checkpointer and the dependencies |
-| `collect.py` | 727 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
+| `collect.py` | 765 | `vault-watch collect`: reads the guide's feeds (GitHub, RSS, Hugging Face…), triages by rules, writes a `watch.json`; a port of the IA on-prem guide's collector |
 | `candidates.py` | 403 | The registry of discovery (ROADMAP D3): candidates followed over time, their sources, states, reasons and dates to look again, in the file the manifest names (`[watch] candidates`); the collection drops what it tracks and lists what is due |
 | `enrich.py` | 163 | What a candidate is, read without a model (ROADMAP D1): Hugging Face's API for a model page (licence, parameters, context, GGUF, downloads), GitHub's for a repository (licence, stars, latest release, contributors); one reader per site (`READERS`), the guide names its own (`[watch] candidate_readers`, none by default) |
 | `llm.py` | 442 | The contract every engine keeps: the `LLM` and `Engine` protocols, `ModelError`, the efforts, `Capabilities`, the cost journal (`_Journal`), `EngineKind` and `engines()` (protocol 1); `engine()` and `create`, the engine of a role (`Routed` when steps are set apart); whether Claude Code is installed and signed in |
@@ -123,7 +123,7 @@ Only the main links are drawn; the tables below give each module's role. Two rul
 | `retouch.py` | 175 | The pause to retouch the pages of a run's branch: the guide's folder lent to the run (detached at the branch's tip, what it held set aside in a stash named after the run), the retouches committed as the editor's, the branch moved forward, the folder given back |
 | `guide.py` | 457 | The guide as its manifest (`vault-watch.toml`) describes it: pages, mirrors, watch, rules, checks, budget; a folder without a manifest refused, the IA on-prem guide apart |
 | `chapters.py` | 413 | The chapters of a guide: those its manifest declares, the automatic rule for the other pages, a model's proposal from the outline of the guide, the manifest rewritten on a branch |
-| `sourcecheck.py` | 386 | « Check the sources »: asks each source itself (network, no model), reads the guide again, proposes changes to the feeds file and rewrites it for a pull request |
+| `sourcecheck.py` | 400 | « Check the sources »: asks each source itself (network, no model), reads the guide again, proposes changes to the feeds file and rewrites it for a pull request |
 | `compact.py` | 372 | Compaction: the prompts of the report, of the trims and of their cross-check; the notes a trim orphans removed with it, a trim that would leave a sentence citing a removed note refused; `in_calls`, several calls that share the guide in the cache or read only the pages they name |
 | `vault.py` | 504 | Pages of the guide, keyword search with excerpts, exact-quote check, apply an edit (a passage removed whole leaves no hole), leftovers sweep, the values no page states any more |
 | `onboard.py` | 355 | `init` (a manifest from what a repository shows) and `doctor` (what will run, what is missing) |
@@ -184,7 +184,7 @@ changed), so an update never leaves an old module beside a new one.
 | `app.js` | 33 | The entry module: the header, the notices, the first screen |
 | `util.js` | 106 | The helpers of every screen: the DOM, HTML escaped, links out of the page and into Obsidian, a help bubble |
 | `api.js` | 43 | The calls of the server's API, and what the server says of itself (`/api/info`) |
-| `texts.js` | 907 | The texts of the interface in French and in English (`T`) |
+| `texts.js` | 919 | The texts of the interface in French and in English (`T`) |
 | `explain.js` | 39 | The lines a model or a check wrote in English, shown in the language of the interface |
 | `header.js` | 103 | The header and its menus |
 | `router.js` | 67 | Which screen the address shows |
@@ -203,7 +203,7 @@ changed), so an update never leaves an old module beside a new one.
 | `check.js` | 340 | The page of one check: its results and its leads |
 | `rules.js` | 33 | What may be ticked on the page of a check |
 | `report.js` | 143 | « Report or suggest » |
-| `sources.js` | 203 | « Sources followed » |
+| `sources.js` | 210 | « Sources followed » |
 | `languages.js` | 154 | « Languages » |
 | `chapters.js` | 128 | « Chapters » |
 | `candidates.js` | 308 | « Candidates »: the registry by state, add by hand, watch or dismiss (a reason, a date to look again), propose an addition (« Propose an addition » with its line), publish the registry |

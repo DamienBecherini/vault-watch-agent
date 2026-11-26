@@ -370,3 +370,32 @@ def test_a_video_keeps_its_whole_description_as_notes():
 </feed>"""
     item = collect.parse_feed(xml)[0]
     assert len(item["summary"]) <= 220 and len(item["notes"]) > 400 and item["notes"].startswith("We run Qwen")
+
+
+def test_an_advisory_the_guide_answers_another_way_is_dropped(tmp_path):
+    """LiteLLM's 1.106 line, kept with two workarounds (2026-11-25): three advisories fixed only from 1.108.0 came back
+    in every urgent watch. Named in the floors file's `answered`, they are dropped, with where the guide answers."""
+    answered = "GHSA-wpm4-hgr2-xjwr"
+    ADVISORIES.append(advisory(answered, "high", ">= 2.0.0, < 2.4.0", "2.4.0"))
+    try:
+        floors = tmp_path / "floors.json"
+        floors.write_text(json.dumps({"floors": {"adv-notes": "2.3.0"}, "answered": {answered.lower(): {
+            "page": "security.md", "why": "the setting that closes it"}}}), encoding="utf-8")
+        feeds = tmp_path / "feeds.json"
+        feeds.write_text(json.dumps({"feeds": FEEDS}), encoding="utf-8")
+        c = Collector.from_files(feeds, floors, get=fake_get, now=lambda: NOW, token="")
+        assert c.answered == {answered: {"page": "security.md", "why": "the setting that closes it"}}
+        adv = {i["title"].split()[1]: i for i in c.collect(days=8)["items"] if i["feed"] == "adv-notes"}
+        assert (adv[answered]["triage"], adv[answered]["reason"], adv[answered]["urgent"]) == (
+            "drop", "answered by the guide (security.md)", False)
+        assert adv["GHSA-open"]["urgent"]  # the others as before
+        # Without it, the same advisory is urgent
+        plain = {i["title"].split()[1]: i for i in collector().collect(days=8)["items"] if i["feed"] == "adv-notes"}
+        assert plain[answered]["urgent"]
+    finally:
+        ADVISORIES.pop()
+    for bad in ({"answered": ["GHSA-wpm4-hgr2-xjwr"]}, {"answered": {"CVE-2026-1": {"page": "a.md"}}},
+                {"answered": {answered: {"why": "no page"}}}):
+        floors.write_text(json.dumps(bad), encoding="utf-8")
+        with pytest.raises(collect.CollectError, match="answered"):
+            Collector.from_files(feeds, floors, get=fake_get, now=lambda: NOW, token="")

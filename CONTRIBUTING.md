@@ -46,7 +46,9 @@ types are in `types/page.d.ts`.
 ## Tests
 
 - No test calls a model or the network: the graph runs with a fake model (`FakeLLM` in `tests/test_graph.py`,
-  `SampleLLM` in `tests/test_sample_guide.py`).
+  `SampleLLM` in `tests/test_sample_guide.py`). The fixture `no_network` (`tests/conftest.py`, for every test)
+  refuses any connection outside this machine and makes `gh` answer as on the CI, signed in nowhere: a test that
+  passes only where the network or `gh` is at hand fails at once on your machine too. Give such a test its own reader.
 - `examples/sample-guide/` is a small made-up guide with planted errors; the fixture `sample_guide`
   (`tests/conftest.py`) copies it into a throwaway git repository. Prefer it for a new test of the graph.
 - CI runs the suite on Linux and Windows, Python 3.11 and 3.12. Paths and subprocesses differ between the two: test

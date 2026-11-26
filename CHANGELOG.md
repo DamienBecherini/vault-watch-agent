@@ -3,6 +3,17 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **An advisory the guide answers another way no longer comes back** (noticed on the guide's watch #110, 2026-11-25:
+  LiteLLM's 1.106 line, kept with two workarounds, raised three advisories fixed only from 1.108.0 at every urgent
+  watch): the floors file takes `answered`, {advisory id: {page, why}}; the collection drops them (« answered by the
+  guide (page) »), and « Check the sources » lists them, flagging a page gone or that no longer names the advisory.
+- **No test reaches the network** (asked by the user, 2026-11-26, after the CI of 1.7.0): the fixture `no_network`
+  refuses any connection outside the machine and makes `gh` answer as on the CI, signed in nowhere
+  (`tests/test_offline.py`). A test of the publish pause that failed once in the whole suite now says the job's
+  error.
+
 ## 1.7.1 (2026-11-26)
 
 The CI green again: tests of 1.7.0 passed only on the machine they were written on (one needed `gh` signed in, the

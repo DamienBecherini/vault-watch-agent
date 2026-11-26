@@ -255,7 +255,9 @@ def test_at_the_publish_pause_a_page_is_corrected_checked_again_and_translated_a
                                                                                "Ollama reste vraiment le plus simple")}, headers=act)
     c.post(f"/api/runs/{thread}/publish", json={"action": "recheck"}, headers=act)
     run = wait(c, thread)
-    assert run["status"] == "publish" and run["pause"]["audit_ok"]
+    # Once in the whole suite (2026-11-26), back at « publish » with no pause: the job's error says why, if it failed
+    assert run["status"] == "publish" and run["pause"], (run.get("error"), (run.get("job") or {}).get("events", [])[-3:])
+    assert run["pause"]["audit_ok"]
     assert "vraiment" in c.get(f"/api/runs/{thread}/diff").text
     assert "Corrected at the publish review" in git_out(Path(run["pause"]["worktree"]) if run["pause"].get("worktree")
                                                          else deps.vault, "log", "--format=%s", f"main..{run['branch']}")

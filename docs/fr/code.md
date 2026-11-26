@@ -106,7 +106,7 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 | `graph_text.py` | 304 | Ce qu'une passe écrit pour les humains : le rapport, les lignes de consommation et de poids, le titre et la description de la pull request |
 | `graph_common.py` | 51 | Ce que les étapes partagent : `Deps`, git dans un worktree, l'ordre des propositions, la branche d'une passe |
 | `cli.py` | 771 | `vault-watch init / doctor / run / resume / status / crosscheck / fix / news / chapters / mirror / compact / eval / prices / collect / costs / serve` ; trouve le guide, branche le checkpointer et les dépendances |
-| `collect.py` | 727 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
+| `collect.py` | 765 | `vault-watch collect` : lit les flux du guide (GitHub, RSS, Hugging Face…), trie par règles, écrit un `watch.json` ; portage du collecteur du guide IA on-prem |
 | `candidates.py` | 403 | Le registre de la découverte (ROADMAP D3) : les candidats suivis dans le temps, leurs sources, états, raisons et dates de revérification, dans le fichier que nomme le manifeste (`[watch] candidates`) ; la collecte écarte ce qu'il suit et liste ce qui est dû |
 | `enrich.py` | 163 | Ce qu'est un candidat, lu sans modèle (ROADMAP D1) : l'API de Hugging Face pour une page de modèle (licence, paramètres, contexte, GGUF, téléchargements), celle de GitHub pour un dépôt (licence, étoiles, dernière version, contributeurs) ; un lecteur par site (`READERS`), le guide nomme les siens (`[watch] candidate_readers`, aucun par défaut) |
 | `llm.py` | 442 | Le contrat que tient chaque moteur : les protocoles `LLM` et `Engine`, `ModelError`, les efforts, `Capabilities`, le journal des coûts (`_Journal`), `EngineKind` et `engines()` (protocole 1) ; `engine()` et `create`, le moteur d'un rôle (`Routed` quand des étapes sont réglées à part) ; si Claude Code est installé et connecté |
@@ -123,7 +123,7 @@ Seuls les liens principaux sont dessinés ; les tableaux ci-dessous donnent le r
 | `retouch.py` | 175 | La pause pour retoucher les pages de la branche d'une passe : le dossier du guide prêté à la passe (détaché sur le dernier commit de la branche, ce qu'il contenait mis de côté dans une remise nommée d'après la passe), les retouches commitées au nom de l'éditeur, la branche avancée, le dossier rendu |
 | `guide.py` | 457 | Le guide tel que le décrit son manifeste (`vault-watch.toml`) : pages, miroirs, veille, règles, contrôles, budget ; un dossier sans manifeste refusé, le guide IA on-prem à part |
 | `chapters.py` | 413 | Les chapitres d'un guide : ceux que son manifeste déclare, la règle automatique pour les autres pages, la proposition d'un modèle à partir du plan du guide, le manifeste réécrit sur une branche |
-| `sourcecheck.py` | 386 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
+| `sourcecheck.py` | 400 | « Vérifier les sources » : interroge chaque source elle-même (réseau, sans modèle), relit le guide, propose des changements au fichier des flux et le réécrit pour une pull request |
 | `compact.py` | 372 | Compactage : les consignes du rapport, des allègements et de leur relecture croisée ; les notes qu'un allègement laisse sans phrase retirées avec lui, un allègement qui laisserait une phrase citer une note retirée refusé ; `in_calls`, plusieurs appels qui partagent le guide en cache ou ne lisent que les pages qu'ils désignent |
 | `vault.py` | 504 | Pages du guide, recherche par mots-clés avec extraits, contrôle de la citation exacte, application d'une modification (un passage retiré en entier ne laisse pas de trou), balayage des restes, les valeurs qu'aucune page ne dit plus |
 | `onboard.py` | 355 | `init` (un manifeste d'après ce que montre un dépôt) et `doctor` (ce qui tournera, ce qui manque) |
@@ -184,7 +184,7 @@ n'a pas changé), si bien qu'une mise à jour ne laisse jamais un ancien module 
 | `app.js` | 33 | Le module d'entrée : l'en-tête, les notifications, le premier écran |
 | `util.js` | 106 | Les aides de chaque écran : le DOM, le HTML échappé, les liens hors de la page et vers Obsidian, une bulle d'aide |
 | `api.js` | 43 | Les appels à l'API du serveur, et ce que le serveur dit de lui-même (`/api/info`) |
-| `texts.js` | 907 | Les textes de l'interface en français et en anglais (`T`) |
+| `texts.js` | 919 | Les textes de l'interface en français et en anglais (`T`) |
 | `explain.js` | 39 | Les lignes qu'un modèle ou un contrôle a écrites en anglais, montrées dans la langue de l'interface |
 | `header.js` | 103 | L'en-tête et ses menus |
 | `router.js` | 67 | Quel écran l'adresse affiche |
@@ -203,7 +203,7 @@ n'a pas changé), si bien qu'une mise à jour ne laisse jamais un ancien module 
 | `check.js` | 340 | La page d'une vérification : ses résultats et ses pistes |
 | `rules.js` | 33 | Ce qui peut être coché sur la page d'une vérification |
 | `report.js` | 143 | « Signaler ou proposer » |
-| `sources.js` | 203 | « Sources suivies » |
+| `sources.js` | 210 | « Sources suivies » |
 | `languages.js` | 154 | « Langues » |
 | `chapters.js` | 128 | « Chapitres » |
 | `candidates.js` | 308 | « Candidats » : le registre par état, l'ajout à la main, l'observation ou l'écart (une raison, une date de revérification), la proposition d'un ajout (« Proposer un ajout » avec sa ligne), la publication du registre |

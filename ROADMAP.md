@@ -46,11 +46,11 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
 Discovery becomes a tracker of candidates over time instead of a one-shot triage:
 `lead → enriched → watching → confirmed → proposed → added`, or `dismissed` with a reason and a re-check date.
 
-- [ ] **D1. Deterministic enrichment before any judgement.** Hugging Face: size, licence, context, GGUF
+- [x] **D1. Deterministic enrichment before any judgement.** Hugging Face: size, licence, context, GGUF
   availability, downloads. GitHub: licence, releases, contributors, README head.
 - [ ] **D2. Group by entity across sources and weeks.** Normalise names (model family, tool), score =
   sources × tier × persistence. "Two independent tier B sources" becomes a computation.
-- [ ] **D3. Candidate store with states and re-check dates**, replacing the flat `watch-seen.md`
+- [x] **D3. Candidate store with states and re-check dates**, replacing the flat `watch-seen.md`
   (handles "weights announced for later": Reflection Beam, Mistral Large 4).
 - [ ] **D4. Relevance judged with the whole vault in context** (C1): where the addition fits and which
   decision it changes, which is the opportunity note.
@@ -706,7 +706,7 @@ and put back untouched, and its pull request passes the guide's checks.
 
 Left open when the Claude Code engine, the Settings and the header buttons came in (2026-11-17).
 
-- [ ] **An advisory the guide answers with a workaround comes back in every urgent watch** (noticed on the guide's
+- [x] **An advisory the guide answers with a workaround comes back in every urgent watch** (done 2026-11-26: `answered` in the floors file) (noticed on the guide's
   watch #110, 2026-11-25; to do, said the user). The guide keeps LiteLLM's 1.106 line acceptable with two
   workarounds (`enforce_fallback_model_access`, two endpoints blocked at the reverse proxy), so
   `version-floors.json` keeps its lowest floor, 1.106.12; but three advisories of 2026-11-23 are fixed only from
@@ -714,7 +714,7 @@ Left open when the Claude Code engine, the Settings and the header buttons came 
   (floor 1.108.13), or the collector learns that an advisory is handled: a list of advisory ids answered by the
   guide (with the page that says the workaround) in `version-floors.json` or beside it, read by `collect.py` as
   covered, and shown by « Check the sources » so that it is not forgotten when the line is dropped.
-- [ ] **End-to-end tests of the page** (asked by the user, 2026-11-22, for later): Playwright with pytest, a real
+- [x] **End-to-end tests of the page** (asked by the user, 2026-11-22, for later; done in 1.7.0, `tests/test_e2e.py`): Playwright with pytest, a real
   browser on a throwaway server: the page loads, ticking and digging deeper, the bar's options open. Beside the
   unit tests of `static/rules.js` (run with node), they would catch a script broken as a whole (a name declared
   twice across the page's scripts broke it once, 2026-11-22).
