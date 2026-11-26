@@ -118,3 +118,22 @@ def test_a_draft_can_be_dropped_and_a_proposed_candidate_names_its_run(page):
                                       "candidate": "larkdb-3"}, headers=ACT).json()["thread"]
     lark = c.get("/api/candidates").json()["candidates"][0]
     assert (lark["state"], lark["reason"]) == ("proposed", f"run {thread}")
+
+
+def test_the_page_scores_the_entities_with_the_guides_tiers_and_merges_two_names_of_one(page):
+    c, root, _, _ = page
+    (root / "tiers.md").write_text("## Tier A\n\n- huggingface.co\n\n## Tier B\n\n- simonwillison.net\n", encoding="utf-8")
+    manifest = root / "vault-watch.toml"
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(text.replace("[watch]\n", '[watch]\nsource_tiers = "tiers.md"\n', 1) if "[watch]\n" in text
+                        else text + '\n[watch]\nsource_tiers = "tiers.md"\n', encoding="utf-8")
+    c.post("/api/candidates", json={"name": "Qwen3-235B-A22B", "url": "https://huggingface.co/Qwen/Qwen3-235B-A22B"}, headers=ACT)
+    c.post("/api/candidates", json={"name": "Qwen3 30B", "url": "https://simonwillison.net/2026/Nov/10/qwen3/"}, headers=ACT)
+    d = c.get("/api/candidates").json()
+    one, two = d["entities"]["qwen3-235b-a22b"], d["entities"]["qwen3-30b"]
+    assert d["tiers"] and one["family"] == two["family"] == "qwen3" and one["group"] == ["qwen3-30b"]
+    assert (one["score"], one["corroborated"]) == (5, True)  # A 3 + B 2, one week
+    merged = c.post("/api/candidates/qwen3-235b-a22b/merge", json={"other": "qwen3-30b"}, headers=ACT).json()
+    assert merged["id"] == "qwen3-235b-a22b" and [x["id"] for x in merged["candidates"]] == ["qwen3-235b-a22b"]
+    assert merged["candidates"][0]["aka"] == ["Qwen3 30B"] and merged["entities"]["qwen3-235b-a22b"]["group"] == []
+    assert c.post("/api/candidates/qwen3-235b-a22b/merge", json={"other": "qwen3-30b"}, headers=ACT).status_code == 400

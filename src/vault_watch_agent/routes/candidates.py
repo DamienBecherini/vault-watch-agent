@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from .. import candidates as cand
-from .. import enrich, forge, vault
+from .. import enrich, entities, forge, vault
 from .. import guide as guide_mod
 from .context import AppContext, read_json, write_json
 
@@ -32,6 +32,10 @@ class Move(BaseModel):
     state: str
     reason: str = ""
     recheck: str = ""  # YYYY-MM-DD, for watching or dismissed
+
+
+class Merge(BaseModel):
+    other: str  # the candidate that goes into this one (D2: one entity)
 
 
 class PublishBody(BaseModel):
@@ -106,7 +110,10 @@ def router(ctx: AppContext) -> APIRouter:
         now = vault.guide_of(ctx.settings.vault)
         found = cand.changes(base.candidates, reg.candidates)
         readers = enrich.readers_of(now.watch)
+        tiers = entities.load_tiers(now.root / now.watch.source_tiers if now.watch.source_tiers else None)
         return {"readers": list(readers), "reader_labels": {k: r.label for k, r in enrich.READERS.items()},
+                # D2: the family of each candidate, the others of it, the score of the entity (tiers: the guide's)
+                "entities": entities.view(reg.candidates, tiers), "tiers": bool(tiers),
                 # the candidates one of the guide's readers can read (« Read again »)
                 "readable": [c["id"] for c in reg.candidates
                              if any(enrich.where(s.get("url", ""), readers) for s in c.get("sources", []))],
@@ -159,6 +166,12 @@ def router(ctx: AppContext) -> APIRouter:
         """A candidate read again by the guide's readers (no model): its facts of today, what failed."""
         return change(lambda reg: {"errors": enrich.enrich(reg.get(cid), today=date.today().isoformat(),
                                                            readers=readers_now())})
+
+    @api.post("/api/candidates/{cid}/merge")
+    def candidates_merge(cid: str, body: Merge):
+        """Another candidate merged into this one (one entity under two names): its sources, facts and history come
+        here, its name stays as another name of this one."""
+        return change(lambda reg: {"id": reg.merge(cid, body.other, today=date.today().isoformat())["id"]})
 
     @api.post("/api/candidates/{cid}")
     def candidates_move(cid: str, body: Move):

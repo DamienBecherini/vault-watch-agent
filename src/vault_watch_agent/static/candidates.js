@@ -68,7 +68,19 @@ const CANDIDATES_TEXTS = {
       state: c => `<b>${esc(c.name)}</b> : ${esc(c.from)} → ${esc(c.state)}`,
       sources: c => `<b>${esc(c.name)}</b> : ${c.n} source(s) en plus`,
       removed: c => `<b>${esc(c.name)}</b> retiré`,
+      merged: c => `<b>${esc(c.name)}</b> fusionné dans <b>${esc(c.into)}</b>`,
     },
+    score: n => `score ${n}`,
+    scoreTip: (e, tiers) => `Le score de l'entité (ce candidat et ceux de sa famille, ensemble) : le rang de chaque éditeur indépendant qui en a parlé (A 3, B 2, C ou non classé 1), additionnés, multiplié par les semaines où il a été vu. Ici : ${e.publishers.map(p => `${p.publisher}${p.tier ? ` (${p.tier})` : ""}`).join(", ") || "aucune source"}, ${e.weeks} semaine(s).${tiers ? "" : " Le guide ne déclare pas de fichier de rangs (source_tiers dans son manifeste) : chaque source compte 1."}`,
+    corroborated: "2 sources A/B",
+    corroboratedTip: "Au moins deux éditeurs indépendants de rang A ou B en parlent : le seuil que le guide demande avant d'écrire. À vérifier avant de confirmer.",
+    family: "Même famille :",
+    familyTip: "Le même nom sans ce qui distingue une version d'une autre (taille, variante, quantification, date). Si c'est la même chose, fusionne : les sources, les informations lues et l'historique vont dans ce candidat, et l'autre nom reste un de ses noms.",
+    merge: name => `Fusionner « ${name} » ici`,
+    confirmMerge: (other, into) => `Fusionner « ${other} » dans « ${into} » ? Il disparaît du registre ; ses sources et son historique vont dans « ${into} ».`,
+    merged: name => `« ${name} » fusionné ici.`,
+    aka: "aussi nommé",
+    sortBy: "Ordre :", sortState: "par état", sortScore: "par score",
   },
   en: {
     title: "Candidates",
@@ -129,7 +141,19 @@ const CANDIDATES_TEXTS = {
       state: c => `<b>${esc(c.name)}</b>: ${esc(c.from)} → ${esc(c.state)}`,
       sources: c => `<b>${esc(c.name)}</b>: ${c.n} more source(s)`,
       removed: c => `<b>${esc(c.name)}</b> removed`,
+      merged: c => `<b>${esc(c.name)}</b> merged into <b>${esc(c.into)}</b>`,
     },
+    score: n => `score ${n}`,
+    scoreTip: (e, tiers) => `The score of the entity (this candidate and those of its family, together): the tier of each independent publisher that spoke of it (A 3, B 2, C or unclassified 1), added up, times the weeks it was seen. Here: ${e.publishers.map(p => `${p.publisher}${p.tier ? ` (${p.tier})` : ""}`).join(", ") || "no source"}, ${e.weeks} week(s).${tiers ? "" : " The guide declares no file of tiers (source_tiers in its manifest): every source counts 1."}`,
+    corroborated: "2 A/B sources",
+    corroboratedTip: "At least two independent publishers of tier A or B speak of it: the threshold the guide asks before writing. Check before confirming.",
+    family: "Same family:",
+    familyTip: "The same name without what tells one release from another (size, variant, quantisation, date). If it is the same thing, merge: the sources, the facts read and the history come to this candidate, and the other name stays one of its names.",
+    merge: name => `Merge « ${name} » here`,
+    confirmMerge: (other, into) => `Merge « ${other} » into « ${into} »? It leaves the registry; its sources and history go to « ${into} ».`,
+    merged: name => `« ${name} » merged here.`,
+    aka: "also named",
+    sortBy: "Order:", sortState: "by state", sortScore: "by score",
   },
 };
 addTexts("candidates", CANDIDATES_TEXTS);
@@ -153,6 +177,7 @@ const factLine = (f, C, labels) => {
 };
 
 let FILTER = "";  // the state shown, "" for all
+let SORT = "state";  // or "score" (D2): the entities most seen by the best sources first
 let SAID = "";    // said once at the top after an action on the registry (a publication)
 let FLASH = null; // said once on the card an action concerns, brought into view: {id, text, error}
 
@@ -163,8 +188,12 @@ export async function viewCandidates() {
   const d = await api("/api/candidates"), C = T.candidates;
   const stateOf = s => C.states[s] || s;
   const due = new Set(d.due);
+  const byId = id => d.candidates.find(c => c.id === id);
   const count = s => d.candidates.filter(c => c.state === s).length;
+  const E = d.entities || {};
+  const scoreOf = c => E[c.id]?.score || 0;
   const shown = d.candidates.filter(c => !FILTER || c.state === FILTER);
+  if (SORT === "score") shown.sort((a, b) => scoreOf(b) - scoreOf(a));
   const changeLine = c => C.change[c.what]({ ...c, from: stateOf(c.from), state: stateOf(c.state) });
   const actions = c => {
     const b = (state, label, help, cls = "") => `<span><button type="button" class="small-button ${cls}" data-act="${state}" data-id="${esc(c.id)}">${label}</button>${help ? tip(help) : ""}</span>`;
@@ -183,7 +212,12 @@ export async function viewCandidates() {
   const card = c => `<div class="card candidate" data-card="${esc(c.id)}">
       <div class="header"><b>${esc(c.name)}</b> <span class="badge neutral">${esc(C.kinds[c.kind] || c.kind)}</span>
         <span class="badge ${c.state === "dismissed" ? "neutral" : c.state === "added" ? "ok" : "attention"}">${esc(stateOf(c.state))}</span>
-        ${due.has(c.id) ? `<span class="badge error">${C.dueBadge}</span>` : ""}</div>
+        ${due.has(c.id) ? `<span class="badge error">${C.dueBadge}</span>` : ""}
+        ${E[c.id] ? `<span class="badge neutral">${C.score(E[c.id].score)}</span>${tip(C.scoreTip(E[c.id], d.tiers))}` : ""}
+        ${E[c.id]?.corroborated ? `<span class="badge ok">${C.corroborated}</span>${tip(C.corroboratedTip)}` : ""}</div>
+      ${(c.aka || []).length ? `<p class="muted small">${C.aka} ${c.aka.map(esc).join(", ")}</p>` : ""}
+      ${(E[c.id]?.group || []).length ? `<p class="small">${C.family} ${E[c.id].group.map(o => `<span>${esc(byId(o)?.name || o)}
+        <button type="button" class="small-button" data-merge="${esc(o)}" data-into="${esc(c.id)}">${C.merge(esc(byId(o)?.name || o))}</button></span>`).join(" ")}${tip(C.familyTip)}</p>` : ""}
       <p class="muted small">${C.seen(esc(c.first_seen), esc(c.last_seen))}${c.recheck ? ` · ${C.lookAgain(esc(c.recheck))}` : ""}</p>
       ${c.reason ? `<p class="small">${esc(c.reason)}</p>` : ""}
       ${(c.sources || []).length ? `<ul class="small">${c.sources.map(s => `<li>${extLink(s.url, esc(s.title || shortUrl(s.url)))} <span class="muted">${esc(s.seen)} · ${esc(s.origin)}</span></li>`).join("")}</ul>` : ""}
@@ -209,6 +243,7 @@ export async function viewCandidates() {
           <button type="button" class="small-button danger" id="discard">${C.discard}</button> <span class="error-text small" id="publish-error"></span></p>`
         : `<p class="muted small">${C.inPr}</p>`}
     </div>` : ""}
+    <p class="small">${C.sortBy} <select id="c-sort"><option value="state"${SORT === "state" ? " selected" : ""}>${C.sortState}</option><option value="score"${SORT === "score" ? " selected" : ""}>${C.sortScore}</option></select></p>
     <p class="tabs">${["", ...d.states].map(s => `<a href="#" data-filter="${s}"${s === FILTER ? ' class="active"' : ""}>${s ? stateOf(s) : C.all} (${s ? count(s) : d.candidates.length})</a>`).join("")}</p>
     <div id="list">${shown.map(card).join("") || `<p class="muted">${d.candidates.length ? C.noneHere : C.none}</p>`}</div>
     <h2>${C.add}</h2>
@@ -236,10 +271,19 @@ export async function viewCandidates() {
     FILTER = /** @type {HTMLElement} */ (a).dataset.filter || "";
     viewCandidates();
   }));
-  const byId = id => d.candidates.find(c => c.id === id);
   page.querySelectorAll("[data-propose]").forEach(b => b.addEventListener("click", () => {
     const c = byId(/** @type {HTMLElement} */ (b).dataset.propose);
     if (c) proposeCandidate(c, leadLine(c, C));
+  }));
+  $("#c-sort").onchange = e => { SORT = /** @type {HTMLSelectElement} */ (e.target).value; viewCandidates(); };
+  page.querySelectorAll("[data-merge]").forEach(b => b.addEventListener("click", async () => {
+    const { merge: other, into } = /** @type {HTMLElement} */ (b).dataset;
+    if (!other || !into || !confirm(C.confirmMerge(byId(other)?.name || other, byId(into)?.name || into))) return;
+    try {
+      await api(`/api/candidates/${encodeURIComponent(into)}/merge`, { other });
+      FLASH = { id: into, text: C.merged(esc(byId(other)?.name || other)), error: false };
+    } catch (e) { FLASH = { id: into, text: esc(e.message), error: true }; }
+    viewCandidates();
   }));
   page.querySelectorAll("[data-enrich]").forEach(b => b.addEventListener("click", async () => {
     const id = /** @type {HTMLElement} */ (b).dataset.enrich || "";

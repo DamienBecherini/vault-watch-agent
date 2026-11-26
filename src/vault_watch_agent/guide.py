@@ -53,6 +53,7 @@ class Watch:
     candidates: str = ""    # the registry of discovery (candidates.py), a JSON file of the guide; created when first saved
     candidate_kinds: tuple[str, ...] = ()  # the kinds of its candidates (« other » added); () = candidates.KINDS
     candidate_readers: tuple[str, ...] = ()  # where its candidates are read (enrich.READERS); () = nowhere
+    source_tiers: str = ""  # its file of source tiers (entities.load_tiers): the score of a candidate counts them
 
 
 @dataclass(frozen=True)
@@ -156,7 +157,7 @@ _KEYS = {
     "guide": {"name", "description", "repository", "forge", "forge_url", "forge_token", "site", "base_branch"},
     "content": {"language", "include", "exclude", "readonly", "mirrors", "modified_field"},
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates",
-              "candidate_kinds", "candidate_readers"},
+              "candidate_kinds", "candidate_readers", "source_tiers"},
     "rules": {"brief", "translation_policy"},
     "checks": {"audits", "claims_due", "sources", "version_floors"},
     "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
@@ -220,8 +221,8 @@ def parse(data: dict, root: Path) -> Guide:
     watch = Watch(source=source, label=_text(w, "watch", "label"), artifact=_text(w, "watch", "artifact"),
                   path=_text(w, "watch", "path"), candidate_kinds=tuple(dict.fromkeys(kinds)),
                   candidate_readers=tuple(dict.fromkeys(readers)),
-                  **{k: _file(root, "watch", k, w[k]).as_posix() for k in ("feeds", "seen", "floors", "changes_page")
-                     if k in w},
+                  **{k: _file(root, "watch", k, w[k]).as_posix()
+                     for k in ("feeds", "seen", "floors", "changes_page", "source_tiers") if k in w},
                   **({"candidates": _file(root, "watch", "candidates", w["candidates"], exists=False).as_posix()}
                      if "candidates" in w else {}))
     if source == "file" and not watch.path:

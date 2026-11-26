@@ -125,7 +125,7 @@ class Registry:
                 if any(canonical(s["url"]) == where for s in c.get("sources", [])):
                     return c
         k = key(name) if name else ""
-        return next((c for c in self.candidates if k and c["id"] == k), None)
+        return next((c for c in self.candidates if k and (c["id"] == k or k in map(key, c.get("aka", [])))), None)
 
     def urls(self) -> set[str]:
         """Every address a candidate was seen at, canonical: what the collection no longer proposes."""
@@ -182,6 +182,29 @@ class Registry:
         c.setdefault("history", []).append({"date": today, "state": state, "note": reason.strip(),
                                             **({"recheck": recheck} if recheck else {})})
         return c
+
+    def merge(self, into: str, other: str, *, today: str) -> dict:
+        """Two candidates that are one entity (D2: « Qwen3-235B » and « Qwen3 30B »), made one: `into` keeps its
+        name and state, takes the sources and the facts of `other` it does not have, its days seen, its history, and
+        its name as another name (`aka`: noted again under it, it comes here); `other` is gone."""
+        _date(today, "today")
+        if into == other:
+            raise RegistryError("a candidate cannot be merged into itself")
+        a, b = self.get(into), self.get(other)
+        known = {canonical(s["url"]) for s in a.get("sources", [])}
+        a.setdefault("sources", []).extend(s for s in b.get("sources", []) if canonical(s["url"]) not in known)
+        facts = {f["url"] for f in a.get("facts", [])}
+        if b.get("facts"):
+            a.setdefault("facts", []).extend(f for f in b["facts"] if f["url"] not in facts)
+        a["first_seen"] = min(filter(None, (a.get("first_seen"), b.get("first_seen"))), default=today)
+        a["last_seen"] = max(filter(None, (a.get("last_seen"), b.get("last_seen"))), default=today)
+        a["aka"] = list(dict.fromkeys([*a.get("aka", []), b["name"], *b.get("aka", [])]))
+        a.setdefault("history", []).extend({**h, "note": f"{b['name']}: {h.get('note', '')}".rstrip(": ")}
+                                           for h in b.get("history", []))
+        a["history"].append({"date": today, "state": a["state"], "note": f"merged: {b['name']} ({b['state']})"})
+        a["history"].sort(key=lambda h: h.get("date", ""))
+        self.candidates.remove(b)
+        return a
 
 
 # -- the draft the agent keeps (D3.2), and what feeds it (D3.3) ---------------------------------------------------
@@ -283,7 +306,9 @@ def changes(before: list[dict], after: list[dict]) -> list[dict]:
         added = len(c.get("sources", [])) - len(o.get("sources", []))
         if added > 0:
             out.append({"what": "sources", "name": c["name"], "n": added})
-    out += [{"what": "removed", "name": o["name"]} for o in old.values()]
+    into = {key(n): c["name"] for c in after for n in c.get("aka", [])}  # a candidate merged into another (D2)
+    out += [{"what": "merged", "name": o["name"], "into": into[o["id"]]} if o["id"] in into
+            else {"what": "removed", "name": o["name"]} for o in old.values()]
     return out
 
 
@@ -297,6 +322,8 @@ def said(change: dict) -> str:
         return f"**{name}**: {change['from']} → {change['state']}{why}"
     if what == "sources":
         return f"**{name}**: {change['n']} source(s) added"
+    if what == "merged":
+        return f"**{name}** merged into **{change['into']}** (one entity)"
     return f"**{name}** removed"
 
 
