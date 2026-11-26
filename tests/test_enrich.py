@@ -5,7 +5,7 @@ import re
 
 from test_candidates_page import ACT, page  # noqa: F401  (fixture: the page on the sample guide)
 
-from vault_watch_agent import enrich, vault
+from vault_watch_agent import enrich
 
 HF_MODEL = {"id": "acme/Base-7B", "tags": ["transformers", "gguf", "license:apache-2.0"], "cardData": {"license": "apache-2.0"},
             "safetensors": {"total": 7_615_616_512}, "pipeline_tag": "text-generation", "downloads": 1_234_567, "likes": 89,
@@ -104,7 +104,9 @@ def test_a_candidate_added_on_the_page_is_read_and_can_be_read_again(page, monke
     assert enrich.GET.calls == []
     assert plain["reader_labels"] == {"huggingface": "Hugging Face", "github": "GitHub"}
     manifest = root / "vault-watch.toml"
-    vault.write(manifest, vault.read(manifest).replace("[watch]\n", '[watch]\ncandidate_readers = ["huggingface"]\n', 1))
+    text = manifest.read_text(encoding="utf-8")  # text mode: CRLF on Windows read as \n
+    assert "[watch]\n" in text
+    manifest.write_text(text.replace("[watch]\n", '[watch]\ncandidate_readers = ["huggingface"]\n', 1), encoding="utf-8")
     added = c.post("/api/candidates", json={"name": "Base 7B", "url": "https://huggingface.co/acme/Base-7B", "kind": "model"},
                    headers=ACT).json()
     base = next(x for x in added["candidates"] if x["id"] == "base-7b")

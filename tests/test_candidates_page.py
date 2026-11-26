@@ -33,7 +33,9 @@ def page(sample_guide, tmp_path, monkeypatch):
     """(client, guide, forge, PR states): the sample guide with a repository, its origin a bare repository."""
     root, _ = sample_guide
     manifest = root / "vault-watch.toml"
-    vault.write(manifest, vault.read(manifest).replace("[guide]\n", '[guide]\nrepository = "me/guide"\n', 1))
+    text = manifest.read_text(encoding="utf-8")  # text mode: CRLF on Windows read as \n
+    assert "[guide]\n" in text
+    manifest.write_text(text.replace("[guide]\n", '[guide]\nrepository = "me/guide"\n', 1), encoding="utf-8")
     git("commit", "-qam", "a repository", cwd=root)
     origin = tmp_path / "origin.git"
     git("init", "-q", "--bare", str(origin), cwd=tmp_path)

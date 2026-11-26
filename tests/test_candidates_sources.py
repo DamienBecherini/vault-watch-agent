@@ -8,13 +8,15 @@ from langgraph.checkpoint.memory import InMemorySaver
 from test_candidates_page import ACT, page  # noqa: F401  (fixture: the page on the sample guide)
 from test_graph import setup  # noqa: F401  (fixture: throwaway guide, fake model, watch file)
 
-from vault_watch_agent import news
+from vault_watch_agent import inputs, news
 from vault_watch_agent.candidates import Registry, draft_path
 from vault_watch_agent.graph import build
 
 
-def test_a_watch_run_notes_what_it_sets_aside_once_the_registry_is_used(setup):  # noqa: F811
+def test_a_watch_run_notes_what_it_sets_aside_once_the_registry_is_used(setup, monkeypatch):  # noqa: F811
     deps, watch, _ = setup
+    # The watch of « issue #30 » is the test's own: never the forge's (the CI has no gh signed in)
+    monkeypatch.setattr(inputs, "download_watch", lambda *a, **k: watch)
     graph = build(deps, InMemorySaver())
     # A guide that does not use the registry: nothing is noted
     graph.invoke({"source": str(watch), "issue": None}, {"configurable": {"thread_id": "t1"}})
