@@ -164,8 +164,12 @@ export async function refreshTodo() {
 }
 export async function viewTodo() {
   await loadSteps();
-  const [watches, others, verifs, options, folder] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"),
-    api("/api/verifications?limit=40"), api(`/api/verifications/options${stepsQuery()}`), api("/api/folder").catch(() => null)]);
+  const [watches, others, verifs, options, folder, gap] = await Promise.all([api("/api/watches"), api("/api/runs?limit=40"),
+    api("/api/verifications?limit=40"), api(`/api/verifications/options${stepsQuery()}`), api("/api/folder").catch(() => null),
+    api("/api/last-gap-search").catch(() => null)]);
+  // The search for what the guide lacks (E4): once a quarter; said when it is due
+  const gapDays = gap?.started ? Math.floor((Date.now() / 1000 - gap.started) / 86400) : null;
+  const gapDue = gap && (gapDays == null || gapDays > 90);
   if (!["", "/"].includes(location.hash.slice(1))) return;  // left the page meanwhile
   const D = T.todo, { runs, starts, leads, count } = todoOf(watches, others, verifs, folder), checkCard = checkCardMaker(options);
   TODO_COUNT = count;
@@ -183,6 +187,8 @@ export async function viewTodo() {
     ${starts.length ? `<h2>${D.watches} <span class="muted small">· ${starts.length}</span></h2>${starts.map(watchCard).join("")}` : ""}
     ${leads.length ? `<h2>${D.leads} <span class="muted small">· ${D.leadsCount(leads.length, open)}</span></h2>${leads.map(checkCard).join("")}` : ""}
     <h2>${D.launch}</h2>
+    ${gapDue ? `<p class="banner">${D.gapDue(gapDays, gap.started ? new Date(gap.started * 1000).toLocaleDateString(lang) : "")}
+      <a href="#/check?new=news"><button type="button">${D.gapButton}</button></a></p>` : ""}
     <div class="launch-row">
       <div class="card"><b>${T.nav.check}</b><p class="muted small">${D.checkWhat}</p><a href="#/check?new"><button>${D.checkButton}</button></a></div>
       <div class="card"><b>${T.nav.report}</b><p class="muted small">${D.reportWhat}</p><a href="#/report"><button>${D.reportButton}</button></a></div>

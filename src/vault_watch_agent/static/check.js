@@ -78,12 +78,13 @@ export async function viewCheck(id) {
               <select id="add-context"><option value="pages">${V.contextPages}</option><option value="guide">${V.contextGuide}</option></select>${tip(V.contextTip)}</label></div>
           <div class="dig-cost muted small" id="dig-cost"></div><div class="attention-text small" id="dig-warn" hidden></div></div>
         <div class="bar-sect" id="run-steps-box" hidden><div class="sect">${T.perStep.title}</div><div class="step-cards" id="run-steps"></div></div>
-        <div class="narrow-only bar-row end"><button type="button" class="ghost" data-dismiss></button></div>
+        <div class="narrow-only bar-row end"><button type="button" class="ghost" data-track hidden></button><button type="button" class="ghost" data-dismiss></button></div>
       </div>
       <div class="bar-line">
         <span class="bar-sum" id="bar-sum"></span>
         <button type="button" class="ghost" id="bar-toggle" aria-expanded="${BAR_OPEN}"></button>
         <button type="button" class="ghost wide-only" id="dismiss" data-dismiss></button>
+        <span class="wide-only track-box" hidden><button type="button" class="ghost" data-track></button>${tip(V.trackTip)}</span>
         <button class="primary" id="fix"></button>
       </div>
     </div>`;
@@ -100,7 +101,8 @@ export async function viewCheck(id) {
         v.unchecked?.[f] ? `<div class="unchecked"><span class="badge attention">${V.unchecked}</span>
           <span class="small">${esc(v.unchecked[f])}</span> <button type="button" class="primary" data-reopen="${esc(f)}">${V.resend}</button></div>` : ""}</li>`;
     }
-    if (h?.status === "dismissed") return `<li class="handled">${num} <span class="badge neutral">${V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${shown}</li>`;
+    if (h?.status === "dismissed" || h?.status === "tracked") return `<li class="handled">${num} <span class="badge neutral">${h.status === "tracked"
+      ? `<a href="#/candidates">${V.tracked}</a>` : V.dismissed}</span> <button class="small-button" data-reopen="${esc(f)}">${V.reopen}</button> ${shown}</li>`;
     if (mode === "add") return addLead(f, fixable, card, n, passages, detail || {});
     const p = leadParts(f), kind = p.kind ? `<span class="badge neutral">${esc(V.kinds[p.kind] || p.kind)}</span> ` : "";
     const pages = p.pages.length ? p.pages.map(x => `<code>${esc(x)}</code>`).join(", ") : p.kind ? `<span class="muted">${V.noPage}</span>` : "";
@@ -254,6 +256,13 @@ export async function viewCheck(id) {
     bindSteps($("#run-steps"), count);
     $("#fix").disabled = n === 0 || v.running;
     page.querySelectorAll("[data-dismiss]").forEach(b => { b.textContent = V.dismiss(e); b.disabled = e === 0 || v.running; });
+    // Leads of an addition check that can be followed in the registry (E4): not « Newer », about what the guide has
+    const trackable = ticked().filter(c => c.dataset.mode === "add" && !/^\[Newer\] /.test(c.dataset.lead || ""));
+    page.querySelectorAll(".track-box, .bar-row [data-track]").forEach(b => { /** @type {HTMLElement} */ (b).hidden = !trackable.length; });
+    page.querySelectorAll("[data-track]").forEach(b => {
+      b.textContent = V.track(trackable.length);
+      /** @type {HTMLButtonElement} */ (b).disabled = !trackable.length || trackable.length < e || v.running;
+    });
     // The line of the bar: what is ticked and what it costs; the full label of the button on a wide screen
     const price = kinds.length === 1 ? (kinds[0] === "add" ? costHtml("add", addCost()) : "") : "";
     $("#bar-sum").innerHTML = n ? `<span class="wide-only">${V.barSum(n, dug, price)}</span><span class="narrow-only">${V.barSumShort(n, price)}</span>` : "";
@@ -304,6 +313,7 @@ export async function viewCheck(id) {
   if (!boxes.length) page.querySelector(".bar").remove();
   else {
     page.querySelectorAll("[data-dismiss]").forEach(b => b.onclick = () => leads(ticked().map(c => c.dataset.lead), "dismissed"));
+    page.querySelectorAll("[data-track]").forEach(b => b.onclick = () => leads(ticked().map(c => c.dataset.lead), "tracked").catch(e => { $("#bar-sum").textContent = e.message; }));
     $("#fix").onclick = async () => {
       const busy = (await api("/api/runs").catch(() => [])).filter(r => r.status === "running").map(r => r.thread);
       if (busy.length && !confirm(V.confirmParallel(busy.join(", ")))) return;

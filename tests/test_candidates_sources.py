@@ -58,3 +58,29 @@ def test_a_lead_dismissed_on_a_check_becomes_a_dismissed_candidate(page):  # noq
     lark = by_id["larkdb-3"]
     assert (lark["state"], lark["reason"]) == ("dismissed", "dismissed on the check verif-2026-11-26-090000")
     assert lark["sources"][0]["url"] == "https://example.org/larkdb-3" and lark["sources"][0]["origin"] == "check verif-2026-11-26-090000"
+
+
+def test_a_lead_of_a_gap_search_can_be_followed_in_the_registry(page):  # noqa: F811
+    """E4: a lead neither written nor dismissed becomes a candidate in state « lead », for D1 to D4."""
+    c, root, _, _ = page
+    found = "[Missing] no page yet: nothing on the EU obligations for a model served in-house; check the official text."
+    verifs = root.parent / "home" / "verifications"
+    verifs.mkdir(parents=True, exist_ok=True)
+    assert c.get("/api/last-gap-search").json() == {}  # never searched
+    vid = "verif-2026-11-26-100000"
+    (verifs / f"{vid}.json").write_text(json.dumps({
+        "id": vid, "started": 1_790_000_000, "checks": ["news"], "asked": ["news"], "cost": 0.0, "done": True,
+        "results": {"news": {"ok": False, "summary": "1 lead", "findings": [found], "excerpts": {},
+                             "details": {found: {"title": "EU AI Act obligations"}}, "fixable": True, "open": 1, "mode": "add"}}}),
+        encoding="utf-8")
+    assert c.get("/api/last-gap-search").json() == {"started": 1_790_000_000, "id": vid}
+    # A guide that does not use the registry yet: refused, the lead stays open
+    refused = c.post(f"/api/verifications/{vid}/leads", json={"findings": [found], "status": "tracked"}, headers=ACT)
+    assert refused.status_code == 409 and c.get(f"/api/verifications/{vid}").json()["counts"]["open"] == 1
+    c.post("/api/candidates", json={"name": "Something", "kind": "tool"}, headers=ACT)  # the editor uses the registry
+    done = c.post(f"/api/verifications/{vid}/leads", json={"findings": [found], "status": "tracked"}, headers=ACT).json()
+    assert done["noted"] == ["EU AI Act obligations"] and (done["open"], done["tracked"]) == (0, 1)
+    eu = {x["id"]: x for x in c.get("/api/candidates").json()["candidates"]}["eu-ai-act-obligations"]
+    assert (eu["state"], eu["sources"]) == ("lead", [])
+    assert eu["history"][0]["note"].startswith(f"seen: check {vid}: nothing on the EU obligations")
+    assert c.get(f"/api/verifications/{vid}").json()["status"] == "handled"

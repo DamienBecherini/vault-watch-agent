@@ -23,7 +23,7 @@ NOTE_CHARS = 4000  # « What I already know » on a lead: what the editor wrote,
 
 class Handle(BaseModel):
     findings: list[str]
-    status: Literal["dismissed", "open"]
+    status: Literal["dismissed", "open", "tracked"]  # tracked: followed in the registry of candidates (E4)
 
 
 class LeadNote(BaseModel):
@@ -67,7 +67,7 @@ def verif_view(ctx: AppContext, path: Path, detail: bool = False) -> dict:
     data["error"] = (job.error if job else "") or data.get("error", "")
     handled = data.setdefault("handled", {})
     every = [f for r in data["results"].values() for f in r.get("findings", [])]
-    counts = {"open": 0, "fix": 0, "dismissed": 0}
+    counts = {"open": 0, "fix": 0, "dismissed": 0, "tracked": 0}
     for f in every:
         counts[handled.get(f, {}).get("status", "open")] += 1
     data["counts"] = counts
@@ -121,9 +121,11 @@ def mark(ctx: AppContext, vid: str, findings: list[str], entry: dict | None) -> 
         write_json(path, data)
 
 
-def dismissed_to_registry(ctx: AppContext, vid: str, findings: list[str]) -> list[str]:
+def dismissed_to_registry(ctx: AppContext, vid: str, findings: list[str], dismiss: bool = True) -> list[str]:
     """Leads of an addition check that the editor dismissed: dismissed candidates of the registry (D3.3), so that
     the next watches and checks do not bring them back. Not a lead « Newer » (about what the guide covers already).
+    `dismiss` False: leads the editor follows instead (E4), candidates in state « lead », read by the guide's readers
+    (D1), scored with the others (D2), judged with the guide by the check « candidates » (D4).
     Nothing when the guide does not use the registry; a registry that cannot be read leaves the dismissal as it is."""
     data = read_json(verif_path(ctx, vid))
     found = []
@@ -136,7 +138,7 @@ def dismissed_to_registry(ctx: AppContext, vid: str, findings: list[str]) -> lis
                 continue
             title = (result.get("details", {}).get(f) or {}).get("title") or re.split(r"(?<=\.)\s", p["text"])[0][:140]
             found.append({"name": title, "url": (p["sources"] or [""])[0], "why": p["text"],
-                          "dismiss": f"dismissed on the check {vid}"})
+                          **({"dismiss": f"dismissed on the check {vid}"} if dismiss else {})})
     try:
         return candidates.note_all(vault.guide_of(ctx.settings.vault), ctx.settings.home, found, origin=f"check {vid}",
                                    seen=date.today().isoformat())
@@ -254,10 +256,27 @@ def router(ctx: AppContext) -> APIRouter:
 
     @api.post("/api/verifications/{vid}/leads")
     def verif_handle(vid: str, body: Handle):
+        if body.status == "tracked":  # followed in the registry: refused when the guide does not use one
+            if not candidates.followed(vault.guide_of(ctx.settings.vault), ctx.settings.home):
+                raise HTTPException(409, "the guide does not use the registry of candidates yet: add one on the page "
+                                         "« Candidates » first")
+            mark(ctx, vid, body.findings, {"status": "tracked"})
+            return {**verif_view(ctx, verif_path(ctx, vid))["counts"],
+                    "noted": dismissed_to_registry(ctx, vid, body.findings, dismiss=False)}
         mark(ctx, vid, body.findings, {"status": "dismissed"} if body.status == "dismissed" else None)
         if body.status == "dismissed":
             dismissed_to_registry(ctx, vid, body.findings)
         return verif_view(ctx, verif_path(ctx, vid))["counts"]
+
+    @api.get("/api/last-gap-search")  # not under /api/verifications/: {vid} would take it
+    def verif_last_gap():
+        """When the guide was last searched for what it lacks (the checks « news » or « explore », E4: once a
+        quarter): {started: seconds, id} of the newest, or {} when none was ever run."""
+        for path in verif_files(ctx):
+            data = read_json(path)
+            if {"news", "explore"} & set(data.get("checks", [])) and data.get("done"):
+                return {"started": data.get("started"), "id": data["id"]}
+        return {}
 
     @api.post("/api/verifications/{vid}/delete")
     def verif_delete(vid: str):
