@@ -59,6 +59,7 @@ export async function viewCheck(id) {
           ${list(V.claims, (r.claims || []).map(x => `${esc(x.recheckBy)} <code>${esc(x.page)}</code> : ${esc(x.claim)}`))}
           ${list(V.pagesDue, (r.pages_due || []).map(esc))}
           ${list(V.linksRead, (r.links || []).map(l => `${extLink(l.url, esc(l.title || l.url))} — ${l.error ? `<span class="attention-text">${esc(l.error)}</span>` : V.linkChars(l.chars, l.cut)}`))}
+          ${list(V.judgedOther, (r.judgements || []).filter(j => j.verdict !== "add").map(j => `<b>${esc(j.id)}</b> <span class="badge neutral">${esc(T.candidates?.verdicts?.[j.verdict] || j.verdict)}</span> ${esc(j.matters || j.why || "")}${j.recheck ? ` <span class="muted">(${esc(j.recheck)})</span>` : ""}`))}
           ${r.sizes ? sizesBlock(r.sizes) : ""}
           ${r.log ? `<details><summary>${V.log}</summary><pre>${esc(r.log)}</pre></details>` : ""}
           ${(r.findings || []).length ? `${r.fixable ? "" : `<p class="muted small">${V.notFixable}</p>`}${r.mode === "add" ? `<details class="lead-legend"><summary>${V.howToRead}</summary><p>${V.leadsAdd}</p><dl>${

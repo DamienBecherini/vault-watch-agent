@@ -11,8 +11,9 @@ import { crumb, WAITING } from "./watches.js";
 // --- Check the guide ---------------------------------------------------------------------------------------
 let CHECK_FORM = null;   // the boxes ticked on « Check the guide », kept while the form is drawn again
 export let NEW_CHECK = false;   // « New check » asked from « To handle »: its form opens at once
-// The router says whether « New check » was asked (#/check?new)
-export function setNewCheck(on) { NEW_CHECK = on; }
+let PICK = "";  // a check asked by another page (#/check?new=candidates): ticked when the form opens
+// The router says whether « New check » was asked (#/check?new), and which check it ticks (#/check?new=<check>)
+export function setNewCheck(on, pick = "") { NEW_CHECK = on; PICK = pick; }
 let CHECKS_KIND = "";  // the kind the history of the checks is narrowed to ("": all)
 let CHECKS_SHOWN = 20;  // the list shows the newest; « older ones » asks for more
 export const checkBadge = p => {
@@ -88,7 +89,7 @@ export async function viewChecks() {
       <button type="button" class="small-button" data-tick-checks="none">${V.untickAll}</button>
       <button type="button" class="small-button" data-tick-checks="free">${V.onlyFree}</button></p>
     ${options.filter(o => !o.links_max).map(o => `<div class="card check-card"><label class="option">
-      <input type="checkbox" data-check="${o.id}" ${(kept ? kept.checks.has(o.id) : !o.model) ? "checked" : ""}>
+      <input type="checkbox" data-check="${o.id}" ${(kept ? kept.checks.has(o.id) : PICK ? o.id === PICK : !o.model) ? "checked" : ""}>
       <div>
         <div class="header"><b>${esc(o.title[lang])}</b>
           <span class="badge ${o.model ? "attention" : "ok"}">${price(o)}</span>${origin(o)}

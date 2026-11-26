@@ -22,7 +22,7 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
-from . import compact, inputs, links, news, prompts, quotes, reading, sizes, steps, vault, videos
+from . import compact, inputs, links, news, opportunity, prompts, quotes, reading, sizes, steps, vault, videos
 from .guide import language_name
 from .llm import LLM, MODEL, TRANSLATOR, price_of
 
@@ -68,6 +68,9 @@ LINK_OUT = 9_000
 # The same check run in French on 2026-11-22: each lead also explained to the editor (news.in_language), 27,084 tokens
 # written instead of 17,020: what the model writes for the leads grows by this share in any language but English
 EXPLAIN_SHARE = 0.6
+# The candidates judged with the whole guide (opportunity.py, D4): what the model reads of each (its sources, its
+# facts, its history) and what it writes of each, thinking included; not measured yet, counted high
+CANDIDATE_IN, CANDIDATE_OUT = 600, 1_500
 NEWS_OUT = 20_000  # the leads: 14 536 tokens written for 28 leads on 2026-11-20 (Opus, effort high: 2.28 $ in all)
 CHAPTERS_OUT = 2_000  # the split of the guide into chapters: its answer (1 409 tokens measured on 2026-11-20, Opus, 9 chapters)
 # A third run read its leads' pages and the plan instead of the guide (add-2026-11-20-3, five leads, 8.41 $ before
@@ -161,7 +164,7 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
     fr = _tokens(vault.pages(vault_dir))
     en = _tokens(mirror_pages(vault_dir))
     chapters = len(by_chapter(vault_dir))
-    claims, dead = known.get("claims"), known.get("dead")
+    claims, dead, open_ = known.get("claims"), known.get("dead"), known.get("candidates")
     note = lambda fr_, en_: {"fr": fr_, "en": en_}  # noqa: E731
     # What follows the proposals of a lead of an addition run: its share of the cross-check, and its mirror
     add_after = (_usd(of("crosscheck"), tokens_in=ADD_CROSS_WEB_IN_EACH, tokens_out=ADD_CROSS_OUT_EACH, table=table)
@@ -241,6 +244,17 @@ def estimates(vault_dir: Path, known: dict, models: dict | None = None, table=No
         "claims": {"tokens": None, "usd": CLAIM_USD * claims if claims is not None else None,
                    "note": note(f"{claims} affirmations dues au dernier contrôle de fraîcheur", f"{claims} claims due at the last freshness check")
                    if claims is not None else note(f"≈ {CLAIM_USD} $ par affirmation due", f"≈ {CLAIM_USD} $ per claim due")},
+        # The open candidates of the registry, judged in one call that reads the whole guide (D4)
+        "candidates": {"tokens": fr + (open_ or 0) * (CANDIDATE_IN + CANDIDATE_OUT),
+                       "usd": _usd(of("candidates"), tokens_in=(open_ or 0) * CANDIDATE_IN,
+                                   tokens_out=max(open_ or 0, 1) * CANDIDATE_OUT, cache_write=fr, table=table),
+                       "usd_explained": _usd(of("candidates"), tokens_in=(open_ or 0) * CANDIDATE_IN,
+                                             tokens_out=max(open_ or 0, 1) * CANDIDATE_OUT, cache_write=fr, table=table)
+                       + explained("candidates", max(open_ or 0, 1) * CANDIDATE_OUT),
+                       "note": note(f"{fr:,} tokens de pages lues en entier, {open_} candidat(s) ouvert(s) dans le registre".replace(",", " "),
+                                    f"{fr:,} tokens of pages, read whole; {open_} open candidate(s) in the registry")
+                       if open_ is not None else note(f"{fr:,} tokens de pages lues en entier".replace(",", " "),
+                                                      f"{fr:,} tokens of pages, read whole")},
         "deadlinks": {"tokens": None, "usd": DEAD_LINK_USD * dead if dead is not None else None,
                       "note": note(f"{dead} sources mortes au dernier contrôle", f"{dead} dead sources at the last check")
                       if dead is not None else note(f"≈ {DEAD_LINK_USD} $ par source morte", f"≈ {DEAD_LINK_USD} $ per dead source")},
@@ -459,6 +473,40 @@ def run_news(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
             **_findings(vault_dir, news.Leads(findings=kept), news.line), "usage": usages, "reading": plan.summary()}
 
 
+def run_candidates(vault_dir: Path, work: Path, results: dict, llm: LLM) -> dict:
+    """The candidates of the registry judged with the whole guide (opportunity.py, D4): add (a lead of the check,
+    which goes to an addition run), watch or dismiss, each with why. The candidates are those the server wrote in the
+    check's options (the draft of the registry as the page shows it); from the command line, the open ones of the
+    registry the guide has."""
+    from . import candidates, entities
+
+    chosen = options(work).get("candidates")
+    if chosen is None:
+        g = vault.guide_of(vault_dir)
+        reg = candidates.Registry.load(vault_dir / g.watch.candidates) if g.watch.candidates else candidates.Registry(work / "none.json")
+        tiers = entities.load_tiers(vault_dir / g.watch.source_tiers if g.watch.source_tiers else None)
+        scores = entities.view(reg.candidates, tiers)
+        chosen = [{**c, "score": scores[c["id"]]} for c in opportunity.chosen(reg.candidates, [], scores)]
+    if not chosen:
+        return {"ok": True, "summary": "no open candidate in the registry", "findings": [], "judgements": []}
+    scores = {c["id"]: c.get("score") or {} for c in chosen}
+    plan = reading.plan(vault_dir, llm, step="candidates")
+    system = news.in_language(prompts.fill(opportunity.JUDGE.replace("<<READ>>", str(news.MAX_READ)), vault_dir),
+                              options(work).get("lang", ""))
+    found, usages = _read_guide(vault_dir, llm, plan, system,
+                                f"The candidates:\n{opportunity.listing(chosen, scores)}\n\nJudge each candidate.",
+                                opportunity.Judgements, "candidates")
+    judged = opportunity.kept(found, chosen)
+    by = {c["id"]: c for c in chosen}
+    leads = [opportunity.lead(j, by[j.id]) for j in judged if j.verdict == "add"]
+    count = {v: sum(1 for j in judged if j.verdict == v) for v in ("add", "watch", "dismiss")}
+    how = "" if plan.mode == "whole" else f" ({plan.note})"
+    return {"ok": not leads, "summary": f"{len(judged)} of {len(chosen)} candidates judged: {count['add']} to add, "
+            f"{count['watch']} to watch, {count['dismiss']} to dismiss{how}",
+            **_findings(vault_dir, news.Leads(findings=leads), news.line),
+            "judgements": [opportunity.said(j) for j in judged], "usage": usages, "reading": plan.summary()}
+
+
 def options(work: Path) -> dict:
     """What the editor chose for the checks of this verification (`options.json` in its working folder, written by
     the server or the command line): {"chapters": […]} for the exploration, {"links": […]} for the links, {"lang":
@@ -655,10 +703,24 @@ CHECKS = [
                  "nothing is verified or edited. The leads you keep go to the addition run, which checks them on primary "
                  "sources."},
           MODEL, fix_mode="add", limit=NO_NEW_PAGE, kind="news"),
+    Check("candidates", {"fr": "Nouveautés : les candidats du registre jugés avec le guide",
+                         "en": "What is new: the candidates of the registry judged with the guide"},
+          {"fr": "Claude lit toutes les pages d'un coup avec les candidats ouverts du registre (leurs sources, ce que leurs "
+                 "pages disaient, leur score) et juge chacun : à ajouter (où, et quelle décision du lecteur il change), à "
+                 "surveiller (ce qui manque, et quand le revoir) ou à écarter (pourquoi). Rien n'est vérifié sur le web. "
+                 "Le jugement reste dans le registre ; les candidats à ajouter que tu gardes partent dans une passe "
+                 "d'ajouts, qui les vérifie sur des sources primaires.",
+           "en": "Claude reads every page at once with the open candidates of the registry (their sources, what their "
+                 "pages said, their score) and judges each: to add (where, and which decision of the reader it changes), "
+                 "to watch (what is missing, and when to look again) or to dismiss (why). Nothing is verified on the "
+                 "web. The judgement stays in the registry; the candidates to add you keep go to an addition run, "
+                 "which checks them on primary sources."},
+          MODEL, fix_mode="add", limit=NO_NEW_PAGE, kind="news"),
 ]
 RUNNERS = {"audits": run_audits, "sources": run_sources, "freshness": run_freshness, "coherence": run_coherence,
            "translation": run_translation, "claims": run_claims, "deadlinks": run_deadlinks, "sizes": run_sizes,
-           "compaction": run_compaction, "news": run_news, "explore": run_explore, "links": run_links}
+           "compaction": run_compaction, "news": run_news, "explore": run_explore, "links": run_links,
+           "candidates": run_candidates}
 BY_ID = {c.id: c for c in CHECKS}
 KINDS = ("health", "light", "news")  # the order the list of the checks gives them
 

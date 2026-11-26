@@ -37,6 +37,7 @@ class Verification(BaseModel):
     links: list[str] = []  # the check « links »: the addresses to read (links.py)
     lang: str = ""  # the language of the interface: the leads are explained in it (news.in_language)
     steps: dict = {}  # for this verification alone: {step: {engine, model, effort}} (config.run_steps)
+    candidates: list[str] = []  # the check « candidates »: the ids to judge (the open ones of the registry when empty)
 
 
 def verif_files(ctx: AppContext) -> list[Path]:
@@ -175,6 +176,10 @@ def measured(ctx: AppContext) -> dict[str, int]:
             known["dead"] = len(r["sources"].get("dead", []))
         if "claims" not in known and "freshness" in r:
             known["claims"] = len(r["freshness"].get("claims", []))
+    try:  # the open candidates of the registry, which the check « candidates » judges (D4)
+        known["candidates"] = len(candidates.to_judge(vault.guide_of(ctx.settings.vault), ctx.settings.home))
+    except (candidates.RegistryError, OSError, RuntimeError):
+        pass
     return known
 
 
@@ -184,11 +189,15 @@ def run_checks(ctx: AppContext, job: Job, body: Verification, plan: list[str], p
     deps = settings.make_deps(vid, "verify")
     work_dir = ctx.verifs / vid
     work_dir.mkdir(exist_ok=True)
-    if body.chapters or body.links or body.lang:  # read by the checks that take them (verify.options)
+    judging = "candidates" in plan
+    if body.chapters or body.links or body.lang or judging:  # read by the checks that take them (verify.options)
         write_json(work_dir / "options.json", {"chapters": body.chapters, "links": body.links,
                                                "lang": body.lang if re.fullmatch(r"[a-z]{2}", body.lang) else "",
                                                # dl-sub-dub for the videos: the reference of its token, not the token
-                                               "videos": user_settings.load(ctx.cfg_home)["videos"] if body.links else {}})
+                                               "videos": user_settings.load(ctx.cfg_home)["videos"] if body.links else {},
+                                               # the registry as the page shows it (its draft), not the guide's file
+                                               **({"candidates": candidates.to_judge(vault.guide_of(settings.vault), settings.home,
+                                                                                     body.candidates)} if judging else {})})
     # The guide as merged (main, up to date with origin), not the folder: it may be on another branch
     guide = vault.reading_copy(settings.vault, settings.home)
     data["commit"] = inputs.run(["git", "rev-parse", "--short", "HEAD"], cwd=guide).strip()
@@ -206,6 +215,12 @@ def run_checks(ctx: AppContext, job: Job, body: Verification, plan: list[str], p
                     result["usage"] = [billed]
             result["fixable"] = check.fixable
             data["cost"] = round(data["cost"] + sum(u.get("cost_usd", 0) for u in result.get("usage", [])), 2)
+            if result.get("judgements"):  # D4: each judgement kept in its candidate, in the draft of the registry
+                try:
+                    result["kept"] = candidates.judged(vault.guide_of(settings.vault), settings.home, result["judgements"],
+                                                       check=vid, today=date.today().isoformat())
+                except (candidates.RegistryError, OSError, RuntimeError) as e:
+                    result["summary"] += f"; not kept in the registry: {e}"[:300]
             data["results"][step] = result
             write_json(path, data)
             job.events.append({"t": time.time(), "node": step, "cost": data["cost"]})

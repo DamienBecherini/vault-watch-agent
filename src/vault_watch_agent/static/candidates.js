@@ -69,6 +69,7 @@ const CANDIDATES_TEXTS = {
       sources: c => `<b>${esc(c.name)}</b> : ${c.n} source(s) en plus`,
       removed: c => `<b>${esc(c.name)}</b> retiré`,
       merged: c => `<b>${esc(c.name)}</b> fusionné dans <b>${esc(c.into)}</b>`,
+      judged: c => `<b>${esc(c.name)}</b> jugé avec le guide : ${esc(c.verdict)}`,
     },
     score: n => `score ${n}`,
     scoreTip: (e, tiers) => `Le score de l'entité (ce candidat et ceux de sa famille, ensemble) : le rang de chaque éditeur indépendant qui en a parlé (A 3, B 2, C ou non classé 1), additionnés, multiplié par les semaines où il a été vu. Ici : ${e.publishers.map(p => `${p.publisher}${p.tier ? ` (${p.tier})` : ""}`).join(", ") || "aucune source"}, ${e.weeks} semaine(s).${tiers ? "" : " Le guide ne déclare pas de fichier de rangs (source_tiers dans son manifeste) : chaque source compte 1."}`,
@@ -81,6 +82,11 @@ const CANDIDATES_TEXTS = {
     merged: name => `« ${name} » fusionné ici.`,
     aka: "aussi nommé",
     sortBy: "Ordre :", sortState: "par état", sortScore: "par score",
+    judge: n => `Juger avec le guide (${n} ouvert(s))`,
+    judgeTip: "Une vérification payante : Claude lit tout le guide avec les candidats ouverts (piste, en observation, confirmé) et dit de chacun s'il faut l'ajouter (où, et quelle décision du lecteur il change), le surveiller ou l'écarter. Rien n'est vérifié sur le web ; le jugement reste ici, et les candidats à ajouter que tu gardes partent dans une passe d'ajouts. L'estimation s'affiche avant de lancer.",
+    verdicts: { add: "à ajouter", watch: "à surveiller", dismiss: "à écarter" },
+    judged: (date, verdict) => `Jugé avec le guide le ${date} : ${verdict}`,
+    seeCheck: "voir la vérification",
   },
   en: {
     title: "Candidates",
@@ -142,6 +148,7 @@ const CANDIDATES_TEXTS = {
       sources: c => `<b>${esc(c.name)}</b>: ${c.n} more source(s)`,
       removed: c => `<b>${esc(c.name)}</b> removed`,
       merged: c => `<b>${esc(c.name)}</b> merged into <b>${esc(c.into)}</b>`,
+      judged: c => `<b>${esc(c.name)}</b> judged with the guide: ${esc(c.verdict)}`,
     },
     score: n => `score ${n}`,
     scoreTip: (e, tiers) => `The score of the entity (this candidate and those of its family, together): the tier of each independent publisher that spoke of it (A 3, B 2, C or unclassified 1), added up, times the weeks it was seen. Here: ${e.publishers.map(p => `${p.publisher}${p.tier ? ` (${p.tier})` : ""}`).join(", ") || "no source"}, ${e.weeks} week(s).${tiers ? "" : " The guide declares no file of tiers (source_tiers in its manifest): every source counts 1."}`,
@@ -154,6 +161,11 @@ const CANDIDATES_TEXTS = {
     merged: name => `« ${name} » merged here.`,
     aka: "also named",
     sortBy: "Order:", sortState: "by state", sortScore: "by score",
+    judge: n => `Judge with the guide (${n} open)`,
+    judgeTip: "A paid check: Claude reads the whole guide with the open candidates (lead, watching, confirmed) and says of each whether to add it (where, and which decision of the reader it changes), to watch it or to dismiss it. Nothing is verified on the web; the judgement stays here, and the candidates to add you keep go to an addition run. The estimate shows before you start.",
+    verdicts: { add: "to add", watch: "to watch", dismiss: "to dismiss" },
+    judged: (date, verdict) => `Judged with the guide on ${date}: ${verdict}`,
+    seeCheck: "see the check",
   },
 };
 addTexts("candidates", CANDIDATES_TEXTS);
@@ -174,6 +186,15 @@ const factLine = (f, C, labels) => {
     : [f.licence && `${F.licence} ${esc(f.licence)}`];  // a reader this page does not lay out yet
   return `<li><span class="badge neutral">${esc((labels || {})[f.source] || f.source)}</span> ${bits.filter(Boolean).join(" · ")}
     <span class="muted">(${F.read(esc(f.read))})</span>${f.description ? `<br><span class="muted">${esc(f.description)}</span>` : ""}</li>`;
+};
+
+// What the check « candidates » said of a candidate (D4): its verdict, why, where, when to look again
+const judgementBlock = j => {
+  const C = T.candidates;
+  return `<div class="small judgement"><span class="badge ${j.verdict === "add" ? "ok" : "neutral"}">${esc(C.judged(j.date, C.verdicts[j.verdict] || j.verdict))}</span>
+    <a href="#/check/${encodeURIComponent(j.check)}">${C.seeCheck}</a>
+    <p>${esc(j.matters || j.why || "")}</p>${(j.pages || []).length ? `<p class="muted">${j.pages.map(p => `<code>${esc(p)}</code>`).join(", ")}</p>` : ""}${
+    j.recheck ? `<p class="muted">${C.lookAgain(esc(j.recheck))}</p>` : ""}</div>`;
 };
 
 let FILTER = "";  // the state shown, "" for all
@@ -220,12 +241,14 @@ export async function viewCandidates() {
         <button type="button" class="small-button" data-merge="${esc(o)}" data-into="${esc(c.id)}">${C.merge(esc(byId(o)?.name || o))}</button></span>`).join(" ")}${tip(C.familyTip)}</p>` : ""}
       <p class="muted small">${C.seen(esc(c.first_seen), esc(c.last_seen))}${c.recheck ? ` · ${C.lookAgain(esc(c.recheck))}` : ""}</p>
       ${c.reason ? `<p class="small">${esc(c.reason)}</p>` : ""}
+      ${c.judgement ? judgementBlock(c.judgement) : ""}
       ${(c.sources || []).length ? `<ul class="small">${c.sources.map(s => `<li>${extLink(s.url, esc(s.title || shortUrl(s.url)))} <span class="muted">${esc(s.seen)} · ${esc(s.origin)}</span></li>`).join("")}</ul>` : ""}
       ${(c.facts || []).length ? `<ul class="small facts">${c.facts.map(f => factLine(f, C, d.reader_labels)).join("")}</ul>` : ""}
       <details class="small"><summary>${C.history}</summary><ul>${(c.history || []).map(h => `<li>${esc(h.date)} · ${esc(stateOf(h.state))}${h.note ? ` : ${esc(h.note)}` : ""}${h.recheck ? ` (${C.lookAgain(esc(h.recheck))})` : ""}</li>`).join("")}</ul></details>
       <div class="actions">${actions(c)}</div>
       <div class="move-form" hidden></div>
     </div>`;
+  const open = d.candidates.filter(c => ["lead", "watching", "confirmed"].includes(c.state)).length;
   const pending = d.pending?.pr_url;
   const asksPath = !d.declared && !pending;
   page.innerHTML = `
@@ -243,6 +266,7 @@ export async function viewCandidates() {
           <button type="button" class="small-button danger" id="discard">${C.discard}</button> <span class="error-text small" id="publish-error"></span></p>`
         : `<p class="muted small">${C.inPr}</p>`}
     </div>` : ""}
+    ${open ? `<p><a href="#/check?new=candidates"><button type="button">${C.judge(open)}</button></a>${tip(C.judgeTip)}</p>` : ""}
     <p class="small">${C.sortBy} <select id="c-sort"><option value="state"${SORT === "state" ? " selected" : ""}>${C.sortState}</option><option value="score"${SORT === "score" ? " selected" : ""}>${C.sortScore}</option></select></p>
     <p class="tabs">${["", ...d.states].map(s => `<a href="#" data-filter="${s}"${s === FILTER ? ' class="active"' : ""}>${s ? stateOf(s) : C.all} (${s ? count(s) : d.candidates.length})</a>`).join("")}</p>
     <div id="list">${shown.map(card).join("") || `<p class="muted">${d.candidates.length ? C.noneHere : C.none}</p>`}</div>

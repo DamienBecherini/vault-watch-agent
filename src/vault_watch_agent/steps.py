@@ -35,6 +35,7 @@ STEPS: dict[str, Step] = {s.id: s for s in (
     Step("explore", "reasoning", "high", ("web", "whole_guide")),  # the leads found on the web, a call per chapter
     Step("add", "reasoning", "high", ("web", "whole_guide")),  # the leads kept, checked on the web and written
     Step("links", "reasoning", "high", ("whole_guide",)),  # what the links the editor gave say for the guide (links.py)
+    Step("candidates", "reasoning", "high", ("whole_guide",)),  # the registry's candidates judged with the guide (D4)
     Step("chapters", "reasoning", "medium"),  # the split of the guide into chapters, from its outline (chapters.py)
     Step("claims", "reasoning", "high", ("web",)),
     Step("deadlinks", "reasoning", "medium", ("web",)),

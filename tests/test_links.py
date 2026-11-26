@@ -176,7 +176,8 @@ def test_a_document_without_a_title_is_named_after_its_file():
 
 def test_the_kind_of_each_check_and_its_short_title():
     assert {c.id: c.kind for c in verify.CHECKS if c.kind != "health"} == {
-        "sizes": "light", "compaction": "light", "news": "news", "explore": "news", "links": "news"}
+        "sizes": "light", "compaction": "light", "news": "news", "explore": "news", "links": "news",
+        "candidates": "news"}
     assert verify.short_title(verify.BY_ID["links"]) == "links to read whole"
     assert verify.short_title(verify.BY_ID["links"], "fr") == "des liens à lire en entier"
     assert verify.short_title(verify.BY_ID["compaction"], "fr") == "Compactage"

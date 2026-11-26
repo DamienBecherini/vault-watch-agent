@@ -285,6 +285,45 @@ def note_all(guide, home: Path, found: list[dict], *, origin: str, seen: str) ->
     return new_names
 
 
+def to_judge(guide, home: Path, ids: list[str] | tuple = ()) -> list[dict]:
+    """The candidates a check « candidates » judges with the whole guide (opportunity.py, D4), each with the score
+    of its entity (entities.py): those named, else the open ones, from the registry as the page shows it. [] when the
+    guide does not use the registry."""
+    from . import entities, opportunity
+
+    if not followed(guide, home):
+        return []
+    _, rel = place(guide, home)
+    reg, _ = working(guide, home, rel)
+    tiers = entities.load_tiers(guide.root / guide.watch.source_tiers if guide.watch.source_tiers else None)
+    scores = entities.view(reg.candidates, tiers)
+    return [{**c, "score": scores[c["id"]]} for c in opportunity.chosen(reg.candidates, list(ids), scores)]
+
+
+def judged(guide, home: Path, judgements: list[dict], *, check: str, today: str) -> int:
+    """The judgements of a check « candidates » kept in their candidates (`judgement`: verdict, why, pages, date to
+    look again, the check and its day), and a line in their history; the state is the editor's to change. Returns
+    how many were kept (a candidate gone from the draft meanwhile is skipped)."""
+    if not judgements or not followed(guide, home):
+        return 0
+    _, rel = place(guide, home)
+    n = 0
+    with LOCK:
+        reg, _ = working(guide, home, rel)
+        for j in judgements:
+            try:
+                c = reg.get(j.get("id", ""))
+            except RegistryError:
+                continue
+            c["judgement"] = {"date": today, "check": check, **{k: v for k, v in j.items() if k != "id"}}
+            c.setdefault("history", []).append({"date": today, "state": c["state"],
+                                                "note": f"judged with the guide ({check}): {j.get('verdict', '')}"})
+            n += 1
+        if n:
+            reg.save()
+    return n
+
+
 # -- the pull request of the registry (D3.2) -----------------------------------------------------------------------
 TITLE = "chore(watch): the registry of candidates"
 NEEDS = "1.7.0"  # the agent that knows `[watch] candidates`: an older one refuses the manifest (unknown key)
@@ -306,6 +345,8 @@ def changes(before: list[dict], after: list[dict]) -> list[dict]:
         added = len(c.get("sources", [])) - len(o.get("sources", []))
         if added > 0:
             out.append({"what": "sources", "name": c["name"], "n": added})
+        if c.get("judgement") and c["judgement"] != o.get("judgement"):
+            out.append({"what": "judged", "name": c["name"], "verdict": c["judgement"].get("verdict", "")})
     into = {key(n): c["name"] for c in after for n in c.get("aka", [])}  # a candidate merged into another (D2)
     out += [{"what": "merged", "name": o["name"], "into": into[o["id"]]} if o["id"] in into
             else {"what": "removed", "name": o["name"]} for o in old.values()]
@@ -322,6 +363,8 @@ def said(change: dict) -> str:
         return f"**{name}**: {change['from']} → {change['state']}{why}"
     if what == "sources":
         return f"**{name}**: {change['n']} source(s) added"
+    if what == "judged":
+        return f"**{name}** judged with the guide: {change['verdict']}"
     if what == "merged":
         return f"**{name}** merged into **{change['into']}** (one entity)"
     return f"**{name}** removed"

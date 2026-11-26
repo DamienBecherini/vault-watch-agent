@@ -45,7 +45,9 @@ export async function route() {
   try {
     if (h.startsWith("/run/")) await viewRun(decodeURIComponent(h.slice(5)));
     else if (h.startsWith("/check/")) await viewCheck(decodeURIComponent(h.slice(7)));
-    else if (h === "/check" || h === "/check?new") { setNewCheck(h.endsWith("?new")); await viewChecks(); if (NEW_CHECK) $("#new-check")?.scrollIntoView(); }
+    else if (h === "/check" || h.startsWith("/check?new")) {  // #/check?new=<check>: that check ticked
+      setNewCheck(h !== "/check", h.split("?new=")[1] || ""); await viewChecks(); if (NEW_CHECK) $("#new-check")?.scrollIntoView();
+    }
     else if (h === "/sources") await viewSources();
     else if (h === "/candidates") await viewCandidates();
     else if (h === "/links") await viewLinks();
