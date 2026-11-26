@@ -255,7 +255,7 @@ permissions:
   actions: read   # pour les pages surveillées : la veille précédente est lue dans son run
 jobs:
   watch:
-    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.6.1
+    uses: DamienBecherini/vault-watch-agent/.github/workflows/collect.yml@v1.7.0
     with:
       days: 8
 ```

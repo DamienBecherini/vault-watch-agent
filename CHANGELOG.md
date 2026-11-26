@@ -3,7 +3,14 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.7.0 (2026-11-26)
+
+Discovery: what the guide does not cover yet is followed over time in a registry of the guide (`[watch] candidates`),
+seen and changed on the screen « Candidates », fed by the watch runs and the checks, and read on Hugging Face and
+GitHub when the guide names these readers (`[watch] candidate_readers`). Also: the runs named with their time, a
+footnote that stays with no citation fixed, a page opened before an update that says so, the editor's journeys
+clicked in Chrome, a report at the end of each test suite. A guide whose manifest uses the new keys
+(`candidates`, `candidate_kinds`, `candidate_readers`) needs 1.7.0 wherever it is read (its collection included).
 
 - **The registry of discovery** (ROADMAP D3.1, decided with the user on 2026-11-25): `candidates.py` follows over time
   what the agent found and the guide does not cover yet, in a JSON file of the guide the manifest names
@@ -11,8 +18,7 @@ once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the
   a state (`lead`, `watching`, `confirmed`, `proposed`, `added`, `dismissed`: a reason needed), a date to look again
   (for `watching` and `dismissed`, after today), its sources (address, date, where it came from) and its history;
   names and addresses are matched in one form. The collection drops the addresses it tracks (« already seen ») and
-  lists the candidates due in the watch (`recheck`) and its issue (« Candidates to look at again »). The screen
-  « Candidates » and what feeds the registry come next (D3.2, D3.3).
+  lists the candidates due in the watch (`recheck`) and its issue (« Candidates to look at again »).
 - **The screen « Candidates »** (ROADMAP D3.2, in the menu « Watch »): the registry by state, the candidates due
   flagged; add one by hand (a name or an address already known adds its source), watch or dismiss it (a reason,
   needed to dismiss, and a date to look again), confirm it, mark it added, propose it as an addition (« Propose an
