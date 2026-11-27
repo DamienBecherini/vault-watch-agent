@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from langgraph.types import interrupt
 
-from . import compact, forge, inputs, mirrors, news, proofread, retouch, vault
+from . import compact, forge, inputs, mirrors, news, proofread, retouch, vault, watchlist
 from .graph_common import git, watch_branch
 from .graph_corrections import note_retouches, retouched
 from .graph_text import has_members, largest_first, pr_title
@@ -86,6 +86,14 @@ def apply(deps: Deps, state: WatchState) -> dict:
             git("worktree", "add", "-B", branch, str(worktree), deps.base, cwd=deps.vault)
     chosen = [c for c in state["corrections"] if c["id"] in state["accepted"]]
     pages = sorted({c["page"] for c in chosen})
+    # The guide's watchlist: the rows that already drifted are not this run's; those the edits make drift follow
+    quotes = vault.guide_of(worktree).watchlist_quotes
+    drifting, watch_error = None, ""
+    if quotes and watchlist.usable(worktree, quotes):
+        try:
+            drifting = watchlist.drifted(worktree, quotes)
+        except RuntimeError as e:
+            watch_error = str(e)
     before = {p: compact.weight(worktree, [p]) for p in pages}
     texts = {p: vault.read(worktree / p) for p in pages if (worktree / p).is_file()}
     for c in news.ordered(chosen):
@@ -110,11 +118,22 @@ def apply(deps: Deps, state: WatchState) -> dict:
             pages.append(floors.file)
         except RuntimeError:
             pass  # the audits step runs the same check and reports it before the PR
+    followed: dict = {"rows": [], "usage": []}
+    if quotes and drifting is not None:
+        try:
+            followed = watchlist.follow(worktree, quotes, chosen, drifting, deps.translator or deps.llm,
+                                        label=branch, today=deps.today)
+        except RuntimeError as e:
+            watch_error = str(e)
+        if followed["rows"]:
+            pages.append(quotes.folder)
     git("add", *pages, cwd=worktree)
     summary = ", ".join(f"{c['id']} {c['page']}" for c in chosen)
     git("commit", "-F", "-", cwd=worktree, text=f"{pr_title(state)}\n\n{summary}\n")  # the message on stdin: it can be long
     return {"branch": branch, "worktree": str(worktree), "applied": [c["id"] for c in chosen], "weight": weight,
-            "notes_removed": notes_removed, "applied_tip": git("rev-parse", "HEAD", cwd=worktree).strip()}
+            "notes_removed": notes_removed, "applied_tip": git("rev-parse", "HEAD", cwd=worktree).strip(),
+            "watchlist": followed["rows"], "watchlist_error": watch_error,
+            **({"usage": followed["usage"]} if followed["usage"] else {})}
 
 
 # -- retouch (interrupt, H3): the editor retouches the pages of the branch before the mirrors, or skips ---------

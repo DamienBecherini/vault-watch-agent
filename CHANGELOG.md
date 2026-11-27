@@ -3,6 +3,17 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased (1.9.0)
+
+- **The guide's watchlist follows the corrections.** A guide can keep dated claims, each quoting the sentence of
+  its page that states it, so that it is found and re-checked when due. The agent's runs edited those sentences
+  and never the list: on the IA on-prem guide 173 of 765 rows quoted wording their page no longer had, and the
+  re-check of the due claims sent that wording. With `[checks] watchlist_quotes` (the guide's script lists the
+  rows that drift and rewrites the rows it is given), the rows the accepted corrections make drift are requoted,
+  or removed when their sentence is gone, by the translation model (the « watchlist » step, low effort, one call
+  per page with drifting rows), and committed with the corrections. Their Checked, Status and Recheck by stay:
+  they move only after a check on the web. The pull request lists the rows followed and those to requote by hand.
+
 ## 1.8.1 (2026-11-26)
 
 What the first real runs of 1.8.0 showed.

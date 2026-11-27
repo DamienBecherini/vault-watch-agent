@@ -6,6 +6,7 @@ branch, after the review.
 """
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -99,6 +100,9 @@ class FakeLLM:
                 other_findings=[Noticed(problem="a doubt elsewhere", excerpts=[
                     Quote(page="03-stack/engines.md", quote="Ollama reste le plus simple pour démarrer.")])],
             ), usage
+        if node.startswith("watchlist "):  # the guide's watchlist rows the corrections made drift (watchlist.py)
+            return schema(rows=[{"row": 1, "action": "requote", "value": "0.33", "note": "plancher 0.31 → 0.33",
+                                 "claim": "« vLLM 0.33 est la version minimale recommandée depuis novembre 2026 »"}]), usage
         if node == "verify claims":  # the claims with their pages, which already say the current fact
             assert web and "<page path=" in (context or "")
             return Findings(findings=[]), usage
@@ -543,6 +547,35 @@ def test_apply_commits_the_floors_the_guide_script_aligns(setup):
     shown = subprocess.run(["git", "show", "HEAD~1:.agents/vault-maintenance/version-floors.json"], cwd=wt,
                            capture_output=True, text=True, check=True).stdout
     assert "0.33.0" in shown  # in the commit of the corrections, the mirror commit comes after
+
+
+def test_apply_commits_the_watchlist_rows_the_corrections_made_drift(setup):
+    deps, watch, llm = setup
+    if not shutil.which("node"):
+        pytest.skip("node is not installed")
+    shutil.copytree(Path(__file__).resolve().parent / "guide_scripts", deps.vault / "scripts", dirs_exist_ok=True)
+    folder = deps.vault / ".agents" / "vault-maintenance" / "watchlist"
+    folder.mkdir(parents=True)
+    (folder / "03.md").write_text(
+        "| Page | Claim | Type | Value in page | Source | Source date | Checked | Status | Note | Recheck by |\n"
+        "| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |\n"
+        "| `03-stack/engines.md` | « vLLM 0.31 est la version minimale recommandée » | version | 0.31 | [^1] | 2026-06 "
+        "| 2026-10-09 | current | plancher | 2026-11-10 |\n", encoding="utf-8")
+    sh("git", "add", ".", cwd=deps.vault)
+    sh("git", "commit", "-qm", "watchlist", cwd=deps.vault)
+    graph = build(deps, InMemorySaver())
+    config = {"configurable": {"thread_id": "watchlist"}}
+    graph.invoke({"source": str(watch), "issue": None}, config)
+    graph.invoke(Command(resume=["C1"]), config)
+    graph.invoke(Command(resume="skip"), config)  # the pause to retouch (H3): nothing retouched
+    values = graph.get_state(config).values
+    assert [c for c in llm.calls if c.startswith("watchlist")] == ["watchlist 03-stack/engines.md"]
+    assert [(r["action"], r["ok"]) for r in values["watchlist"]] == [("requote", True)]
+    shown = subprocess.run(["git", "show", "HEAD~1:.agents/vault-maintenance/watchlist/03.md"], cwd=values["worktree"],
+                           capture_output=True, text=True, check=True, encoding="utf-8").stdout
+    assert "| « vLLM 0.33 est la version minimale recommandée depuis novembre 2026 » | version | 0.33 |" in shown
+    assert "| 2026-10-09 | current | plancher ; chore/watch-2026-11-02-watch 2026-11-08 : plancher 0.31 → 0.33 | 2026-11-10 |" in shown
+    assert "Watchlist: 1 row(s) follow the corrections" in pr_body(values)
 
 
 def test_a_date_bump_alone_is_left_to_apply():

@@ -210,6 +210,25 @@ def pr_body(state: WatchState, limit: int = PR_BODY_MAX) -> str:
 _PROOFREAD_AT = {"retouch": "at the retouches ", "publish": "before publishing "}
 
 
+def watchlist_lines(state: WatchState) -> str:
+    """The rows of the guide's watchlist that follow the corrections (watchlist.follow), as the pull request says
+    them: those requoted and removed, then those left to the editor."""
+    rows, error = state.get("watchlist") or [], state.get("watchlist_error") or ""
+    if error:
+        return f"⚠️ Watchlist not followed: {error}\n\n"
+    if not rows:
+        return ""
+    done = [r for r in rows if r["ok"]]
+    left = [r for r in rows if not r["ok"]]
+    out = [f"Watchlist: {len(done)} row(s) follow the corrections (Checked, Status and Recheck by unchanged).\n"]
+    out += [f"- `{r['page']}`: " + (f"{r['new']}" if r["action"] == "requote" else "row removed, its sentence is gone")
+            + "\n" for r in done]
+    if left:
+        out.append(f"\n⚠️ Watchlist rows to requote by hand ({len(left)}), their quote no longer in the page:\n")
+        out += [f"- `{r['file']}` line {r['line']} (`{r['page']}`): {r['old']}\n" for r in left]
+    return "".join(out) + "\n"
+
+
 def _checks_lines(state: WatchState) -> str:
     """The guide's audits, the mirrors and the external sources, as every pull request says them."""
     retouched, translated = state.get("retouched") or [], state.get("translation_retouched") or []
@@ -228,6 +247,7 @@ def _checks_lines(state: WatchState) -> str:
     if state.get("notes_removed"):
         parts.append(f"Footnotes removed with their last citation: {', '.join(f'`{n}`' for n in state['notes_removed'])}.\n\n")
     parts += [f"⚠️ Footnotes: {p}\n\n" for p in state.get("footnote_problems") or []]
+    parts.append(watchlist_lines(state))
     parts.append(f"Mirrors updated: {', '.join(f'`{p}`' for p in state.get('mirrored', [])) or 'none'}.\n")
     parts += [f"- ⚠️ {p}\n" for p in state.get("mirror_problems", [])]
     parts.append("\nExternal sources of the changed pages (the guide's source audit): ")

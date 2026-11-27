@@ -109,7 +109,7 @@ pas le port (proxy inverse, tunnel) sans authentification devant.
 
 ## Avant de brancher un guide
 
-- **Le manifeste lance des commandes.** `[checks] audits`, `claims_due`, `sources` et `version_floors` sont des
+- **Le manifeste lance des commandes.** `[checks] audits`, `claims_due`, `sources`, `version_floors` et `watchlist_quotes` sont des
   commandes que l'agent lance dans le dossier du guide, avec vos droits. Ne branchez qu'un guide dont vous avez lu
   le manifeste, comme avant de lancer son `npm test`.
 - **Le guide est envoyé au modèle.** Une relecture croisée envoie tout le guide (moins `exclude`) au moteur

@@ -114,6 +114,8 @@ class WatchState(TypedDict, total=False):
     hand_pages: list[str]  # a « Sync the languages » run: the pages copied from the guide's folder, edited by hand
     retouch_offered: bool  # the run stops after apply for the editor's retouches (runs from 1.4.0 on)
     applied_tip: str  # the commit of the corrections, before the retouches
+    watchlist: list[dict]  # the guide's watchlist rows the corrections made drift, followed (watchlist.follow)
+    watchlist_error: str  # why the watchlist could not be read or written, said in the pull request
     retouched: list[str]  # the files the editor retouched at the pause
     # The editor's own edits proofread (proofread.py), when asked at the retouch or the publish pause
     proofread_checks: list[str]  # asked: some of spelling, facts, consistency; emptied once they ran

@@ -104,7 +104,7 @@ tunnel) without an authentication in front.
 
 ## Before connecting a guide
 
-- **The manifest runs commands.** `[checks] audits`, `claims_due`, `sources` and `version_floors` are commands the
+- **The manifest runs commands.** `[checks] audits`, `claims_due`, `sources`, `version_floors` and `watchlist_quotes` are commands the
   agent runs in the guide's folder, as you. Connect only a guide whose manifest you have read, as you would
   before running its `npm test`.
 - **The guide is sent to the model.** A cross-check sends the whole guide (minus `exclude`) to the engine you

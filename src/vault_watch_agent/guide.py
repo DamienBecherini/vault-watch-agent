@@ -63,6 +63,15 @@ class Floors:
 
 
 @dataclass(frozen=True)
+class Quotes:
+    """The guide's list of dated claims, each quoting its page ([checks] watchlist_quotes): `node <script>
+    --json=<out>` lists the rows whose quote their page no longer has, `--write=<in>` rewrites the rows named
+    (watchlist.py); `folder` holds the list, committed with the corrections."""
+    script: str
+    folder: str
+
+
+@dataclass(frozen=True)
 class Chapter:
     """A chapter the manifest declares ([[chapter]]): the pages the agent works on together (chapters.py)."""
     name: str
@@ -97,6 +106,7 @@ class Guide:
     claims_due: str | None = None
     sources: str | None = None
     version_floors: Floors | None = None
+    watchlist_quotes: Quotes | None = None
     # The weekly report of the same source audit, made by the guide's CI: « artifact/file.json » (verify.weekly)
     sources_weekly: str = ""
     max_context_tokens: int | None = None
@@ -141,7 +151,8 @@ class Guide:
                           "path": self.watch.path, "feeds": self.watch.feeds, "changes_page": self.watch.changes_page},
                 "rules": {"brief": rel(self.brief), "translation_policy": rel(self.translation_policy)},
                 "checks": {"audits": self.audits or "", "claims_due": self.claims_due or "", "sources": self.sources or "",
-                           "version_floors": self.version_floors.script if self.version_floors else ""},
+                           "version_floors": self.version_floors.script if self.version_floors else "",
+                           "watchlist_quotes": self.watchlist_quotes.script if self.watchlist_quotes else ""},
                 "max_context_tokens": self.max_context_tokens, "page_kb": self.page_kb,
                 "page_budgets": [list(b) for b in self.page_budgets], "growth_kb": self.growth_kb,
                 "growth_percent": self.growth_percent, "from_manifest": self.from_manifest,
@@ -161,7 +172,7 @@ _KEYS = {
     "watch": {"source", "label", "artifact", "path", "feeds", "seen", "floors", "changes_page", "candidates",
               "candidate_kinds", "candidate_readers", "source_tiers"},
     "rules": {"brief", "translation_policy"},
-    "checks": {"audits", "claims_due", "sources", "version_floors", "sources_weekly"},
+    "checks": {"audits", "claims_due", "sources", "version_floors", "watchlist_quotes", "sources_weekly"},
     "budget": {"max_context_tokens", "page_kb", "pages", "growth_kb", "growth_percent"},
 }
 
@@ -238,6 +249,12 @@ def parse(data: dict, root: Path) -> Guide:
             raise GuideError("[checks] version_floors: a table with script and file")
         floors = Floors(script=_file(root, "checks", "version_floors.script", floors["script"]).as_posix(),
                         file=floors["file"])
+    quotes = checks.get("watchlist_quotes")
+    if quotes is not None:
+        if not isinstance(quotes, dict) or set(quotes) != {"script", "folder"} or not isinstance(quotes["folder"], str):
+            raise GuideError("[checks] watchlist_quotes: a table with script and folder")
+        quotes = Quotes(script=_file(root, "checks", "watchlist_quotes.script", quotes["script"]).as_posix(),
+                        folder=quotes["folder"].strip("/"))
     weekly = checks.get("sources_weekly", "")
     if not isinstance(weekly, str) or (weekly and not re.fullmatch(r"[\w.-]+/[\w./-]+\.json", weekly)):
         raise GuideError('[checks] sources_weekly: « artifact/file.json », the artifact of the guide\'s CI that holds '
@@ -269,7 +286,8 @@ def parse(data: dict, root: Path) -> Guide:
         include=_globs(c, "include", ("**/*.md", "**/*.mdx")), exclude=_globs(c, "exclude", ()), readonly=readonly,
         mirrors=dict(mirrors), modified_field=_text(c, "content", "modified_field") or None, watch=watch,
         brief=_rule(root, rules, "brief"), translation_policy=_rule(root, rules, "translation_policy"),
-        **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, sources_weekly=weekly,
+        **{k: _command(checks, k) for k in CHECK_COMMANDS}, version_floors=floors, watchlist_quotes=quotes,
+        sources_weekly=weekly,
         max_context_tokens=tokens,
         page_kb=page_kb, page_budgets=tuple(budgets.items()), **growth, schema=schema,
         chapters=chapters_of(data.get("chapter", [])),
@@ -340,6 +358,7 @@ def legacy(root: Path) -> Guide:
         claims_due="node scripts/audit-freshness.mjs --due-only --json={out}",
         sources="node scripts/audit-sources.mjs --concurrency=8 --timeout=15000 --json={out}",
         version_floors=Floors("scripts/audit-version-floors.mjs", ".agents/vault-maintenance/version-floors.json"),
+        watchlist_quotes=Quotes("scripts/audit-watchlist-quotes.mjs", ".agents/vault-maintenance/watchlist"),
         from_manifest=False,
     )
 
