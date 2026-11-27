@@ -106,7 +106,8 @@ time (`issue77-full-b2*.json`):
 
 Haiku also wrote two proposals quoting text their page does not have; the agent's check set them aside before the
 review. Watch #77 is one security advisory to carry to every page that gives the minimum version: a search more
-than a judgement. One run on one watch: Sonnet 5.5 is to be replayed on a watch that asks for judgement before the
+than a judgement. The merged PR is the agent's own proposals on Opus 5.5, reviewed by a human: what Opus missed is
+in no truth, and is scored at best a valid extra. One run on one watch: Sonnet 5.5 is to be replayed on a watch that asks for judgement before the
 defaults change.
 
 **A local model on a laptop.** Qwen3.6-35B-A3B (llama.cpp, quantized, 64k window) on an 8 GB laptop GPU. It runs

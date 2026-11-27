@@ -113,7 +113,9 @@ sur Opus 5.5 à chaque fois (`issue77-full-b2*.json`) :
 
 Haiku a aussi écrit deux propositions citant un texte que leur page n'a pas ; le contrôle de l'agent les a écartées
 avant la relecture. La veille #77 est un avis de sécurité à reporter sur chaque page qui donne la version minimale :
-une recherche plus qu'un jugement. Un essai sur une veille : Sonnet 5.5 est à rejouer sur une veille qui demande du
+une recherche plus qu'un jugement. La PR fusionnée, ce sont les propositions de l'agent lui-même sur Opus 5.5,
+relues par un humain : ce qu'Opus a manqué n'est dans aucune vérité, et compte au mieux comme un ajout valable. Un
+essai sur une veille : Sonnet 5.5 est à rejouer sur une veille qui demande du
 jugement avant de changer les modèles par défaut.
 
 **Un modèle local sur un portable.** Qwen3.6-35B-A3B (llama.cpp, quantifié, fenêtre de 64k) sur un GPU de portable
