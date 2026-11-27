@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased (1.9.0)
+## 1.9.0 (2026-11-27)
 
 - **The guide's watchlist follows the corrections.** A guide can keep dated claims, each quoting the sentence of
   its page that states it, so that it is found and re-checked when due. The agent's runs edited those sentences
