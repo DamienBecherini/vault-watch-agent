@@ -94,6 +94,21 @@ OpenAI-compatible server; an exploration of a chapter is asked to keep to about 
 
 ## What was tried
 
+**Cheaper Claude models (27 November 2026).** Watch #77 replayed whole (variant full, with the cross-check of the
+whole guide) on the API: the triage, the proposals and the cross-check on each model, the judge on Opus 5.5 every
+time (`issue77-full-b2*.json`):
+
+| Model | Corrections of the merged PR found | Wrong | Cost at list price (judge apart) |
+| :-- | --: | --: | --: |
+| Claude Opus 5.5 | 9 of 9 | 0 | 3.26 $ |
+| Claude Sonnet 5.5 | 9 of 9, and a valid rewording | 0 | 1.57 $ |
+| Claude Haiku 5.5 | 8 of 9, a footnote missed | 0 | 0.12 $ |
+
+Haiku also wrote two proposals quoting text their page does not have; the agent's check set them aside before the
+review. Watch #77 is one security advisory to carry to every page that gives the minimum version: a search more
+than a judgement. One run on one watch: Sonnet 5.5 is to be replayed on a watch that asks for judgement before the
+defaults change.
+
 **A local model on a laptop.** Qwen3.6-35B-A3B (llama.cpp, quantized, 64k window) on an 8 GB laptop GPU. It runs
 every step in the schema; on the sample guide, read whole in one call, its cross-check found the contradiction
 planted between two chapters. On watch #77 replayed by excerpts (no
