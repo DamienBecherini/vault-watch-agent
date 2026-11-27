@@ -36,14 +36,38 @@ const IN_WRITE = writeArg ? writeArg.slice("--write=".length) : null;
 const WATCHLIST_DIR = ".agents/vault-maintenance/watchlist";
 const MIN_FRAGMENT = 12;
 
+/** Inline math as it reads: `\sim 273 \text{ Go/s}` → `~273 Go/s`, `0{,}5` → `0,5`, `\times` → `×`. */
+function latex(math) {
+  let out = math;
+  for (let before = ""; before !== out; ) { // innermost first: `\mathbf{15,4 \text{ tokens/s}}`
+    before = out;
+    out = out.replace(/\\(?:text|mathbf|mathrm|textbf)\{([^{}]*)\}/g, "$1");
+  }
+  return out
+    .replace(/\{,\}/g, ",")
+    .replace(/\\sim\s*/g, "~")
+    .replace(/\\approx/g, "≈")
+    .replace(/\\times/g, "×")
+    .replace(/\\cdot\s*/g, "·")
+    .replace(/\\to\b/g, "→")
+    .replace(/\^2\b/g, "²")
+    .replace(/\\(?:[ ,;!]|quad)/g, " ")
+    .replace(/[{}]/g, "");
+}
+
 /** Text as the comparison sees it: what a reader reads, spaces folded. */
 function normalise(text) {
   return text
     .replace(/^\s*>\s?/gm, "") // blockquote and callout marks
+    .replace(/[ \t]\\[ \t]*\r?\n/g, " ") // a shell command continued on the next line (`vllm serve x \`)
     .replace(/\\\|/g, "|") // escaped pipes in tables and watchlist cells
     .replace(/\[\^[^\]]+\]/g, "") // footnote calls
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1") // Markdown links and images: their text
     .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, "$1") // wikilinks: their alias or target
+    .replace(/\\\$/g, "\u0001") // an escaped dollar is a dollar, not math
+    // inline math (`$\sim 273 \text{ Go/s}$`, `$614$`): what it reads as; two prices ("4 $ … 20 $") are not math
+    .replace(/\$(?=\S)([^$\n]*?)(?<=\S)\$/g, (all, m) => (/\\|\{|^[\d.,]+$/.test(m) ? latex(m) : all))
+    .replace(/\u0001/g, "$")
     .replace(/[*`]/g, "") // emphasis and code marks
     .replace(/[   ]/g, " ") // non-breaking and thin spaces
     .replace(/[’ʼ]/g, "'") // typographic apostrophes
@@ -51,18 +75,40 @@ function normalise(text) {
     .trim();
 }
 
-/** The quoted claim of a Claim cell, or null when the cell quotes nothing. */
+/**
+ * The quoted passages of a Claim cell, or null when the cell quotes nothing: each « … » at the outer level, the
+ * guillemets the page itself uses kept inside (« un « Trusted Hosts » ») and the cell's own words between two
+ * passages left out (« a » / description « b »). A last « left open is ignored; no passage closed at all: from
+ * the first « to the last ».
+ */
 function quoteOf(cell) {
+  const passages = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of cell) {
+    if (ch === "«") {
+      if (depth > 0) current += ch;
+      depth += 1;
+    } else if (ch === "»" && depth > 0) {
+      depth -= 1;
+      if (depth > 0) current += ch;
+      else {
+        passages.push(current);
+        current = "";
+      }
+    } else if (depth > 0) current += ch;
+  }
+  if (passages.length) return passages; // a last « left open is the cell's own comment
   const start = cell.indexOf("«");
   const end = cell.lastIndexOf("»");
-  return start >= 0 && end > start ? cell.slice(start + 1, end) : null;
+  return start >= 0 && end > start ? [cell.slice(start + 1, end)] : null;
 }
 
-/** The fragments of a quote that must each be found in the page. */
-function fragments(quote) {
-  return normalise(quote)
-    .split(/…|\.\.\.|\(…\)|[«»]/) // a quote joining two cells or passages: « a » / « b »
-    .map((s) => s.replace(/^[\s«».,;:)(]+|[\s«».,;:(]+$/g, ""))
+/** The fragments of the passages that must each be found in the page. */
+function fragments(passages) {
+  return passages
+    .flatMap((p) => normalise(p).split(/…|\.\.\.|\(…\)/))
+    .map((s) => s.replace(/^[\s«».,;:)(]+|[\s«».,;:(\\]+$/g, "")) // a quoted command's trailing `\` too
     .filter((s) => s.length >= MIN_FRAGMENT);
 }
 
