@@ -101,22 +101,27 @@ environ 12 recherches et 15 pages.
 
 ## Ce qui a été essayé
 
-**Des modèles Claude moins chers (27 novembre 2026).** La veille #77 rejouée en entier (variante full, avec la
-relecture globale du guide) sur l'API : le tri, les propositions et la relecture globale sur chaque modèle, le juge
-sur Opus 5.5 à chaque fois (`issue77-full-b2*.json`) :
+**Des modèles Claude moins chers (27 et 28 novembre 2026).** Les veilles #77 et #110 rejouées en entier (variante
+full, avec la relecture globale du guide) sur l'API : le tri, les propositions et la relecture globale sur chaque
+modèle, le juge sur Opus 5.5 à chaque fois (`issue77-full-b2*.json`, `issue110-full-b2*.json`). Retrouvées : les
+modifications de la PR fusionnée que le juge a associées à une proposition.
 
-| Modèle | Corrections de la PR fusionnée retrouvées | Fausses | Coût au prix catalogue (juge à part) |
-| :-- | --: | --: | --: |
-| Claude Opus 5.5 | 9 sur 9 | 0 | 3,26 $ |
-| Claude Sonnet 5.5 | 9 sur 9, et une reformulation valable | 0 | 1,57 $ |
-| Claude Haiku 5.5 | 8 sur 9, une note de bas de page oubliée | 0 | 0,12 $ |
+| Modèle | #77 (un avis) | #110 (quatre avis, conditions par ligne) | Fausses | Coût au prix catalogue, juge à part |
+| :-- | --: | --: | --: | --: |
+| Claude Opus 5.5 | 9 sur 9 | 7 sur 7 | 0 | 3,26 $ · 4,08 $ |
+| Claude Sonnet 5.5 | 9 sur 9, et une reformulation valable | 5 sur 7 | 0 | 1,57 $ · 1,44 $ |
+| Claude Haiku 5.5 | 8 sur 9, une note de bas de page oubliée | non rejouée | 0 | 0,12 $ |
 
-Haiku a aussi écrit deux propositions citant un texte que leur page n'a pas ; le contrôle de l'agent les a écartées
-avant la relecture. La veille #77 est un avis de sécurité à reporter sur chaque page qui donne la version minimale :
-une recherche plus qu'un jugement. La PR fusionnée, ce sont les propositions de l'agent lui-même sur Opus 5.5,
+La veille #77 est un avis de sécurité à reporter sur chaque page qui donne la version minimale : une recherche plus
+qu'un jugement. Sur la #110, Sonnet a fait toutes les corrections mais aucune des deux notes de bas de page qui
+donnent leurs sources, et a omis deux fois le contournement de la ligne 1.106 : juste, moins complet. Haiku a écrit
+deux propositions citant un texte que leur page n'a pas ; le contrôle de l'agent les a écartées avant la relecture.
+
+Ce que les scores ne disent pas. Les PR fusionnées, ce sont les propositions de l'agent lui-même sur Opus 5.5,
 relues par un humain : ce qu'Opus a manqué n'est dans aucune vérité, et compte au mieux comme un ajout valable. Un
-essai sur une veille : Sonnet 5.5 est à rejouer sur une veille qui demande du
-jugement avant de changer les modèles par défaut.
+essai relit le web du jour où il tourne : sur la #110, Opus a ajouté un avis publié le lendemain de la veille
+(GHSA-w5h5-479w-p5hx), avec une version corrigée que l'avis ne donne pas, ce qu'une relecture aurait dû rattraper.
+Les étapes de raisonnement restent sur Opus 5.5.
 
 **Un modèle local sur un portable.** Qwen3.6-35B-A3B (llama.cpp, quantifié, fenêtre de 64k) sur un GPU de portable
 de 8 Go. Il répond à chaque étape dans le schéma ; sur le guide exemple, lu en entier d'un seul appel, sa relecture

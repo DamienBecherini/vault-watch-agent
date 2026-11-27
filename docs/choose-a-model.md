@@ -94,21 +94,26 @@ OpenAI-compatible server; an exploration of a chapter is asked to keep to about 
 
 ## What was tried
 
-**Cheaper Claude models (27 November 2026).** Watch #77 replayed whole (variant full, with the cross-check of the
-whole guide) on the API: the triage, the proposals and the cross-check on each model, the judge on Opus 5.5 every
-time (`issue77-full-b2*.json`):
+**Cheaper Claude models (27 and 28 November 2026).** Watches #77 and #110 replayed whole (variant full, with the
+cross-check of the whole guide) on the API: the triage, the proposals and the cross-check on each model, the judge
+on Opus 5.5 every time (`issue77-full-b2*.json`, `issue110-full-b2*.json`). Found: the changes of the merged PR the
+judge matched with a proposal.
 
-| Model | Corrections of the merged PR found | Wrong | Cost at list price (judge apart) |
-| :-- | --: | --: | --: |
-| Claude Opus 5.5 | 9 of 9 | 0 | 3.26 $ |
-| Claude Sonnet 5.5 | 9 of 9, and a valid rewording | 0 | 1.57 $ |
-| Claude Haiku 5.5 | 8 of 9, a footnote missed | 0 | 0.12 $ |
+| Model | #77 (one advisory) | #110 (four advisories, conditions per line) | Wrong | Cost at list price, judge apart |
+| :-- | --: | --: | --: | --: |
+| Claude Opus 5.5 | 9 of 9 | 7 of 7 | 0 | 3.26 $ · 4.08 $ |
+| Claude Sonnet 5.5 | 9 of 9, and a valid rewording | 5 of 7 | 0 | 1.57 $ · 1.44 $ |
+| Claude Haiku 5.5 | 8 of 9, a footnote missed | not replayed | 0 | 0.12 $ |
 
-Haiku also wrote two proposals quoting text their page does not have; the agent's check set them aside before the
-review. Watch #77 is one security advisory to carry to every page that gives the minimum version: a search more
-than a judgement. The merged PR is the agent's own proposals on Opus 5.5, reviewed by a human: what Opus missed is
-in no truth, and is scored at best a valid extra. One run on one watch: Sonnet 5.5 is to be replayed on a watch that asks for judgement before the
-defaults change.
+Watch #77 is one security advisory to carry to every page that gives the minimum version: a search more than a
+judgement. On #110, Sonnet made every correction but neither of the two footnotes that give their sources, and left
+out twice the workaround of the 1.106 line: right, less complete. Haiku wrote two proposals quoting text their page
+does not have; the agent's check set them aside before the review.
+
+What the scores do not say. The merged PRs are the agent's own proposals on Opus 5.5, reviewed by a human: what Opus
+missed is in no truth, and is scored at best a valid extra. A replay reads the web of its own day: on #110, Opus
+added an advisory published the day after the watch (GHSA-w5h5-479w-p5hx), with a fixed version the advisory does
+not give, which a review would have had to catch. The reasoning steps stay on Opus 5.5.
 
 **A local model on a laptop.** Qwen3.6-35B-A3B (llama.cpp, quantized, 64k window) on an 8 GB laptop GPU. It runs
 every step in the schema; on the sample guide, read whole in one call, its cross-check found the contradiction

@@ -1,0 +1,208 @@
+{
+  "issue": 110,
+  "variant": "full",
+  "vault_commit": "cd1b365194f097882440135bdb88ebf81687116c",
+  "truth": "cd1b365194f097882440135bdb88ebf81687116c..84d9dc1",
+  "run_models": [
+    "api:claude-sonnet-5-5"
+  ],
+  "judge": "api:claude-opus-5-5",
+  "scores": {
+    "truth_hunks": 7,
+    "truth_corrections": 5,
+    "proposals": 5,
+    "recall": 0.714,
+    "recall_corrections": 1.0,
+    "precision": 1.0,
+    "lenient_precision": 1.0,
+    "verdicts": {
+      "matches_truth": 5,
+      "valid_extra": 0,
+      "wrong": 0,
+      "unclear": 0
+    }
+  },
+  "run_cost_usd": 1.44,
+  "judge_cost_usd": 0.04,
+  "judgement": {
+    "hunks": [
+      {
+        "hunk_id": "H1",
+        "kind": "correction",
+        "matched_by": [
+          "C3"
+        ]
+      },
+      {
+        "hunk_id": "H2",
+        "kind": "correction",
+        "matched_by": [
+          "C5"
+        ]
+      },
+      {
+        "hunk_id": "H3",
+        "kind": "addition",
+        "matched_by": []
+      },
+      {
+        "hunk_id": "H4",
+        "kind": "correction",
+        "matched_by": [
+          "C4"
+        ]
+      },
+      {
+        "hunk_id": "H5",
+        "kind": "correction",
+        "matched_by": [
+          "C1"
+        ]
+      },
+      {
+        "hunk_id": "H6",
+        "kind": "correction",
+        "matched_by": [
+          "C2"
+        ]
+      },
+      {
+        "hunk_id": "H7",
+        "kind": "addition",
+        "matched_by": []
+      }
+    ],
+    "proposals": [
+      {
+        "id": "C1",
+        "assessment": "matches_truth",
+        "note": "Same new version floors and 1.107 redirect to 1.108.13 as H5."
+      },
+      {
+        "id": "C2",
+        "assessment": "matches_truth",
+        "note": "Same LiteLLM floor update in the version box as H6, without the 1.106 caveat."
+      },
+      {
+        "id": "C3",
+        "assessment": "matches_truth",
+        "note": "Same floor update in scenario B blueprint as H1."
+      },
+      {
+        "id": "C4",
+        "assessment": "matches_truth",
+        "note": "Same floor update in architectures table as H4."
+      },
+      {
+        "id": "C5",
+        "assessment": "matches_truth",
+        "note": "Updates the minimum target on the LiteLLM page to the new floors as H2, though it omits the 1.106-line caveats."
+      }
+    ]
+  },
+  "truth_hunks": [
+    {
+      "id": "H1",
+      "page": "04-blueprints/scenario-b-sme-appliance.md",
+      "removed": [
+        "4. Pointer les clients (Open WebUI, LiteLLM) vers la nouvelle IP — en versions à jour : LiteLLM ≥ 1.106.9 / 1.108.6 / 1.109.1 selon sa ligne (voir la [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm|fiche LiteLLM]]), et Open WebUI suivi au fil des releases (voir sa [[05-agents-et-assistants-on-prem/assistants-personnels/solutions/open-webui|fiche]]) ; ne jamais figer une version"
+      ],
+      "added": [
+        "4. Pointer les clients (Open WebUI, LiteLLM) vers la nouvelle IP — en versions à jour : LiteLLM ≥ 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon sa ligne (voir la [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm|fiche LiteLLM]]), et Open WebUI suivi au fil des releases (voir sa [[05-agents-et-assistants-on-prem/assistants-personnels/solutions/open-webui|fiche]]) ; ne jamais figer une version"
+      ]
+    },
+    {
+      "id": "H2",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "removed": [
+        "- Ajoute une couche critique à sécuriser : LiteLLM a connu en 2026 une série de failles exploitées, dont trois inscrites au catalogue KEV de la CISA (CVE-2026-42208, CVE-2026-42271, CVE-2026-59822, toutes corrigées à partir de la 1.84.0) et une escalade de privilèges critique (GHSA-7hp6-4w63-5g45, CVSS 9.9, un `internal_user` devient `proxy_admin` puis exécute des commandes sur l'hôte ; corrigée en 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1). Au T4 2026, ne jamais déployer une version antérieure à 1.84.0. La 1.100.4 corrige l'escalade de septembre, mais l'avis critique du 2026-10-27 ne corrige que les lignes 1.103 à 1.106 (1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), et l'avis du 2026-11-12 (GHSA-2rwg-2wh4-7c4f, gravité haute, CVSS 7.7 : sur un proxy qui sert au moins un modèle `azure/` ou `azure_ai/` sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` défini, un utilisateur authentifié lit les variables d'environnement du proxy, dont `LITELLM_MASTER_KEY`) n'est corrigé qu'en 1.106.9 / 1.108.6 / 1.109.1, la ligne 1.107 n'ayant pas de correctif : au T4 2026, viser au minimum l'une de ces trois versions, ou bloquer en attendant les paramètres Entra ID (`tenant_id`, `client_id`, `client_secret`, `azure_username`, `azure_password`, `azure_scope`) au reverse proxy[^10]. C'est impératif avec une licence Enterprise (GHSA-w4c7-34wj-hqm8, CVSS 10.0 : une requête non authentifiée fait lire au proxy un fichier local, par exemple `/proc/self/environ`, et expose `LITELLM_MASTER_KEY` et les clés des providers ; les déploiements open source sans licence ne sont pas concernés). Dans tous les cas, limiter les sorties réseau du proxy aux endpoints des providers et charger la clé maître depuis un gestionnaire de secrets plutôt que depuis l'environnement du processus[^4][^5][^9]."
+      ],
+      "added": [
+        "- Ajoute une couche critique à sécuriser : LiteLLM a connu en 2026 une série de failles exploitées, dont trois inscrites au catalogue KEV de la CISA (CVE-2026-42208, CVE-2026-42271, CVE-2026-59822, toutes corrigées à partir de la 1.84.0) et une escalade de privilèges critique (GHSA-7hp6-4w63-5g45, CVSS 9.9, un `internal_user` devient `proxy_admin` puis exécute des commandes sur l'hôte ; corrigée en 1.100.4 / 1.101.3 / 1.102.2 / 1.103.1). Au T4 2026, ne jamais déployer une version antérieure à 1.84.0. La 1.100.4 corrige l'escalade de septembre, mais l'avis critique du 2026-10-27 ne corrige que les lignes 1.103 à 1.106 (1.103.10 / 1.104.8 / 1.105.6 / 1.106.5), et l'avis du 2026-11-12 (GHSA-2rwg-2wh4-7c4f, gravité haute, CVSS 7.7 : sur un proxy qui sert au moins un modèle `azure/` ou `azure_ai/` sans `AZURE_API_KEY` ni `AZURE_OPENAI_API_KEY` défini, un utilisateur authentifié lit les variables d'environnement du proxy, dont `LITELLM_MASTER_KEY`) n'est corrigé qu'en 1.106.9 / 1.108.6 / 1.109.1, la ligne 1.107 n'ayant pas de correctif ; en attendant de mettre à jour, bloquer au reverse proxy ses paramètres Entra ID (tenant_id, client_id, client_secret, azure_username, azure_password, azure_scope)[^10]. Au T4 2026, viser au minimum 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon la ligne (sur la ligne 1.106, trois avis du 2026-11-23 ne sont corrigés qu'à partir de la 1.108.0 : activer general_settings.enforce_fallback_model_access: true et bloquer GET /spend/tags et GET /global/activity/cache_hits au reverse proxy, ou passer en 1.108.13)[^11]. C'est impératif avec une licence Enterprise (GHSA-w4c7-34wj-hqm8, CVSS 10.0 : une requête non authentifiée fait lire au proxy un fichier local, par exemple `/proc/self/environ`, et expose `LITELLM_MASTER_KEY` et les clés des providers ; les déploiements open source sans licence ne sont pas concernés). Dans tous les cas, limiter les sorties réseau du proxy aux endpoints des providers et charger la clé maître depuis un gestionnaire de secrets plutôt que depuis l'environnement du processus[^4][^5][^9]."
+      ]
+    },
+    {
+      "id": "H3",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "removed": [],
+      "added": [
+        "[^11]: BerriAI, *GHSA-4xm2-x5g5-wc8q* (corrigé en 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2), 2026-11-20 · *GHSA-wpm4-hgr2-xjwr* (fallbacks vers des modèles non autorisés, corrigé en 1.108.0 ; 1.100.0 à 1.106.x protégées seulement avec `enforce_fallback_model_access: true`), *GHSA-fjxr-j47c-4x2x* (`/spend/tags`) et *GHSA-2364-6whj-g7vx* (`/global/activity/cache_hits`), corrigés en 1.108.0, 2026-11-23. <https://github.com/BerriAI/litellm/security/advisories/GHSA-4xm2-x5g5-wc8q> · <https://github.com/BerriAI/litellm/security/advisories/GHSA-wpm4-hgr2-xjwr> · <https://github.com/BerriAI/litellm/security/advisories/GHSA-fjxr-j47c-4x2x> · <https://github.com/BerriAI/litellm/security/advisories/GHSA-2364-6whj-g7vx>"
+      ]
+    },
+    {
+      "id": "H4",
+      "page": "05-agents-et-assistants-on-prem/fondations-communes/possible-architectures.md",
+      "removed": [
+        "| **LiteLLM + Ollama** | [LiteLLM proxy quickstart](https://docs.litellm.ai/docs/proxy/quick_start) — routage unifié vers un modèle local ; **exigez une version ≥ 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne** (avis de sécurité : voir la [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm\\|fiche LiteLLM]]) |"
+      ],
+      "added": [
+        "| **LiteLLM + Ollama** | [LiteLLM proxy quickstart](https://docs.litellm.ai/docs/proxy/quick_start) — routage unifié vers un modèle local ; **exigez une version ≥ 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon votre ligne** (avis de sécurité : voir la [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm\\|fiche LiteLLM]]) |"
+      ]
+    },
+    {
+      "id": "H5",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [
+        "> Le gateway concentre clés, routes et outils MCP : trois vulnérabilités critiques ou activement exploitées ont été publiées entre juin et septembre 2026, puis deux avis en octobre et novembre (détail et correctifs par ligne dans la [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm|fiche LiteLLM]]). Au T4 2026 : au minimum 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne (la ligne 1.107 n'a pas de correctif : passer en 1.108.6). Appliquez le dernier correctif de votre ligne, limitez les sorties réseau du proxy aux endpoints des providers, désactivez les endpoints MCP s'ils ne servent pas, et ne suivez que les quatre lignes maintenues : une version figée est une version vulnérable[^15]."
+      ],
+      "added": [
+        "> Le gateway concentre clés, routes et outils MCP : trois vulnérabilités critiques ou activement exploitées ont été publiées entre juin et septembre 2026, puis plusieurs avis en octobre et novembre (détail et correctifs par ligne dans la [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm|fiche LiteLLM]]). Au T4 2026 : au minimum 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon votre ligne (la ligne 1.107 n'a pas de correctif : passer en 1.108.13). Sur la ligne 1.106, trois avis de novembre ne sont corrigés qu'à partir de la 1.108.0 : appliquez les mesures de l'encadré « Planchers de version au T4 2026 » ou passez en 1.108.13[^32]. Appliquez le dernier correctif de votre ligne, limitez les sorties réseau du proxy aux endpoints des providers, désactivez les endpoints MCP s'ils ne servent pas, et ne suivez que les quatre lignes maintenues : une version figée est une version vulnérable[^15]."
+      ]
+    },
+    {
+      "id": "H6",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [
+        "> vLLM ≥ 0.34.0 · LiteLLM ≥ 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne · Ollama ≥ 0.34.2 (CVE-2026-85180, SSRF au `pull` de la 0.30.0 à la 0.33.2 ; CVE-2026-5757, lecture mémoire via import GGUF : note CERT/CC non révisée au 2026-11-20, toujours sans correctif confirmé, donc `/api/create` à réserver aux administrateurs)[^25] · Open WebUI ≥ 0.13.1 (comme les 0.12.4 et 0.12.5, elle embarque des correctifs de sécurité dont les avis attendent leurs CVE ; l'éditeur recommande de passer directement à la 0.13.4 du 2026-11-17)[^24] · llama-server : build à jour. Détail des avis : sections 1, 2 et 7, fiches [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm|LiteLLM]] et [[05-agents-et-assistants-on-prem/assistants-personnels/solutions/open-webui|Open WebUI]]. Ces planchers vieillissent en semaines : abonnez-vous aux advisories GitHub de chaque projet[^14][^15][^16][^18][^19]."
+      ],
+      "added": [
+        "> vLLM ≥ 0.34.0 · LiteLLM ≥ 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon votre ligne (sur la ligne 1.106, trois avis du 23 novembre 2026 ne sont corrigés qu'à partir de la 1.108.0 : activez `general_settings.enforce_fallback_model_access: true` et bloquez `GET /spend/tags` et `GET /global/activity/cache_hits` au reverse proxy, ce qui les coupe aussi pour les administrateurs, ou passez en 1.108.13)[^32] · Ollama ≥ 0.34.2 (CVE-2026-85180, SSRF au `pull` de la 0.30.0 à la 0.33.2 ; CVE-2026-5757, lecture mémoire via import GGUF : note CERT/CC non révisée au 2026-11-20, toujours sans correctif confirmé, donc `/api/create` à réserver aux administrateurs)[^25] · Open WebUI ≥ 0.13.1 (comme les 0.12.4 et 0.12.5, elle embarque des correctifs de sécurité dont les avis attendent leurs CVE ; l'éditeur recommande de passer directement à la 0.13.4 du 2026-11-17)[^24] · llama-server : build à jour. Détail des avis : sections 1, 2 et 7, fiches [[05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm|LiteLLM]] et [[05-agents-et-assistants-on-prem/assistants-personnels/solutions/open-webui|Open WebUI]]. Ces planchers vieillissent en semaines : abonnez-vous aux advisories GitHub de chaque projet[^14][^15][^16][^18][^19]."
+      ]
+    },
+    {
+      "id": "H7",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "removed": [],
+      "added": [
+        "[^32]: BerriAI, *GHSA-4xm2-x5g5-wc8q* (LiteLLM, Moderate : clés virtuelles sans utilisateur lisant les métadonnées d'autres clés via `/key/info` ; corrigé en 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2), 2026-11-20 · *GHSA-wpm4-hgr2-xjwr* (fallbacks de `router_settings` d'équipe ou de clé vers des modèles non autorisés ; corrigé en 1.108.0, versions 1.100.0 à 1.106.x protégées seulement avec `general_settings.enforce_fallback_model_access: true`), *GHSA-fjxr-j47c-4x2x* (`GET /spend/tags` expose les tags et dépenses de tous les tenants) et *GHSA-2364-6whj-g7vx* (`GET /global/activity/cache_hits` expose l'activité de tout le proxy et les alias de toutes les clés), corrigés en 1.108.0, contournement : bloquer l'endpoint au reverse proxy, 2026-11-23. <https://github.com/BerriAI/litellm/security/advisories/GHSA-4xm2-x5g5-wc8q> · <https://github.com/BerriAI/litellm/security/advisories/GHSA-wpm4-hgr2-xjwr> · <https://github.com/BerriAI/litellm/security/advisories/GHSA-fjxr-j47c-4x2x> · <https://github.com/BerriAI/litellm/security/advisories/GHSA-2364-6whj-g7vx>"
+      ]
+    }
+  ],
+  "proposals": [
+    {
+      "id": "C1",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "current": "Au T4 2026 : au minimum 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne (la ligne 1.107 n'a pas de correctif : passer en 1.108.6).",
+      "proposed": "Au T4 2026 : au minimum 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon votre ligne (la ligne 1.107 n'a pas de correctif : passer en 1.108.13).",
+      "check": "ok"
+    },
+    {
+      "id": "C2",
+      "page": "06-mise-en-oeuvre/local-inference-security.md",
+      "current": "LiteLLM ≥ 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne",
+      "proposed": "LiteLLM ≥ 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon votre ligne",
+      "check": "ok"
+    },
+    {
+      "id": "C3",
+      "page": "04-blueprints/scenario-b-sme-appliance.md",
+      "current": "LiteLLM ≥ 1.106.9 / 1.108.6 / 1.109.1 selon sa ligne",
+      "proposed": "LiteLLM ≥ 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon sa ligne",
+      "check": "ok"
+    },
+    {
+      "id": "C4",
+      "page": "05-agents-et-assistants-on-prem/fondations-communes/possible-architectures.md",
+      "current": "**exigez une version ≥ 1.106.9 / 1.108.6 / 1.109.1 selon votre ligne**",
+      "proposed": "**exigez une version ≥ 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon votre ligne**",
+      "check": "ok"
+    },
+    {
+      "id": "C5",
+      "page": "05-agents-et-assistants-on-prem/agents-custodiens/solutions/litellm.md",
+      "current": "viser au minimum l'une de ces trois versions",
+      "proposed": "viser au minimum 1.106.12 / 1.108.13 / 1.109.3 / 1.110.2 selon la ligne (correctifs de l'avis GHSA-4xm2-x5g5-wc8q du 2026-11-20, qui reprennent ceux-ci)",
+      "check": "ok"
+    }
+  ]
+}

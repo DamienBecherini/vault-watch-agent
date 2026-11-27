@@ -26,10 +26,10 @@ Phases are ordered by dependency: finish the loop, measure, then improve what th
 - [ ] **B2. Compare models.** Replay the past watches with `vault-watch eval` on cheaper and local models, against the
   human decisions, before changing the model. Porting needs an equivalent for prompt caching, web search and
   structured output.
-  *First measure (2026-11-27): watch #77 replayed whole on Opus, Sonnet and Haiku 5.5, the judge on Opus: 9, 9 and 8
-  of the 9 merged corrections, none wrong, 3.26 $, 1.57 $ and 0.12 $ at list price
-  ([Choose a model](docs/choose-a-model.md#what-was-tried)). Next: a watch that asks for judgement, before the
-  defaults change.*
+  *Cheaper Claude models measured (2026-11-27 and 28, [Choose a model](docs/choose-a-model.md#what-was-tried)):
+  watch #77 on Opus, Sonnet and Haiku 5.5 (9, 9 and 8 of the 9 merged changes), watch #110 on Opus and Sonnet (7
+  and 5 of 7: Sonnet drops the footnotes of its sources and the conditions per line), none wrong. The reasoning steps
+  stay on Opus 5.5. Left: local models, on a card that holds one able to make the proposals.*
 
 ## Phase C — corrections
 
