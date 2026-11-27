@@ -3,6 +3,18 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## 1.9.1 (2026-11-28)
+
+- **The command line runs the graph again.** Since 1.6.0 `run_config` called itself, so `vault-watch run`,
+  `resume`, `fix`, `mirror`, `crosscheck` and `eval` died of a RecursionError before their first model call (nothing
+  billed). The page has its own and was not affected. Found by replaying past watches; `tests/test_cli.py` checks it.
+- **Cheaper models measured (ROADMAP B2).** Watches #77 and #110 replayed on Opus, Sonnet and, for #77, Haiku 5.5,
+  the judge on Opus: Sonnet makes the same corrections for about half the price, but on #110 drops the footnotes of
+  their sources and the conditions per line. The reasoning steps stay on Opus 5.5
+  ([Choose a model](docs/choose-a-model.md#what-was-tried)).
+- The test copy of the guide's `audit-watchlist-quotes.mjs` is the one its #124 merged; the cost journal runs to
+  2026-11-28.
+
 ## 1.9.0 (2026-11-27)
 
 - **The guide's watchlist follows the corrections.** A guide can keep dated claims, each quoting the sentence of
