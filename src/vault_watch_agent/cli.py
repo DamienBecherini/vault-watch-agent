@@ -45,7 +45,10 @@ if TYPE_CHECKING:
 
 def run_config(thread: str, jobs: bool = True) -> RunnableConfig:
     """A run's configuration for the graph: its checkpoints, and at most four of its jobs at once (`jobs`)."""
-    return run_config(thread) if jobs else run_config(thread, jobs=False)
+    config: RunnableConfig = {"configurable": {"thread_id": thread}}
+    if jobs:
+        config["max_concurrency"] = 4
+    return config
 
 
 def default_home() -> Path:
