@@ -3,7 +3,7 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
-## Unreleased
+## 1.9.2 (2026-11-28)
 
 - **The mirrors skip fewer edits.** The translator copies the passage of the mirror page it replaces, and an edit
   whose copy the page did not have exactly once was skipped (three on the compaction of 2026-11-20, all long
