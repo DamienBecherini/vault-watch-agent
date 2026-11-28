@@ -155,6 +155,41 @@ def check(vault: Path, page: str, current: str) -> str:
     return {0: "text-not-found", 1: "ok"}.get(count, "ambiguous")
 
 
+_APOSTROPHES = "'’‘ʼ"
+_DOUBLE_QUOTES = '"“”'
+_HSPACE = r"[^\S\n]"  # a space, a tab, a non-breaking or thin space: whitespace but a line break
+
+
+def loose_match(text: str, quote: str) -> str | None:
+    """The passage of `text` that `quote` copies, when the copy differs from it only by what a reader does not see:
+    a run of spaces for another (non-breaking and thin spaces included, line breaks kept as such), a typographic
+    apostrophe or double quote for a straight one, a table's escaped pipe for a plain one. None unless exactly one
+    passage matches: nothing else is forgiven (a dash, a letter, a word), so the passage found is the one quoted."""
+    quote = quote.replace("\r\n", "\n").strip()
+    if not quote:
+        return None
+    out, i = [], 0
+    while i < len(quote):
+        c = quote[i]
+        if c.isspace():
+            j = i
+            while j < len(quote) and quote[j].isspace():
+                j += 1
+            breaks = quote.count("\n", i, j)
+            out.append(f"{_HSPACE}*" + rf"(?:\n{_HSPACE}*)" * breaks if breaks else f"{_HSPACE}+")
+            i = j
+            continue
+        if c == "\\" and quote[i + 1:i + 2] == "|":
+            out.append(r"\\?\|")
+            i += 2
+            continue
+        out.append(r"\\?\|" if c == "|" else f"[{_APOSTROPHES}]" if c in _APOSTROPHES
+                   else f"[{_DOUBLE_QUOTES}]" if c in _DOUBLE_QUOTES else re.escape(c))
+        i += 1
+    found = [m.group(0) for m in re.finditer("".join(out), text.replace("\r\n", "\n"))]
+    return found[0] if len(found) == 1 else None
+
+
 _VERSION = re.compile(r"(?<![\w.])v?(\d+)\.(\d+)(?:\.\d+)*(?:\.x|rc\d+)?(?!\w)")
 _PRODUCT_MAJOR = re.compile(r"\b([A-Z][A-Za-z]+) ([1-9]\d*)(?:\.\d+)+")  # "CUDA 12.9" also stands for "CUDA 12"
 _IDENTIFIER = re.compile(r"(?<![\w.-])-?([a-z]+\d+[a-z\d]*)(?![\w.])")  # cu129, -cu129

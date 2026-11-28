@@ -31,7 +31,9 @@ MIRROR_NOTES = ("A passage whose new text is empty was removed: give the matchin
 def mirror(deps: Deps, state: WatchState) -> dict:
     """The mirrors follow what changed in the source pages on the branch, paragraph by paragraph (mirrors.py):
     the corrections applied, and whatever was edited by hand. A page listed in `mirror_since` is translated from
-    that commit instead of the base (a page ahead of its mirror before the run)."""
+    that commit instead of the base (a page ahead of its mirror before the run). An edit whose quote the mirror page
+    does not have exactly once goes back to the translator once, alone with the others missed: only what is still
+    missed then is skipped (said in `mirror_problems`)."""
     wt = Path(state["worktree"])
     translator = deps.translator or deps.llm
     guide = vault.guide_of(wt)
@@ -53,7 +55,18 @@ def mirror(deps: Deps, state: WatchState) -> dict:
         usage.append(u)
         if result.problem:
             problems.append(f"{en}: {result.problem}")
-        done = _apply_mirror_edits(deps, wt, guide, en, result.edits, problems)
+        done, missed = _apply_mirror_edits(deps, wt, guide, en, result.edits)
+        if ask := [m for m in missed if m[1] in _ASK_AGAIN]:
+            # quotes the page does not have once: the translator is asked once more, for those edits only
+            retry, u = _translate_again(translator, wt, code, en, ask)
+            usage.append(u)
+            if retry.problem:
+                problems.append(f"{en}: {retry.problem}")
+            more, still = _apply_mirror_edits(deps, wt, guide, en, retry.edits)
+            done += more
+            missed = [m for m in missed if m[1] not in _ASK_AGAIN] + still
+        problems += [f"{en}: quoted text {_MISSED[why]} in the mirror, even when asked again: edit skipped"
+                     if why in _MISSED else f"{en}: edit skipped ({why})" for _, why in missed]
         # What changed in the source page beside what the translator made of it: shown side by side, so that the
         # translation can be judged (and, in a « Sync the languages » run, retouched)
         pairs.append({"page": page, "mirror": en, "source": [list(c) for c in changed], "target": done,
@@ -86,19 +99,47 @@ def _translate(translator: LLM, wt: Path, guide: Guide, code: str, page: str, en
                             node=f"mirror {en}")
 
 
-def _apply_mirror_edits(deps: Deps, wt: Path, guide: Guide, en: str, edits: list[MirrorEdit], problems: list[str]) -> list[list[str]]:
-    """The translator's edits applied to the mirror page `en`: [[current, proposed]…] of those applied; an edit
-    whose quote is not found once is skipped and said in `problems`."""
-    done = []
+_MISSED = {"text-not-found": "not found", "ambiguous": "found more than once"}
+# What the translator is told when asked again, by `vault.check`'s answer
+_ASK_AGAIN = {"text-not-found": "this `current` is not in the page",
+              "ambiguous": "this `current` occurs more than once in the page: quote a longer passage, one that occurs once"}
+
+
+def _translate_again(translator: LLM, wt: Path, code: str, en: str,
+                     missed: list[tuple[MirrorEdit, str]]) -> tuple[MirrorResult, dict]:
+    """A second call for the edits whose quote the mirror page `en` does not have once, each with why, against the
+    page as it now stands (the other edits applied): the translator copies the passage again, verbatim."""
+    edits = "\n\n".join(f"<edit>\n<current>\n{e.current}\n</current>\n<proposed>\n{e.proposed}\n</proposed>\n"
+                        f"<why>{_ASK_AGAIN.get(why, why)}</why>\n</edit>" for e, why in missed)
+    prompt = (f"Page `{en}` of the {language_name(code)} mirror, as it now stands:\n\n<mirror_page>\n{vault.read(wt / en)}\n"
+              f"</mirror_page>\n\nThese edits of the page could not be placed: an edit's `current` must be copied from "
+              f"the page above, character for character, and occur in it exactly once.\n\n{edits}\n\nGive each edit again: "
+              "`current` copied verbatim from the page (same letters, spaces, punctuation, Markdown, links and footnote "
+              "markers), longer when the passage occurs more than once, and `proposed` the same translation, widened "
+              "as `current` was. Give no edit for a passage the page no longer has or already says as `proposed` does.")
+    return translator.parse(system=prompts.mirror(wt, code), prompt=prompt, schema=MirrorResult, effort=steps.effort("mirror"),
+                            node=f"mirror {en} (asked again)")
+
+
+def _apply_mirror_edits(deps: Deps, wt: Path, guide: Guide, en: str,
+                        edits: list[MirrorEdit]) -> tuple[list[list[str]], list[tuple[MirrorEdit, str]]]:
+    """The translator's edits applied to the mirror page `en`: [[current, proposed]…] of those applied, and the edits
+    whose quote the page does not have exactly once, with why (`vault.check`). A quote that differs from the page
+    only by what a reader does not see (`vault.loose_match`) is applied to the page's own text."""
+    done, missed = [], []
     for e in edits:
         if vault.date_bump_only(e.current, e.proposed, guide.modified_field) or e.current == e.proposed:
             continue  # apply bumps the date itself; an edit the mirror already carries changes nothing
-        if vault.check(wt, en, e.current) != "ok":
-            problems.append(f"{en}: quoted text not found exactly once in the mirror, edit skipped")
+        current, proposed, why = e.current, e.proposed, vault.check(wt, en, e.current)
+        if why == "text-not-found" and (found := vault.loose_match(vault.read(wt / en), current)):
+            # the copy's own spaces around it are not in the page: the translation does not bring them either
+            current, proposed, why = found, (proposed.strip() if current != current.strip() else proposed), "ok"
+        if why != "ok":
+            missed.append((e, why))
             continue
-        vault.apply(wt, en, e.current, e.proposed, deps.today)
-        done.append([e.current, e.proposed])
-    return done
+        vault.apply(wt, en, current, proposed, deps.today)
+        done.append([current, proposed])
+    return done, missed
 
 
 # -- translation (interrupt): a « Sync the languages » run shows the translation beside its source, editable ---

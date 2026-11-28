@@ -244,3 +244,111 @@ def test_hunks_show_each_zone_changed_with_two_lines_around():
     assert found == [{"above": ["b", "c"], "old": "d", "new": "D", "below": ["e", "f"]},
                      {"above": ["j", "k"], "old": "", "new": "l", "below": [""]}]
     assert mirrors.hunks(old, old) == []
+
+
+# -- a translator's quote that misses the mirror page (compaction of 2026-11-20: three edits skipped) ------------
+
+def test_a_quote_is_forgiven_only_what_a_reader_does_not_see():
+    text = "Ollama’s settings remain the simplest.\n| [[a\\|b]] | 14B coder |\nsame. same.\na  \nb\n"
+    assert vault.loose_match(text, "Ollama's settings remain the simplest.") == "Ollama’s settings remain the simplest."
+    assert vault.loose_match(text, "| [[a|b]] |  14B coder |") == "| [[a\\|b]] | 14B coder |"  # escaped pipe, spaces
+    assert vault.loose_match(text, "a\nb") == "a  \nb"  # a line break stays one, its trailing spaces do not count
+    assert vault.loose_match(text, "a b") is None  # but it is not a space
+    assert vault.loose_match(text, "same.") is None  # twice: which one is not guessed
+    assert vault.loose_match("a – b", "a - b") is None  # a dash is seen: not forgiven
+    assert vault.loose_match("Ollama 0.6", "Ollama 0.7") is None
+    assert vault.loose_match(text, "  \n") is None
+
+
+TOOLS = """---
+title: Outils
+last_modified: "2026-06-10"
+---
+
+Les réglages d'Ollama restent les plus simples.
+
+| Outil | Modèle |
+| :-- | :-- |
+| [[03-stack/engines\\|Aider]] | un 14B codeur (Qwen2.5-Coder-14B)[^1] |
+
+Ollama tourne sur un PC. Ollama tourne sur un PC.
+
+[^1]: Note.
+"""
+
+TOOLS_EN = """---
+title: Tools
+last_modified: "2026-06-10"
+---
+
+Ollama’s settings remain the simplest.
+
+| Tool | Model |
+| :-- | :-- |
+| [[03-stack/engines\\|Aider]] | a 14B coder (Qwen2.5-Coder-14B)[^1] |
+
+Ollama runs on a PC. Ollama runs on a PC.
+
+[^1]: Note.
+"""
+
+
+class Missing:
+    """A translator whose first quotes miss the page: two only by what a reader does not see (a typographic apostrophe,
+    a wiki link's escaped pipe), one found twice, one not there at all; asked again, it quotes the third longer and
+    the fourth wrong again."""
+    FIRST = [("Ollama's settings remain the simplest.", "Ollama's settings remain the simplest to date."),
+             ("| [[03-stack/engines|Aider]] | a 14B coder (Qwen2.5-Coder-14B)[^1] |",
+              "| [[03-stack/engines\\|Aider]] | a 14B coder[^1] |"),
+             ("Ollama runs on a PC.", "Ollama also runs on a Mac."),
+             ("[^1]: A note.", "[^1]: Note, 2026.")]
+    AGAIN = [("Ollama runs on a PC. Ollama runs on a PC.", "Ollama runs on a PC. Ollama also runs on a Mac."),
+             ("[^1]: The note.", "[^1]: Note, 2026.")]
+
+    def __init__(self):
+        self.calls = []
+
+    def parse(self, *, system, prompt, schema, effort, node, context=None, web=False):
+        assert schema is MirrorResult
+        self.calls.append((node, prompt))
+        edits = self.AGAIN if node.endswith("(asked again)") else self.FIRST
+        return MirrorResult(problem="", edits=[MirrorEdit(current=c, proposed=p) for c, p in edits]), \
+            {"node": node, "model": "fake", "input": 10, "output": 5, "cache_read": 0}
+
+
+def test_the_mirrors_place_a_near_quote_and_ask_again_for_the_others(guide: Path, tmp_path: Path):
+    from vault_watch_agent import graph_publish
+    from vault_watch_agent.graph_common import Deps
+
+    (guide / "03-stack" / "tools.md").write_text(TOOLS, encoding="utf-8")
+    (guide / "en" / "03-stack" / "tools.md").write_text(TOOLS_EN, encoding="utf-8")
+    sh("git", "config", "user.email", "t@t", cwd=guide)
+    sh("git", "config", "user.name", "t", cwd=guide)
+    sh("git", "add", ".", cwd=guide)
+    commit(guide, "tools")
+    sh("git", "checkout", "-q", "-b", "compact/test", cwd=guide)
+    (guide / "03-stack" / "tools.md").write_text(
+        TOOLS.replace("les plus simples.", "les plus simples à ce jour.").replace(" (Qwen2.5-Coder-14B)", "")
+        .replace("PC. Ollama tourne sur", "PC. Ollama tourne aussi sur").replace("aussi sur un PC.", "aussi sur un Mac.")
+        .replace("[^1]: Note.", "[^1]: Note, 2026."), encoding="utf-8")
+    commit(guide, "trims")
+    translator = Missing()
+    deps = Deps(vault=guide, home=tmp_path / "home", llm=translator, today="2026-11-28")
+
+    out = graph_publish.mirror(deps, {"worktree": str(guide)})
+
+    en = (guide / "en" / "03-stack" / "tools.md").read_text(encoding="utf-8")
+    assert "\nOllama's settings remain the simplest to date.\n" in en  # placed on the page's own text
+    assert "| [[03-stack/engines\\|Aider]] | a 14B coder[^1] |" in en
+    assert "Ollama runs on a PC. Ollama also runs on a Mac." in en  # asked again: quoted longer
+    assert "[^1]: Note.\n" in en and 'last_modified: "2026-11-28"' in en  # still missed: left as it was
+    assert out["mirrored"] == ["en/03-stack/tools.md"] and len(out["usage"]) == 2
+    assert out["mirror_problems"] == [
+        "en/03-stack/tools.md: quoted text not found in the mirror, even when asked again: edit skipped"]
+    assert out["mirror_pairs"][0]["target"][0] == ["Ollama’s settings remain the simplest.",
+                                                   "Ollama's settings remain the simplest to date."]
+    (first, _), (node, again) = translator.calls
+    assert first == "mirror en/03-stack/tools.md" and node == "mirror en/03-stack/tools.md (asked again)"
+    assert "simplest to date." in again  # the page as it now stands
+    assert "occurs more than once" in again and "is not in the page" in again
+    assert again.count("<edit>") == 2  # only the two missed

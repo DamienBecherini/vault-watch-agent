@@ -3,6 +3,16 @@
 Versions follow the milestones of [phase G of ROADMAP.md](ROADMAP.md#phase-g--a-modular-agent). The version is written
 once, in `src/vault_watch_agent/__init__.py`; `/api/health`, `/api/info` and the page footer show it.
 
+## Unreleased
+
+- **The mirrors skip fewer edits.** The translator copies the passage of the mirror page it replaces, and an edit
+  whose copy the page did not have exactly once was skipped (three on the compaction of 2026-11-20, all long
+  passages: a footnote, a bullet, a table row; carried by hand). A copy that differs from the page only by what a
+  reader does not see (spaces, non-breaking ones included, a typographic apostrophe or quote, a table's escaped
+  pipe) is now placed on the page's own text (`vault.loose_match`; nothing else is forgiven, and two matches are
+  none). The edits still missed go back to the translator once, alone, each with why (not found, or found twice:
+  quote a longer passage), against the page as it now stands; only what is missed then is skipped and listed.
+
 ## 1.9.1 (2026-11-28)
 
 - **The command line runs the graph again.** Since 1.6.0 `run_config` called itself, so `vault-watch run`,
